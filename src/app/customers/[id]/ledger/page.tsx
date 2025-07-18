@@ -14,6 +14,7 @@ import { useCustomers } from '@/hooks/use-customers';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 type LedgerEntry = {
   id: string;
@@ -164,7 +165,12 @@ export default function CustomerLedgerPage() {
                     </TableCell>
                     <TableCell>{entry.description}</TableCell>
                     <TableCell>
-                      <Badge variant={entry.type === 'Sale' ? 'destructive' : 'default'}>{entry.type}</Badge>
+                       <Badge 
+                         variant={entry.type === 'Sale' ? 'destructive' : 'outline'}
+                         className={cn(entry.type === 'Payment' && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}
+                       >
+                         {entry.type}
+                       </Badge>
                     </TableCell>
                     <TableCell className="text-right font-mono text-destructive">
                         {entry.debit > 0 ? entry.debit.toFixed(2) : '-'}
