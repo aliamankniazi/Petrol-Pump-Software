@@ -7,57 +7,74 @@ import { Numpad } from '@/components/numpad';
 import { useTransactions } from '@/hooks/use-transactions';
 import type { FuelType, PaymentMethod } from '@/lib/types';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Fuel, Droplets, CreditCard, Wallet, Smartphone } from 'lucide-react';
+import { Fuel, Droplets, CreditCard, Wallet, Smartphone, Repeat } from 'lucide-react';
 import { useFuelPrices } from '@/hooks/use-fuel-prices';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
+
+type SaleMode = 'amount' | 'liters';
 
 export default function SalePage() {
   const { addTransaction } = useTransactions();
   const { fuelPrices, isLoaded: pricesLoaded } = useFuelPrices();
-  const [amountStr, setAmountStr] = useState('0');
+  const [inputStr, setInputStr] = useState('0');
+  const [mode, setMode] = useState<SaleMode>('amount');
   const [selectedFuel, setSelectedFuel] = useState<FuelType>('Unleaded');
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [lastTransaction, setLastTransaction] = useState<{ amount: number; volume: number; fuelType: FuelType } | null>(null);
 
-  const amountNum = useMemo(() => parseFloat(amountStr) || 0, [amountStr]);
-  const volume = useMemo(() => {
-    const pricePerLitre = fuelPrices[selectedFuel];
-    if (!pricePerLitre || pricePerLitre === 0) return 0;
-    return amountNum / pricePerLitre;
-  }, [amountNum, selectedFuel, fuelPrices]);
+  const { amount, volume } = useMemo(() => {
+    const pricePerLitre = fuelPrices[selectedFuel] || 1;
+    const inputNum = parseFloat(inputStr) || 0;
+
+    if (mode === 'amount') {
+      const calculatedVolume = pricePerLitre > 0 ? inputNum / pricePerLitre : 0;
+      return { amount: inputNum, volume: calculatedVolume };
+    } else { // mode is 'liters'
+      const calculatedAmount = inputNum * pricePerLitre;
+      return { amount: calculatedAmount, volume: inputNum };
+    }
+  }, [inputStr, mode, selectedFuel, fuelPrices]);
 
   const handleNumpadPress = useCallback((key: string) => {
     if (key === 'C') {
-      setAmountStr('0');
+      setInputStr('0');
       return;
     }
-    if (key === '.' && amountStr.includes('.')) {
+    if (key === '.' && inputStr.includes('.')) {
       return;
     }
-    if (amountStr === '0' && key !== '.') {
-      setAmountStr(key);
-    } else if (amountStr.length < 7) {
-      if (amountStr.includes('.') && amountStr.split('.')[1].length >= 2) return;
-      setAmountStr(amountStr + key);
+    if (inputStr === '0' && key !== '.') {
+      setInputStr(key);
+    } else if (inputStr.length < 7) {
+      if (inputStr.includes('.') && inputStr.split('.')[1].length >= 2) return;
+      setInputStr(prev => prev + key);
     }
-  }, [amountStr]);
+  }, [inputStr]);
+  
+  const handleModeChange = (newMode: SaleMode) => {
+      if (mode !== newMode) {
+          setMode(newMode);
+          setInputStr('0');
+      }
+  }
 
   const handlePayment = (paymentMethod: PaymentMethod) => {
-    if (amountNum <= 0) return;
+    if (amount <= 0 || volume <= 0) return;
     
     const transaction = {
       fuelType: selectedFuel,
       volume: parseFloat(volume.toFixed(2)),
       pricePerLitre: fuelPrices[selectedFuel],
-      totalAmount: amountNum,
+      totalAmount: parseFloat(amount.toFixed(2)),
       paymentMethod,
     };
     
     addTransaction(transaction);
     setLastTransaction({
-      amount: amountNum,
+      amount: parseFloat(amount.toFixed(2)),
       volume: parseFloat(volume.toFixed(2)),
       fuelType: selectedFuel
     });
@@ -65,7 +82,8 @@ export default function SalePage() {
   };
 
   const resetSale = () => {
-    setAmountStr('0');
+    setInputStr('0');
+    setMode('amount');
     setSelectedFuel('Unleaded');
     setShowConfirmation(false);
     setLastTransaction(null);
@@ -80,15 +98,23 @@ export default function SalePage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-6 flex-grow">
-          <div className="text-center bg-muted/50 p-6 rounded-lg shadow-inner">
-            <div className="text-5xl md:text-7xl font-bold tracking-tighter text-primary">
-              PKR {amountNum.toFixed(2)}
-            </div>
-            <div className="text-lg md:text-xl text-muted-foreground mt-2 flex items-center justify-center gap-2">
-              <Droplets className="w-5 h-5" />
-              <span>{volume.toFixed(2)} Litres</span>
-            </div>
-          </div>
+          <Tabs value={mode} onValueChange={(value) => handleModeChange(value as SaleMode)} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="amount">By Amount (PKR)</TabsTrigger>
+              <TabsTrigger value="liters">By Volume (L)</TabsTrigger>
+            </TabsList>
+            <div className="text-center bg-muted/50 p-6 rounded-lg shadow-inner mt-4">
+               <div className="text-sm text-muted-foreground">{mode === 'amount' ? 'Amount to Pay' : 'Calculated Amount'}</div>
+               <div className="text-5xl md:text-7xl font-bold tracking-tighter text-primary">
+                 PKR {amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+               </div>
+              <div className="mt-4 text-sm text-muted-foreground">{mode === 'liters' ? 'Volume to Dispense' : 'Calculated Volume'}</div>
+               <div className="text-lg md:text-xl text-foreground mt-1 flex items-center justify-center gap-2">
+                 <Droplets className="w-5 h-5 text-primary" />
+                 <span>{volume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Litres</span>
+               </div>
+             </div>
+          </Tabs>
           
           {!pricesLoaded && <div className="grid grid-cols-3 gap-4"><Skeleton className="h-[5rem]"/><Skeleton className="h-[5rem]"/><Skeleton className="h-[5rem]"/></div>}
           {pricesLoaded && (
@@ -109,13 +135,13 @@ export default function SalePage() {
 
 
           <div className="grid grid-cols-3 gap-4">
-            <Button className="py-6 text-base" onClick={() => handlePayment('Cash')} disabled={amountNum <= 0 || !pricesLoaded}>
+            <Button className="py-6 text-base" onClick={() => handlePayment('Cash')} disabled={amount <= 0 || !pricesLoaded}>
               <Wallet className="mr-2" /> Cash
             </Button>
-            <Button className="py-6 text-base" onClick={() => handlePayment('Card')} disabled={amountNum <= 0 || !pricesLoaded}>
+            <Button className="py-6 text-base" onClick={() => handlePayment('Card')} disabled={amount <= 0 || !pricesLoaded}>
               <CreditCard className="mr-2" /> Card
             </Button>
-            <Button className="py-6 text-base" onClick={() => handlePayment('Mobile')} disabled={amountNum <= 0 || !pricesLoaded}>
+            <Button className="py-6 text-base" onClick={() => handlePayment('Mobile')} disabled={amount <= 0 || !pricesLoaded}>
               <Smartphone className="mr-2" /> Mobile
             </Button>
           </div>
@@ -123,7 +149,7 @@ export default function SalePage() {
       </Card>
       <Card className="flex-1 lg:flex-grow-[1]">
         <CardHeader>
-          <CardTitle>Enter Amount</CardTitle>
+          <CardTitle>Enter {mode === 'amount' ? 'Amount (PKR)' : 'Volume (L)'}</CardTitle>
         </CardHeader>
         <CardContent>
           <Numpad onKeyPress={handleNumpadPress} />
@@ -135,7 +161,7 @@ export default function SalePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Transaction Complete</AlertDialogTitle>
             <AlertDialogDescription>
-              A sale of {lastTransaction?.volume}L of {lastTransaction?.fuelType} for PKR {lastTransaction?.amount.toFixed(2)} has been recorded.
+              A sale of {lastTransaction?.volume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}L of {lastTransaction?.fuelType} for PKR {lastTransaction?.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} has been recorded.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
