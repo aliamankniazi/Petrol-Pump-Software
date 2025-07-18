@@ -11,3 +11,12 @@ export interface Transaction {
   paymentMethod: PaymentMethod;
   timestamp: string;
 }
+
+export interface Purchase {
+  id: string;
+  supplier: string;
+  fuelType: FuelType;
+  volume: number;
+  totalCost: number;
+  timestamp: string;
+}
