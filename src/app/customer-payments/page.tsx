@@ -65,12 +65,12 @@ export default function CustomerPaymentsPage() {
           <CardDescription>A record of all payments received from customers. Use the filters below to refine your search.</CardDescription>
           
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-4">
-              <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
+              <Select value={selectedCustomerId} onValueChange={(value) => setSelectedCustomerId(value === 'all' ? '' : value)}>
                 <SelectTrigger className="sm:w-[240px]">
                   <SelectValue placeholder="Filter by customer..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Customers</SelectItem>
+                  <SelectItem value="all">All Customers</SelectItem>
                   {customers.map(c => (
                     <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
