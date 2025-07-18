@@ -14,12 +14,13 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { Fuel, History, FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2 } from 'lucide-react';
+import { Fuel, History, FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users } from 'lucide-react';
 import { ThemeToggle } from './theme-toggle';
 
 const navItems = [
   { href: '/', label: 'Sale', icon: LayoutDashboard },
   { href: '/history', label: 'History', icon: History },
+  { href: '/customers', label: 'Customers', icon: Users },
   { href: '/purchases', label: 'Purchases', icon: ShoppingCart },
   { href: '/purchase-returns', label: 'Purchase Returns', icon: Undo2 },
   { href: '/expenses', label: 'Expenses', icon: Receipt },

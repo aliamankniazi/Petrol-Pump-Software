@@ -40,3 +40,11 @@ export interface Expense {
   amount: number;
   timestamp: string;
 }
+
+export interface Customer {
+  id: string;
+  name: string;
+  contact: string;
+  vehicleNumber?: string;
+  timestamp: string;
+}
