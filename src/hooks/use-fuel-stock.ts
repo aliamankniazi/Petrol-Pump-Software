@@ -7,8 +7,9 @@ import { usePurchases } from './use-purchases';
 import { usePurchaseReturns } from './use-purchase-returns';
 
 const MANUAL_STOCK_KEY = 'pumppal-manual-fuel-stock';
+const INITIAL_STOCK_KEY = 'pumppal-initial-fuel-stock';
 
-const DEFAULT_FUEL_STOCK: Record<FuelType, number> = {
+const DEFAULT_INITIAL_STOCK: Record<FuelType, number> = {
   'Unleaded': 10000,
   'Premium': 5000,
   'Diesel': 15000,
@@ -19,17 +20,20 @@ export function useFuelStock() {
   const { purchases, isLoaded: purchasesLoaded } = usePurchases();
   const { purchaseReturns, isLoaded: purchaseReturnsLoaded } = usePurchaseReturns();
   
-  const [manualStock, setManualStock] = useState<Partial<Record<FuelType, number>>>({});
+  const [manualStock, setManualStock] = useState<Partial<Record<FuelType, { value: number; timestamp: string }>>>({});
   const [isLoaded, setIsLoaded] = useState(false);
+  const [initialStock, setInitialStock] = useState<Record<FuelType, number>>(DEFAULT_INITIAL_STOCK);
 
   useEffect(() => {
     try {
-      const storedItems = localStorage.getItem(MANUAL_STOCK_KEY);
-      if (storedItems) {
-        setManualStock(JSON.parse(storedItems));
-      }
+      const storedManual = localStorage.getItem(MANUAL_STOCK_KEY);
+      if (storedManual) setManualStock(JSON.parse(storedManual));
+      
+      const storedInitial = localStorage.getItem(INITIAL_STOCK_KEY);
+      if(storedInitial) setInitialStock(JSON.parse(storedInitial));
+
     } catch (error) {
-      console.error("Failed to parse manual fuel stock from localStorage", error);
+      console.error("Failed to parse fuel stock from localStorage", error);
     } finally {
       setIsLoaded(true);
     }
@@ -45,55 +49,57 @@ export function useFuelStock() {
     }
   }, [manualStock, isLoaded]);
 
-  const calculatedStock = useMemo(() => {
+  const fuelStock = useMemo(() => {
     if (!transactionsLoaded || !purchasesLoaded || !purchaseReturnsLoaded) {
-      return DEFAULT_FUEL_STOCK;
+      return initialStock;
     }
 
-    const stock = { ...DEFAULT_FUEL_STOCK };
+    const stock = { ...initialStock };
 
     for (const fuelType in stock) {
         const ft = fuelType as FuelType;
 
-        const totalSold = transactions
-            .filter(t => t.fuelType === ft)
-            .reduce((sum, t) => sum + t.volume, 0);
-
-        const totalPurchased = purchases
-            .filter(p => p.fuelType === ft)
-            .reduce((sum, p) => sum + p.volume, 0);
-
-        const totalReturned = purchaseReturns
-            .filter(pr => pr.fuelType === ft)
-            .reduce((sum, pr) => sum + pr.volume, 0);
+        const manualAdjustment = manualStock[ft];
         
-        stock[ft] = stock[ft] + totalPurchased - totalSold - totalReturned;
+        if (manualAdjustment) {
+            stock[ft] = manualAdjustment.value;
+        } else {
+            const totalSold = transactions
+                .filter(t => t.fuelType === ft)
+                .reduce((sum, t) => sum + t.volume, 0);
+
+            const totalPurchased = purchases
+                .filter(p => p.fuelType === ft)
+                .reduce((sum, p) => sum + p.volume, 0);
+
+            const totalReturned = purchaseReturns
+                .filter(pr => pr.fuelType === ft)
+                .reduce((sum, pr) => sum + pr.volume, 0);
+            
+            stock[ft] = initialStock[ft] + totalPurchased - totalSold - totalReturned;
+        }
     }
     
     return stock;
-  }, [transactions, purchases, purchaseReturns, transactionsLoaded, purchasesLoaded, purchaseReturnsLoaded]);
-
-  const fuelStock = useMemo(() => {
-    return {
-      ...calculatedStock,
-      ...manualStock,
-    };
-  }, [calculatedStock, manualStock]);
+  }, [initialStock, manualStock, transactions, purchases, purchaseReturns, transactionsLoaded, purchasesLoaded, purchaseReturnsLoaded]);
 
   const setFuelStock = useCallback((fuelType: FuelType, newStock: number) => {
     if (isNaN(newStock) || newStock < 0) return;
+    
     setManualStock(prev => ({
       ...prev,
-      [fuelType]: newStock,
+      [fuelType]: { value: newStock, timestamp: new Date().toISOString() },
     }));
   }, []);
 
   const clearFuelStock = useCallback(() => {
     setManualStock({});
+    setInitialStock(DEFAULT_INITIAL_STOCK);
     try {
       localStorage.removeItem(MANUAL_STOCK_KEY);
+      localStorage.removeItem(INITIAL_STOCK_KEY);
     } catch (error) {
-      console.error("Failed to remove manual fuel stock from localStorage", error);
+      console.error("Failed to remove fuel stock from localStorage", error);
     }
   }, []);
 

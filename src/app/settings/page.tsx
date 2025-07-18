@@ -60,7 +60,7 @@ export default function SettingsPage() {
   const { fuelStock, setFuelStock, clearFuelStock, isLoaded: stockLoaded } = useFuelStock();
   const { toast } = useToast();
 
-  const { register, handleSubmit, control, reset, watch } = useForm<AdjustmentFormValues>({
+  const { register, handleSubmit, control, reset, watch, formState: { errors } } = useForm<AdjustmentFormValues>({
     resolver: zodResolver(adjustmentSchema),
     defaultValues: {
       adjustment: 0,
@@ -69,8 +69,12 @@ export default function SettingsPage() {
 
   const selectedFuelType = watch('fuelType');
   const adjustmentValue = watch('adjustment');
-  const currentStock = selectedFuelType ? fuelStock[selectedFuelType] : 0;
-  const newStock = currentStock + (adjustmentValue || 0);
+  const currentStock = selectedFuelType ? (fuelStock[selectedFuelType] || 0) : 0;
+  
+  const newStock = React.useMemo(() => {
+    const adj = Number(adjustmentValue) || 0;
+    return Number(currentStock) + adj;
+  }, [currentStock, adjustmentValue]);
 
   const handleClearData = () => {
     clearTransactions();
@@ -98,9 +102,10 @@ export default function SettingsPage() {
   };
 
   const onAdjustmentSubmit: SubmitHandler<AdjustmentFormValues> = (data) => {
-    const currentStock = fuelStock[data.fuelType] || 0;
-    const newStock = currentStock + data.adjustment;
-    if (newStock < 0) {
+    const currentStockValue = fuelStock[data.fuelType] || 0;
+    const finalNewStock = currentStockValue + data.adjustment;
+
+    if (finalNewStock < 0) {
       toast({
         variant: 'destructive',
         title: 'Invalid Adjustment',
@@ -108,10 +113,10 @@ export default function SettingsPage() {
       });
       return;
     }
-    setFuelStock(data.fuelType, newStock);
+    setFuelStock(data.fuelType, finalNewStock);
     toast({
       title: 'Stock Adjusted',
-      description: `${data.fuelType} stock has been set to ${newStock.toLocaleString()} L.`,
+      description: `${data.fuelType} stock has been set to ${finalNewStock.toLocaleString()} L.`,
     });
     reset({ fuelType: data.fuelType, adjustment: 0 });
   };
@@ -191,6 +196,7 @@ export default function SettingsPage() {
                           </Select>
                         )}
                       />
+                       {errors.fuelType && <p className="text-sm text-destructive">{errors.fuelType.message}</p>}
                     </div>
                     <div className="space-y-2 md:col-span-1">
                       <Label htmlFor="currentStock">Current Stock (L)</Label>
@@ -199,6 +205,7 @@ export default function SettingsPage() {
                     <div className="space-y-2 md:col-span-1">
                       <Label htmlFor="adjustment">Adjustment (L)</Label>
                       <Input id="adjustment" type="number" {...register('adjustment')} placeholder="e.g., -50 or 100" step="0.01" />
+                       {errors.adjustment && <p className="text-sm text-destructive">{errors.adjustment.message}</p>}
                     </div>
                      <div className="space-y-2 md:col-span-1">
                       <Label htmlFor="newStock">New Stock (L)</Label>
