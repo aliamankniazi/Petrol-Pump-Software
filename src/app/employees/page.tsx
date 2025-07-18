@@ -17,6 +17,7 @@ import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useExpenses } from '@/hooks/use-expenses';
+import type { Employee } from '@/lib/types';
 
 const employeeSchema = z.object({
   name: z.string().min(1, 'Employee name is required'),
