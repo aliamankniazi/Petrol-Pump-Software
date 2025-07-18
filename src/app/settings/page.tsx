@@ -23,19 +23,38 @@ import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { useFuelPrices } from '@/hooks/use-fuel-prices';
 import type { FuelType } from '@/lib/types';
+import { usePurchases } from '@/hooks/use-purchases';
+import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
+import { useExpenses } from '@/hooks/use-expenses';
+import { useCustomers } from '@/hooks/use-customers';
+import { useBankAccounts } from '@/hooks/use-bank-accounts';
+import { useEmployees } from '@/hooks/use-employees';
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
 export default function SettingsPage() {
   const { clearTransactions } = useTransactions();
-  const { fuelPrices, updateFuelPrice, isLoaded } = useFuelPrices();
+  const { clearPurchases } = usePurchases();
+  const { clearPurchaseReturns } = usePurchaseReturns();
+  const { clearExpenses } = useExpenses();
+  const { clearCustomers } = useCustomers();
+  const { clearBankAccounts } = useBankAccounts();
+  const { clearEmployees } = useEmployees();
+  const { fuelPrices, updateFuelPrice, clearFuelPrices, isLoaded } = useFuelPrices();
   const { toast } = useToast();
 
   const handleClearData = () => {
     clearTransactions();
+    clearPurchases();
+    clearPurchaseReturns();
+    clearExpenses();
+    clearCustomers();
+    clearBankAccounts();
+    clearEmployees();
+    clearFuelPrices();
     toast({
       title: "Data Cleared",
-      description: "All transaction history has been removed.",
+      description: "All application data has been removed.",
     });
   };
 
@@ -103,7 +122,7 @@ export default function SettingsPage() {
               <div>
                 <Label htmlFor="clear-data" className="text-destructive">Clear All Data</Label>
                 <p className="text-sm text-muted-foreground">
-                  This will permanently delete all transaction history. This action cannot be undone.
+                  This will permanently delete all application data. This action cannot be undone.
                 </p>
               </div>
               <AlertDialog>
@@ -116,7 +135,7 @@ export default function SettingsPage() {
                   <AlertDialogHeader>
                     <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete all your transaction data from this device.
+                      This action cannot be undone. This will permanently delete all your application data from this device.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
