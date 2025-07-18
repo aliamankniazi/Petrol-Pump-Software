@@ -26,6 +26,10 @@ import type { FuelType } from '@/lib/types';
 import { usePurchases } from '@/hooks/use-purchases';
 import { useExpenses } from '@/hooks/use-expenses';
 import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
+import { useCustomers } from '@/hooks/use-customers';
+import { useBankAccounts } from '@/hooks/use-bank-accounts';
+import { useEmployees } from '@/hooks/use-employees';
+
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
@@ -34,6 +38,9 @@ export default function SettingsPage() {
   const { clearPurchases } = usePurchases();
   const { clearPurchaseReturns } = usePurchaseReturns();
   const { clearExpenses } = useExpenses();
+  const { clearCustomers } = useCustomers();
+  const { clearBankAccounts } = useBankAccounts();
+  const { clearEmployees } = useEmployees();
   const { fuelPrices, updateFuelPrice, isLoaded } = useFuelPrices();
   const { toast } = useToast();
 
@@ -42,9 +49,12 @@ export default function SettingsPage() {
     clearPurchases();
     clearPurchaseReturns();
     clearExpenses();
+    clearCustomers();
+    clearBankAccounts();
+    clearEmployees();
     toast({
       title: "Data Cleared",
-      description: "All transaction, purchase, return, and expense history has been removed.",
+      description: "All application data has been removed.",
     });
   };
 
@@ -112,7 +122,7 @@ export default function SettingsPage() {
               <div>
                 <Label htmlFor="clear-data" className="text-destructive">Clear All Data</Label>
                 <p className="text-sm text-muted-foreground">
-                  This will permanently delete all transaction, purchase, return and expense history. This action cannot be undone.
+                  This will permanently delete all data from the application. This action cannot be undone.
                 </p>
               </div>
               <AlertDialog>
@@ -125,7 +135,7 @@ export default function SettingsPage() {
                   <AlertDialogHeader>
                     <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete all your transaction, purchase, return, and expense data from this device.
+                      This action cannot be undone. This will permanently delete all your application data from this device.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>

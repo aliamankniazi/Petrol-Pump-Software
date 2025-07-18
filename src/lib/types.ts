@@ -56,3 +56,12 @@ export interface BankAccount {
   balance: number;
   timestamp: string;
 }
+
+export interface Employee {
+  id: string;
+  name: string;
+  position: string;
+  salary: number;
+  hireDate: string;
+  timestamp: string;
+}
