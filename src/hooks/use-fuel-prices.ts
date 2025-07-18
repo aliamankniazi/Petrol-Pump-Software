@@ -49,5 +49,14 @@ export function useFuelPrices() {
     }));
   }, []);
 
-  return { fuelPrices, updateFuelPrice, isLoaded };
+  const clearFuelPrices = useCallback(() => {
+    setFuelPrices(DEFAULT_FUEL_PRICES);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      console.error("Failed to remove fuel prices from localStorage", error);
+    }
+  }, []);
+
+  return { fuelPrices, updateFuelPrice, clearFuelPrices, isLoaded };
 }

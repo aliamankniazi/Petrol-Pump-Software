@@ -41,7 +41,7 @@ export default function SettingsPage() {
   const { clearCustomers } = useCustomers();
   const { clearBankAccounts } = useBankAccounts();
   const { clearEmployees } = useEmployees();
-  const { fuelPrices, updateFuelPrice, isLoaded } = useFuelPrices();
+  const { fuelPrices, updateFuelPrice, clearFuelPrices, isLoaded } = useFuelPrices();
   const { toast } = useToast();
 
   const handleClearData = () => {
@@ -52,6 +52,7 @@ export default function SettingsPage() {
     clearCustomers();
     clearBankAccounts();
     clearEmployees();
+    clearFuelPrices();
     toast({
       title: "Data Cleared",
       description: "All application data has been removed.",
