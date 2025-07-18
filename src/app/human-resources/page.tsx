@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 
 const employeeSchema = z.object({
   name: z.string().min(1, 'Employee name is required'),
+  mobileNumber: z.string().optional(),
   position: z.string().min(1, 'Position is required'),
   salary: z.coerce.number().min(0, 'Salary cannot be negative'),
   hireDate: z.date({ required_error: "A hire date is required."}),
@@ -60,6 +61,12 @@ export default function HumanResourcesPage() {
                 {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
               </div>
               
+              <div className="space-y-2">
+                <Label htmlFor="mobileNumber">Mobile Number (Optional)</Label>
+                <Input id="mobileNumber" {...register('mobileNumber')} placeholder="e.g., 03001234567" />
+                {errors.mobileNumber && <p className="text-sm text-destructive">{errors.mobileNumber.message}</p>}
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="position">Position</Label>
                 <Input id="position" {...register('position')} placeholder="e.g., Pump Attendant, Manager" />
@@ -128,6 +135,7 @@ export default function HumanResourcesPage() {
                   <TableRow>
                     <TableHead>Hire Date</TableHead>
                     <TableHead>Name</TableHead>
+                    <TableHead>Mobile Number</TableHead>
                     <TableHead>Position</TableHead>
                     <TableHead className="text-right">Salary (PKR)</TableHead>
                   </TableRow>
@@ -137,6 +145,7 @@ export default function HumanResourcesPage() {
                       <TableRow key={e.id}>
                         <TableCell className="font-medium">{format(new Date(e.hireDate), 'PP')}</TableCell>
                         <TableCell>{e.name}</TableCell>
+                        <TableCell>{e.mobileNumber || 'N/A'}</TableCell>
                         <TableCell>{e.position}</TableCell>
                         <TableCell className="text-right">{e.salary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       </TableRow>

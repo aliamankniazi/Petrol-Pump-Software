@@ -60,6 +60,7 @@ export interface BankAccount {
 export interface Employee {
   id: string;
   name: string;
+  mobileNumber?: string;
   position: string;
   salary: number;
   hireDate: string;
