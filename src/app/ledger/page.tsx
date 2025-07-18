@@ -46,7 +46,7 @@ export default function LedgerPage() {
       description: `Sale: ${tx.volume.toFixed(2)}L of ${tx.fuelType} for PKR ${tx.totalAmount.toFixed(2)}`,
       type: 'Sale',
       amount: tx.totalAmount,
-      balanceEffect: 'debit',
+      balanceEffect: 'credit', // Treat as credit (income)
     }));
 
     purchases.forEach(p => allEntries.push({
@@ -86,17 +86,20 @@ export default function LedgerPage() {
 
   const getBadgeVariant = (type: LedgerEntry['type']) => {
     switch (type) {
-      case 'Sale':
       case 'Purchase':
-        return 'destructive';
       case 'Expense': 
-        return 'secondary';
+        return 'destructive';
+      case 'Sale':
       case 'Purchase Return': 
         return 'outline';
       default: 
         return 'default';
     }
   };
+  
+  const isGreenEntry = (type: LedgerEntry['type']) => {
+    return type === 'Sale' || type === 'Purchase Return';
+  }
 
   return (
     <div className="p-4 md:p-8">
@@ -167,7 +170,7 @@ export default function LedgerPage() {
                     <TableCell>
                       <Badge 
                         variant={getBadgeVariant(entry.type)}
-                        className={cn(entry.type === 'Purchase Return' && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}
+                        className={cn(isGreenEntry(entry.type) && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}
                       >
                         {entry.type}
                       </Badge>
