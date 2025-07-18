@@ -34,12 +34,14 @@ import { useBankAccounts } from '@/hooks/use-bank-accounts';
 import { useEmployees } from '@/hooks/use-employees';
 import { useFuelStock } from '@/hooks/use-fuel-stock';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useCustomerPayments } from '@/hooks/use-customer-payments';
+import { useCashAdvances } from '@/hooks/use-cash-advances';
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
 const adjustmentSchema = z.object({
   fuelType: z.enum(FUEL_TYPES, { required_error: 'Please select a fuel type.' }),
-  newStock: z.coerce.number().min(0, 'Stock cannot be negative'),
+  adjustment: z.coerce.number(),
 });
 
 type AdjustmentFormValues = z.infer<typeof adjustmentSchema>;
@@ -52,13 +54,23 @@ export default function SettingsPage() {
   const { clearCustomers } = useCustomers();
   const { clearBankAccounts } = useBankAccounts();
   const { clearEmployees } = useEmployees();
+  const { clearCustomerPayments } = useCustomerPayments();
+  const { clearCashAdvances } = useCashAdvances();
   const { fuelPrices, updateFuelPrice, clearFuelPrices, isLoaded: pricesLoaded } = useFuelPrices();
-  const { setFuelStock, clearFuelStock } = useFuelStock();
+  const { fuelStock, setFuelStock, clearFuelStock, isLoaded: stockLoaded } = useFuelStock();
   const { toast } = useToast();
 
-  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<AdjustmentFormValues>({
+  const { register, handleSubmit, control, reset, watch } = useForm<AdjustmentFormValues>({
     resolver: zodResolver(adjustmentSchema),
+    defaultValues: {
+      adjustment: 0,
+    }
   });
+
+  const selectedFuelType = watch('fuelType');
+  const adjustmentValue = watch('adjustment');
+  const currentStock = selectedFuelType ? fuelStock[selectedFuelType] : 0;
+  const newStock = currentStock + (adjustmentValue || 0);
 
   const handleClearData = () => {
     clearTransactions();
@@ -70,6 +82,8 @@ export default function SettingsPage() {
     clearEmployees();
     clearFuelPrices();
     clearFuelStock();
+    clearCustomerPayments();
+    clearCashAdvances();
     toast({
       title: "Data Cleared",
       description: "All application data has been removed.",
@@ -84,12 +98,22 @@ export default function SettingsPage() {
   };
 
   const onAdjustmentSubmit: SubmitHandler<AdjustmentFormValues> = (data) => {
-    setFuelStock(data.fuelType, data.newStock);
+    const currentStock = fuelStock[data.fuelType] || 0;
+    const newStock = currentStock + data.adjustment;
+    if (newStock < 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Adjustment',
+        description: 'Stock level cannot be negative.',
+      });
+      return;
+    }
+    setFuelStock(data.fuelType, newStock);
     toast({
       title: 'Stock Adjusted',
-      description: `${data.fuelType} stock has been set to ${data.newStock.toLocaleString()} L.`,
+      description: `${data.fuelType} stock has been set to ${newStock.toLocaleString()} L.`,
     });
-    reset();
+    reset({ fuelType: data.fuelType, adjustment: 0 });
   };
 
   return (
@@ -143,19 +167,19 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle className="text-xl flex items-center gap-2"><Edit /> Manual Stock Adjustment</CardTitle>
                 <CardDescription>
-                  Manually set the current stock level for a fuel type. This will override the calculated value.
+                  Manually adjust the current stock level for a fuel type.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit(onAdjustmentSubmit)} className="space-y-4">
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                   <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="space-y-2 md:col-span-1">
                       <Label>Fuel Type</Label>
                        <Controller
                         name="fuelType"
                         control={control}
                         render={({ field }) => (
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value} defaultValue="">
                             <SelectTrigger>
                               <SelectValue placeholder="Select a fuel type" />
                             </SelectTrigger>
@@ -167,15 +191,21 @@ export default function SettingsPage() {
                           </Select>
                         )}
                       />
-                      {errors.fuelType && <p className="text-sm text-destructive">{errors.fuelType.message}</p>}
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="newStock">New Stock Level (Litres)</Label>
-                      <Input id="newStock" type="number" {...register('newStock')} placeholder="e.g., 15000" step="0.01" />
-                      {errors.newStock && <p className="text-sm text-destructive">{errors.newStock.message}</p>}
+                    <div className="space-y-2 md:col-span-1">
+                      <Label htmlFor="currentStock">Current Stock (L)</Label>
+                      <Input id="currentStock" type="number" value={stockLoaded ? currentStock.toFixed(2) : "Loading..."} readOnly disabled className="bg-muted/50" />
+                    </div>
+                    <div className="space-y-2 md:col-span-1">
+                      <Label htmlFor="adjustment">Adjustment (L)</Label>
+                      <Input id="adjustment" type="number" {...register('adjustment')} placeholder="e.g., -50 or 100" step="0.01" />
+                    </div>
+                     <div className="space-y-2 md:col-span-1">
+                      <Label htmlFor="newStock">New Stock (L)</Label>
+                      <Input id="newStock" type="number" value={selectedFuelType ? newStock.toFixed(2) : "..."} readOnly disabled className="bg-muted/50 font-bold" />
                     </div>
                   </div>
-                  <Button type="submit">Set Stock</Button>
+                  <Button type="submit" disabled={!selectedFuelType || !stockLoaded}>Adjust Stock</Button>
                 </form>
               </CardContent>
             </Card>
