@@ -257,18 +257,21 @@ export default function SalePage() {
                     <Label className="mb-2 flex items-center gap-2"><Fuel /> Fuel Details</Label>
                     {!dataIsReady ? <div className="grid grid-cols-3 gap-4"><Skeleton className="h-[5rem]"/><Skeleton className="h-[5rem]"/><Skeleton className="h-[5rem]"/></div> : (
                         <div className="grid grid-cols-3 gap-4">
-                        {FUEL_TYPES.map(fuel => (
-                            <Button
-                            key={fuel}
-                            variant={selectedFuel === fuel ? 'default' : 'outline'}
-                            className="py-4 text-base flex-col h-auto items-center"
-                            onClick={() => setSelectedFuel(fuel)}
-                            >
-                            <span>{fuel}</span>
-                            <span className="text-xs font-mono text-muted-foreground">PKR {fuelPrices[fuel].toFixed(2)}/L</span>
-                             <span className="text-xs font-mono text-muted-foreground mt-1">{fuelStock[fuel].toFixed(0)} L</span>
-                            </Button>
-                        ))}
+                        {FUEL_TYPES.map(fuel => {
+                            const isSelected = selectedFuel === fuel;
+                            return (
+                                <Button
+                                key={fuel}
+                                variant={isSelected ? 'default' : 'outline'}
+                                className="py-4 text-base flex-col h-auto items-center"
+                                onClick={() => setSelectedFuel(fuel)}
+                                >
+                                <span>{fuel}</span>
+                                <span className={cn("text-xs font-mono mt-0.5", isSelected ? 'text-primary-foreground/90' : 'text-muted-foreground')}>PKR {fuelPrices[fuel].toFixed(2)}/L</span>
+                                <span className={cn("text-xs font-mono mt-1", isSelected ? 'text-primary-foreground/90' : 'text-muted-foreground')}>{fuelStock[fuel].toFixed(0)} L</span>
+                                </Button>
+                            )
+                        })}
                         </div>
                     )}
                 </div>
@@ -312,4 +315,3 @@ export default function SalePage() {
     </div>
   );
 }
-
