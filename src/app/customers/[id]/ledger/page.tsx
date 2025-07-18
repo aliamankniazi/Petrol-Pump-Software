@@ -172,7 +172,7 @@ export default function CustomerLedgerPage() {
                     <TableCell className="text-right font-mono text-green-600">
                         {entry.credit > 0 ? entry.credit.toFixed(2) : '-'}
                     </TableCell>
-                     <TableCell className={`text-right font-semibold font-mono ${entry.balance >= 0 ? '' : 'text-destructive'}`}>
+                     <TableCell className={`text-right font-semibold font-mono ${entry.balance > 0 ? 'text-destructive' : 'text-green-600'}`}>
                         {entry.balance.toFixed(2)}
                     </TableCell>
                   </TableRow>
@@ -187,8 +187,8 @@ export default function CustomerLedgerPage() {
         </CardContent>
         <CardFooter className="flex justify-end bg-muted/50 p-4 rounded-b-lg">
             <div className="text-right">
-                <p className="text-sm text-muted-foreground">Final Balance (Outstanding)</p>
-                <p className={`text-2xl font-bold ${finalBalance >= 0 ? '' : 'text-destructive'}`}>PKR {finalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className="text-sm text-muted-foreground">Final Balance</p>
+                <p className={`text-2xl font-bold ${finalBalance > 0 ? 'text-destructive' : 'text-green-600'}`}>PKR {finalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             </div>
         </CardFooter>
       </Card>
