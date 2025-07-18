@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { format, isSameDay, startOfDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { HandCoins, XCircle, Calendar as CalendarIcon, X } from 'lucide-react';
+import { HandCoins, XCircle, Calendar as CalendarIcon, X, TrendingUp, TrendingDown, Wallet, Hourglass, Info } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -40,8 +40,8 @@ export default function CustomerPaymentsPage() {
 
   const isLoaded = paymentsLoaded && customersLoaded && transactionsLoaded && advancesLoaded;
 
-  const { entries, totals, finalBalance } = useMemo(() => {
-    if (!isLoaded) return { entries: [], totals: { debit: 0, credit: 0 }, finalBalance: 0 };
+  const { entries, totals, finalBalance, specialReport } = useMemo(() => {
+    if (!isLoaded) return { entries: [], totals: { debit: 0, credit: 0 }, finalBalance: 0, specialReport: null };
 
     const combined: Omit<CombinedEntry, 'balance'>[] = [];
 
@@ -88,10 +88,27 @@ export default function CustomerPaymentsPage() {
 
     combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
-    // Filter all entries for a specific customer if one is selected
     const customerFilteredEntries = selectedCustomerId 
       ? combined.filter(entry => entry.customerId === selectedCustomerId)
       : combined;
+      
+    // Calculations for the special report are based on the full history of the selected customer
+    let reportData = null;
+    if (selectedCustomerId && customerFilteredEntries.length > 0) {
+        const lastDebitEntry = [...customerFilteredEntries].reverse().find(e => e.debit > 0);
+        const lastPaymentEntry = [...customerFilteredEntries].reverse().find(e => e.type === 'Payment');
+        const customerTotalBalance = customerFilteredEntries.reduce((acc, entry) => acc + (entry.debit - entry.credit), 0);
+        const lastTransactionBalance = customerFilteredEntries.length > 0
+            ? customerFilteredEntries.slice(0, customerFilteredEntries.length).reduce((acc, entry) => acc + (entry.debit - entry.credit), 0)
+            : 0;
+
+        reportData = {
+            totalBalance: customerTotalBalance,
+            lastDebit: lastDebitEntry ? lastDebitEntry.debit : 0,
+            lastPayment: lastPaymentEntry ? lastPaymentEntry.credit : 0,
+            lastRemaining: lastTransactionBalance,
+        };
+    }
 
     let openingBalance = 0;
     let entriesForDisplay = customerFilteredEntries;
@@ -122,7 +139,8 @@ export default function CustomerPaymentsPage() {
     return { 
         entries: entriesWithBalance.reverse(),
         totals: calculatedTotals,
-        finalBalance: runningBalance
+        finalBalance: runningBalance,
+        specialReport: reportData,
     };
   }, [customerPayments, transactions, cashAdvances, selectedCustomerId, selectedDate, isLoaded]);
   
@@ -146,8 +164,8 @@ export default function CustomerPaymentsPage() {
   const hasActiveFilters = selectedCustomerId || selectedDate;
 
   return (
-    <div className="p-4 md:p-8">
-      <Card>
+    <div className="p-4 md:p-8 space-y-6">
+       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <HandCoins /> Customer Transactions
@@ -198,6 +216,47 @@ export default function CustomerPaymentsPage() {
               )}
           </div>
         </CardHeader>
+      </Card>
+
+      {selectedCustomerId && specialReport && (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                    <Info className="w-5 h-5" />
+                    Special Report for {customers.find(c => c.id === selectedCustomerId)?.name}
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="p-4 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground"><Wallet /> Total Balance</div>
+                    <div className={`text-2xl font-bold ${specialReport.totalBalance > 0 ? 'text-destructive' : 'text-green-600'}`}>PKR {specialReport.totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground"><TrendingDown /> Last Debit Amount</div>
+                    <div className="text-2xl font-bold text-destructive">PKR {specialReport.lastDebit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground"><TrendingUp /> Last Payment Amount</div>
+                    <div className="text-2xl font-bold text-green-600">PKR {specialReport.lastPayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                </div>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground"><Hourglass /> Last Transaction Balance</div>
+                    <div className={`text-2xl font-bold ${specialReport.lastRemaining > 0 ? 'text-destructive' : 'text-green-600'}`}>PKR {specialReport.lastRemaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                </div>
+            </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Transaction History</CardTitle>
+          <CardDescription>
+            {selectedDate 
+              ? `Showing transactions for ${format(selectedDate, 'PPP')}` 
+              : 'A detailed log of all transactions for the selected filter.'
+            }
+          </CardDescription>
+        </CardHeader>
         <CardContent>
           {isLoaded && entries.length > 0 ? (
             <Table>
@@ -242,13 +301,13 @@ export default function CustomerPaymentsPage() {
               </TableBody>
                <TableFooter>
                 <TableRow>
-                  <TableCell colSpan={4} className="font-bold text-right">Totals</TableCell>
+                  <TableCell colSpan={4} className="font-bold text-right">Totals for Period</TableCell>
                   <TableCell className="text-right font-bold font-mono text-destructive">PKR {totals.debit.toFixed(2)}</TableCell>
                   <TableCell className="text-right font-bold font-mono text-green-600">PKR {totals.credit.toFixed(2)}</TableCell>
                   <TableCell />
                 </TableRow>
                 <TableRow>
-                  <TableCell colSpan={5} className="font-bold text-right">Closing Balance</TableCell>
+                  <TableCell colSpan={5} className="font-bold text-right">Closing Balance for Period</TableCell>
                   <TableCell colSpan={2} className={`text-right font-bold text-lg font-mono ${finalBalance > 0 ? 'text-destructive' : 'text-green-600'}`}>
                     PKR {finalBalance.toFixed(2)}
                   </TableCell>
