@@ -82,7 +82,7 @@ export default function SalePage() {
         <CardContent className="flex flex-col gap-6 flex-grow">
           <div className="text-center bg-muted/50 p-6 rounded-lg shadow-inner">
             <div className="text-5xl md:text-7xl font-bold tracking-tighter text-primary">
-              ${amountNum.toFixed(2)}
+              PKR {amountNum.toFixed(2)}
             </div>
             <div className="text-lg md:text-xl text-muted-foreground mt-2 flex items-center justify-center gap-2">
               <Droplets className="w-5 h-5" />
@@ -101,7 +101,7 @@ export default function SalePage() {
                   onClick={() => setSelectedFuel(fuel)}
                 >
                   <span>{fuel}</span>
-                  <span className="text-xs text-muted-foreground">${fuelPrices[fuel].toFixed(2)}/L</span>
+                  <span className="text-xs text-muted-foreground">PKR {fuelPrices[fuel].toFixed(2)}/L</span>
                 </Button>
               ))}
             </div>
@@ -135,7 +135,7 @@ export default function SalePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Transaction Complete</AlertDialogTitle>
             <AlertDialogDescription>
-              A sale of {lastTransaction?.volume}L of {lastTransaction?.fuelType} for ${lastTransaction?.amount.toFixed(2)} has been recorded.
+              A sale of {lastTransaction?.volume}L of {lastTransaction?.fuelType} for PKR {lastTransaction?.amount.toFixed(2)} has been recorded.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

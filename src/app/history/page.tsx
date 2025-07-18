@@ -58,7 +58,7 @@ export default function HistoryPage() {
                     </TableCell>
                     <TableCell>{tx.fuelType}</TableCell>
                     <TableCell className="text-right">{tx.volume.toFixed(2)}</TableCell>
-                    <TableCell className="text-right">${tx.totalAmount.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">PKR {tx.totalAmount.toFixed(2)}</TableCell>
                     <TableCell className="text-center">
                       <Badge variant={getBadgeVariant(tx.paymentMethod)}>{tx.paymentMethod}</Badge>
                     </TableCell>

@@ -62,7 +62,7 @@ export default function SettingsPage() {
               {isLoaded && FUEL_TYPES.map(fuel => (
                 <div key={fuel} className="flex items-center justify-between rounded-lg border p-4">
                   <div>
-                    <Label htmlFor={`${fuel}-price`} className="flex items-center gap-2"><Droplets className="w-4 h-4" /> {fuel} Price ($/L)</Label>
+                    <Label htmlFor={`${fuel}-price`} className="flex items-center gap-2"><Droplets className="w-4 h-4" /> {fuel} Price (PKR/L)</Label>
                     <p className="text-sm text-muted-foreground">
                       Set the price per litre for {fuel}.
                     </p>
