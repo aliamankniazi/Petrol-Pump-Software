@@ -86,11 +86,15 @@ export default function LedgerPage() {
 
   const getBadgeVariant = (type: LedgerEntry['type']) => {
     switch (type) {
-      case 'Sale': return 'destructive';
-      case 'Purchase': return 'destructive';
-      case 'Expense': return 'secondary';
-      case 'Purchase Return': return 'outline';
-      default: return 'default';
+      case 'Sale':
+      case 'Purchase':
+        return 'destructive';
+      case 'Expense': 
+        return 'secondary';
+      case 'Purchase Return': 
+        return 'outline';
+      default: 
+        return 'default';
     }
   };
 
@@ -161,9 +165,14 @@ export default function LedgerPage() {
                     </TableCell>
                     <TableCell>{entry.description}</TableCell>
                     <TableCell>
-                      <Badge variant={getBadgeVariant(entry.type)}>{entry.type}</Badge>
+                      <Badge 
+                        variant={getBadgeVariant(entry.type)}
+                        className={cn(entry.type === 'Purchase Return' && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}
+                      >
+                        {entry.type}
+                      </Badge>
                     </TableCell>
-                    <TableCell className={`text-right font-semibold ${entry.balanceEffect === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
+                    <TableCell className={`text-right font-semibold ${entry.balanceEffect === 'credit' ? 'text-green-600' : 'text-destructive'}`}>
                        {entry.balanceEffect === 'credit' ? '+' : '-'} {entry.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>
                   </TableRow>
