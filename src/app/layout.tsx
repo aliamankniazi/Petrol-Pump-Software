@@ -4,8 +4,8 @@ import { AppLayout } from '@/components/app-layout';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'PumpPal',
-  description: 'Petrol Pump Software for the modern age.',
+  title: 'Mianwali Petroleum Service Mianwali',
+  description: 'Petrol pump management software.',
 };
 
 export default function RootLayout({

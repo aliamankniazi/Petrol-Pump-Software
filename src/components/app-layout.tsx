@@ -37,7 +37,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarHeader className='p-4'>
           <div className="flex items-center gap-2">
             <Fuel className="text-primary w-8 h-8" />
-            <h1 className="text-2xl font-bold">PumpPal</h1>
+            <h1 className="text-xl font-bold">Mianwali Petroleum</h1>
           </div>
         </SidebarHeader>
         <SidebarContent>
