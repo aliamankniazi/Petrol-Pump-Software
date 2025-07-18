@@ -20,8 +20,8 @@ const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 const purchaseSchema = z.object({
   supplier: z.string().min(1, 'Supplier name is required'),
   fuelType: z.enum(FUEL_TYPES, { required_error: 'Please select a fuel type.' }),
-  volume: z.coerce.number().min(1, 'Volume must be greater than 0'),
-  totalCost: z.coerce.number().min(1, 'Total cost must be greater than 0'),
+  volume: z.coerce.number().min(0.01, 'Volume must be greater than 0'),
+  totalCost: z.coerce.number().min(0.01, 'Total cost must be greater than 0'),
 });
 
 type PurchaseFormValues = z.infer<typeof purchaseSchema>;
@@ -82,13 +82,13 @@ export default function PurchasesPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="volume">Volume (Litres)</Label>
-                <Input id="volume" type="number" {...register('volume')} placeholder="e.g., 5000" />
+                <Input id="volume" type="number" {...register('volume')} placeholder="e.g., 5000" step="0.01" />
                 {errors.volume && <p className="text-sm text-destructive">{errors.volume.message}</p>}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="totalCost">Total Cost (PKR)</Label>
-                <Input id="totalCost" type="number" {...register('totalCost')} placeholder="e.g., 1000000" />
+                <Input id="totalCost" type="number" {...register('totalCost')} placeholder="e.g., 1000000" step="0.01" />
                 {errors.totalCost && <p className="text-sm text-destructive">{errors.totalCost.message}</p>}
               </div>
 
@@ -117,19 +117,24 @@ export default function PurchasesPage() {
                     <TableHead>Supplier</TableHead>
                     <TableHead>Fuel Type</TableHead>
                     <TableHead className="text-right">Volume (L)</TableHead>
+                    <TableHead className="text-right">Cost/Litre</TableHead>
                     <TableHead className="text-right">Total Cost</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {purchases.map(p => (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-medium">{format(new Date(p.timestamp), 'PP')}</TableCell>
-                      <TableCell>{p.supplier}</TableCell>
-                      <TableCell>{p.fuelType}</TableCell>
-                      <TableCell className="text-right">{p.volume.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">PKR {p.totalCost.toLocaleString()}</TableCell>
-                    </TableRow>
-                  ))}
+                  {purchases.map(p => {
+                    const rate = p.totalCost / p.volume;
+                    return (
+                      <TableRow key={p.id}>
+                        <TableCell className="font-medium">{format(new Date(p.timestamp), 'PP')}</TableCell>
+                        <TableCell>{p.supplier}</TableCell>
+                        <TableCell>{p.fuelType}</TableCell>
+                        <TableCell className="text-right">{p.volume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-right">PKR {rate.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">PKR {p.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             ) : (
