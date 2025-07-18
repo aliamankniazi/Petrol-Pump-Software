@@ -21,6 +21,16 @@ export interface Purchase {
   timestamp: string;
 }
 
+export interface PurchaseReturn {
+  id: string;
+  supplier: string;
+  fuelType: FuelType;
+  volume: number;
+  totalRefund: number;
+  reason: string;
+  timestamp: string;
+}
+
 export type ExpenseCategory = 'Utilities' | 'Salaries' | 'Maintenance' | 'Other';
 
 export interface Expense {
