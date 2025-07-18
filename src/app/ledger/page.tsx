@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -42,7 +43,7 @@ export default function LedgerPage() {
     transactions.forEach(tx => allEntries.push({
       id: `tx-${tx.id}`,
       timestamp: tx.timestamp,
-      description: `Sale: ${tx.volume.toFixed(2)}L of ${tx.fuelType}`,
+      description: `Sale: ${tx.volume.toFixed(2)}L of ${tx.fuelType} for PKR ${tx.totalAmount.toFixed(2)}`,
       type: 'Sale',
       amount: tx.totalAmount,
       balanceEffect: 'debit',
