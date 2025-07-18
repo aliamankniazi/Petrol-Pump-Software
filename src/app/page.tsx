@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Numpad } from '@/components/numpad';
 import { useTransactions } from '@/hooks/use-transactions';
 import type { FuelType, PaymentMethod, Customer } from '@/lib/types';
@@ -207,7 +208,7 @@ export default function SalePage() {
                 </div>
 
                 {selectedCustomer && (
-                    <Card className="bg-secondary/50" onFocus={() => setNumpadTarget('payment')} onClick={() => setNumpadTarget('payment')}>
+                    <Card className="bg-destructive/10 border-destructive/50" onFocus={() => setNumpadTarget('payment')} onClick={() => setNumpadTarget('payment')}>
                         <CardHeader className='pb-4'>
                             <CardTitle className="text-base flex justify-between items-center">
                                 <span>{selectedCustomer.name}'s Balance</span>
