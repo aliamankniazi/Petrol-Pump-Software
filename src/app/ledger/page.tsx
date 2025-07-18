@@ -39,7 +39,7 @@ export default function LedgerPage() {
       description: `Sale: ${tx.volume.toFixed(2)}L of ${tx.fuelType}`,
       type: 'Sale',
       amount: tx.totalAmount,
-      balanceEffect: 'credit',
+      balanceEffect: 'debit', // Changed to debit to appear red
     }));
 
     purchases.forEach(p => allEntries.push({
