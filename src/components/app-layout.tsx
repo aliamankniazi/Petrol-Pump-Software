@@ -14,7 +14,7 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { Fuel, History, FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package } from 'lucide-react';
+import { Fuel, History, FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen } from 'lucide-react';
 import { ThemeToggle } from './theme-toggle';
 
 const navItems = [
@@ -25,8 +25,9 @@ const navItems = [
   { href: '/purchases', label: 'Purchases', icon: ShoppingCart },
   { href: '/purchase-returns', label: 'Purchase Returns', icon: Undo2 },
   { href: '/expenses', label: 'Expenses', icon: Receipt },
-  { href: '/human-resources', label: 'Human Resources', icon: Briefcase },
+  { href: '/employees', label: 'Employees', icon: Briefcase },
   { href: '/bank-management', label: 'Bank Management', icon: Landmark },
+  { href: '/ledger', label: 'Ledger', icon: BookOpen },
   { href: '/summary', label: 'Summary', icon: FileText },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
