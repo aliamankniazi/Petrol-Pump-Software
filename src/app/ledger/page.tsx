@@ -1,15 +1,19 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, DollarSign } from 'lucide-react';
+import { BookOpen, DollarSign, Calendar as CalendarIcon, X } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
 import { usePurchases } from '@/hooks/use-purchases';
 import { useExpenses } from '@/hooks/use-expenses';
 import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 type LedgerEntry = {
   id: string;
@@ -25,13 +29,15 @@ export default function LedgerPage() {
   const { purchases, isLoaded: purchasesLoaded } = usePurchases();
   const { expenses, isLoaded: expensesLoaded } = useExpenses();
   const { purchaseReturns, isLoaded: purchaseReturnsLoaded } = usePurchaseReturns();
+  
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
   const isLoaded = transactionsLoaded && purchasesLoaded && expensesLoaded && purchaseReturnsLoaded;
 
   const ledgerEntries = useMemo(() => {
     if (!isLoaded) return [];
 
-    const allEntries: LedgerEntry[] = [];
+    let allEntries: LedgerEntry[] = [];
 
     transactions.forEach(tx => allEntries.push({
       id: `tx-${tx.id}`,
@@ -39,7 +45,7 @@ export default function LedgerPage() {
       description: `Sale: ${tx.volume.toFixed(2)}L of ${tx.fuelType}`,
       type: 'Sale',
       amount: tx.totalAmount,
-      balanceEffect: 'credit', // In general ledger, sales are credits (revenue)
+      balanceEffect: 'debit',
     }));
 
     purchases.forEach(p => allEntries.push({
@@ -68,14 +74,18 @@ export default function LedgerPage() {
         amount: pr.totalRefund,
         balanceEffect: 'credit',
     }));
+    
+    if (selectedDate) {
+      allEntries = allEntries.filter(entry => isSameDay(new Date(entry.timestamp), selectedDate));
+    }
 
     return allEntries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
-  }, [transactions, purchases, expenses, purchaseReturns, isLoaded]);
+  }, [transactions, purchases, expenses, purchaseReturns, isLoaded, selectedDate]);
 
   const getBadgeVariant = (type: LedgerEntry['type']) => {
     switch (type) {
-      case 'Sale': return 'default';
+      case 'Sale': return 'destructive';
       case 'Purchase': return 'destructive';
       case 'Expense': return 'secondary';
       case 'Purchase Return': return 'outline';
@@ -87,10 +97,49 @@ export default function LedgerPage() {
     <div className="p-4 md:p-8">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BookOpen /> General Ledger
-          </CardTitle>
-          <CardDescription>A chronological record of all financial transactions.</CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen /> General Ledger
+              </CardTitle>
+              <CardDescription>
+                {selectedDate 
+                  ? `Showing financial transactions for ${format(selectedDate, 'PPP')}.`
+                  : 'A chronological record of all financial transactions.'
+                }
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+               <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-[240px] justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              {selectedDate && (
+                <Button variant="ghost" size="icon" onClick={() => setSelectedDate(undefined)}>
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Clear filter</span>
+                </Button>
+              )}
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoaded && ledgerEntries.length > 0 ? (
@@ -125,8 +174,15 @@ export default function LedgerPage() {
               {isLoaded ? (
                 <>
                   <DollarSign className="w-16 h-16" />
-                  <h3 className="text-xl font-semibold">No Transactions Recorded</h3>
-                  <p>Your financial ledger is currently empty.</p>
+                  <h3 className="text-xl font-semibold">
+                    {selectedDate ? 'No Transactions Found' : 'No Transactions Recorded'}
+                  </h3>
+                  <p>
+                    {selectedDate 
+                      ? `There are no transactions for ${format(selectedDate, 'PPP')}.`
+                      : 'Your financial ledger is currently empty.'
+                    }
+                  </p>
                 </>
               ) : (
                  <p>Loading financial data...</p>
