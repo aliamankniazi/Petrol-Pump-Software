@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Users, UserPlus, List } from 'lucide-react';
+import { Users, UserPlus, List, BookText } from 'lucide-react';
 import { format } from 'date-fns';
 import { useCustomers } from '@/hooks/use-customers';
 import Link from 'next/link';
@@ -120,13 +120,17 @@ export default function CustomersPage() {
                         <TableCell>{c.name}</TableCell>
                         <TableCell>{c.contact}</TableCell>
                         <TableCell>{c.vehicleNumber || 'N/A'}</TableCell>
-                        <TableCell className="text-center">
-                          <Button asChild variant="ghost" size="icon" className="text-green-500 hover:text-green-600">
+                        <TableCell className="text-center space-x-1">
+                           <Button asChild variant="ghost" size="icon" title="View Ledger">
+                              <Link href={`/customers/${c.id}/ledger`}>
+                                <BookText className="w-5 h-5" />
+                              </Link>
+                           </Button>
+                           <Button asChild variant="ghost" size="icon" className="text-green-500 hover:text-green-600" title={`Message ${c.name} on WhatsApp`}>
                              <a 
                               href={`https://wa.me/${formatPhoneNumberForWhatsApp(c.contact)}`}
                               target="_blank" 
                               rel="noopener noreferrer"
-                              aria-label={`Message ${c.name} on WhatsApp`}
                             >
                                <WhatsAppIcon className="w-5 h-5" />
                             </a>
