@@ -6,13 +6,13 @@ import type { FuelType } from '@/lib/types';
 const STORAGE_KEY = 'pumppal-fuel-prices';
 
 const DEFAULT_FUEL_PRICES: Record<FuelType, number> = {
-  'Unleaded': 1.80,
-  'Premium': 2.10,
-  'Diesel': 2.00,
+  'Unleaded': 275.98,
+  'Premium': 285.50,
+  'Diesel': 282.44,
 };
 
 export function useFuelPrices() {
-  const [fuelPrices, setFuelPrices] = useState<Record<FuelType, number>>(DEFAULT_FUEL_PRICES);
+  const [fuelPrices, setFuelPrices] = useState<Record<FuelType, number>>({...DEFAULT_FUEL_PRICES});
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export function useFuelPrices() {
   }, []);
 
   const clearFuelPrices = useCallback(() => {
-    setFuelPrices(DEFAULT_FUEL_PRICES);
+    setFuelPrices({...DEFAULT_FUEL_PRICES});
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch (error) {

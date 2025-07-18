@@ -96,6 +96,15 @@ export default function SettingsPage() {
                   />
                 </div>
               ))}
+              {!isLoaded && Array.from({length: 3}).map((_, i) => (
+                <div key={i} className="flex items-center justify-between rounded-lg border p-4">
+                  <div className='space-y-2'>
+                    <div className="h-6 w-48 bg-muted rounded-md animate-pulse" />
+                    <div className="h-4 w-64 bg-muted rounded-md animate-pulse" />
+                  </div>
+                  <div className="w-28 h-10 bg-muted rounded-md animate-pulse" />
+                </div>
+              ))}
             </div>
           </div>
 
