@@ -8,7 +8,7 @@ import { useTransactions } from '@/hooks/use-transactions';
 import { useCashAdvances } from '@/hooks/use-cash-advances';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
-import { format, isSameDay } from 'date-fns';
+import { format, isSameDay, startOfDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { HandCoins, XCircle, Calendar as CalendarIcon, X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -26,6 +26,7 @@ type CombinedEntry = {
   description: string;
   debit: number;
   credit: number;
+  balance?: number;
 };
 
 export default function CustomerPaymentsPage() {
@@ -39,10 +40,10 @@ export default function CustomerPaymentsPage() {
 
   const isLoaded = paymentsLoaded && customersLoaded && transactionsLoaded && advancesLoaded;
 
-  const { filteredEntries, totals } = useMemo(() => {
-    if (!isLoaded) return { filteredEntries: [], totals: { debit: 0, credit: 0, balance: 0 } };
+  const { entries, totals, finalBalance } = useMemo(() => {
+    if (!isLoaded) return { entries: [], totals: { debit: 0, credit: 0 }, finalBalance: 0 };
 
-    const combined: CombinedEntry[] = [];
+    const combined: Omit<CombinedEntry, 'balance'>[] = [];
 
     transactions.forEach(tx => {
       if (tx.customerId) {
@@ -85,15 +86,31 @@ export default function CustomerPaymentsPage() {
       });
     });
 
-    const sorted = combined.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+    // Filter all entries for a specific customer if one is selected
+    const customerFilteredEntries = selectedCustomerId 
+      ? combined.filter(entry => entry.customerId === selectedCustomerId)
+      : combined;
+
+    let openingBalance = 0;
+    let entriesForDisplay = customerFilteredEntries;
     
-    const filtered = sorted.filter(entry => {
-      const customerMatch = !selectedCustomerId || entry.customerId === selectedCustomerId;
-      const dateMatch = !selectedDate || isSameDay(new Date(entry.timestamp), selectedDate);
-      return customerMatch && dateMatch;
+    if (selectedDate) {
+      openingBalance = customerFilteredEntries
+        .filter(entry => new Date(entry.timestamp) < startOfDay(selectedDate))
+        .reduce((acc, entry) => acc + (entry.debit - entry.credit), 0);
+
+      entriesForDisplay = customerFilteredEntries.filter(entry => isSameDay(new Date(entry.timestamp), selectedDate));
+    }
+
+    let runningBalance = openingBalance;
+    const entriesWithBalance: CombinedEntry[] = entriesForDisplay.map(entry => {
+        runningBalance += (entry.debit - entry.credit);
+        return { ...entry, balance: runningBalance };
     });
 
-    const calculatedTotals = filtered.reduce(
+    const calculatedTotals = entriesForDisplay.reduce(
         (acc, entry) => {
             acc.debit += entry.debit;
             acc.credit += entry.credit;
@@ -103,11 +120,9 @@ export default function CustomerPaymentsPage() {
     );
     
     return { 
-        filteredEntries: filtered, 
-        totals: {
-            ...calculatedTotals,
-            balance: calculatedTotals.debit - calculatedTotals.credit,
-        }
+        entries: entriesWithBalance.reverse(),
+        totals: calculatedTotals,
+        finalBalance: runningBalance
     };
   }, [customerPayments, transactions, cashAdvances, selectedCustomerId, selectedDate, isLoaded]);
   
@@ -184,7 +199,7 @@ export default function CustomerPaymentsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoaded && filteredEntries.length > 0 ? (
+          {isLoaded && entries.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -194,10 +209,11 @@ export default function CustomerPaymentsPage() {
                   <TableHead className="text-center">Type</TableHead>
                   <TableHead className="text-right">Debit</TableHead>
                   <TableHead className="text-right">Credit</TableHead>
+                  <TableHead className="text-right">Balance</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredEntries.map(entry => (
+                {entries.map(entry => (
                   <TableRow key={entry.id}>
                     <TableCell className="font-medium">
                       {format(new Date(entry.timestamp), 'PP pp')}
@@ -218,6 +234,9 @@ export default function CustomerPaymentsPage() {
                     <TableCell className="text-right font-mono text-green-600">
                         {entry.credit > 0 ? `PKR ${entry.credit.toFixed(2)}` : '-'}
                     </TableCell>
+                    <TableCell className={`text-right font-semibold font-mono ${entry.balance && entry.balance > 0 ? 'text-destructive' : 'text-green-600'}`}>
+                        {entry.balance?.toFixed(2)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -226,11 +245,12 @@ export default function CustomerPaymentsPage() {
                   <TableCell colSpan={4} className="font-bold text-right">Totals</TableCell>
                   <TableCell className="text-right font-bold font-mono text-destructive">PKR {totals.debit.toFixed(2)}</TableCell>
                   <TableCell className="text-right font-bold font-mono text-green-600">PKR {totals.credit.toFixed(2)}</TableCell>
+                  <TableCell />
                 </TableRow>
                 <TableRow>
-                  <TableCell colSpan={4} className="font-bold text-right">Net Balance (Debit - Credit)</TableCell>
-                  <TableCell colSpan={2} className={`text-right font-bold text-lg font-mono ${totals.balance > 0 ? 'text-destructive' : 'text-green-600'}`}>
-                    PKR {totals.balance.toFixed(2)}
+                  <TableCell colSpan={5} className="font-bold text-right">Closing Balance</TableCell>
+                  <TableCell colSpan={2} className={`text-right font-bold text-lg font-mono ${finalBalance > 0 ? 'text-destructive' : 'text-green-600'}`}>
+                    PKR {finalBalance.toFixed(2)}
                   </TableCell>
                 </TableRow>
               </TableFooter>
