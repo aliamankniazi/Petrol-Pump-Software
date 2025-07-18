@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { useCustomerBalance } from '@/hooks/use-customer-balance';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { useFuelStock } from '@/hooks/use-fuel-stock';
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
@@ -33,6 +34,7 @@ export default function SalePage() {
   const { toast } = useToast();
   const { fuelPrices, isLoaded: pricesLoaded } = useFuelPrices();
   const { customers, isLoaded: customersLoaded } = useCustomers();
+  const { fuelStock, isLoaded: stockLoaded } = useFuelStock();
   
   const [saleInput, setSaleInput] = useState('0');
   const [paymentInput, setPaymentInput] = useState('');
@@ -160,6 +162,8 @@ export default function SalePage() {
       ? (mode === 'amount' ? 'Amount (PKR)' : 'Volume (L)') 
       : 'Payment Amount (PKR)';
 
+  const dataIsReady = pricesLoaded && stockLoaded;
+
   return (
     <div className="flex flex-col lg:flex-row gap-8 p-4 md:p-8 h-full">
       <div className="flex-1 lg:flex-grow-[2] flex flex-col">
@@ -251,17 +255,18 @@ export default function SalePage() {
                 
                 <div onClick={() => setNumpadTarget('sale')}>
                     <Label className="mb-2 flex items-center gap-2"><Fuel /> Fuel Details</Label>
-                    {!pricesLoaded ? <div className="grid grid-cols-3 gap-4"><Skeleton className="h-[5rem]"/><Skeleton className="h-[5rem]"/><Skeleton className="h-[5rem]"/></div> : (
+                    {!dataIsReady ? <div className="grid grid-cols-3 gap-4"><Skeleton className="h-[5rem]"/><Skeleton className="h-[5rem]"/><Skeleton className="h-[5rem]"/></div> : (
                         <div className="grid grid-cols-3 gap-4">
                         {FUEL_TYPES.map(fuel => (
                             <Button
                             key={fuel}
                             variant={selectedFuel === fuel ? 'default' : 'outline'}
-                            className="py-6 text-base flex-col h-auto"
+                            className="py-4 text-base flex-col h-auto items-center"
                             onClick={() => setSelectedFuel(fuel)}
                             >
                             <span>{fuel}</span>
-                            <span className="text-xs text-muted-foreground">PKR {fuelPrices[fuel].toFixed(2)}/L</span>
+                            <span className="text-xs font-mono text-muted-foreground">PKR {fuelPrices[fuel].toFixed(2)}/L</span>
+                             <span className="text-xs font-mono text-muted-foreground mt-1">{fuelStock[fuel].toFixed(0)} L</span>
                             </Button>
                         ))}
                         </div>
@@ -269,13 +274,13 @@ export default function SalePage() {
                 </div>
 
                 <div className="grid grid-cols-3 gap-4" onClick={() => setNumpadTarget('sale')}>
-                    <Button className="py-6 text-base" onClick={() => handleSalePayment('Cash')} disabled={amount <= 0 || !pricesLoaded}>
+                    <Button className="py-6 text-base" onClick={() => handleSalePayment('Cash')} disabled={amount <= 0 || !dataIsReady}>
                     <Wallet className="mr-2" /> Cash
                     </Button>
-                    <Button className="py-6 text-base" onClick={() => handleSalePayment('Card')} disabled={amount <= 0 || !pricesLoaded}>
+                    <Button className="py-6 text-base" onClick={() => handleSalePayment('Card')} disabled={amount <= 0 || !dataIsReady}>
                     <CreditCard className="mr-2" /> Card
                     </Button>
-                    <Button className="py-6 text-base" onClick={() => handleSalePayment('Mobile')} disabled={amount <= 0 || !pricesLoaded}>
+                    <Button className="py-6 text-base" onClick={() => handleSalePayment('Mobile')} disabled={amount <= 0 || !dataIsReady}>
                     <Smartphone className="mr-2" /> Mobile
                     </Button>
                 </div>
@@ -307,3 +312,4 @@ export default function SalePage() {
     </div>
   );
 }
+
