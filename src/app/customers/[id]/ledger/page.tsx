@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { BookUser, ArrowLeft, User, Phone, Car } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
+import { useCashAdvances } from '@/hooks/use-cash-advances';
 import { useCustomers } from '@/hooks/use-customers';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
@@ -20,7 +21,7 @@ type LedgerEntry = {
   id: string;
   timestamp: string;
   description: string;
-  type: 'Sale' | 'Payment';
+  type: 'Sale' | 'Payment' | 'Cash Advance';
   debit: number;
   credit: number;
   balance: number;
@@ -33,8 +34,9 @@ export default function CustomerLedgerPage() {
   const { customers, isLoaded: customersLoaded } = useCustomers();
   const { transactions, isLoaded: transactionsLoaded } = useTransactions();
   const { customerPayments, isLoaded: paymentsLoaded } = useCustomerPayments();
+  const { cashAdvances, isLoaded: advancesLoaded } = useCashAdvances();
 
-  const isLoaded = customersLoaded && transactionsLoaded && paymentsLoaded;
+  const isLoaded = customersLoaded && transactionsLoaded && paymentsLoaded && advancesLoaded;
 
   const customer = useMemo(() => {
     if (!isLoaded) return null;
@@ -46,6 +48,7 @@ export default function CustomerLedgerPage() {
 
     const customerTransactions = transactions.filter(tx => tx.customerId === customerId);
     const customerPaymentsReceived = customerPayments.filter(p => p.customerId === customerId);
+    const customerCashAdvances = cashAdvances.filter(ca => ca.customerId === customerId);
 
     const combined: Omit<LedgerEntry, 'balance'>[] = [];
 
@@ -66,6 +69,15 @@ export default function CustomerLedgerPage() {
       debit: 0,
       credit: p.amount,
     }));
+    
+    customerCashAdvances.forEach(ca => combined.push({
+      id: `adv-${ca.id}`,
+      timestamp: ca.timestamp,
+      description: `Cash Advance (${ca.notes || 'No notes'})`,
+      type: 'Cash Advance',
+      debit: ca.amount,
+      credit: 0,
+    }));
 
     combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
@@ -76,7 +88,7 @@ export default function CustomerLedgerPage() {
     });
 
     return { entries: entriesWithBalance.reverse(), finalBalance: runningBalance };
-  }, [customer, transactions, customerPayments]);
+  }, [customer, transactions, customerPayments, cashAdvances]);
 
   if (!isLoaded) {
     return (
@@ -166,7 +178,7 @@ export default function CustomerLedgerPage() {
                     <TableCell>{entry.description}</TableCell>
                     <TableCell>
                        <Badge 
-                         variant={entry.type === 'Sale' ? 'destructive' : 'outline'}
+                         variant={entry.type === 'Sale' || entry.type === 'Cash Advance' ? 'destructive' : 'outline'}
                          className={cn(entry.type === 'Payment' && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}
                        >
                          {entry.type}

@@ -77,3 +77,12 @@ export interface CustomerPayment {
   paymentMethod: PaymentMethod;
   timestamp: string;
 }
+
+export interface CashAdvance {
+  id: string;
+  customerId: string;
+  customerName: string;
+  amount: number;
+  notes?: string;
+  timestamp: string;
+}

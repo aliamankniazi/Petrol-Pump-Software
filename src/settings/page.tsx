@@ -35,6 +35,7 @@ import { useEmployees } from '@/hooks/use-employees';
 import { useFuelStock } from '@/hooks/use-fuel-stock';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
+import { useCashAdvances } from '@/hooks/use-cash-advances';
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
@@ -54,6 +55,7 @@ export default function SettingsPage() {
   const { clearBankAccounts } = useBankAccounts();
   const { clearEmployees } = useEmployees();
   const { clearCustomerPayments } = useCustomerPayments();
+  const { clearCashAdvances } = useCashAdvances();
   const { fuelPrices, updateFuelPrice, clearFuelPrices, isLoaded: pricesLoaded } = useFuelPrices();
   const { setFuelStock, clearFuelStock } = useFuelStock();
   const { toast } = useToast();
@@ -73,6 +75,7 @@ export default function SettingsPage() {
     clearFuelPrices();
     clearFuelStock();
     clearCustomerPayments();
+    clearCashAdvances();
     toast({
       title: "Data Cleared",
       description: "All application data has been removed.",
