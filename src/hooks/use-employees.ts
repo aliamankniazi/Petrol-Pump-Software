@@ -33,7 +33,7 @@ export function useEmployees() {
     }
   }, [employees, isLoaded]);
 
-  const addEmployee = useCallback((employee: Omit<Employee, 'id' | 'timestamp'>) => {
+  const addEmployee = useCallback((employee: Omit<Employee, 'id' | 'timestamp' | 'hireDate'> & { hireDate: Date }) => {
     setEmployees(prev => [
       { 
         ...employee, 
