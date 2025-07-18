@@ -7,10 +7,13 @@ import { Numpad } from '@/components/numpad';
 import { useTransactions } from '@/hooks/use-transactions';
 import type { FuelType, PaymentMethod } from '@/lib/types';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Fuel, Droplets, CreditCard, Wallet, Smartphone, Repeat } from 'lucide-react';
+import { Fuel, Droplets, CreditCard, Wallet, Smartphone, Users } from 'lucide-react';
 import { useFuelPrices } from '@/hooks/use-fuel-prices';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useCustomers } from '@/hooks/use-customers';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
@@ -19,11 +22,14 @@ type SaleMode = 'amount' | 'liters';
 export default function SalePage() {
   const { addTransaction } = useTransactions();
   const { fuelPrices, isLoaded: pricesLoaded } = useFuelPrices();
+  const { customers, isLoaded: customersLoaded } = useCustomers();
+  
   const [inputStr, setInputStr] = useState('0');
   const [mode, setMode] = useState<SaleMode>('amount');
   const [selectedFuel, setSelectedFuel] = useState<FuelType>('Unleaded');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [lastTransaction, setLastTransaction] = useState<{ amount: number; volume: number; fuelType: FuelType } | null>(null);
+  const [lastTransaction, setLastTransaction] = useState<{ amount: number; volume: number; fuelType: FuelType, customerName?: string } | null>(null);
 
   const { amount, volume } = useMemo(() => {
     const pricePerLitre = fuelPrices[selectedFuel] || 1;
@@ -64,19 +70,24 @@ export default function SalePage() {
   const handlePayment = (paymentMethod: PaymentMethod) => {
     if (amount <= 0 || volume <= 0) return;
     
+    const customer = customers.find(c => c.id === selectedCustomerId);
+
     const transaction = {
       fuelType: selectedFuel,
       volume: parseFloat(volume.toFixed(2)),
       pricePerLitre: fuelPrices[selectedFuel],
       totalAmount: parseFloat(amount.toFixed(2)),
       paymentMethod,
+      customerId: customer?.id,
+      customerName: customer?.name,
     };
     
     addTransaction(transaction);
     setLastTransaction({
       amount: parseFloat(amount.toFixed(2)),
       volume: parseFloat(volume.toFixed(2)),
-      fuelType: selectedFuel
+      fuelType: selectedFuel,
+      customerName: customer?.name,
     });
     setShowConfirmation(true);
   };
@@ -85,6 +96,7 @@ export default function SalePage() {
     setInputStr('0');
     setMode('amount');
     setSelectedFuel('Unleaded');
+    setSelectedCustomerId(null);
     setShowConfirmation(false);
     setLastTransaction(null);
   };
@@ -115,6 +127,27 @@ export default function SalePage() {
                </div>
              </div>
           </Tabs>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                  <Label className="flex items-center gap-2"><Users /> Customer</Label>
+                  {!customersLoaded ? <Skeleton className="h-10 w-full" /> : (
+                    <Select onValueChange={(value) => setSelectedCustomerId(value === 'walk-in' ? null : value)} defaultValue="walk-in">
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select a customer" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="walk-in">Walk-in Customer</SelectItem>
+                            {customers.map(customer => (
+                            <SelectItem key={customer.id} value={customer.id}>
+                                {customer.name}
+                            </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                  )}
+              </div>
+          </div>
           
           {!pricesLoaded && <div className="grid grid-cols-3 gap-4"><Skeleton className="h-[5rem]"/><Skeleton className="h-[5rem]"/><Skeleton className="h-[5rem]"/></div>}
           {pricesLoaded && (
@@ -161,7 +194,7 @@ export default function SalePage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Transaction Complete</AlertDialogTitle>
             <AlertDialogDescription>
-              A sale of {lastTransaction?.volume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}L of {lastTransaction?.fuelType} for PKR {lastTransaction?.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} has been recorded.
+              A sale of {lastTransaction?.volume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}L of {lastTransaction?.fuelType} for PKR {lastTransaction?.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} has been recorded{lastTransaction?.customerName ? ` for ${lastTransaction.customerName}` : ''}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

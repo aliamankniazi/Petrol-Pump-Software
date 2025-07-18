@@ -44,6 +44,7 @@ export default function HistoryPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
+                  <TableHead>Customer</TableHead>
                   <TableHead>Fuel Type</TableHead>
                   <TableHead className="text-right">Volume (L)</TableHead>
                   <TableHead className="text-right">Total</TableHead>
@@ -56,6 +57,7 @@ export default function HistoryPage() {
                     <TableCell className="font-medium">
                       {format(new Date(tx.timestamp), 'PP pp')}
                     </TableCell>
+                    <TableCell>{tx.customerName || 'Walk-in'}</TableCell>
                     <TableCell>{tx.fuelType}</TableCell>
                     <TableCell className="text-right">{tx.volume.toFixed(2)}</TableCell>
                     <TableCell className="text-right">PKR {tx.totalAmount.toFixed(2)}</TableCell>

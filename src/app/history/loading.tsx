@@ -17,6 +17,7 @@ export default function HistoryLoading() {
               <TableRow>
                 <TableHead><Skeleton className="h-5 w-32" /></TableHead>
                 <TableHead><Skeleton className="h-5 w-24" /></TableHead>
+                <TableHead><Skeleton className="h-5 w-24" /></TableHead>
                 <TableHead className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableHead>
                 <TableHead className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableHead>
                 <TableHead className="text-center"><Skeleton className="h-5 w-20 mx-auto" /></TableHead>
@@ -26,6 +27,7 @@ export default function HistoryLoading() {
               {Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
                   <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                   <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                   <TableCell className="text-right"><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
                   <TableCell className="text-right"><Skeleton className="h-5 w-16 ml-auto" /></TableCell>

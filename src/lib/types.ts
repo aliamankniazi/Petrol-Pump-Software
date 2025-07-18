@@ -10,6 +10,8 @@ export interface Transaction {
   totalAmount: number;
   paymentMethod: PaymentMethod;
   timestamp: string;
+  customerId?: string;
+  customerName?: string;
 }
 
 export interface Purchase {
