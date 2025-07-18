@@ -14,12 +14,13 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { Fuel, History, FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen } from 'lucide-react';
+import { Fuel, History, FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins } from 'lucide-react';
 
 const navItems = [
   { href: '/', label: 'Sale', icon: LayoutDashboard },
   { href: '/history', label: 'History', icon: History },
   { href: '/customers', label: 'Customers', icon: Users },
+  { href: '/customer-payments', label: 'Customer Payments', icon: HandCoins },
   { href: '/inventory', label: 'Inventory', icon: Package },
   { href: '/purchases', label: 'Purchases', icon: ShoppingCart },
   { href: '/purchase-returns', label: 'Purchase Returns', icon: Undo2 },

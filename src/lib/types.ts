@@ -68,3 +68,12 @@ export interface Employee {
   hireDate: string;
   timestamp: string;
 }
+
+export interface CustomerPayment {
+  id: string;
+  customerId: string;
+  customerName: string;
+  amount: number;
+  paymentMethod: PaymentMethod;
+  timestamp: string;
+}
