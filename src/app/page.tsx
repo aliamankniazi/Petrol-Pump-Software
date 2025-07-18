@@ -7,7 +7,7 @@ import { Numpad } from '@/components/numpad';
 import { useTransactions } from '@/hooks/use-transactions';
 import type { FuelType, PaymentMethod, Customer } from '@/lib/types';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Fuel, Droplets, CreditCard, Wallet, Smartphone, Users, HandCoins } from 'lucide-react';
+import { Fuel, Droplets, CreditCard, Wallet, Smartphone, Users, HandCoins, DollarSign } from 'lucide-react';
 import { useFuelPrices } from '@/hooks/use-fuel-prices';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -17,11 +17,14 @@ import { Label } from '@/components/ui/label';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { useCustomerBalance } from '@/hooks/use-customer-balance';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
 type SaleMode = 'amount' | 'liters';
-type PageMode = 'sale' | 'payment';
+type NumpadTarget = 'sale' | 'payment';
 
 export default function SalePage() {
   const { addTransaction } = useTransactions();
@@ -30,21 +33,26 @@ export default function SalePage() {
   const { fuelPrices, isLoaded: pricesLoaded } = useFuelPrices();
   const { customers, isLoaded: customersLoaded } = useCustomers();
   
-  const [inputStr, setInputStr] = useState('0');
+  const [saleInput, setSaleInput] = useState('0');
+  const [paymentInput, setPaymentInput] = useState('');
+  const [numpadTarget, setNumpadTarget] = useState<NumpadTarget>('sale');
+
   const [mode, setMode] = useState<SaleMode>('amount');
   const [selectedFuel, setSelectedFuel] = useState<FuelType>('Unleaded');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [lastTransaction, setLastTransaction] = useState<{ amount: number; volume: number; fuelType: FuelType, customerName?: string } | null>(null);
 
-  // State for Customer Payment
-  const [paymentCustomerId, setPaymentCustomerId] = useState<string>('');
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [pageMode, setPageMode] = useState<PageMode>('sale');
+  const selectedCustomerBalance = useCustomerBalance(selectedCustomerId);
+  
+  const selectedCustomer = useMemo(() => {
+      if (!selectedCustomerId) return null;
+      return customers.find(c => c.id === selectedCustomerId);
+  }, [customers, selectedCustomerId]);
 
   const { amount, volume } = useMemo(() => {
     const pricePerLitre = fuelPrices[selectedFuel] || 1;
-    const inputNum = parseFloat(inputStr) || 0;
+    const inputNum = parseFloat(saleInput) || 0;
 
     if (mode === 'amount') {
       const calculatedVolume = pricePerLitre > 0 ? inputNum / pricePerLitre : 0;
@@ -53,57 +61,49 @@ export default function SalePage() {
       const calculatedAmount = inputNum * pricePerLitre;
       return { amount: calculatedAmount, volume: inputNum };
     }
-  }, [inputStr, mode, selectedFuel, fuelPrices]);
+  }, [saleInput, mode, selectedFuel, fuelPrices]);
 
   const handleNumpadPress = useCallback((key: string) => {
-    if (pageMode === 'payment') {
-        if (key === 'C') {
-            setPaymentAmount('');
-            return;
-        }
-        if (key === '.' && paymentAmount.includes('.')) {
-            return;
-        }
-        if (paymentAmount.length < 9) {
-            setPaymentAmount(prev => prev + key);
-        }
-        return;
-    };
+    const isSale = numpadTarget === 'sale';
+    const currentInput = isSale ? saleInput : paymentInput;
+    const setInput = isSale ? setSaleInput : setPaymentInput;
+    
     if (key === 'C') {
-      setInputStr('0');
+      setInput(isSale ? '0' : '');
       return;
     }
-    if (key === '.' && inputStr.includes('.')) {
+    if (key === '.' && currentInput.includes('.')) {
       return;
     }
-    if (inputStr === '0' && key !== '.') {
-      setInputStr(key);
-    } else if (inputStr.length < 7) {
-      if (inputStr.includes('.') && inputStr.split('.')[1].length >= 2) return;
-      setInputStr(prev => prev + key);
+    // Limit length to prevent overflow
+    if (currentInput.replace('.', '').length >= 7) return;
+
+    if (isSale && currentInput === '0' && key !== '.') {
+      setInput(key);
+    } else {
+      if (currentInput.includes('.') && currentInput.split('.')[1].length >= 2) return;
+      setInput(prev => prev + key);
     }
-  }, [inputStr, pageMode, paymentAmount]);
+  }, [numpadTarget, saleInput, paymentInput]);
   
   const handleModeChange = (newMode: SaleMode) => {
       if (mode !== newMode) {
           setMode(newMode);
-          setInputStr('0');
+          setSaleInput('0');
       }
   }
 
-  const handlePayment = (paymentMethod: PaymentMethod) => {
+  const handleSalePayment = (paymentMethod: PaymentMethod) => {
     if (amount <= 0 || volume <= 0) return;
     
-    const customer = customers.find(c => c.id === selectedCustomerId);
-
     const transaction = {
       fuelType: selectedFuel,
       volume: parseFloat(volume.toFixed(2)),
       pricePerLitre: fuelPrices[selectedFuel],
       totalAmount: parseFloat(amount.toFixed(2)),
       paymentMethod,
-      customerId: customer?.id,
-      customerName: customer?.name,
+      customerId: selectedCustomer?.id,
+      customerName: selectedCustomer?.name,
     };
     
     addTransaction(transaction);
@@ -111,14 +111,14 @@ export default function SalePage() {
       amount: parseFloat(amount.toFixed(2)),
       volume: parseFloat(volume.toFixed(2)),
       fuelType: selectedFuel,
-      customerName: customer?.name,
+      customerName: selectedCustomer?.name,
     });
     setShowConfirmation(true);
   };
   
   const handleCustomerPayment = (paymentMethod: PaymentMethod) => {
-    const amountNum = parseFloat(paymentAmount);
-    if (!paymentCustomerId || !amountNum || amountNum <= 0) {
+    const amountNum = parseFloat(paymentInput);
+    if (!selectedCustomerId || !amountNum || amountNum <= 0) {
       toast({
         variant: "destructive",
         title: 'Invalid Payment',
@@ -127,28 +127,27 @@ export default function SalePage() {
       return;
     }
     
-    const customer = customers.find(c => c.id === paymentCustomerId);
-    if (!customer) return;
+    if (!selectedCustomer) return;
 
     addCustomerPayment({
-      customerId: customer.id,
-      customerName: customer.name,
+      customerId: selectedCustomer.id,
+      customerName: selectedCustomer.name,
       amount: amountNum,
       paymentMethod,
     });
 
     toast({
       title: 'Payment Recorded',
-      description: `Payment of PKR ${amountNum.toFixed(2)} from ${customer.name} has been recorded.`,
+      description: `Payment of PKR ${amountNum.toFixed(2)} from ${selectedCustomer.name} has been recorded.`,
     });
 
     // Reset form
-    setPaymentCustomerId('');
-    setPaymentAmount('');
+    setPaymentInput('');
   };
 
   const resetSale = () => {
-    setInputStr('0');
+    setSaleInput('0');
+    setPaymentInput('');
     setMode('amount');
     setSelectedFuel('Unleaded');
     setSelectedCustomerId(null);
@@ -156,30 +155,26 @@ export default function SalePage() {
     setLastTransaction(null);
   };
   
-  const selectedCustomerForPayment = customers.find(c => c.id === paymentCustomerId);
+  const numpadTitle = numpadTarget === 'sale' 
+      ? (mode === 'amount' ? 'Amount (PKR)' : 'Volume (L)') 
+      : 'Payment Amount (PKR)';
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 p-4 md:p-8 h-full">
       <div className="flex-1 lg:flex-grow-[2] flex flex-col">
-        <Tabs value={pageMode} onValueChange={(value) => setPageMode(value as PageMode)} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="sale"><Fuel className="mr-2" /> New Sale</TabsTrigger>
-              <TabsTrigger value="payment"><HandCoins className="mr-2" /> Customer Payment</TabsTrigger>
-            </TabsList>
-            <TabsContent value="sale">
-                <Card className="flex-1 flex flex-col">
-                    <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        Enter Sale Details
-                    </CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex flex-col gap-6 flex-grow">
-                    <Tabs value={mode} onValueChange={(value) => handleModeChange(value as SaleMode)} className="w-full">
-                        <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="amount">By Amount (PKR)</TabsTrigger>
-                        <TabsTrigger value="liters">By Volume (L)</TabsTrigger>
-                        </TabsList>
-                        <div className="text-center bg-muted/50 p-6 rounded-lg shadow-inner mt-4">
+        <Card className="flex-1 flex flex-col">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Fuel /> New Sale / Payment
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-6 flex-grow">
+                <Tabs value={mode} onValueChange={(value) => handleModeChange(value as SaleMode)} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="amount" onClick={() => setNumpadTarget('sale')}>By Amount (PKR)</TabsTrigger>
+                    <TabsTrigger value="liters" onClick={() => setNumpadTarget('sale')}>By Volume (L)</TabsTrigger>
+                    </TabsList>
+                    <div className="text-center bg-muted/50 p-6 rounded-lg shadow-inner mt-4" onClick={() => setNumpadTarget('sale')}>
                         <div className="text-sm text-muted-foreground">{mode === 'amount' ? 'Amount to Pay' : 'Calculated Amount'}</div>
                         <div className="text-5xl md:text-7xl font-bold tracking-tighter text-primary">
                             PKR {amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -189,32 +184,73 @@ export default function SalePage() {
                             <Droplets className="w-5 h-5 text-primary" />
                             <span>{volume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Litres</span>
                         </div>
-                        </div>
-                    </Tabs>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label className="flex items-center gap-2"><Users /> Customer</Label>
-                            {!customersLoaded ? <Skeleton className="h-10 w-full" /> : (
-                                <Select onValueChange={(value) => setSelectedCustomerId(value === 'walk-in' ? null : value)} defaultValue="walk-in">
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select a customer" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="walk-in">Walk-in Customer</SelectItem>
-                                        {customers.map(customer => (
-                                        <SelectItem key={customer.id} value={customer.id}>
-                                            {customer.name}
-                                        </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            )}
-                        </div>
                     </div>
-                    
-                    {!pricesLoaded && <div className="grid grid-cols-3 gap-4"><Skeleton className="h-[5rem]"/><Skeleton className="h-[5rem]"/><Skeleton className="h-[5rem]"/></div>}
-                    {pricesLoaded && (
+                </Tabs>
+
+                <div className="space-y-2">
+                    <Label className="flex items-center gap-2"><Users /> Customer</Label>
+                    {!customersLoaded ? <Skeleton className="h-10 w-full" /> : (
+                        <Select onValueChange={(value) => setSelectedCustomerId(value === 'walk-in' ? null : value)} value={selectedCustomerId || 'walk-in'}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a customer" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="walk-in">Walk-in Customer</SelectItem>
+                                {customers.map(customer => (
+                                <SelectItem key={customer.id} value={customer.id}>
+                                    {customer.name}
+                                </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                </div>
+
+                {selectedCustomer && (
+                    <Card className="bg-secondary/50" onFocus={() => setNumpadTarget('payment')} onClick={() => setNumpadTarget('payment')}>
+                        <CardHeader className='pb-4'>
+                            <CardTitle className="text-base flex justify-between items-center">
+                                <span>{selectedCustomer.name}'s Balance</span>
+                                <span className={cn("text-lg font-bold", selectedCustomerBalance.balance > 0 ? 'text-destructive' : 'text-green-600')}>
+                                    PKR {selectedCustomerBalance.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                            </CardTitle>
+                            <CardDescription>Enter an amount below to record a payment for this customer.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                     <Label htmlFor="payment-amount" className='sr-only'>Amount (PKR)</Label>
+                                     <Input 
+                                        id="payment-amount"
+                                        type="text"
+                                        placeholder="Enter amount to receive..."
+                                        value={paymentInput}
+                                        readOnly
+                                        className="text-lg h-12 text-center font-semibold tracking-wider"
+                                     />
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <Button className="py-4" variant="secondary" onClick={() => handleCustomerPayment('Cash')} disabled={!selectedCustomerId || !paymentInput}>
+                                        <Wallet className="mr-2" /> Cash
+                                    </Button>
+                                    <Button className="py-4" variant="secondary" onClick={() => handleCustomerPayment('Card')} disabled={!selectedCustomerId || !paymentInput}>
+                                        <CreditCard className="mr-2" /> Card
+                                    </Button>
+                                    <Button className="py-4" variant="secondary" onClick={() => handleCustomerPayment('Mobile')} disabled={!selectedCustomerId || !paymentInput}>
+                                        <Smartphone className="mr-2" /> Mobile
+                                    </Button>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                <Separator />
+                
+                <div onClick={() => setNumpadTarget('sale')}>
+                    <Label className="mb-2 flex items-center gap-2"><Fuel /> Fuel Details</Label>
+                    {!pricesLoaded ? <div className="grid grid-cols-3 gap-4"><Skeleton className="h-[5rem]"/><Skeleton className="h-[5rem]"/><Skeleton className="h-[5rem]"/></div> : (
                         <div className="grid grid-cols-3 gap-4">
                         {FUEL_TYPES.map(fuel => (
                             <Button
@@ -229,76 +265,25 @@ export default function SalePage() {
                         ))}
                         </div>
                     )}
+                </div>
 
-
-                    <div className="grid grid-cols-3 gap-4">
-                        <Button className="py-6 text-base" onClick={() => handlePayment('Cash')} disabled={amount <= 0 || !pricesLoaded}>
-                        <Wallet className="mr-2" /> Cash
-                        </Button>
-                        <Button className="py-6 text-base" onClick={() => handlePayment('Card')} disabled={amount <= 0 || !pricesLoaded}>
-                        <CreditCard className="mr-2" /> Card
-                        </Button>
-                        <Button className="py-6 text-base" onClick={() => handlePayment('Mobile')} disabled={amount <= 0 || !pricesLoaded}>
-                        <Smartphone className="mr-2" /> Mobile
-                        </Button>
-                    </div>
-                    </CardContent>
-                </Card>
-            </TabsContent>
-            <TabsContent value="payment">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Record Customer Payment</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="payment-customer">Customer</Label>
-                            {!customersLoaded ? <Skeleton className="h-10 w-full" /> : (
-                                <Select onValueChange={(value) => setPaymentCustomerId(value)} value={paymentCustomerId}>
-                                    <SelectTrigger id="payment-customer">
-                                        <SelectValue placeholder="Select a customer to pay" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {customers.map(customer => (
-                                        <SelectItem key={customer.id} value={customer.id}>
-                                            {customer.name}
-                                        </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            )}
-                        </div>
-                        <div className="space-y-2">
-                             <Label htmlFor="payment-amount">Amount (PKR)</Label>
-                             <Input 
-                                id="payment-amount"
-                                type="text"
-                                placeholder="Enter amount received"
-                                value={paymentAmount}
-                                onFocus={(e) => e.target.readOnly = true}
-                                readOnly
-                             />
-                        </div>
-                        
-                        <div className="grid grid-cols-3 gap-4">
-                            <Button className="py-6 text-base" onClick={() => handleCustomerPayment('Cash')} disabled={!paymentCustomerId || !paymentAmount}>
-                            <Wallet className="mr-2" /> Cash
-                            </Button>
-                            <Button className="py-6 text-base" onClick={() => handleCustomerPayment('Card')} disabled={!paymentCustomerId || !paymentAmount}>
-                            <CreditCard className="mr-2" /> Card
-                            </Button>
-                            <Button className="py-6 text-base" onClick={() => handleCustomerPayment('Mobile')} disabled={!paymentCustomerId || !paymentAmount}>
-                            <Smartphone className="mr-2" /> Mobile
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-            </TabsContent>
-        </Tabs>
+                <div className="grid grid-cols-3 gap-4" onClick={() => setNumpadTarget('sale')}>
+                    <Button className="py-6 text-base" onClick={() => handleSalePayment('Cash')} disabled={amount <= 0 || !pricesLoaded}>
+                    <Wallet className="mr-2" /> Cash
+                    </Button>
+                    <Button className="py-6 text-base" onClick={() => handleSalePayment('Card')} disabled={amount <= 0 || !pricesLoaded}>
+                    <CreditCard className="mr-2" /> Card
+                    </Button>
+                    <Button className="py-6 text-base" onClick={() => handleSalePayment('Mobile')} disabled={amount <= 0 || !pricesLoaded}>
+                    <Smartphone className="mr-2" /> Mobile
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
       </div>
       <Card className="flex-1 lg:flex-grow-[1]">
         <CardHeader>
-          <CardTitle>Enter {pageMode === 'sale' ? (mode === 'amount' ? 'Amount (PKR)' : 'Volume (L)') : 'Payment Amount'}</CardTitle>
+          <CardTitle>{numpadTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           <Numpad onKeyPress={handleNumpadPress} />
