@@ -166,7 +166,7 @@ export default function CustomerLedgerPage() {
                     <TableCell>
                       <Badge variant={entry.type === 'Sale' ? 'destructive' : 'default'}>{entry.type}</Badge>
                     </TableCell>
-                    <TableCell className="text-right font-mono">
+                    <TableCell className="text-right font-mono text-destructive">
                         {entry.debit > 0 ? entry.debit.toFixed(2) : '-'}
                     </TableCell>
                     <TableCell className="text-right font-mono text-green-600">
