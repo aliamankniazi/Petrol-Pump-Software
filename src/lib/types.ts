@@ -48,3 +48,11 @@ export interface Customer {
   vehicleNumber?: string;
   timestamp: string;
 }
+
+export interface BankAccount {
+  id: string;
+  bankName: string;
+  accountNumber: string;
+  balance: number;
+  timestamp: string;
+}
