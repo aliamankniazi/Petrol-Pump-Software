@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, isSameDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -21,8 +21,9 @@ type LedgerEntry = {
   timestamp: string;
   description: string;
   type: 'Sale' | 'Purchase' | 'Expense' | 'Purchase Return';
-  amount: number;
-  balanceEffect: 'credit' | 'debit';
+  debit: number;
+  credit: number;
+  balance: number;
 };
 
 export default function LedgerPage() {
@@ -35,52 +36,68 @@ export default function LedgerPage() {
 
   const isLoaded = transactionsLoaded && purchasesLoaded && expensesLoaded && purchaseReturnsLoaded;
 
-  const ledgerEntries = useMemo(() => {
-    if (!isLoaded) return [];
+  const { entries, finalBalance } = useMemo(() => {
+    if (!isLoaded) return { entries: [], finalBalance: 0 };
 
-    let allEntries: LedgerEntry[] = [];
+    let combined: Omit<LedgerEntry, 'balance'>[] = [];
 
-    transactions.forEach(tx => allEntries.push({
+    transactions.forEach(tx => combined.push({
       id: `tx-${tx.id}`,
       timestamp: tx.timestamp,
-      description: `Sale: ${tx.volume.toFixed(2)}L of ${tx.fuelType} for PKR ${tx.totalAmount.toFixed(2)}`,
+      description: `Sale: ${tx.volume.toFixed(2)}L of ${tx.fuelType} to ${tx.customerName || 'Walk-in'}`,
       type: 'Sale',
-      amount: tx.totalAmount,
-      balanceEffect: 'credit', // Treat as credit (income)
+      debit: 0,
+      credit: tx.totalAmount,
     }));
 
-    purchases.forEach(p => allEntries.push({
+    purchases.forEach(p => combined.push({
       id: `pur-${p.id}`,
       timestamp: p.timestamp,
       description: `Purchase from ${p.supplier}: ${p.volume.toFixed(2)}L of ${p.fuelType}`,
       type: 'Purchase',
-      amount: p.totalCost,
-      balanceEffect: 'debit',
+      debit: p.totalCost,
+      credit: 0,
     }));
 
-    expenses.forEach(e => allEntries.push({
+    expenses.forEach(e => combined.push({
         id: `exp-${e.id}`,
         timestamp: e.timestamp,
         description: `Expense: ${e.description}`,
         type: 'Expense',
-        amount: e.amount,
-        balanceEffect: 'debit',
+        debit: e.amount,
+        credit: 0,
     }));
       
-    purchaseReturns.forEach(pr => allEntries.push({
+    purchaseReturns.forEach(pr => combined.push({
         id: `pr-${pr.id}`,
         timestamp: pr.timestamp,
         description: `Return to ${pr.supplier}: ${pr.volume.toFixed(2)}L of ${pr.fuelType}`,
         type: 'Purchase Return',
-        amount: pr.totalRefund,
-        balanceEffect: 'credit',
+        debit: 0,
+        credit: pr.totalRefund,
     }));
     
-    if (selectedDate) {
-      allEntries = allEntries.filter(entry => isSameDay(new Date(entry.timestamp), selectedDate));
-    }
+    // Sort before filtering to calculate opening balance correctly
+    combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
-    return allEntries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    let openingBalance = 0;
+    let filteredEntries = combined;
+
+    if (selectedDate) {
+      openingBalance = combined
+        .filter(entry => new Date(entry.timestamp) < new Date(selectedDate).setHours(0,0,0,0))
+        .reduce((acc, entry) => acc + entry.credit - entry.debit, 0);
+      
+      filteredEntries = combined.filter(entry => isSameDay(new Date(entry.timestamp), selectedDate));
+    }
+    
+    let runningBalance = openingBalance;
+    const entriesWithBalance: LedgerEntry[] = filteredEntries.map(entry => {
+      runningBalance += entry.credit - entry.debit;
+      return { ...entry, balance: runningBalance };
+    });
+
+    return { entries: entriesWithBalance.reverse(), finalBalance: runningBalance };
 
   }, [transactions, purchases, expenses, purchaseReturns, isLoaded, selectedDate]);
 
@@ -97,7 +114,7 @@ export default function LedgerPage() {
     }
   };
   
-  const isGreenEntry = (type: LedgerEntry['type']) => {
+  const isCreditEntry = (type: LedgerEntry['type']) => {
     return type === 'Sale' || type === 'Purchase Return';
   }
 
@@ -150,18 +167,20 @@ export default function LedgerPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoaded && ledgerEntries.length > 0 ? (
+          {isLoaded && entries.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Date & Time</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Amount (PKR)</TableHead>
+                  <TableHead className="text-right">Debit</TableHead>
+                  <TableHead className="text-right">Credit</TableHead>
+                  <TableHead className="text-right">Balance</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ledgerEntries.map(entry => (
+                {entries.map(entry => (
                   <TableRow key={entry.id}>
                     <TableCell className="font-medium">
                       {format(new Date(entry.timestamp), 'PP pp')}
@@ -170,13 +189,19 @@ export default function LedgerPage() {
                     <TableCell>
                       <Badge 
                         variant={getBadgeVariant(entry.type)}
-                        className={cn(isGreenEntry(entry.type) && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}
+                        className={cn(isCreditEntry(entry.type) && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}
                       >
                         {entry.type}
                       </Badge>
                     </TableCell>
-                    <TableCell className={`text-right font-semibold ${entry.balanceEffect === 'credit' ? 'text-green-600' : 'text-destructive'}`}>
-                       {entry.balanceEffect === 'credit' ? '+' : '-'} {entry.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <TableCell className="text-right font-mono text-destructive">
+                        {entry.debit > 0 ? entry.debit.toFixed(2) : '-'}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-green-600">
+                        {entry.credit > 0 ? entry.credit.toFixed(2) : '-'}
+                    </TableCell>
+                    <TableCell className={`text-right font-semibold font-mono ${entry.balance >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                        {entry.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -203,6 +228,14 @@ export default function LedgerPage() {
             </div>
           )}
         </CardContent>
+        {isLoaded && entries.length > 0 && (
+           <CardFooter className="flex justify-end bg-muted/50 p-4 rounded-b-lg">
+              <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Final Balance</p>
+                  <p className={`text-2xl font-bold ${finalBalance >= 0 ? 'text-green-600' : 'text-destructive'}`}>PKR {finalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              </div>
+          </CardFooter>
+        )}
       </Card>
     </div>
   );
