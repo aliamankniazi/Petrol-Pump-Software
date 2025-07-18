@@ -20,3 +20,13 @@ export interface Purchase {
   totalCost: number;
   timestamp: string;
 }
+
+export type ExpenseCategory = 'Utilities' | 'Salaries' | 'Maintenance' | 'Other';
+
+export interface Expense {
+  id: string;
+  description: string;
+  category: ExpenseCategory;
+  amount: number;
+  timestamp: string;
+}
