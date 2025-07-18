@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Receipt, ListChecks, WalletCards } from 'lucide-react';
-import type { Expense, ExpenseCategory } from '@/lib/types';
+import type { ExpenseCategory } from '@/lib/types';
 import { format } from 'date-fns';
+import { useExpenses } from '@/hooks/use-expenses';
 
 const EXPENSE_CATEGORIES: ExpenseCategory[] = ['Utilities', 'Salaries', 'Maintenance', 'Other'];
 
@@ -26,19 +26,14 @@ const expenseSchema = z.object({
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
 
 export default function ExpensesPage() {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const { expenses, addExpense } = useExpenses();
   const { toast } = useToast();
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
   });
 
   const onSubmit: SubmitHandler<ExpenseFormValues> = (data) => {
-    const newExpense: Expense = {
-      id: crypto.randomUUID(),
-      timestamp: new Date().toISOString(),
-      ...data,
-    };
-    setExpenses(prev => [newExpense, ...prev]);
+    addExpense(data);
     toast({
       title: 'Expense Recorded',
       description: `Expense of PKR ${data.amount} for "${data.description}" has been logged.`,

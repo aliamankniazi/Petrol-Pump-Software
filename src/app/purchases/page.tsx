@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { ShoppingCart, Package, Truck } from 'lucide-react';
-import type { FuelType, Purchase } from '@/lib/types';
+import type { FuelType } from '@/lib/types';
 import { format } from 'date-fns';
+import { usePurchases } from '@/hooks/use-purchases';
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
@@ -27,19 +27,14 @@ const purchaseSchema = z.object({
 type PurchaseFormValues = z.infer<typeof purchaseSchema>;
 
 export default function PurchasesPage() {
-  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const { purchases, addPurchase } = usePurchases();
   const { toast } = useToast();
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema),
   });
 
   const onSubmit: SubmitHandler<PurchaseFormValues> = (data) => {
-    const newPurchase: Purchase = {
-      id: crypto.randomUUID(),
-      timestamp: new Date().toISOString(),
-      ...data,
-    };
-    setPurchases(prev => [newPurchase, ...prev]);
+    addPurchase(data);
     toast({
       title: 'Purchase Recorded',
       description: `Delivery from ${data.supplier} has been logged.`,
