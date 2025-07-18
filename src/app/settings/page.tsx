@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Settings, Trash2, AlertTriangle } from 'lucide-react';
+import { Settings, Trash2, AlertTriangle, Droplets } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
 import {
   AlertDialog,
@@ -21,9 +21,14 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
+import { useFuelPrices } from '@/hooks/use-fuel-prices';
+import type { FuelType } from '@/lib/types';
+
+const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
 export default function SettingsPage() {
   const { clearTransactions } = useTransactions();
+  const { fuelPrices, updateFuelPrice, isLoaded } = useFuelPrices();
   const { toast } = useToast();
 
   const handleClearData = () => {
@@ -34,6 +39,13 @@ export default function SettingsPage() {
     });
   };
 
+  const handlePriceChange = (fuelType: FuelType, value: string) => {
+    const price = parseFloat(value);
+    if (!isNaN(price)) {
+      updateFuelPrice(fuelType, price);
+    }
+  };
+
   return (
     <div className="p-4 md:p-8">
       <Card>
@@ -41,22 +53,35 @@ export default function SettingsPage() {
           <CardTitle className="flex items-center gap-2">
             <Settings /> Settings
           </CardTitle>
-          <CardDescription>Customize application settings.</CardDescription>
+          <CardDescription>Customize application settings and fuel prices.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">General</h3>
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div>
-                <Label htmlFor="tax-rate">Tax Rate (%)</Label>
-                <p className="text-sm text-muted-foreground">
-                  Set the tax rate for sales calculations. (UI Only)
-                </p>
-              </div>
-              <Input id="tax-rate" type="number" defaultValue="5" className="w-24" />
+            <h3 className="text-lg font-medium">Fuel Prices</h3>
+            <div className="space-y-4">
+              {isLoaded && FUEL_TYPES.map(fuel => (
+                <div key={fuel} className="flex items-center justify-between rounded-lg border p-4">
+                  <div>
+                    <Label htmlFor={`${fuel}-price`} className="flex items-center gap-2"><Droplets className="w-4 h-4" /> {fuel} Price ($/L)</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Set the price per litre for {fuel}.
+                    </p>
+                  </div>
+                  <Input 
+                    id={`${fuel}-price`} 
+                    type="number" 
+                    value={fuelPrices[fuel] || ''} 
+                    onChange={(e) => handlePriceChange(fuel, e.target.value)}
+                    className="w-28" 
+                    step="0.01"
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
+          <Separator />
+          
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Appearance</h3>
             <div className="flex items-center justify-between rounded-lg border p-4">

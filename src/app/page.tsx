@@ -8,17 +8,14 @@ import { useTransactions } from '@/hooks/use-transactions';
 import type { FuelType, PaymentMethod } from '@/lib/types';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Fuel, Droplets, CreditCard, Wallet, Smartphone } from 'lucide-react';
-
-const FUEL_PRICES: Record<FuelType, number> = {
-  'Unleaded': 1.80,
-  'Premium': 2.10,
-  'Diesel': 2.00,
-};
+import { useFuelPrices } from '@/hooks/use-fuel-prices';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
 export default function SalePage() {
   const { addTransaction } = useTransactions();
+  const { fuelPrices, isLoaded: pricesLoaded } = useFuelPrices();
   const [amountStr, setAmountStr] = useState('0');
   const [selectedFuel, setSelectedFuel] = useState<FuelType>('Unleaded');
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -26,10 +23,10 @@ export default function SalePage() {
 
   const amountNum = useMemo(() => parseFloat(amountStr) || 0, [amountStr]);
   const volume = useMemo(() => {
-    const pricePerLitre = FUEL_PRICES[selectedFuel];
+    const pricePerLitre = fuelPrices[selectedFuel];
     if (!pricePerLitre || pricePerLitre === 0) return 0;
     return amountNum / pricePerLitre;
-  }, [amountNum, selectedFuel]);
+  }, [amountNum, selectedFuel, fuelPrices]);
 
   const handleNumpadPress = useCallback((key: string) => {
     if (key === 'C') {
@@ -53,7 +50,7 @@ export default function SalePage() {
     const transaction = {
       fuelType: selectedFuel,
       volume: parseFloat(volume.toFixed(2)),
-      pricePerLitre: FUEL_PRICES[selectedFuel],
+      pricePerLitre: fuelPrices[selectedFuel],
       totalAmount: amountNum,
       paymentMethod,
     };
@@ -92,28 +89,33 @@ export default function SalePage() {
               <span>{volume.toFixed(2)} Litres</span>
             </div>
           </div>
+          
+          {!pricesLoaded && <div className="grid grid-cols-3 gap-4"><Skeleton className="h-[5rem]"/><Skeleton className="h-[5rem]"/><Skeleton className="h-[5rem]"/></div>}
+          {pricesLoaded && (
+            <div className="grid grid-cols-3 gap-4">
+              {FUEL_TYPES.map(fuel => (
+                <Button
+                  key={fuel}
+                  variant={selectedFuel === fuel ? 'default' : 'outline'}
+                  className="py-6 text-base flex-col h-auto"
+                  onClick={() => setSelectedFuel(fuel)}
+                >
+                  <span>{fuel}</span>
+                  <span className="text-xs text-muted-foreground">${fuelPrices[fuel].toFixed(2)}/L</span>
+                </Button>
+              ))}
+            </div>
+          )}
+
 
           <div className="grid grid-cols-3 gap-4">
-            {FUEL_TYPES.map(fuel => (
-              <Button
-                key={fuel}
-                variant={selectedFuel === fuel ? 'default' : 'outline'}
-                className="py-6 text-base"
-                onClick={() => setSelectedFuel(fuel)}
-              >
-                {fuel}
-              </Button>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <Button className="py-6 text-base" onClick={() => handlePayment('Cash')} disabled={amountNum <= 0}>
+            <Button className="py-6 text-base" onClick={() => handlePayment('Cash')} disabled={amountNum <= 0 || !pricesLoaded}>
               <Wallet className="mr-2" /> Cash
             </Button>
-            <Button className="py-6 text-base" onClick={() => handlePayment('Card')} disabled={amountNum <= 0}>
+            <Button className="py-6 text-base" onClick={() => handlePayment('Card')} disabled={amountNum <= 0 || !pricesLoaded}>
               <CreditCard className="mr-2" /> Card
             </Button>
-            <Button className="py-6 text-base" onClick={() => handlePayment('Mobile')} disabled={amountNum <= 0}>
+            <Button className="py-6 text-base" onClick={() => handlePayment('Mobile')} disabled={amountNum <= 0 || !pricesLoaded}>
               <Smartphone className="mr-2" /> Mobile
             </Button>
           </div>
