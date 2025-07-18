@@ -42,6 +42,11 @@ export function useCustomerPayments() {
   
   const clearCustomerPayments = useCallback(() => {
     setCustomerPayments([]);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      console.error("Failed to remove customer payments from localStorage", error);
+    }
   }, []);
 
   return { customerPayments, addCustomerPayment, clearCustomerPayments, isLoaded };

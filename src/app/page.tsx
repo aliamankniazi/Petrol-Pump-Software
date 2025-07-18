@@ -56,7 +56,19 @@ export default function SalePage() {
   }, [inputStr, mode, selectedFuel, fuelPrices]);
 
   const handleNumpadPress = useCallback((key: string) => {
-    if (pageMode === 'payment') return; // Numpad is for sales only
+    if (pageMode === 'payment') {
+        if (key === 'C') {
+            setPaymentAmount('');
+            return;
+        }
+        if (key === '.' && paymentAmount.includes('.')) {
+            return;
+        }
+        if (paymentAmount.length < 9) {
+            setPaymentAmount(prev => prev + key);
+        }
+        return;
+    };
     if (key === 'C') {
       setInputStr('0');
       return;
@@ -70,7 +82,7 @@ export default function SalePage() {
       if (inputStr.includes('.') && inputStr.split('.')[1].length >= 2) return;
       setInputStr(prev => prev + key);
     }
-  }, [inputStr, pageMode]);
+  }, [inputStr, pageMode, paymentAmount]);
   
   const handleModeChange = (newMode: SaleMode) => {
       if (mode !== newMode) {
@@ -260,11 +272,11 @@ export default function SalePage() {
                              <Label htmlFor="payment-amount">Amount (PKR)</Label>
                              <Input 
                                 id="payment-amount"
-                                type="number"
+                                type="text"
                                 placeholder="Enter amount received"
                                 value={paymentAmount}
-                                onChange={(e) => setPaymentAmount(e.target.value)}
-                                step="0.01"
+                                onFocus={(e) => e.target.readOnly = true}
+                                readOnly
                              />
                         </div>
                         
@@ -286,7 +298,7 @@ export default function SalePage() {
       </div>
       <Card className="flex-1 lg:flex-grow-[1]">
         <CardHeader>
-          <CardTitle>Enter {pageMode === 'sale' ? (mode === 'amount' ? 'Amount (PKR)' : 'Volume (L)') : 'Calculator'}</CardTitle>
+          <CardTitle>Enter {pageMode === 'sale' ? (mode === 'amount' ? 'Amount (PKR)' : 'Volume (L)') : 'Payment Amount'}</CardTitle>
         </CardHeader>
         <CardContent>
           <Numpad onKeyPress={handleNumpadPress} />
