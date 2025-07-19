@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -33,11 +34,13 @@ export function useCustomers() {
     }
   }, [customers, isLoaded]);
 
-  const addCustomer = useCallback((customer: Omit<Customer, 'id' | 'timestamp'>) => {
+  const addCustomer = useCallback((customer: Omit<Customer, 'id' | 'timestamp'>): Customer => {
+    const newCustomer = { ...customer, id: crypto.randomUUID(), timestamp: new Date().toISOString() };
     setCustomers(prev => [
-      { ...customer, id: crypto.randomUUID(), timestamp: new Date().toISOString() },
+      newCustomer,
       ...prev,
     ]);
+    return newCustomer;
   }, []);
 
   const clearCustomers = useCallback(() => {

@@ -35,10 +35,10 @@ export function useExpenses() {
   }, [expenses, isLoaded]);
 
   const addExpense = useCallback((expense: Omit<Expense, 'id'>) => {
-    setExpenses(prev => [
-      { ...expense, id: crypto.randomUUID() },
-      ...prev,
-    ]);
+    setExpenses(prev => {
+        const newExpenses = [{ ...expense, id: crypto.randomUUID() }, ...prev];
+        return newExpenses.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    });
   }, []);
   
   const deleteExpense = useCallback((id: string) => {

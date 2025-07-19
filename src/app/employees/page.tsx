@@ -21,6 +21,8 @@ import { useExpenses } from '@/hooks/use-expenses';
 import type { Employee } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useCustomers } from '@/hooks/use-customers';
+import { useCashAdvances } from '@/hooks/use-cash-advances';
 
 const employeeSchema = z.object({
   name: z.string().min(1, 'Employee name is required'),
@@ -39,7 +41,10 @@ const months = Array.from({ length: 12 }, (_, i) => ({
 
 export default function EmployeesPage() {
   const { employees, addEmployee } = useEmployees();
-  const { addExpense } = useExpenses();
+  const { expenses, addExpense } = useExpenses();
+  const { customers, addCustomer } = useCustomers();
+  const { addCashAdvance } = useCashAdvances();
+
   const { toast } = useToast();
   
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -62,16 +67,42 @@ export default function EmployeesPage() {
     if (!selectedEmployee) return;
 
     const monthName = months.find(m => m.value === selectedMonth)?.label;
-    
+    const expenseDescription = `Salary for ${selectedEmployee.name} for ${monthName}`;
+
+    // 1. Log the salary as an expense
     addExpense({
-      description: `Salary for ${selectedEmployee.name} for ${monthName}`,
+      description: expenseDescription,
       category: 'Salaries',
       amount: selectedEmployee.salary,
+      timestamp: new Date().toISOString(),
     });
+
+    // 2. Find or create a customer record for the employee
+    let employeeAsCustomer = customers.find(c => c.name.toLowerCase() === selectedEmployee.name.toLowerCase());
+    
+    if (!employeeAsCustomer) {
+        employeeAsCustomer = addCustomer({
+            name: selectedEmployee.name,
+            contact: selectedEmployee.mobileNumber || '',
+            area: 'Employee',
+        });
+    }
+    
+    // 3. Log a cash advance against the employee's customer record
+    addCashAdvance({
+        customerId: employeeAsCustomer.id,
+        customerName: employeeAsCustomer.name,
+        amount: selectedEmployee.salary,
+        notes: `Salary for ${monthName}`,
+        timestamp: new Date().toISOString(),
+    });
+
+
     toast({
-      title: 'Salary Paid',
-      description: `Salary of PKR ${selectedEmployee.salary} for ${selectedEmployee.name} (${monthName}) has been recorded as an expense.`,
+      title: 'Salary Paid and Recorded',
+      description: `Salary for ${selectedEmployee.name} has been logged as an expense and a cash advance.`,
     });
+
     setSelectedEmployee(null); // Close the dialog
   };
 
