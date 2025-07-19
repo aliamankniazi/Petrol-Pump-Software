@@ -4,7 +4,7 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format, isSameDay } from 'date-fns';
+import { format, isSameDay, startOfDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { BookOpen, DollarSign, Calendar as CalendarIcon, X } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
@@ -38,8 +38,8 @@ export default function LedgerPage() {
 
   const isLoaded = transactionsLoaded && purchasesLoaded && expensesLoaded && purchaseReturnsLoaded && otherIncomesLoaded;
 
-  const { entries, finalBalance } = useMemo(() => {
-    if (!isLoaded) return { entries: [], finalBalance: 0 };
+  const { entries, finalBalance, openingBalance, totals } = useMemo(() => {
+    if (!isLoaded) return { entries: [], finalBalance: 0, openingBalance: 0, totals: { debit: 0, credit: 0 } };
 
     let combined: Omit<LedgerEntry, 'balance'>[] = [];
 
@@ -88,27 +88,40 @@ export default function LedgerPage() {
         credit: oi.amount,
     }));
     
-    // Sort before filtering to calculate opening balance correctly
     combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
-    let openingBalance = 0;
-    let filteredEntries = combined;
+    let calculatedOpeningBalance = 0;
+    let entriesForDisplay = combined;
 
     if (selectedDate) {
-      openingBalance = combined
-        .filter(entry => new Date(entry.timestamp) < new Date(selectedDate).setHours(0,0,0,0))
+      calculatedOpeningBalance = combined
+        .filter(entry => new Date(entry.timestamp) < startOfDay(selectedDate))
         .reduce((acc, entry) => acc + entry.credit - entry.debit, 0);
       
-      filteredEntries = combined.filter(entry => isSameDay(new Date(entry.timestamp), selectedDate));
+      entriesForDisplay = combined.filter(entry => isSameDay(new Date(entry.timestamp), selectedDate));
     }
     
-    let runningBalance = openingBalance;
-    const entriesWithBalance: LedgerEntry[] = filteredEntries.map(entry => {
+    let runningBalance = calculatedOpeningBalance;
+    const entriesWithBalance: LedgerEntry[] = entriesForDisplay.map(entry => {
       runningBalance += entry.credit - entry.debit;
       return { ...entry, balance: runningBalance };
     });
+    
+    const calculatedTotals = entriesForDisplay.reduce(
+        (acc, entry) => {
+            acc.debit += entry.debit;
+            acc.credit += entry.credit;
+            return acc;
+        },
+        { debit: 0, credit: 0 }
+    );
 
-    return { entries: entriesWithBalance.reverse(), finalBalance: runningBalance };
+    return { 
+        entries: entriesWithBalance.reverse(), 
+        finalBalance: runningBalance, 
+        openingBalance: calculatedOpeningBalance,
+        totals: calculatedTotals,
+    };
 
   }, [transactions, purchases, expenses, purchaseReturns, otherIncomes, isLoaded, selectedDate]);
 
@@ -137,7 +150,7 @@ export default function LedgerPage() {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <BookOpen /> General Ledger
+                <BookOpen /> General Journal
               </CardTitle>
               <CardDescription>
                 {selectedDate 
@@ -157,7 +170,7 @@ export default function LedgerPage() {
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                    {selectedDate ? format(selectedDate, "PPP") : <span>Filter by date...</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="end">
@@ -184,24 +197,32 @@ export default function LedgerPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Date & Time</TableHead>
-                  <TableHead>Description</TableHead>
+                  <TableHead>Particulars</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Debit</TableHead>
-                  <TableHead className="text-right">Credit</TableHead>
-                  <TableHead className="text-right">Balance</TableHead>
+                  <TableHead className="text-right">Debit (PKR)</TableHead>
+                  <TableHead className="text-right">Credit (PKR)</TableHead>
+                  <TableHead className="text-right">Balance (PKR)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {selectedDate && (
+                  <TableRow className="bg-muted/30">
+                    <TableCell colSpan={5} className="font-bold">Opening Balance</TableCell>
+                    <TableCell className={`text-right font-semibold font-mono ${openingBalance >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                      {openingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </TableCell>
+                  </TableRow>
+                )}
                 {entries.map(entry => (
                   <TableRow key={entry.id}>
-                    <TableCell className="font-medium">
-                      {format(new Date(entry.timestamp), 'PP pp')}
+                    <TableCell className="font-medium whitespace-nowrap">
+                      {format(new Date(entry.timestamp), 'dd/MM/yy hh:mm a')}
                     </TableCell>
                     <TableCell>{entry.description}</TableCell>
                     <TableCell>
                       <Badge 
                         variant={getBadgeVariant(entry.type)}
-                        className={cn(isCreditEntry(entry.type) && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}
+                        className={cn('text-xs', isCreditEntry(entry.type) && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}
                       >
                         {entry.type}
                       </Badge>
@@ -218,6 +239,14 @@ export default function LedgerPage() {
                   </TableRow>
                 ))}
               </TableBody>
+               <TableFooter>
+                <TableRow className="bg-muted/50 font-bold">
+                  <TableCell colSpan={3} className="text-right">Period Totals</TableCell>
+                  <TableCell className="text-right font-mono text-destructive">{totals.debit.toFixed(2)}</TableCell>
+                  <TableCell className="text-right font-mono text-green-600">{totals.credit.toFixed(2)}</TableCell>
+                  <TableCell />
+                </TableRow>
+              </TableFooter>
             </Table>
           ) : (
             <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
@@ -243,7 +272,7 @@ export default function LedgerPage() {
         {isLoaded && entries.length > 0 && (
            <CardFooter className="flex justify-end bg-muted/50 p-4 rounded-b-lg">
               <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Final Balance</p>
+                  <p className="text-sm text-muted-foreground">Final Closing Balance</p>
                   <p className={`text-2xl font-bold ${finalBalance >= 0 ? 'text-green-600' : 'text-destructive'}`}>PKR {finalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
           </CardFooter>
