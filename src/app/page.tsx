@@ -8,7 +8,7 @@ import { Numpad } from '@/components/numpad';
 import { useTransactions } from '@/hooks/use-transactions';
 import type { FuelType, PaymentMethod, Customer } from '@/lib/types';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Fuel, Droplets, CreditCard, Wallet, Smartphone, Users, HandCoins, DollarSign, Calendar as CalendarIcon } from 'lucide-react';
+import { Fuel, Droplets, CreditCard, Wallet, Smartphone, Users, HandCoins, DollarSign, Calendar as CalendarIcon, Edit } from 'lucide-react';
 import { useFuelPrices } from '@/hooks/use-fuel-prices';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -338,8 +338,15 @@ export default function SalePage() {
 
                 <Separator />
                 
+                <div className="lg:max-w-md lg:mx-auto lg:w-full">
+                    <Label className="mb-2 flex items-center gap-2"><Edit /> Keypad</Label>
+                    <Numpad onKeyPress={handleNumpadPress} />
+                </div>
+                
+                <Separator />
+                
                 <div onClick={() => setNumpadTarget('sale')}>
-                    <Label className="mb-2 flex items-center gap-2"><Fuel /> Fuel Details</Label>
+                    <Label className="mb-2 flex items-center gap-2"><Fuel /> Fuel & Payment</Label>
                     {!dataIsReady ? <div className="grid grid-cols-3 gap-4"><Skeleton className="h-[5rem]"/><Skeleton className="h-[5rem]"/><Skeleton className="h-[5rem]"/></div> : (
                         <div className="grid grid-cols-3 gap-4">
                         {FUEL_TYPES.map((fuel, index) => {
@@ -376,15 +383,7 @@ export default function SalePage() {
             </CardContent>
         </Card>
       </div>
-      <Card className="flex-1 lg:flex-grow-[1]">
-        <CardHeader>
-          <CardTitle>{numpadTitle}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Numpad onKeyPress={handleNumpadPress} />
-        </CardContent>
-      </Card>
-
+      
       <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
         <AlertDialogContent>
           <AlertDialogHeader>
