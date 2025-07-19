@@ -21,14 +21,16 @@ import { useSuppliers } from '@/hooks/use-suppliers';
 import { usePurchases } from '@/hooks/use-purchases';
 import { useSupplierPayments } from '@/hooks/use-supplier-payments';
 import Link from 'next/link';
+import { useBusinessPartners } from '@/hooks/use-business-partners';
+import { useInvestments } from '@/hooks/use-investments';
 
 type CombinedEntry = {
   id: string;
   timestamp: string;
   entityId: string;
   entityName: string;
-  entityType: 'Customer' | 'Supplier';
-  type: 'Sale' | 'Payment' | 'Cash Advance' | 'Purchase' | 'Supplier Payment';
+  entityType: 'Customer' | 'Supplier' | 'Partner';
+  type: 'Sale' | 'Payment' | 'Cash Advance' | 'Purchase' | 'Supplier Payment' | 'Investment' | 'Withdrawal';
   description: string;
   debit: number;
   credit: number;
@@ -43,20 +45,23 @@ export default function PartnerLedgerPage() {
   const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
   const { purchases, isLoaded: purchasesLoaded } = usePurchases();
   const { supplierPayments, isLoaded: supplierPaymentsLoaded } = useSupplierPayments();
+  const { businessPartners, isLoaded: partnersLoaded } = useBusinessPartners();
+  const { investments, isLoaded: investmentsLoaded } = useInvestments();
   
   const [selectedEntityId, setSelectedEntityId] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
-  const isLoaded = paymentsLoaded && customersLoaded && transactionsLoaded && advancesLoaded && suppliersLoaded && purchasesLoaded && supplierPaymentsLoaded;
+  const isLoaded = paymentsLoaded && customersLoaded && transactionsLoaded && advancesLoaded && suppliersLoaded && purchasesLoaded && supplierPaymentsLoaded && partnersLoaded && investmentsLoaded;
 
   const entities = useMemo(() => {
     if (!isLoaded) return [];
     const allEntities = [
       ...customers.map(c => ({ id: c.id, name: c.name, type: 'Customer' as const })),
-      ...suppliers.map(s => ({ id: s.id, name: s.name, type: 'Supplier' as const }))
+      ...suppliers.map(s => ({ id: s.id, name: s.name, type: 'Supplier' as const })),
+      ...businessPartners.map(p => ({ id: p.id, name: p.name, type: 'Partner' as const }))
     ];
     return allEntities.sort((a,b) => a.name.localeCompare(b.name));
-  }, [customers, suppliers, isLoaded]);
+  }, [customers, suppliers, businessPartners, isLoaded]);
 
   const { entries, totals, finalBalance, specialReport } = useMemo(() => {
     if (!isLoaded) return { entries: [], totals: { debit: 0, credit: 0 }, finalBalance: 0, specialReport: null };
@@ -137,6 +142,21 @@ export default function PartnerLedgerPage() {
         });
     });
 
+    // Partner transactions
+    investments.forEach(inv => {
+        combined.push({
+            id: `inv-${inv.id}`,
+            timestamp: inv.timestamp,
+            entityId: inv.partnerId,
+            entityName: inv.partnerName,
+            entityType: 'Partner',
+            type: inv.type,
+            description: inv.notes || inv.type,
+            debit: inv.type === 'Withdrawal' ? inv.amount : 0,
+            credit: inv.type === 'Investment' ? inv.amount : 0,
+        });
+    });
+
 
     combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
@@ -148,12 +168,21 @@ export default function PartnerLedgerPage() {
     if (selectedEntityId && entityFilteredEntries.length > 0) {
         const lastDebitEntry = [...entityFilteredEntries].reverse().find(e => e.debit > 0);
         const lastCreditEntry = [...entityFilteredEntries].reverse().find(e => e.credit > 0);
-        const entityTotalBalance = entityFilteredEntries.reduce((acc, entry) => acc + (entry.debit - entry.credit), 0);
+        
+        let entityTotalBalance;
+        if (entityFilteredEntries[0].entityType === 'Partner') {
+          // For partners, positive balance is net investment (credit balance)
+          entityTotalBalance = entityFilteredEntries.reduce((acc, entry) => acc + (entry.credit - entry.debit), 0);
+        } else {
+          // For customers/suppliers, positive balance is amount owed to us (debit balance)
+          entityTotalBalance = entityFilteredEntries.reduce((acc, entry) => acc + (entry.debit - entry.credit), 0);
+        }
 
         reportData = {
             totalBalance: entityTotalBalance,
             lastDebit: lastDebitEntry ? lastDebitEntry.debit : 0,
             lastCredit: lastCreditEntry ? lastCreditEntry.credit : 0,
+            entityType: entityFilteredEntries[0].entityType,
         };
     }
 
@@ -189,16 +218,18 @@ export default function PartnerLedgerPage() {
         finalBalance: runningBalance,
         specialReport: reportData,
     };
-  }, [customerPayments, transactions, cashAdvances, purchases, supplierPayments, selectedEntityId, selectedDate, isLoaded]);
+  }, [customerPayments, transactions, cashAdvances, purchases, supplierPayments, investments, selectedEntityId, selectedDate, isLoaded]);
   
   const getBadgeVariant = (type: CombinedEntry['type']) => {
     switch (type) {
       case 'Sale':
       case 'Cash Advance':
       case 'Supplier Payment':
+      case 'Withdrawal':
         return 'destructive';
       case 'Payment':
       case 'Purchase':
+      case 'Investment':
         return 'outline';
       default:
         return 'default';
@@ -272,13 +303,15 @@ export default function PartnerLedgerPage() {
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                    Partner Report for {selectedEntity.name}
+                    {selectedEntity.type} Report for {selectedEntity.name}
                 </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="p-4 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground"><Wallet /> Total Balance</div>
-                    <div className={`text-2xl font-bold ${specialReport.totalBalance > 0 ? 'text-destructive' : 'text-green-600'}`}>PKR {specialReport.totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    <div className={`text-2xl font-bold ${specialReport.entityType === 'Partner' ? (specialReport.totalBalance >= 0 ? 'text-green-600' : 'text-destructive') : (specialReport.totalBalance > 0 ? 'text-destructive' : 'text-green-600')}`}>
+                        PKR {specialReport.totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground"><TrendingDown /> Last Debit</div>
@@ -331,7 +364,7 @@ export default function PartnerLedgerPage() {
                     <TableCell className="text-center">
                        <Badge 
                          variant={getBadgeVariant(entry.type)}
-                         className={cn((entry.type === 'Payment' || entry.type === 'Purchase') && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}
+                         className={cn((entry.type === 'Payment' || entry.type === 'Purchase' || entry.type === 'Investment') && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}
                        >
                          {entry.type}
                        </Badge>

@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { PiggyBank, PlusCircle, List, TrendingUp, TrendingDown, Calendar as CalendarIcon, Users, Percent, Edit, Trash2, AlertTriangle } from 'lucide-react';
+import { PiggyBank, PlusCircle, List, TrendingUp, TrendingDown, Calendar as CalendarIcon, Users, Percent, Edit, Trash2, AlertTriangle, BookText } from 'lucide-react';
 import { format } from 'date-fns';
 import { useInvestments } from '@/hooks/use-investments';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,6 +24,7 @@ import { useBusinessPartners } from '@/hooks/use-business-partners';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import type { BusinessPartner } from '@/lib/types';
+import Link from 'next/link';
 
 
 const investmentSchema = z.object({
@@ -110,17 +111,17 @@ export default function InvestmentsPage() {
     
     const summary = investments.reduce((acc, curr) => {
         const amount = curr.type === 'Investment' ? curr.amount : -curr.amount;
-        if (!acc[curr.partnerName]) {
-            acc[curr.partnerName] = { investment: 0, withdrawal: 0 };
+        if (!acc[curr.partnerId]) {
+            acc[curr.partnerId] = { investment: 0, withdrawal: 0 };
         }
-        if (curr.type === 'Investment') acc[curr.partnerName].investment += curr.amount;
-        else acc[curr.partnerName].withdrawal += curr.amount;
+        if (curr.type === 'Investment') acc[curr.partnerId].investment += curr.amount;
+        else acc[curr.partnerId].withdrawal += curr.amount;
 
         return acc;
     }, {} as Record<string, { investment: number, withdrawal: number }>);
     
     return businessPartners.map(p => {
-        const s = summary[p.name] || { investment: 0, withdrawal: 0 };
+        const s = summary[p.id] || { investment: 0, withdrawal: 0 };
         const netInvestment = s.investment - s.withdrawal;
         return { 
             ...p, 
@@ -162,9 +163,14 @@ export default function InvestmentsPage() {
                             <TableCell className={`text-right font-semibold font-mono ${p.netInvestment >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                                 PKR {p.netInvestment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </TableCell>
-                            <TableCell className="text-center">
-                                <Button variant="ghost" size="icon" onClick={() => openEditDialog(p)}><Edit className="w-4 h-4" /></Button>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setPartnerToDelete(p)}><Trash2 className="w-4 h-4" /></Button>
+                            <TableCell className="text-center space-x-1">
+                                <Button asChild variant="ghost" size="icon" title="View Partner Ledger">
+                                   <Link href={`/customers/${p.id}/ledger`}>
+                                     <BookText className="w-5 h-5" />
+                                   </Link>
+                                </Button>
+                                <Button variant="ghost" size="icon" title="Edit Partner" onClick={() => openEditDialog(p)}><Edit className="w-4 h-4" /></Button>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" title="Delete Partner" onClick={() => setPartnerToDelete(p)}><Trash2 className="w-4 h-4" /></Button>
                             </TableCell>
                         </TableRow>
                     )) : (

@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { BookUser, ArrowLeft, User, Phone, Car, Trash2, AlertTriangle } from 'lucide-react';
+import { BookUser, ArrowLeft, User, Phone, Car, Trash2, AlertTriangle, Percent } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
 import { useCashAdvances } from '@/hooks/use-cash-advances';
@@ -30,13 +30,15 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useBusinessPartners } from '@/hooks/use-business-partners';
+import { useInvestments } from '@/hooks/use-investments';
 
 
 type LedgerEntry = {
   id: string;
   timestamp: string;
   description: string;
-  type: 'Sale' | 'Payment' | 'Cash Advance' | 'Purchase' | 'Supplier Payment' | 'Salary';
+  type: 'Sale' | 'Payment' | 'Cash Advance' | 'Purchase' | 'Supplier Payment' | 'Salary' | 'Investment' | 'Withdrawal';
   debit: number;
   credit: number;
   balance: number;
@@ -48,15 +50,17 @@ export default function CustomerLedgerPage() {
 
   const { customers, isLoaded: customersLoaded } = useCustomers();
   const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
+  const { businessPartners, isLoaded: partnersLoaded } = useBusinessPartners();
   const { transactions, deleteTransaction, isLoaded: transactionsLoaded } = useTransactions();
   const { customerPayments, deleteCustomerPayment, isLoaded: paymentsLoaded } = useCustomerPayments();
   const { cashAdvances, deleteCashAdvance, isLoaded: advancesLoaded } = useCashAdvances();
   const { purchases, deletePurchase, isLoaded: purchasesLoaded } = usePurchases();
   const { supplierPayments, deleteSupplierPayment, isLoaded: supplierPaymentsLoaded } = useSupplierPayments();
+  const { investments, deleteInvestment, isLoaded: investmentsLoaded } = useInvestments();
   const [entryToDelete, setEntryToDelete] = useState<LedgerEntry | null>(null);
   const { toast } = useToast();
 
-  const isLoaded = customersLoaded && suppliersLoaded && transactionsLoaded && paymentsLoaded && advancesLoaded && purchasesLoaded && supplierPaymentsLoaded;
+  const isLoaded = customersLoaded && suppliersLoaded && partnersLoaded && transactionsLoaded && paymentsLoaded && advancesLoaded && purchasesLoaded && supplierPaymentsLoaded && investmentsLoaded;
 
   const { entity, entityType } = useMemo(() => {
     if (!isLoaded) return { entity: null, entityType: null };
@@ -64,8 +68,10 @@ export default function CustomerLedgerPage() {
     if (customer) return { entity: customer, entityType: 'Customer' };
     const supplier = suppliers.find(s => s.id === entityId);
     if (supplier) return { entity: supplier, entityType: 'Supplier' };
+    const partner = businessPartners.find(p => p.id === entityId);
+    if (partner) return { entity: partner, entityType: 'Partner' };
     return { entity: null, entityType: null };
-  }, [entityId, customers, suppliers, isLoaded]);
+  }, [entityId, customers, suppliers, businessPartners, isLoaded]);
 
   const { entries, finalBalance } = useMemo(() => {
     if (!entity) return { entries: [], finalBalance: 0 };
@@ -91,7 +97,7 @@ export default function CustomerLedgerPage() {
             combined.push({
               id: `pay-${p.id}`,
               timestamp: p.timestamp,
-              description: isSalary ? `Salary Credited` : `Payment Received (${p.paymentMethod})`,
+              description: isSalary ? `Salary for ${format(new Date(p.timestamp), 'MMMM yyyy')}` : `Payment Received (${p.paymentMethod})`,
               type: isSalary ? 'Salary' : 'Payment',
               debit: 0,
               credit: p.amount,
@@ -129,6 +135,30 @@ export default function CustomerLedgerPage() {
             debit: sp.amount,
             credit: 0,
         }));
+    } else if (entityType === 'Partner') {
+        const partnerInvestments = investments.filter(inv => inv.partnerId === entityId);
+        
+        partnerInvestments.forEach(inv => {
+            if (inv.type === 'Investment') {
+                combined.push({
+                    id: `inv-${inv.id}`,
+                    timestamp: inv.timestamp,
+                    description: inv.notes || 'Investment',
+                    type: 'Investment',
+                    credit: inv.amount, // Credit to partner's capital account
+                    debit: 0,
+                });
+            } else {
+                combined.push({
+                    id: `wdr-${inv.id}`,
+                    timestamp: inv.timestamp,
+                    description: inv.notes || 'Withdrawal',
+                    type: 'Withdrawal',
+                    debit: inv.amount, // Debit from partner's capital account
+                    credit: 0,
+                });
+            }
+        });
     }
 
 
@@ -136,12 +166,19 @@ export default function CustomerLedgerPage() {
 
     let runningBalance = 0;
     const entriesWithBalance: LedgerEntry[] = combined.map(entry => {
-      runningBalance += entry.debit - entry.credit;
+      // For customers/suppliers, a positive balance means they owe us.
+      // For partners, a positive balance means the business owes them (net investment).
+      // To keep it consistent visually (debit increases balance, credit decreases), we'll adjust the sign for partners.
+      if (entityType === 'Partner') {
+          runningBalance += entry.credit - entry.debit;
+      } else {
+          runningBalance += entry.debit - entry.credit;
+      }
       return { ...entry, balance: runningBalance };
     });
 
     return { entries: entriesWithBalance.reverse(), finalBalance: runningBalance };
-  }, [entity, entityType, transactions, customerPayments, cashAdvances, purchases, supplierPayments]);
+  }, [entity, entityType, transactions, customerPayments, cashAdvances, purchases, supplierPayments, investments]);
 
   const handleDeleteEntry = () => {
     if (!entryToDelete) return;
@@ -154,6 +191,8 @@ export default function CustomerLedgerPage() {
         case 'pay': deleteCustomerPayment(id); break;
         case 'adv': deleteCashAdvance(id); break;
         case 'spay': deleteSupplierPayment(id); break;
+        case 'inv': deleteInvestment(id); break;
+        case 'wdr': deleteInvestment(id); break;
         default:
             toast({
                 variant: 'destructive',
@@ -208,6 +247,23 @@ export default function CustomerLedgerPage() {
   }
 
   const isCustomer = entityType === 'Customer';
+  const isPartner = entityType === 'Partner';
+
+  const balanceColorClass = () => {
+      if (isPartner) {
+          // For partners, positive balance is net investment (good), negative is net withdrawal (bad)
+          return finalBalance >= 0 ? 'text-green-600' : 'text-destructive';
+      }
+      // For customers/suppliers, positive balance means they owe us (bad), negative means we owe them (good)
+      return finalBalance > 0 ? 'text-destructive' : 'text-green-600';
+  }
+
+  const rowBalanceColorClass = (balance: number) => {
+    if (isPartner) {
+        return balance >= 0 ? 'text-green-600' : 'text-destructive';
+    }
+    return balance > 0 ? 'text-destructive' : 'text-green-600';
+  }
 
   return (
     <div className="p-4 md:p-8 space-y-8">
@@ -230,6 +286,12 @@ export default function CustomerLedgerPage() {
                 <div className="flex items-center gap-2">
                     <Car className="w-4 h-4 text-muted-foreground"/>
                     <strong>Vehicle No:</strong> {entity.vehicleNumber || 'N/A'}
+                </div>
+            )}
+            {isPartner && 'sharePercentage' in entity && (
+                 <div className="flex items-center gap-2">
+                    <Percent className="w-4 h-4 text-muted-foreground"/>
+                    <strong>Share:</strong> {entity.sharePercentage}%
                 </div>
             )}
         </CardContent>
@@ -284,7 +346,7 @@ export default function CustomerLedgerPage() {
                     <TableCell className="text-right font-mono text-green-600">
                         {entry.credit > 0 ? entry.credit.toFixed(2) : '-'}
                     </TableCell>
-                     <TableCell className={`text-right font-semibold font-mono ${entry.balance > 0 ? 'text-destructive' : 'text-green-600'}`}>
+                     <TableCell className={cn("text-right font-semibold font-mono", rowBalanceColorClass(entry.balance))}>
                         {entry.balance.toFixed(2)}
                     </TableCell>
                      <TableCell className="text-center">
@@ -310,7 +372,7 @@ export default function CustomerLedgerPage() {
         <CardFooter className="flex justify-end bg-muted/50 p-4 rounded-b-lg">
             <div className="text-right">
                 <p className="text-sm text-muted-foreground">Final Balance</p>
-                <p className={`text-2xl font-bold ${finalBalance > 0 ? 'text-destructive' : 'text-green-600'}`}>PKR {finalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className={cn("text-2xl font-bold", balanceColorClass())}>PKR {finalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             </div>
         </CardFooter>
       </Card>
