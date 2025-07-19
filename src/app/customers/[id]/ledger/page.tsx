@@ -36,7 +36,7 @@ type LedgerEntry = {
   id: string;
   timestamp: string;
   description: string;
-  type: 'Sale' | 'Payment' | 'Cash Advance' | 'Purchase' | 'Supplier Payment';
+  type: 'Sale' | 'Payment' | 'Cash Advance' | 'Purchase' | 'Supplier Payment' | 'Salary';
   debit: number;
   credit: number;
   balance: number;
@@ -95,14 +95,17 @@ export default function CustomerLedgerPage() {
           credit: p.amount,
         }));
         
-        customerCashAdvances.forEach(ca => combined.push({
-          id: `adv-${ca.id}`,
-          timestamp: ca.timestamp,
-          description: `Cash Advance (${ca.notes || 'No notes'})`,
-          type: 'Cash Advance',
-          debit: ca.amount,
-          credit: 0,
-        }));
+        customerCashAdvances.forEach(ca => {
+            const isSalary = ca.notes?.toLowerCase().includes('salary');
+            combined.push({
+              id: `adv-${ca.id}`,
+              timestamp: ca.timestamp,
+              description: ca.notes || 'Cash Advance',
+              type: isSalary ? 'Salary' : 'Cash Advance',
+              debit: ca.amount,
+              credit: 0,
+            })
+        });
     } else if (entityType === 'Supplier') {
         const supplierPurchases = purchases.filter(p => p.supplierId === entityId);
         const supplierPaymentsMade = supplierPayments.filter(sp => sp.supplierId === entityId);
