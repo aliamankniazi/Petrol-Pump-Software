@@ -84,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await firebaseSignOut(auth);
     }
     setUser(null);
+    router.push('/login');
   };
 
   const value = {
@@ -94,6 +95,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
   };
   
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
+
   if (loading) {
      return (
         <div className="flex h-screen w-full items-center justify-center">
@@ -102,19 +105,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }
   
-  const isAuthPage = pathname === '/login' || pathname === '/signup';
-
-  if (user && isAuthPage) {
+  if ((user && isAuthPage) || (!user && !isAuthPage)) {
       return (
           <div className="flex h-screen w-full items-center justify-center">
-              <p>Redirecting...</p>
-          </div>
-      );
-  }
-
-  if (!user && !isAuthPage) {
-      return (
-           <div className="flex h-screen w-full items-center justify-center">
               <p>Redirecting...</p>
           </div>
       );
