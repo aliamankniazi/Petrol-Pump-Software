@@ -26,7 +26,7 @@ const navItems = [
   { href: '/customer-payments', label: 'Customer Payments', icon: HandCoins },
   { href: '/cash-advances', label: 'Cash Advances', icon: ArrowRightLeft },
   { href: '/inventory', label: 'Inventory', icon: Package },
-  { href: '/tanks', label: 'Tank Management', icon: Beaker },
+  { href: '/tanks', label: 'Tank Readings', icon: Beaker },
   { href: '/purchases', label: 'Purchases', icon: ShoppingCart },
   { href: '/purchase-returns', label: 'Purchase Returns', icon: Undo2 },
   { href: '/expenses', label: 'Expenses', icon: Receipt },
@@ -88,6 +88,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
+        <div className="fixed inset-0 flex items-center justify-center -z-10 pointer-events-none">
+          <div className="flex flex-col items-center text-center -rotate-12 opacity-5 dark:opacity-[0.02]">
+            <h1 className="text-8xl font-black text-foreground/50 tracking-widest leading-none">
+              Mianwali
+            </h1>
+            <h2 className="text-6xl font-bold text-foreground/50 tracking-wider">
+              Petroleum Service
+            </h2>
+          </div>
+        </div>
         <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/80 p-4 backdrop-blur-sm md:justify-end">
           <SidebarTrigger className="md:hidden" />
           <h2 className="text-xl font-semibold md:hidden">{pageTitle}</h2>
