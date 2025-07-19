@@ -81,13 +81,16 @@ export default function SalePage() {
     // Limit length to prevent overflow
     if (currentInput.replace('.', '').length >= 7) return;
 
-    if (isSale && currentInput === '0' && key !== '.') {
+    if (currentInput === '0' && key !== '.') {
       setInput(key);
     } else {
-      if (currentInput.includes('.') && currentInput.split('.')[1].length >= 2) return;
+      // Allow more than 2 decimal places for liter input, but not for amount input.
+      if (isSale && mode === 'amount' && currentInput.includes('.') && currentInput.split('.')[1].length >= 2) return;
+      if (!isSale && currentInput.includes('.') && currentInput.split('.')[1].length >= 2) return;
+      
       setInput(prev => prev + key);
     }
-  }, [numpadTarget, saleInput, paymentInput]);
+  }, [numpadTarget, saleInput, paymentInput, mode]);
   
   const handleModeChange = (newMode: SaleMode) => {
       if (mode !== newMode) {
