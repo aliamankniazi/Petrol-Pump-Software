@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Numpad } from '@/components/numpad';
@@ -84,22 +84,20 @@ export default function SalePage() {
     if (currentInput === '0' && key !== '.') {
       setInput(key);
     } else {
-      // Allow more than 2 decimal places for liter input, but not for amount input.
-      if (isSale && mode === 'amount' && currentInput.includes('.') && currentInput.split('.')[1].length >= 2) return;
       if (!isSale && currentInput.includes('.') && currentInput.split('.')[1].length >= 2) return;
       
       setInput(prev => prev + key);
     }
   }, [numpadTarget, saleInput, paymentInput, mode]);
   
-  const handleModeChange = (newMode: SaleMode) => {
+  const handleModeChange = useCallback((newMode: SaleMode) => {
       if (mode !== newMode) {
           setMode(newMode);
           setSaleInput('0');
       }
-  }
+  }, [mode]);
 
-  const handleSalePayment = (paymentMethod: PaymentMethod) => {
+  const handleSalePayment = useCallback((paymentMethod: PaymentMethod) => {
     if (amount <= 0 || volume <= 0) return;
     
     const transaction = {
@@ -120,9 +118,9 @@ export default function SalePage() {
       customerName: selectedCustomer?.name,
     });
     setShowConfirmation(true);
-  };
+  }, [amount, volume, selectedFuel, selectedCustomer, fuelPrices, addTransaction]);
   
-  const handleCustomerPayment = (paymentMethod: PaymentMethod) => {
+  const handleCustomerPayment = useCallback((paymentMethod: PaymentMethod) => {
     const amountNum = parseFloat(paymentInput);
     if (!selectedCustomerId || !amountNum || amountNum <= 0) {
       toast({
@@ -149,7 +147,58 @@ export default function SalePage() {
 
     // Reset form
     setPaymentInput('');
-  };
+  }, [paymentInput, selectedCustomerId, selectedCustomer, addCustomerPayment, toast]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // ALT key shortcuts for selection
+      if (event.altKey) {
+        switch (event.key) {
+          case '1':
+            event.preventDefault();
+            setSelectedFuel('Unleaded');
+            break;
+          case '2':
+            event.preventDefault();
+            setSelectedFuel('Premium');
+            break;
+          case '3':
+            event.preventDefault();
+            setSelectedFuel('Diesel');
+            break;
+          case 'm':
+          case 'M':
+            event.preventDefault();
+            handleModeChange(mode === 'amount' ? 'liters' : 'amount');
+            break;
+        }
+      }
+      
+      // CTRL key shortcuts for payment
+      if (event.ctrlKey) {
+        const target = numpadTarget === 'sale' ? handleSalePayment : handleCustomerPayment;
+        switch (event.key) {
+          case '1':
+            event.preventDefault();
+            target('Cash');
+            break;
+          case '2':
+            event.preventDefault();
+            target('Card');
+            break;
+          case '3':
+            event.preventDefault();
+            target('Mobile');
+            break;
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [mode, numpadTarget, handleModeChange, handleSalePayment, handleCustomerPayment]);
 
   const resetSale = () => {
     setSaleInput('0');
@@ -260,7 +309,7 @@ export default function SalePage() {
                     <Label className="mb-2 flex items-center gap-2"><Fuel /> Fuel Details</Label>
                     {!dataIsReady ? <div className="grid grid-cols-3 gap-4"><Skeleton className="h-[5rem]"/><Skeleton className="h-[5rem]"/><Skeleton className="h-[5rem]"/></div> : (
                         <div className="grid grid-cols-3 gap-4">
-                        {FUEL_TYPES.map(fuel => {
+                        {FUEL_TYPES.map((fuel, index) => {
                             const isSelected = selectedFuel === fuel;
                             return (
                                 <Button
@@ -268,6 +317,7 @@ export default function SalePage() {
                                 variant={isSelected ? 'default' : 'outline'}
                                 className="py-4 text-base flex-col h-auto items-center"
                                 onClick={() => setSelectedFuel(fuel)}
+                                title={`Alt + ${index + 1}`}
                                 >
                                 <span>{fuel}</span>
                                 <span className={cn("text-xs font-mono mt-0.5", isSelected ? 'text-primary-foreground/90' : 'text-muted-foreground')}>PKR {fuelPrices[fuel].toFixed(2)}/L</span>
@@ -280,13 +330,13 @@ export default function SalePage() {
                 </div>
 
                 <div className="grid grid-cols-3 gap-4" onClick={() => setNumpadTarget('sale')}>
-                    <Button className="py-6 text-base" onClick={() => handleSalePayment('Cash')} disabled={amount <= 0 || !dataIsReady}>
+                    <Button className="py-6 text-base" onClick={() => handleSalePayment('Cash')} disabled={amount <= 0 || !dataIsReady} title="Ctrl + 1">
                     <Wallet className="mr-2" /> Cash
                     </Button>
-                    <Button className="py-6 text-base" onClick={() => handleSalePayment('Card')} disabled={amount <= 0 || !dataIsReady}>
+                    <Button className="py-6 text-base" onClick={() => handleSalePayment('Card')} disabled={amount <= 0 || !dataIsReady} title="Ctrl + 2">
                     <CreditCard className="mr-2" /> Card
                     </Button>
-                    <Button className="py-6 text-base" onClick={() => handleSalePayment('Mobile')} disabled={amount <= 0 || !dataIsReady}>
+                    <Button className="py-6 text-base" onClick={() => handleSalePayment('Mobile')} disabled={amount <= 0 || !dataIsReady} title="Ctrl + 3">
                     <Smartphone className="mr-2" /> Mobile
                     </Button>
                 </div>
@@ -318,3 +368,5 @@ export default function SalePage() {
     </div>
   );
 }
+
+    
