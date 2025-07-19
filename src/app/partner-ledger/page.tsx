@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -356,14 +357,14 @@ export default function PartnerLedgerPage() {
               </TableBody>
                <TableFooter>
                 <TableRow>
-                  <TableCell colSpan={5} className="font-bold text-right">Totals for Period</TableCell>
+                  <TableCell colSpan={4} className="font-bold text-right">Totals for Period</TableCell>
                   <TableCell className="text-right font-bold font-mono text-destructive">PKR {totals.debit.toFixed(2)}</TableCell>
                   <TableCell className="text-right font-bold font-mono text-green-600">PKR {totals.credit.toFixed(2)}</TableCell>
                   <TableCell colSpan={2} />
                 </TableRow>
                 <TableRow>
-                  <TableCell colSpan={6} className="font-bold text-right">Closing Balance for Period</TableCell>
-                  <TableCell colSpan={2} className={`text-right font-bold text-lg font-mono ${finalBalance > 0 ? 'text-destructive' : 'text-green-600'}`}>
+                  <TableCell colSpan={5} className="font-bold text-right">Closing Balance for Period</TableCell>
+                  <TableCell colSpan={3} className={`text-right font-bold text-lg font-mono ${finalBalance > 0 ? 'text-destructive' : 'text-green-600'}`}>
                     PKR {finalBalance.toFixed(2)}
                   </TableCell>
                 </TableRow>

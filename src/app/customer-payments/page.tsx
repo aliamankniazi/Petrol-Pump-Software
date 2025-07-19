@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { format, isSameDay, startOfDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { HandCoins, XCircle, Calendar as CalendarIcon, X, TrendingUp, TrendingDown, Wallet, Hourglass, Info, BookText } from 'lucide-react';
+import { HandCoins, XCircle, Calendar as CalendarIcon, X, TrendingUp, TrendingDown, Wallet, BookText } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -34,7 +34,7 @@ type CombinedEntry = {
   balance?: number;
 };
 
-export default function CustomerPaymentsPage() {
+export default function PartnerLedgerPage() {
   const { customerPayments, isLoaded: paymentsLoaded } = useCustomerPayments();
   const { customers, isLoaded: customersLoaded } = useCustomers();
   const { transactions, isLoaded: transactionsLoaded } = useTransactions();
@@ -51,16 +51,10 @@ export default function CustomerPaymentsPage() {
   const entities = useMemo(() => {
     if (!isLoaded) return [];
     const allEntities = [
-      ...customers.map(c => ({ id: c.id, name: c.name, type: 'Customer' })),
-      ...suppliers.map(s => ({ id: s.id, name: s.name, type: 'Supplier' }))
+      ...customers.map(c => ({ id: c.id, name: c.name, type: 'Customer' as const })),
+      ...suppliers.map(s => ({ id: s.id, name: s.name, type: 'Supplier' as const }))
     ];
-    // Remove duplicates by name, preferring customers in case of a name clash
-    const uniqueNames = new Set();
-    return allEntities.filter(e => {
-        if (uniqueNames.has(e.name)) return false;
-        uniqueNames.add(e.name);
-        return true;
-    }).sort((a,b) => a.name.localeCompare(b.name));
+    return allEntities.sort((a,b) => a.name.localeCompare(b.name));
   }, [customers, suppliers, isLoaded]);
 
   const { entries, totals, finalBalance, specialReport } = useMemo(() => {
@@ -123,7 +117,7 @@ export default function CustomerPaymentsPage() {
             entityType: 'Supplier',
             type: 'Purchase',
             description: `${p.volume.toFixed(2)}L of ${p.fuelType}`,
-            debit: 0, // Debit from company perspective, but credit to supplier account
+            debit: 0,
             credit: p.totalCost,
         });
     });
@@ -149,7 +143,6 @@ export default function CustomerPaymentsPage() {
       ? combined.filter(entry => entry.entityId === selectedEntityId)
       : combined;
       
-    // Calculations for the special report are based on the full history of the selected entity
     let reportData = null;
     if (selectedEntityId && entityFilteredEntries.length > 0) {
         const lastDebitEntry = [...entityFilteredEntries].reverse().find(e => e.debit > 0);
@@ -278,8 +271,7 @@ export default function CustomerPaymentsPage() {
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                    <Info className="w-5 h-5" />
-                    Special {selectedEntity.type} Report for {selectedEntity.name}
+                    Partner Report for {selectedEntity.name}
                 </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -352,7 +344,7 @@ export default function CustomerPaymentsPage() {
                     <TableCell className={`text-right font-semibold font-mono ${entry.balance && entry.balance > 0 ? 'text-destructive' : 'text-green-600'}`}>
                         {entry.balance?.toFixed(2)}
                     </TableCell>
-                    <TableCell className="text-center">
+                     <TableCell className="text-center">
                         <Button asChild variant="ghost" size="icon" title="View Partner Ledger">
                            <Link href={`/customers/${entry.entityId}/ledger`}>
                              <BookText className="w-5 h-5" />
@@ -364,14 +356,14 @@ export default function CustomerPaymentsPage() {
               </TableBody>
                <TableFooter>
                 <TableRow>
-                  <TableCell colSpan={5} className="font-bold text-right">Totals for Period</TableCell>
+                  <TableCell colSpan={4} className="font-bold text-right">Totals for Period</TableCell>
                   <TableCell className="text-right font-bold font-mono text-destructive">PKR {totals.debit.toFixed(2)}</TableCell>
                   <TableCell className="text-right font-bold font-mono text-green-600">PKR {totals.credit.toFixed(2)}</TableCell>
-                  <TableCell />
+                  <TableCell colSpan={2} />
                 </TableRow>
                 <TableRow>
-                  <TableCell colSpan={6} className="font-bold text-right">Closing Balance for Period</TableCell>
-                  <TableCell colSpan={2} className={`text-right font-bold text-lg font-mono ${finalBalance > 0 ? 'text-destructive' : 'text-green-600'}`}>
+                  <TableCell colSpan={5} className="font-bold text-right">Closing Balance for Period</TableCell>
+                  <TableCell colSpan={3} className={`text-right font-bold text-lg font-mono ${finalBalance > 0 ? 'text-destructive' : 'text-green-600'}`}>
                     PKR {finalBalance.toFixed(2)}
                   </TableCell>
                 </TableRow>
