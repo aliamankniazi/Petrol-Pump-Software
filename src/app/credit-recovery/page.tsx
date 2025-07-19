@@ -112,6 +112,19 @@ export default function CreditRecoveryPage() {
     const formatPhoneNumberForWhatsApp = (phone: string) => {
         return phone.replace(/[^0-9]/g, '');
     }
+    
+    const generateWhatsAppMessage = (row: ReportRow) => {
+        const message = `As-Salaam-Alaikum,
+Dear ${row.customer.name},
+Your Previous Amount: ${row.previousBalance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+New Sale Amount: ${row.sale.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+Paid Amount: ${row.recovery.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+Now your balance is: ${row.currentBalance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+Thank You,
+Mianwali Petroleum Service Mianwali`;
+        return encodeURIComponent(message);
+    }
+
 
     return (
         <div className="p-4 md:p-8 space-y-6">
@@ -230,7 +243,7 @@ export default function CreditRecoveryPage() {
                                             {row.customer.contact && (
                                                 <Button asChild variant="ghost" size="icon" className="text-green-500 hover:text-green-600" title={`Message ${row.customer.name} on WhatsApp`}>
                                                     <a 
-                                                        href={`https://wa.me/${formatPhoneNumberForWhatsApp(row.customer.contact)}`}
+                                                        href={`https://wa.me/${formatPhoneNumberForWhatsApp(row.customer.contact)}?text=${generateWhatsAppMessage(row)}`}
                                                         target="_blank" 
                                                         rel="noopener noreferrer"
                                                     >
