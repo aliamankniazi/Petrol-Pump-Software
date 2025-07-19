@@ -41,7 +41,7 @@ const months = Array.from({ length: 12 }, (_, i) => ({
 
 export default function EmployeesPage() {
   const { employees, addEmployee } = useEmployees();
-  const { expenses, addExpense } = useExpenses();
+  const { addExpense } = useExpenses();
   const { customers, addCustomer } = useCustomers();
   const { addCashAdvance } = useCashAdvances();
 
@@ -78,7 +78,7 @@ export default function EmployeesPage() {
     });
 
     // 2. Find or create a customer record for the employee
-    let employeeAsCustomer = customers.find(c => c.name.toLowerCase() === selectedEmployee.name.toLowerCase());
+    let employeeAsCustomer = customers.find(c => c.name.toLowerCase() === selectedEmployee.name.toLowerCase() && c.area === 'Employee');
     
     if (!employeeAsCustomer) {
         employeeAsCustomer = addCustomer({
