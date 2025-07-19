@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useTransactions } from '@/hooks/use-transactions';
@@ -17,6 +18,7 @@ import { useTankReadings } from './use-tank-readings';
 import { useSupplierPayments } from './use-supplier-payments';
 import { useSuppliers } from './use-suppliers';
 import { useInvestments } from './use-investments';
+import { useBusinessPartners } from './use-business-partners';
 
 export function useSettings() {
   const { clearTransactions } = useTransactions();
@@ -35,6 +37,7 @@ export function useSettings() {
   const { clearTankReadings } = useTankReadings();
   const { clearSupplierPayments } = useSupplierPayments();
   const { clearInvestments } = useInvestments();
+  const { clearBusinessPartners } = useBusinessPartners();
 
   const clearAllData = () => {
     clearTransactions();
@@ -53,6 +56,7 @@ export function useSettings() {
     clearTankReadings();
     clearSupplierPayments();
     clearInvestments();
+    clearBusinessPartners();
   };
 
   return {

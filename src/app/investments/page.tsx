@@ -11,19 +11,23 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { PiggyBank, PlusCircle, List, TrendingUp, TrendingDown, Calendar as CalendarIcon } from 'lucide-react';
+import { PiggyBank, PlusCircle, List, TrendingUp, TrendingDown, Calendar as CalendarIcon, Users, Percent, Edit, Trash2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { useInvestments } from '@/hooks/use-investments';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { useBusinessPartners } from '@/hooks/use-business-partners';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import type { BusinessPartner } from '@/lib/types';
 
 
 const investmentSchema = z.object({
-  partnerName: z.string().min(1, 'Partner name is required'),
+  partnerId: z.string().min(1, 'Partner name is required'),
   type: z.enum(['Investment', 'Withdrawal'], { required_error: 'Please select a transaction type.'}),
   amount: z.coerce.number().min(0.01, 'Amount must be greater than 0'),
   notes: z.string().optional(),
@@ -32,25 +36,74 @@ const investmentSchema = z.object({
 
 type InvestmentFormValues = z.infer<typeof investmentSchema>;
 
+const partnerSchema = z.object({
+  name: z.string().min(1, 'Partner name is required.'),
+  sharePercentage: z.coerce.number().min(0, "Percentage can't be negative.").max(100, "Percentage can't exceed 100."),
+});
+type PartnerFormValues = z.infer<typeof partnerSchema>;
+
+
 export default function InvestmentsPage() {
-  const { investments, addInvestment, isLoaded } = useInvestments();
+  const { investments, addInvestment, isLoaded: investmentsLoaded } = useInvestments();
+  const { businessPartners, addBusinessPartner, updateBusinessPartner, deleteBusinessPartner, isLoaded: partnersLoaded } = useBusinessPartners();
+  const [partnerToEdit, setPartnerToEdit] = useState<BusinessPartner | null>(null);
+  const [partnerToDelete, setPartnerToDelete] = useState<BusinessPartner | null>(null);
+  
   const { toast } = useToast();
-  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<InvestmentFormValues>({
+  
+  // Form for new investments/withdrawals
+  const { register: registerInvestment, handleSubmit: handleSubmitInvestment, reset: resetInvestment, control: controlInvestment, formState: { errors: investmentErrors } } = useForm<InvestmentFormValues>({
     resolver: zodResolver(investmentSchema),
-    defaultValues: {
-      date: new Date(),
-      type: 'Investment',
-    }
+    defaultValues: { date: new Date(), type: 'Investment' }
   });
   
-  const onSubmit: SubmitHandler<InvestmentFormValues> = (data) => {
-    addInvestment({ ...data, timestamp: data.date.toISOString() });
+  // Form for adding/editing partners
+  const { register: registerPartner, handleSubmit: handleSubmitPartner, reset: resetPartner, setValue: setPartnerValue, formState: { errors: partnerErrors } } = useForm<PartnerFormValues>({
+    resolver: zodResolver(partnerSchema),
+  });
+  
+  const isLoaded = investmentsLoaded && partnersLoaded;
+  
+  const onInvestmentSubmit: SubmitHandler<InvestmentFormValues> = (data) => {
+    const partner = businessPartners.find(p => p.id === data.partnerId);
+    if (!partner) return;
+
+    addInvestment({ 
+        ...data, 
+        partnerName: partner.name,
+        timestamp: data.date.toISOString() 
+    });
     toast({
       title: 'Transaction Recorded',
-      description: `${data.type} of PKR ${data.amount} by ${data.partnerName} has been logged.`,
+      description: `${data.type} of PKR ${data.amount} by ${partner.name} has been logged.`,
     });
-    reset({ partnerName: '', amount: 0, notes: '', date: new Date(), type: 'Investment' });
+    resetInvestment({ partnerId: '', amount: 0, notes: '', date: new Date(), type: 'Investment' });
   };
+  
+  const onPartnerSubmit: SubmitHandler<PartnerFormValues> = (data) => {
+    if (partnerToEdit) {
+      updateBusinessPartner(partnerToEdit.id, data);
+      toast({ title: 'Partner Updated', description: `${data.name}'s details have been updated.` });
+    } else {
+      addBusinessPartner(data);
+      toast({ title: 'Partner Added', description: `${data.name} has been added as a permanent partner.` });
+    }
+    setPartnerToEdit(null);
+    resetPartner({ name: '', sharePercentage: 0 });
+  };
+
+  const openEditDialog = (partner: BusinessPartner) => {
+    setPartnerToEdit(partner);
+    setPartnerValue('name', partner.name);
+    setPartnerValue('sharePercentage', partner.sharePercentage);
+  }
+
+  const handleDeletePartner = () => {
+    if (!partnerToDelete) return;
+    deleteBusinessPartner(partnerToDelete.id);
+    toast({ title: 'Partner Deleted', description: `${partnerToDelete.name} has been removed.`});
+    setPartnerToDelete(null);
+  }
   
   const partnerSummary = useMemo(() => {
     if (!isLoaded) return [];
@@ -58,43 +111,124 @@ export default function InvestmentsPage() {
     const summary = investments.reduce((acc, curr) => {
         const amount = curr.type === 'Investment' ? curr.amount : -curr.amount;
         if (!acc[curr.partnerName]) {
-            acc[curr.partnerName] = 0;
+            acc[curr.partnerName] = { investment: 0, withdrawal: 0 };
         }
-        acc[curr.partnerName] += amount;
+        if (curr.type === 'Investment') acc[curr.partnerName].investment += curr.amount;
+        else acc[curr.partnerName].withdrawal += curr.amount;
+
         return acc;
-    }, {} as Record<string, number>);
+    }, {} as Record<string, { investment: number, withdrawal: number }>);
+    
+    return businessPartners.map(p => {
+        const s = summary[p.name] || { investment: 0, withdrawal: 0 };
+        const netInvestment = s.investment - s.withdrawal;
+        return { 
+            ...p, 
+            netInvestment,
+            totalInvestment: s.investment,
+            totalWithdrawal: s.withdrawal,
+        }
+    }).sort((a,b) => b.netInvestment - a.netInvestment);
 
-    return Object.entries(summary)
-        .map(([name, netInvestment]) => ({ name, netInvestment }))
-        .sort((a,b) => b.netInvestment - a.netInvestment);
-
-  }, [investments, isLoaded]);
+  }, [investments, businessPartners, isLoaded]);
 
   const totalNetInvestment = useMemo(() => partnerSummary.reduce((sum, p) => sum + p.netInvestment, 0), [partnerSummary]);
+  const totalSharePercentage = useMemo(() => businessPartners.reduce((sum, p) => sum + p.sharePercentage, 0), [businessPartners]);
 
   return (
-    <div className="p-4 md:p-8 grid gap-8 lg:grid-cols-3">
-      <div className="lg:col-span-1 space-y-8">
-        <Card>
+    <div className="p-4 md:p-8 space-y-8">
+      
+      {/* Permanent Partner Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Users/>Permanent Partner Manager</CardTitle>
+          <CardDescription>Add, edit, or remove business partners and manage their share percentages.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Partner Name</TableHead>
+                        <TableHead className="text-right">Share %</TableHead>
+                        <TableHead className="text-right">Net Investment</TableHead>
+                        <TableHead className="text-center">Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {isLoaded && partnerSummary.length > 0 ? partnerSummary.map(p => (
+                        <TableRow key={p.id}>
+                            <TableCell className="font-medium">{p.name}</TableCell>
+                            <TableCell className="text-right font-mono">{p.sharePercentage.toFixed(2)}%</TableCell>
+                            <TableCell className={`text-right font-semibold font-mono ${p.netInvestment >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                                PKR {p.netInvestment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell className="text-center">
+                                <Button variant="ghost" size="icon" onClick={() => openEditDialog(p)}><Edit className="w-4 h-4" /></Button>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setPartnerToDelete(p)}><Trash2 className="w-4 h-4" /></Button>
+                            </TableCell>
+                        </TableRow>
+                    )) : (
+                        <TableRow>
+                            <TableCell colSpan={4} className="h-24 text-center">
+                                {isLoaded ? 'No partners added yet. Use the button below to add one.' : 'Loading partners...'}
+                            </TableCell>
+                        </TableRow>
+                    )}
+                </TableBody>
+                <TableFooter>
+                    <TableRow className="font-bold">
+                        <TableCell>Total</TableCell>
+                        <TableCell className="text-right font-mono">{totalSharePercentage.toFixed(2)}%</TableCell>
+                        <TableCell className={`text-right font-mono ${totalNetInvestment >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                            PKR {totalNetInvestment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell/>
+                    </TableRow>
+                </TableFooter>
+            </Table>
+        </CardContent>
+        <CardFooter>
+            <Button onClick={() => setPartnerToEdit({} as BusinessPartner)}><PlusCircle className="mr-2"/>Add New Partner</Button>
+        </CardFooter>
+      </Card>
+
+      <div className="grid lg:grid-cols-3 gap-8">
+        {/* Investment/Withdrawal Form */}
+        <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <PlusCircle /> New Investment/Withdrawal
+              <PlusCircle /> New Capital Transaction
             </CardTitle>
-            <CardDescription>Record a new capital transaction.</CardDescription>
+            <CardDescription>Record a new investment or withdrawal.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmitInvestment(onInvestmentSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="partnerName">Partner Name</Label>
-                <Input id="partnerName" {...register('partnerName')} placeholder="e.g., John Doe" />
-                {errors.partnerName && <p className="text-sm text-destructive">{errors.partnerName.message}</p>}
+                <Label>Partner</Label>
+                 <Controller
+                  name="partnerId"
+                  control={controlInvestment}
+                  render={({ field }) => (
+                     <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select a partner" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {partnersLoaded ? businessPartners.map(p => (
+                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                            )) : <SelectItem value="loading" disabled>Loading partners...</SelectItem>}
+                        </SelectContent>
+                    </Select>
+                  )}
+                />
+                {investmentErrors.partnerId && <p className="text-sm text-destructive">{investmentErrors.partnerId.message}</p>}
               </div>
 
               <div className="space-y-2">
                 <Label>Type</Label>
                  <Controller
                   name="type"
-                  control={control}
+                  control={controlInvestment}
                   render={({ field }) => (
                      <Select onValueChange={field.onChange} value={field.value}>
                         <SelectTrigger>
@@ -107,25 +241,25 @@ export default function InvestmentsPage() {
                     </Select>
                   )}
                 />
-                {errors.type && <p className="text-sm text-destructive">{errors.type.message}</p>}
+                {investmentErrors.type && <p className="text-sm text-destructive">{investmentErrors.type.message}</p>}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="amount">Amount (PKR)</Label>
-                <Input id="amount" type="number" {...register('amount')} placeholder="e.g., 100000" step="0.01" />
-                {errors.amount && <p className="text-sm text-destructive">{errors.amount.message}</p>}
+                <Input id="amount" type="number" {...registerInvestment('amount')} placeholder="e.g., 100000" step="0.01" />
+                {investmentErrors.amount && <p className="text-sm text-destructive">{investmentErrors.amount.message}</p>}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="notes">Notes (Optional)</Label>
-                <Textarea id="notes" {...register('notes')} placeholder="e.g., Initial capital" />
+                <Textarea id="notes" {...registerInvestment('notes')} placeholder="e.g., Initial capital" />
               </div>
               
               <div className="space-y-2">
                 <Label>Date</Label>
                 <Controller
                   name="date"
-                  control={control}
+                  control={controlInvestment}
                   render={({ field }) => (
                     <Popover>
                       <PopoverTrigger asChild>
@@ -151,106 +285,116 @@ export default function InvestmentsPage() {
                     </Popover>
                   )}
                 />
-                {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
+                {investmentErrors.date && <p className="text-sm text-destructive">{investmentErrors.date.message}</p>}
               </div>
-
 
               <Button type="submit" className="w-full">Record Transaction</Button>
             </form>
           </CardContent>
         </Card>
-
-        <Card>
+        
+        {/* Transaction History */}
+        <div className="lg:col-span-2">
+            <Card>
             <CardHeader>
-                <CardTitle>Partner Summary</CardTitle>
-                <CardDescription>Net investment for each partner.</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                <List /> Transaction History
+                </CardTitle>
+                <CardDescription>
+                A record of all partner investments and withdrawals.
+                </CardDescription>
             </CardHeader>
             <CardContent>
-                {isLoaded && partnerSummary.length > 0 ? (
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Partner</TableHead>
-                                <TableHead className="text-right">Net Investment</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {partnerSummary.map(p => (
-                                <TableRow key={p.name}>
-                                    <TableCell className="font-medium">{p.name}</TableCell>
-                                    <TableCell className={`text-right font-semibold ${p.netInvestment >= 0 ? 'text-green-600' : 'text-destructive'}`}>
-                                        PKR {p.netInvestment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                {investments.length > 0 ? (
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Partner</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Notes</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                    {investments.map(t => (
+                        <TableRow key={t.id}>
+                            <TableCell className="font-medium">{format(new Date(t.timestamp), 'PP')}</TableCell>
+                            <TableCell>{t.partnerName}</TableCell>
+                            <TableCell>
+                                <Badge variant={t.type === 'Investment' ? 'outline' : 'destructive'} className={cn(t.type === 'Investment' && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}>
+                                    {t.type}
+                                </Badge>
+                            </TableCell>
+                            <TableCell>{t.notes || 'N/A'}</TableCell>
+                            <TableCell className={`text-right font-semibold ${t.type === 'Investment' ? 'text-green-600' : 'text-destructive'}`}>
+                                PKR {t.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </TableCell>
+                        </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
                 ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">No investment data available.</p>
+                <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
+                    <PiggyBank className="w-16 h-16" />
+                    <h3 className="text-xl font-semibold">No Transactions Recorded</h3>
+                    <p>Use the form to log your first investment.</p>
+                </div>
                 )}
             </CardContent>
-             <CardFooter>
-                <div className="w-full flex justify-between items-center font-bold">
-                    <span>Total Net Capital</span>
-                    <span className={totalNetInvestment >= 0 ? 'text-primary' : 'text-destructive'}>
-                        PKR {totalNetInvestment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
+            </Card>
+        </div>
+      </div>
+      
+      {/* Dialog for Add/Edit Partner */}
+      <Dialog open={!!partnerToEdit} onOpenChange={(isOpen) => { if (!isOpen) { setPartnerToEdit(null); resetPartner(); } }}>
+        <DialogContent>
+            <form onSubmit={handleSubmitPartner(onPartnerSubmit)}>
+                <DialogHeader>
+                    <DialogTitle>{partnerToEdit?.id ? 'Edit Partner' : 'Add New Partner'}</DialogTitle>
+                    <DialogDescription>
+                        {partnerToEdit?.id ? 'Update the details for this partner.' : 'Add a new permanent partner to manage their investments and shares.'}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Partner Name</Label>
+                        <Input id="name" {...registerPartner('name')} />
+                        {partnerErrors.name && <p className="text-sm text-destructive">{partnerErrors.name.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="sharePercentage" className="flex items-center gap-2"><Percent className="w-4 h-4"/> Share Percentage</Label>
+                        <Input id="sharePercentage" type="number" {...registerPartner('sharePercentage')} step="0.01" />
+                        {partnerErrors.sharePercentage && <p className="text-sm text-destructive">{partnerErrors.sharePercentage.message}</p>}
+                    </div>
                 </div>
-            </CardFooter>
-        </Card>
-
-      </div>
-
-      <div className="lg:col-span-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <List /> Transaction History
-            </CardTitle>
-            <CardDescription>
-              A record of all partner investments and withdrawals.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {investments.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Partner</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {investments.map(t => (
-                      <TableRow key={t.id}>
-                        <TableCell className="font-medium">{format(new Date(t.timestamp), 'PP')}</TableCell>
-                        <TableCell>{t.partnerName}</TableCell>
-                        <TableCell>
-                            <Badge variant={t.type === 'Investment' ? 'outline' : 'destructive'} className={cn(t.type === 'Investment' && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}>
-                                {t.type}
-                            </Badge>
-                        </TableCell>
-                        <TableCell>{t.notes || 'N/A'}</TableCell>
-                        <TableCell className={`text-right font-semibold ${t.type === 'Investment' ? 'text-green-600' : 'text-destructive'}`}>
-                            PKR {t.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
-                <PiggyBank className="w-16 h-16" />
-                <h3 className="text-xl font-semibold">No Transactions Recorded</h3>
-                <p>Use the form to log your first investment.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setPartnerToEdit(null)}>Cancel</Button>
+                    <Button type="submit">{partnerToEdit?.id ? 'Save Changes' : 'Add Partner'}</Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Dialog for Delete Confirmation */}
+      <AlertDialog open={!!partnerToDelete} onOpenChange={(isOpen) => !isOpen && setPartnerToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the partner: <br />
+              <strong className="font-medium text-foreground">{partnerToDelete?.name}</strong>.
+              All associated investment transactions will remain but will no longer be linked to a permanent partner.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeletePartner} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Yes, delete partner
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 
+
 export type FuelType = 'Unleaded' | 'Premium' | 'Diesel';
 
 export type PaymentMethod = 'Cash' | 'Card' | 'Mobile' | 'Salary';
@@ -131,9 +132,17 @@ export interface TankReading {
 
 export interface Investment {
   id: string;
+  partnerId: string;
   partnerName: string;
   type: 'Investment' | 'Withdrawal';
   amount: number;
   notes?: string;
+  timestamp: string;
+}
+
+export interface BusinessPartner {
+  id: string;
+  name: string;
+  sharePercentage: number;
   timestamp: string;
 }
