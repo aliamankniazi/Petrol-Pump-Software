@@ -16,7 +16,7 @@ import {
   SidebarTrigger,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { History, FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, LogOut, Fuel, DollarSign, Beaker, Handshake, PiggyBank, Archive } from 'lucide-react';
+import { History, FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, LogOut, Fuel, DollarSign, Beaker, Handshake, PiggyBank, Archive, BarChartHorizontal } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from './ui/button';
 
@@ -25,6 +25,7 @@ const navItems = [
   { href: '/all-transactions', label: 'All Transactions', icon: Archive },
   { href: '/customers', label: 'Customers', icon: Users },
   { href: '/partner-ledger', label: 'Partner Ledger', icon: HandCoins },
+   { href: '/credit-recovery', label: 'Credit Recovery', icon: BarChartHorizontal },
   { href: '/cash-advances', label: 'Cash Advances', icon: ArrowRightLeft },
   { href: '/inventory', label: 'Inventory', icon: Package },
   { href: '/tanks', label: 'Tank Readings', icon: Beaker },

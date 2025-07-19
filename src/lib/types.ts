@@ -61,6 +61,7 @@ export interface Customer {
   name: string;
   contact: string;
   vehicleNumber?: string;
+  area?: string;
   timestamp: string;
 }
 

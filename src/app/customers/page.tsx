@@ -20,6 +20,7 @@ const customerSchema = z.object({
   name: z.string().min(1, 'Customer name is required'),
   contact: z.string().min(1, 'Contact information is required'),
   vehicleNumber: z.string().optional(),
+  area: z.string().optional(),
 });
 
 type CustomerFormValues = z.infer<typeof customerSchema>;
@@ -85,6 +86,12 @@ export default function CustomersPage() {
                 <Input id="vehicleNumber" {...register('vehicleNumber')} placeholder="e.g., ABC-123" />
                 {errors.vehicleNumber && <p className="text-sm text-destructive">{errors.vehicleNumber.message}</p>}
               </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="area">Area (Optional)</Label>
+                <Input id="area" {...register('area')} placeholder="e.g., Mianwali City" />
+                {errors.area && <p className="text-sm text-destructive">{errors.area.message}</p>}
+              </div>
 
               <Button type="submit" className="w-full">Add Customer</Button>
             </form>
@@ -118,6 +125,7 @@ export default function CustomersPage() {
                         <TableCell>
                           <div className="font-medium">{c.name}</div>
                           <div className="text-sm text-muted-foreground">{c.contact}</div>
+                           <div className="text-xs text-muted-foreground">{c.area || 'N/A'}</div>
                           <div className="text-xs text-muted-foreground">{c.vehicleNumber || 'N/A'}</div>
                           <div className="text-xs text-muted-foreground">Added: {format(new Date(c.timestamp), 'PP')}</div>
                         </TableCell>
