@@ -223,7 +223,7 @@ export default function CustomerPaymentsPage() {
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                     <Info className="w-5 h-5" />
-                    Special Report for {customers.find(c => c.id === selectedCustomerId)?.name}
+                    Special Profit Report for {customers.find(c => c.id === selectedCustomerId)?.name}
                 </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
