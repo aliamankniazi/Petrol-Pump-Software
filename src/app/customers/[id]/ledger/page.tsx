@@ -92,7 +92,15 @@ export default function CustomerLedgerPage() {
 
   if (!isLoaded) {
     return (
-        <div className="p-4 md:p-8">
+        <div className="p-4 md:p-8 space-y-8">
+            <Card>
+                <CardHeader>
+                    <Skeleton className="h-8 w-64" />
+                </CardHeader>
+                <CardContent>
+                    <Skeleton className="h-24 w-full" />
+                </CardContent>
+            </Card>
             <Card>
                 <CardHeader>
                     <Skeleton className="h-8 w-64" />
