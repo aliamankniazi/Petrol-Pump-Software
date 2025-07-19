@@ -14,6 +14,7 @@ import { Users, UserPlus, List, BookText } from 'lucide-react';
 import { format } from 'date-fns';
 import { useCustomers } from '@/hooks/use-customers';
 import Link from 'next/link';
+import Barcode from 'react-barcode';
 
 const customerSchema = z.object({
   name: z.string().min(1, 'Customer name is required'),
@@ -106,20 +107,23 @@ export default function CustomersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date Added</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Vehicle No.</TableHead>
+                    <TableHead>Customer Details</TableHead>
+                    <TableHead>Barcode</TableHead>
                     <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {customers.map(c => (
                       <TableRow key={c.id}>
-                        <TableCell className="font-medium">{format(new Date(c.timestamp), 'PP')}</TableCell>
-                        <TableCell>{c.name}</TableCell>
-                        <TableCell>{c.contact}</TableCell>
-                        <TableCell>{c.vehicleNumber || 'N/A'}</TableCell>
+                        <TableCell>
+                          <div className="font-medium">{c.name}</div>
+                          <div className="text-sm text-muted-foreground">{c.contact}</div>
+                          <div className="text-xs text-muted-foreground">{c.vehicleNumber || 'N/A'}</div>
+                          <div className="text-xs text-muted-foreground">Added: {format(new Date(c.timestamp), 'PP')}</div>
+                        </TableCell>
+                        <TableCell>
+                          <Barcode value={c.id} height={40} width={1.5} fontSize={10} margin={2} />
+                        </TableCell>
                         <TableCell className="text-center space-x-1">
                            <Button asChild variant="ghost" size="icon" title="View Ledger">
                               <Link href={`/customers/${c.id}/ledger`}>
