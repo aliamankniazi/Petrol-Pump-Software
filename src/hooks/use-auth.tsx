@@ -40,7 +40,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isConfigValid) {
-      console.warn("Firebase config is not valid. Running in offline mode.");
       setUser(FAKE_USER);
       setLoading(false);
       return;
@@ -63,12 +62,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const isAuthPage = pathname === '/login' || pathname === '/signup';
 
-    if (user && isAuthPage) {
-      router.push('/');
-    } else if (!user && !isAuthPage && isConfigValid) {
-      router.push('/login');
+    if (!user && !isAuthPage) {
+        router.push('/login');
+    } else if (user && isAuthPage) {
+        router.push('/');
     }
-  }, [user, loading, pathname, router, isConfigValid]);
+  }, [user, loading, pathname, router]);
 
   const signIn = (data: AuthFormValues) => {
     if (!auth) return Promise.reject(new Error("Firebase is not configured."));
@@ -81,13 +80,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    if (!auth) {
-      // In offline mode, signOut does nothing as you can't log out.
-      // If we set user to null, it would redirect to login, which is disabled.
-      return;
-    };
-    await firebaseSignOut(auth);
-    // The onAuthStateChanged listener will handle the redirect.
+    if (isConfigValid && auth) {
+      await firebaseSignOut(auth);
+      // onAuthStateChanged will handle the rest
+    } else {
+      // Handle offline mode sign out
+      setUser(null);
+      // The effect hook will now redirect to /login
+    }
   };
 
   const value = {
@@ -98,6 +98,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
   };
   
+  // Render a loading state while we check for the user.
+  // This is also important to prevent a flash of the wrong content.
   if (loading) {
      return (
         <div className="flex h-screen w-full items-center justify-center">
@@ -105,6 +107,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         </div>
     );
   }
+  
+  // If we are on an auth page and there is a user, we are likely redirecting.
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
+  if (user && isAuthPage) {
+      return (
+          <div className="flex h-screen w-full items-center justify-center">
+              <p>Redirecting...</p>
+          </div>
+      );
+  }
+
+  // If we are not on an auth page and there is no user, we are also likely redirecting.
+  if (!user && !isAuthPage) {
+      return (
+           <div className="flex h-screen w-full items-center justify-center">
+              <p>Redirecting...</p>
+          </div>
+      );
+  }
+
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
