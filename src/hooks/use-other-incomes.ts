@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -39,6 +40,10 @@ export function useOtherIncomes() {
       ...prev,
     ]);
   }, []);
+
+  const deleteOtherIncome = useCallback((id: string) => {
+    setOtherIncomes(prev => prev.filter(oi => oi.id !== id));
+  }, []);
   
   const clearOtherIncomes = useCallback(() => {
     setOtherIncomes([]);
@@ -49,5 +54,5 @@ export function useOtherIncomes() {
     }
   }, []);
 
-  return { otherIncomes, addOtherIncome, clearOtherIncomes, isLoaded };
+  return { otherIncomes, addOtherIncome, deleteOtherIncome, clearOtherIncomes, isLoaded };
 }

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { format, isSameDay, startOfDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, DollarSign, Calendar as CalendarIcon, X } from 'lucide-react';
+import { BookOpen, DollarSign, Calendar as CalendarIcon, X, Trash2, AlertTriangle } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
 import { usePurchases } from '@/hooks/use-purchases';
 import { useExpenses } from '@/hooks/use-expenses';
@@ -17,6 +17,17 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 type LedgerEntry = {
   id: string;
@@ -29,14 +40,16 @@ type LedgerEntry = {
 };
 
 export default function LedgerPage() {
-  const { transactions, isLoaded: transactionsLoaded } = useTransactions();
-  const { purchases, isLoaded: purchasesLoaded } = usePurchases();
-  const { expenses, isLoaded: expensesLoaded } = useExpenses();
-  const { purchaseReturns, isLoaded: purchaseReturnsLoaded } = usePurchaseReturns();
-  const { otherIncomes, isLoaded: otherIncomesLoaded } = useOtherIncomes();
-  const { supplierPayments, isLoaded: supplierPaymentsLoaded } = useSupplierPayments();
+  const { transactions, deleteTransaction, isLoaded: transactionsLoaded } = useTransactions();
+  const { purchases, deletePurchase, isLoaded: purchasesLoaded } = usePurchases();
+  const { expenses, deleteExpense, isLoaded: expensesLoaded } = useExpenses();
+  const { purchaseReturns, deletePurchaseReturn, isLoaded: purchaseReturnsLoaded } = usePurchaseReturns();
+  const { otherIncomes, deleteOtherIncome, isLoaded: otherIncomesLoaded } = useOtherIncomes();
+  const { supplierPayments, deleteSupplierPayment, isLoaded: supplierPaymentsLoaded } = useSupplierPayments();
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [entryToDelete, setEntryToDelete] = useState<LedgerEntry | null>(null);
+  const { toast } = useToast();
 
   const isLoaded = transactionsLoaded && purchasesLoaded && expensesLoaded && purchaseReturnsLoaded && otherIncomesLoaded && supplierPaymentsLoaded;
 
@@ -154,8 +167,38 @@ export default function LedgerPage() {
   const isCreditEntry = (type: LedgerEntry['type']) => {
     return type === 'Sale' || type === 'Purchase Return' || type === 'Other Income';
   }
+  
+  const handleDeleteEntry = () => {
+    if (!entryToDelete) return;
+    
+    const [typePrefix, id] = entryToDelete.id.split(/-(.*)/s);
+
+    switch(typePrefix) {
+        case 'tx': deleteTransaction(id); break;
+        case 'pur': deletePurchase(id); break;
+        case 'exp': deleteExpense(id); break;
+        case 'pr': deletePurchaseReturn(id); break;
+        case 'oi': deleteOtherIncome(id); break;
+        case 'sp': deleteSupplierPayment(id); break;
+        default:
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Could not delete entry of unknown type.',
+            });
+            return;
+    }
+
+    toast({
+        title: 'Entry Deleted',
+        description: `The ${entryToDelete.type} entry has been successfully deleted.`,
+    });
+    setEntryToDelete(null);
+  };
+
 
   return (
+    <>
     <div className="p-4 md:p-8">
       <Card>
         <CardHeader>
@@ -214,12 +257,13 @@ export default function LedgerPage() {
                   <TableHead className="text-right">Debit (PKR)</TableHead>
                   <TableHead className="text-right">Credit (PKR)</TableHead>
                   <TableHead className="text-right">Balance (PKR)</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {selectedDate && (
                   <TableRow className="bg-muted/30">
-                    <TableCell colSpan={5} className="font-bold">Opening Balance</TableCell>
+                    <TableCell colSpan={6} className="font-bold">Opening Balance</TableCell>
                     <TableCell className={`text-right font-semibold font-mono ${openingBalance >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                       {openingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>
@@ -248,6 +292,16 @@ export default function LedgerPage() {
                     <TableCell className={`text-right font-semibold font-mono ${entry.balance >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                         {entry.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>
+                    <TableCell className="text-center">
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setEntryToDelete(entry)}
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -256,6 +310,7 @@ export default function LedgerPage() {
                   <TableCell colSpan={3} className="text-right">Period Totals</TableCell>
                   <TableCell className="text-right font-mono text-destructive">{totals.debit.toFixed(2)}</TableCell>
                   <TableCell className="text-right font-mono text-green-600">{totals.credit.toFixed(2)}</TableCell>
+                  <TableCell />
                   <TableCell />
                 </TableRow>
               </TableFooter>
@@ -291,5 +346,24 @@ export default function LedgerPage() {
         )}
       </Card>
     </div>
+    
+    <AlertDialog open={!!entryToDelete} onOpenChange={(isOpen) => !isOpen && setEntryToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the entry for: <br />
+              <strong className="font-medium text-foreground">{entryToDelete?.description}</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteEntry} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Yes, delete entry
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

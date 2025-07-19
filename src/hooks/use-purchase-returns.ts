@@ -41,9 +41,13 @@ export function usePurchaseReturns() {
     ]);
   }, []);
 
+  const deletePurchaseReturn = useCallback((id: string) => {
+    setPurchaseReturns(prev => prev.filter(pr => pr.id !== id));
+  }, []);
+
   const clearPurchaseReturns = useCallback(() => {
     setPurchaseReturns([]);
   }, []);
 
-  return { purchaseReturns, addPurchaseReturn, clearPurchaseReturns, isLoaded };
+  return { purchaseReturns, addPurchaseReturn, deletePurchaseReturn, clearPurchaseReturns, isLoaded };
 }

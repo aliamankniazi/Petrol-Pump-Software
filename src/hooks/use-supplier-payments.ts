@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -40,6 +41,10 @@ export function useSupplierPayments() {
     ]);
   }, []);
 
+  const deleteSupplierPayment = useCallback((id: string) => {
+    setSupplierPayments(prev => prev.filter(sp => sp.id !== id));
+  }, []);
+
   const clearSupplierPayments = useCallback(() => {
     setSupplierPayments([]);
     try {
@@ -49,5 +54,5 @@ export function useSupplierPayments() {
     }
   }, []);
 
-  return { supplierPayments, addSupplierPayment, clearSupplierPayments, isLoaded };
+  return { supplierPayments, addSupplierPayment, deleteSupplierPayment, clearSupplierPayments, isLoaded };
 }

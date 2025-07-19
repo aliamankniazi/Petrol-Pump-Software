@@ -40,10 +40,14 @@ export function usePurchases() {
       ...prev,
     ]);
   }, []);
+
+  const deletePurchase = useCallback((id: string) => {
+    setPurchases(prev => prev.filter(p => p.id !== id));
+  }, []);
   
   const clearPurchases = useCallback(() => {
     setPurchases([]);
   }, []);
 
-  return { purchases, addPurchase, clearPurchases, isLoaded };
+  return { purchases, addPurchase, deletePurchase, clearPurchases, isLoaded };
 }

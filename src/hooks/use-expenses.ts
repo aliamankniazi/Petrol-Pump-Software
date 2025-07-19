@@ -41,9 +41,13 @@ export function useExpenses() {
     ]);
   }, []);
   
+  const deleteExpense = useCallback((id: string) => {
+    setExpenses(prev => prev.filter(e => e.id !== id));
+  }, []);
+
   const clearExpenses = useCallback(() => {
     setExpenses([]);
   }, []);
 
-  return { expenses, addExpense, clearExpenses, isLoaded };
+  return { expenses, addExpense, deleteExpense, clearExpenses, isLoaded };
 }

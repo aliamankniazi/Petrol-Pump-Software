@@ -41,9 +41,13 @@ export function useTransactions() {
     ]);
   }, []);
   
+  const deleteTransaction = useCallback((id: string) => {
+    setTransactions(prev => prev.filter(tx => tx.id !== id));
+  }, []);
+
   const clearTransactions = useCallback(() => {
     setTransactions([]);
   }, []);
 
-  return { transactions, addTransaction, clearTransactions, isLoaded };
+  return { transactions, addTransaction, deleteTransaction, clearTransactions, isLoaded };
 }
