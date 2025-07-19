@@ -27,10 +27,10 @@ interface InvoiceData {
 }
 
 const companyDetails = {
-    name: 'Mianwali Petroleum',
-    branch: 'Mianwali Branch',
-    mobile1: '03009191601',
-    mobile2: '033536536',
+    name: 'Mianwali Petroleum Service',
+    branch: 'Mianwali',
+    mobile1: '03335425401',
+    mobile2: '03335425401',
     ntn: '04656866',
     bank: {
         name: 'Bank Name Here',
