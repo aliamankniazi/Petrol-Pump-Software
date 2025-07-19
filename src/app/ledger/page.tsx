@@ -3,7 +3,7 @@
 
 import { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { format, isSameDay, startOfDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { BookOpen, DollarSign, Calendar as CalendarIcon, X } from 'lucide-react';
