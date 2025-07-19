@@ -1,7 +1,7 @@
 
-
 'use client';
 
+import { useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,13 +11,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Users, UserPlus, List, BookText } from 'lucide-react';
+import { Users, UserPlus, List, BookText, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { useCustomers } from '@/hooks/use-customers';
 import Link from 'next/link';
 import Barcode from 'react-barcode';
-import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import type { Customer } from '@/lib/types';
+
 
 const customerSchema = z.object({
   name: z.string().min(1, 'Customer name is required'),
@@ -40,13 +43,21 @@ const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 export default function CustomersPage() {
-  const { customers, addCustomer } = useCustomers();
+  const { customers, addCustomer, updateCustomer, deleteCustomer } = useCustomers();
   const { toast } = useToast();
+  
+  const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  
   const { register, handleSubmit, reset, formState: { errors } } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
   });
 
-  const onSubmit: SubmitHandler<CustomerFormValues> = (data) => {
+  const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, setValue: setEditValue, formState: { errors: editErrors } } = useForm<CustomerFormValues>({
+    resolver: zodResolver(customerSchema),
+  });
+
+  const onAddSubmit: SubmitHandler<CustomerFormValues> = (data) => {
     addCustomer({ ...data, isPartner: false });
     toast({
       title: 'Customer Added',
@@ -54,13 +65,41 @@ export default function CustomersPage() {
     });
     reset();
   };
+  
+  const onEditSubmit: SubmitHandler<CustomerFormValues> = (data) => {
+    if (!customerToEdit) return;
+    updateCustomer(customerToEdit.id, data);
+    toast({
+        title: 'Customer Updated',
+        description: "The customer's details have been saved."
+    });
+    setCustomerToEdit(null);
+  };
+
+  const handleDeleteCustomer = () => {
+    if (!customerToDelete) return;
+    deleteCustomer(customerToDelete.id);
+    toast({
+        title: 'Customer Deleted',
+        description: `${customerToDelete.name} has been removed.`,
+    });
+    setCustomerToDelete(null);
+  };
+
+  const openEditDialog = (customer: Customer) => {
+    setCustomerToEdit(customer);
+    setEditValue('name', customer.name);
+    setEditValue('contact', customer.contact);
+    setEditValue('vehicleNumber', customer.vehicleNumber || '');
+    setEditValue('area', customer.area || '');
+  }
 
   const formatPhoneNumberForWhatsApp = (phone: string) => {
-    // This is a simple formatter, might need to be more robust for different formats
     return phone.replace(/[^0-9]/g, '');
   }
 
   return (
+    <>
     <div className="p-4 md:p-8 grid gap-8 lg:grid-cols-3">
       <div className="lg:col-span-1">
         <Card>
@@ -71,7 +110,7 @@ export default function CustomersPage() {
             <CardDescription>Add a new customer to your records.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit(onAddSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Customer Name</Label>
                 <Input id="name" {...register('name')} placeholder="e.g., John Doe" />
@@ -138,11 +177,14 @@ export default function CustomersPage() {
                         <TableCell>
                           <Barcode value={c.id} height={40} width={1.5} fontSize={10} margin={2} />
                         </TableCell>
-                        <TableCell className="text-center space-x-1">
+                        <TableCell className="text-center space-x-0">
                            <Button asChild variant="ghost" size="icon" title="View Ledger">
                               <Link href={`/customers/${c.id}/ledger`}>
                                 <BookText className="w-5 h-5" />
                               </Link>
+                           </Button>
+                           <Button variant="ghost" size="icon" title="Edit Customer" onClick={() => openEditDialog(c)} disabled={c.isPartner}>
+                                <Pencil className="w-4 h-4" />
                            </Button>
                            {c.contact && (
                              <Button asChild variant="ghost" size="icon" className="text-green-500 hover:text-green-600" title={`Message ${c.name} on WhatsApp`}>
@@ -155,6 +197,9 @@ export default function CustomersPage() {
                               </a>
                             </Button>
                            )}
+                           <Button variant="ghost" size="icon" title="Delete Customer" className="text-destructive hover:text-destructive" onClick={() => setCustomerToDelete(c)} disabled={c.isPartner}>
+                                <Trash2 className="w-4 h-4" />
+                           </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -171,6 +216,64 @@ export default function CustomersPage() {
         </Card>
       </div>
     </div>
+    
+    <Dialog open={!!customerToEdit} onOpenChange={(isOpen) => { if (!isOpen) { setCustomerToEdit(null); resetEdit(); } }}>
+        <DialogContent>
+            <form onSubmit={handleSubmitEdit(onEditSubmit)}>
+                <DialogHeader>
+                    <DialogTitle>Edit Customer</DialogTitle>
+                    <DialogDescription>
+                        Update the details for this customer.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-name">Customer Name</Label>
+                        <Input id="edit-name" {...registerEdit('name')} />
+                        {editErrors.name && <p className="text-sm text-destructive">{editErrors.name.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-contact">Contact Info</Label>
+                        <Input id="edit-contact" {...registerEdit('contact')} />
+                        {editErrors.contact && <p className="text-sm text-destructive">{editErrors.contact.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-vehicleNumber">Vehicle Number</Label>
+                        <Input id="edit-vehicleNumber" {...registerEdit('vehicleNumber')} />
+                        {editErrors.vehicleNumber && <p className="text-sm text-destructive">{editErrors.vehicleNumber.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-area">Area</Label>
+                        <Input id="edit-area" {...registerEdit('area')} />
+                        {editErrors.area && <p className="text-sm text-destructive">{editErrors.area.message}</p>}
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setCustomerToEdit(null)}>Cancel</Button>
+                    <Button type="submit">Save Changes</Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+    </Dialog>
+
+    <AlertDialog open={!!customerToDelete} onOpenChange={(isOpen) => !isOpen && setCustomerToDelete(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete the customer: <br />
+            <strong className="font-medium text-foreground">{customerToDelete?.name}</strong>.
+            All their associated transactions will remain but will no longer be linked to them.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDeleteCustomer} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            Yes, delete customer
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
-

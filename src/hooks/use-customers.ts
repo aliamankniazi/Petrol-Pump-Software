@@ -51,13 +51,17 @@ export function useCustomers() {
     return newCustomer;
   }, []);
   
-  const updateCustomer = useCallback((id: string, updatedDetails: Partial<Customer>) => {
-    setCustomers(prev => prev.map(c => c.id === id ? { ...c, ...updatedDetails } : c));
+  const updateCustomer = useCallback((id: string, updatedDetails: Partial<Omit<Customer, 'id' | 'timestamp'>>) => {
+    setCustomers(prev => prev.map(c => c.id === id ? { ...c, ...updatedDetails } : c).sort((a,b) => a.name.localeCompare(b.name)));
+  }, []);
+
+  const deleteCustomer = useCallback((id: string) => {
+    setCustomers(prev => prev.filter(c => c.id !== id));
   }, []);
 
   const clearCustomers = useCallback(() => {
     setCustomers([]);
   }, []);
 
-  return { customers, setCustomers, addCustomer, updateCustomer, clearCustomers, isLoaded };
+  return { customers, setCustomers, addCustomer, updateCustomer, deleteCustomer, clearCustomers, isLoaded };
 }
