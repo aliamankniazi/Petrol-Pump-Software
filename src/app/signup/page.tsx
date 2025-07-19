@@ -14,6 +14,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { AuthFormValues } from '@/lib/types';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { firebaseConfig, isFirebaseConfigValid } from '@/lib/firebase';
 
 
 const signupSchema = z.object({
@@ -26,12 +28,23 @@ export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  
+  const isConfigValid = isFirebaseConfigValid(firebaseConfig);
 
   const { register, handleSubmit, formState: { errors } } = useForm<AuthFormValues>({
     resolver: zodResolver(signupSchema),
   });
 
   const onSubmit: SubmitHandler<AuthFormValues> = async (data) => {
+    if (!isConfigValid) {
+        toast({
+            variant: 'destructive',
+            title: 'Firebase Not Configured',
+            description: 'Please add your Firebase credentials to src/lib/firebase.ts to enable sign up.',
+        });
+        return;
+    }
+
     setLoading(true);
     try {
       await signUp(data);
@@ -61,6 +74,14 @@ export default function SignupPage() {
           <CardDescription>Create a new account to get started.</CardDescription>
         </CardHeader>
         <CardContent>
+          {!isConfigValid && (
+              <Alert variant="destructive" className="mb-4">
+                  <AlertTitle>Firebase Not Configured</AlertTitle>
+                  <AlertDescription>
+                      Sign up is disabled. Please add your Firebase credentials to <strong>src/lib/firebase.ts</strong> to continue.
+                  </AlertDescription>
+              </Alert>
+          )}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
