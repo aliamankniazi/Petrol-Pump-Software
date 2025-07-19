@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -33,9 +34,9 @@ export function useTransactions() {
     }
   }, [transactions, isLoaded]);
 
-  const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'timestamp'>) => {
+  const addTransaction = useCallback((transaction: Omit<Transaction, 'id'>) => {
     setTransactions(prev => [
-      { ...transaction, id: crypto.randomUUID(), timestamp: new Date().toISOString() },
+      { ...transaction, id: crypto.randomUUID() },
       ...prev,
     ]);
   }, []);

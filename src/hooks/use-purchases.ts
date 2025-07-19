@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -33,9 +34,9 @@ export function usePurchases() {
     }
   }, [purchases, isLoaded]);
 
-  const addPurchase = useCallback((purchase: Omit<Purchase, 'id' | 'timestamp'>) => {
+  const addPurchase = useCallback((purchase: Omit<Purchase, 'id'>) => {
     setPurchases(prev => [
-      { ...purchase, id: crypto.randomUUID(), timestamp: new Date().toISOString() },
+      { ...purchase, id: crypto.randomUUID() },
       ...prev,
     ]);
   }, []);

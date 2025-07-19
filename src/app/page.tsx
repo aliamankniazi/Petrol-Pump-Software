@@ -8,7 +8,7 @@ import { Numpad } from '@/components/numpad';
 import { useTransactions } from '@/hooks/use-transactions';
 import type { FuelType, PaymentMethod, Customer } from '@/lib/types';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Fuel, Droplets, CreditCard, Wallet, Smartphone, Users, HandCoins, DollarSign } from 'lucide-react';
+import { Fuel, Droplets, CreditCard, Wallet, Smartphone, Users, HandCoins, DollarSign, Calendar as CalendarIcon } from 'lucide-react';
 import { useFuelPrices } from '@/hooks/use-fuel-prices';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -22,6 +22,9 @@ import { useCustomerBalance } from '@/hooks/use-customer-balance';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useFuelStock } from '@/hooks/use-fuel-stock';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
@@ -43,6 +46,7 @@ export default function SalePage() {
   const [mode, setMode] = useState<SaleMode>('amount');
   const [selectedFuel, setSelectedFuel] = useState<FuelType>('Unleaded');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [saleDate, setSaleDate] = useState<Date>(new Date());
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [lastTransaction, setLastTransaction] = useState<{ amount: number; volume: number; fuelType: FuelType, customerName?: string } | null>(null);
 
@@ -88,7 +92,7 @@ export default function SalePage() {
       
       setInput(prev => prev + key);
     }
-  }, [numpadTarget, saleInput, paymentInput, mode]);
+  }, [numpadTarget, saleInput, paymentInput]);
   
   const handleModeChange = useCallback((newMode: SaleMode) => {
       if (mode !== newMode) {
@@ -101,6 +105,7 @@ export default function SalePage() {
     if (amount <= 0 || volume <= 0) return;
     
     const transaction = {
+      timestamp: saleDate.toISOString(),
       fuelType: selectedFuel,
       volume: parseFloat(volume.toFixed(2)),
       pricePerLitre: fuelPrices[selectedFuel],
@@ -118,7 +123,7 @@ export default function SalePage() {
       customerName: selectedCustomer?.name,
     });
     setShowConfirmation(true);
-  }, [amount, volume, selectedFuel, selectedCustomer, fuelPrices, addTransaction]);
+  }, [amount, volume, saleDate, selectedFuel, selectedCustomer, fuelPrices, addTransaction]);
   
   const handleCustomerPayment = useCallback((paymentMethod: PaymentMethod) => {
     const amountNum = parseFloat(paymentInput);
@@ -208,6 +213,7 @@ export default function SalePage() {
     setSelectedCustomerId(null);
     setShowConfirmation(false);
     setLastTransaction(null);
+    setSaleDate(new Date());
   };
   
   const numpadTitle = numpadTarget === 'sale' 
@@ -244,23 +250,50 @@ export default function SalePage() {
                     </div>
                 </Tabs>
 
-                <div className="space-y-2">
-                    <Label className="flex items-center gap-2"><Users /> Customer</Label>
-                    {!customersLoaded ? <Skeleton className="h-10 w-full" /> : (
-                        <Select onValueChange={(value) => setSelectedCustomerId(value === 'walk-in' ? null : value)} value={selectedCustomerId || 'walk-in'}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select a customer" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="walk-in">Walk-in Customer</SelectItem>
-                                {customers.map(customer => (
-                                <SelectItem key={customer.id} value={customer.id}>
-                                    {customer.name}
-                                </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
+                <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label className="flex items-center gap-2"><Users /> Customer</Label>
+                        {!customersLoaded ? <Skeleton className="h-10 w-full" /> : (
+                            <Select onValueChange={(value) => setSelectedCustomerId(value === 'walk-in' ? null : value)} value={selectedCustomerId || 'walk-in'}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a customer" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="walk-in">Walk-in Customer</SelectItem>
+                                    {customers.map(customer => (
+                                    <SelectItem key={customer.id} value={customer.id}>
+                                        {customer.name}
+                                    </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+                    </div>
+                     <div className="space-y-2">
+                        <Label className="flex items-center gap-2"><CalendarIcon /> Sale Date</Label>
+                        <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !saleDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {saleDate ? format(saleDate, "PPP") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={saleDate}
+                            onSelect={(date) => setSaleDate(date || new Date())}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                 </div>
 
                 {selectedCustomer && (
@@ -368,5 +401,3 @@ export default function SalePage() {
     </div>
   );
 }
-
-    

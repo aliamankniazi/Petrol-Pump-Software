@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useForm, type SubmitHandler } from 'react-hook-form';
+import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,11 +11,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Undo2, PackageMinus, ListRestart } from 'lucide-react';
+import { Undo2, PackageMinus, ListRestart, Calendar as CalendarIcon } from 'lucide-react';
 import type { FuelType } from '@/lib/types';
 import { format } from 'date-fns';
 import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
 import { Textarea } from '@/components/ui/textarea';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
@@ -24,6 +29,7 @@ const purchaseReturnSchema = z.object({
   volume: z.coerce.number().min(0.01, 'Volume must be greater than 0'),
   totalRefund: z.coerce.number().min(0.01, 'Total refund must be greater than 0'),
   reason: z.string().min(1, 'Reason for return is required'),
+  date: z.date({ required_error: "A date is required."}),
 });
 
 type PurchaseReturnFormValues = z.infer<typeof purchaseReturnSchema>;
@@ -31,17 +37,26 @@ type PurchaseReturnFormValues = z.infer<typeof purchaseReturnSchema>;
 export default function PurchaseReturnsPage() {
   const { purchaseReturns, addPurchaseReturn } = usePurchaseReturns();
   const { toast } = useToast();
-  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<PurchaseReturnFormValues>({
+  const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<PurchaseReturnFormValues>({
     resolver: zodResolver(purchaseReturnSchema),
+    defaultValues: {
+        date: new Date(),
+    }
   });
 
   const onSubmit: SubmitHandler<PurchaseReturnFormValues> = (data) => {
-    addPurchaseReturn(data);
+    addPurchaseReturn({ ...data, timestamp: data.date.toISOString() });
     toast({
       title: 'Purchase Return Recorded',
       description: `Return to ${data.supplier} has been logged.`,
     });
-    reset();
+    reset({
+        supplier: '',
+        volume: 0,
+        totalRefund: 0,
+        reason: '',
+        date: new Date(),
+    });
   };
 
   return (
@@ -64,36 +79,76 @@ export default function PurchaseReturnsPage() {
 
               <div className="space-y-2">
                 <Label>Fuel Type</Label>
-                <Select onValueChange={(value: FuelType) => setValue('fuelType', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a fuel type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {FUEL_TYPES.map(fuel => (
-                      <SelectItem key={fuel} value={fuel}>{fuel}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                 <Controller
+                  name="fuelType"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a fuel type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FUEL_TYPES.map(fuel => (
+                          <SelectItem key={fuel} value={fuel}>{fuel}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
                 {errors.fuelType && <p className="text-sm text-destructive">{errors.fuelType.message}</p>}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="volume">Volume (Litres)</Label>
-                <Input id="volume" type="number" {...register('volume')} placeholder="e.g., 500" step="0.01" />
-                {errors.volume && <p className="text-sm text-destructive">{errors.volume.message}</p>}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="volume">Volume (Litres)</Label>
+                  <Input id="volume" type="number" {...register('volume')} placeholder="e.g., 500" step="0.01" />
+                  {errors.volume && <p className="text-sm text-destructive">{errors.volume.message}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="totalRefund">Total Refund (PKR)</Label>
+                  <Input id="totalRefund" type="number" {...register('totalRefund')} placeholder="e.g., 100000" step="0.01" />
+                  {errors.totalRefund && <p className="text-sm text-destructive">{errors.totalRefund.message}</p>}
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="totalRefund">Total Refund (PKR)</Label>
-                <Input id="totalRefund" type="number" {...register('totalRefund')} placeholder="e.g., 100000" step="0.01" />
-                {errors.totalRefund && <p className="text-sm text-destructive">{errors.totalRefund.message}</p>}
-              </div>
-              
               <div className="space-y-2">
                 <Label htmlFor="reason">Reason for Return</Label>
                 <Textarea id="reason" {...register('reason')} placeholder="e.g., Contaminated fuel, wrong type delivered" />
                 {errors.reason && <p className="text-sm text-destructive">{errors.reason.message}</p>}
               </div>
+              
+              <div className="space-y-2">
+                  <Label>Date</Label>
+                  <Controller
+                    name="date"
+                    control={control}
+                    render={({ field }) => (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                  />
+                  {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
+                </div>
 
               <Button type="submit" className="w-full">Record Return</Button>
             </form>
