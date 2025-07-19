@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/hooks/use-auth';
 import { usePathname } from 'next/navigation';
+import { RolesProvider } from '@/hooks/use-roles';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -36,7 +37,9 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-          {children}
+            <RolesProvider>
+                {children}
+            </RolesProvider>
         </AuthProvider>
         <Toaster />
       </body>

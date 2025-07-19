@@ -16,9 +16,11 @@ import {
   signInWithEmailAndPassword,
 } from 'firebase/auth';
 import { auth, isFirebaseConfigValid, firebaseConfig } from '@/lib/firebase';
-import type { AuthFormValues } from '@/lib/types';
+import type { AuthFormValues, RoleId } from '@/lib/types';
 import { usePathname, useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/app-layout';
+
+const USER_ROLE_STORAGE_KEY = 'pumppal-user-role';
 
 interface AuthContextType {
   user: User | null;
@@ -26,6 +28,8 @@ interface AuthContextType {
   signIn: (data: AuthFormValues) => Promise<any>;
   signUp: (data: AuthFormValues) => Promise<any>;
   signOut: () => Promise<void>;
+  userRole: RoleId | null;
+  assignRoleToUser: (userId: string, roleId: RoleId) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,11 +39,33 @@ const FAKE_USER = { uid: 'offline-user', email: 'demo@example.com' } as User;
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState<RoleId | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
   const isConfigValid = isFirebaseConfigValid(firebaseConfig);
   const isAuthPage = pathname === '/login' || pathname === '/signup';
+
+  // Effect to load user role from localStorage
+  useEffect(() => {
+    if (user) {
+      const storedRole = localStorage.getItem(`${USER_ROLE_STORAGE_KEY}:${user.uid}`);
+      setUserRole(storedRole as RoleId || 'admin'); // Default to admin if no role is set
+    } else {
+      setUserRole(null);
+    }
+  }, [user]);
+
+  const assignRoleToUser = (userId: string, roleId: RoleId) => {
+    try {
+      localStorage.setItem(`${USER_ROLE_STORAGE_KEY}:${userId}`, roleId);
+      if (user && user.uid === userId) {
+        setUserRole(roleId);
+      }
+    } catch (error) {
+      console.error("Failed to save user role to localStorage", error);
+    }
+  };
 
   useEffect(() => {
     if (!isConfigValid) {
@@ -58,6 +84,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // This listener handles the auth state changes from Firebase.
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      if (currentUser && !localStorage.getItem(`${USER_ROLE_STORAGE_KEY}:${currentUser.uid}`)) {
+        // Assign admin role to the first user who signs up
+        const allUserRoles = Object.keys(localStorage).filter(key => key.startsWith(USER_ROLE_STORAGE_KEY));
+        if (allUserRoles.length === 0) {
+            assignRoleToUser(currentUser.uid, 'admin');
+        }
+      }
       setLoading(false);
     });
     return () => unsubscribe();
@@ -101,6 +134,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signUp,
     signOut,
+    userRole,
+    assignRoleToUser,
   };
   
   if (loading) {

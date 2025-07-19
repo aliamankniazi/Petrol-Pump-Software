@@ -17,30 +17,33 @@ import {
   SidebarTrigger,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { History, FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, LogOut, Fuel, DollarSign, Beaker, Handshake, PiggyBank, Archive, BarChartHorizontal } from 'lucide-react';
+import { History, FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, LogOut, Fuel, DollarSign, Beaker, Handshake, PiggyBank, Archive, BarChartHorizontal, Shield } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from './ui/button';
+import { useRoles } from '@/hooks/use-roles';
+import type { Permission } from '@/hooks/use-roles';
 
 const navItems = [
-  { href: '/', label: 'Sale', icon: LayoutDashboard },
-  { href: '/all-transactions', label: 'All Transactions', icon: Archive },
-  { href: '/customers', label: 'Customers', icon: Users },
-  { href: '/partner-ledger', label: 'Unified Ledger', icon: HandCoins },
-   { href: '/credit-recovery', label: 'Credit Recovery', icon: BarChartHorizontal },
-  { href: '/cash-advances', label: 'Cash Advances', icon: ArrowRightLeft },
-  { href: '/inventory', label: 'Inventory', icon: Package },
-  { href: '/tanks', label: 'Tank Readings', icon: Beaker },
-  { href: '/purchases', label: 'Purchases', icon: ShoppingCart },
-  { href: '/supplier-payments', label: 'Supplier Payments', icon: Handshake },
-  { href: '/purchase-returns', label: 'Purchase Returns', icon: Undo2 },
-  { href: '/investments', label: 'Partner Investments', icon: PiggyBank },
-  { href: '/expenses', label: 'Expenses', icon: Receipt },
-  { href: '/other-incomes', label: 'Other Incomes', icon: DollarSign },
-  { href: '/employees', label: 'Employees', icon: Briefcase },
-  { href: '/bank-management', label: 'Bank Management', icon: Landmark },
-  { href: '/ledger', label: 'Ledger', icon: BookOpen },
-  { href: '/summary', label: 'Summary', icon: FileText },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/', label: 'Sale', icon: LayoutDashboard, permission: 'view_dashboard' as Permission },
+  { href: '/all-transactions', label: 'All Transactions', icon: Archive, permission: 'view_all_transactions' as Permission },
+  { href: '/customers', label: 'Customers', icon: Users, permission: 'view_customers' as Permission },
+  { href: '/partner-ledger', label: 'Unified Ledger', icon: HandCoins, permission: 'view_partner_ledger' as Permission },
+  { href: '/credit-recovery', label: 'Credit Recovery', icon: BarChartHorizontal, permission: 'view_credit_recovery' as Permission },
+  { href: '/cash-advances', label: 'Cash Advances', icon: ArrowRightLeft, permission: 'view_cash_advances' as Permission },
+  { href: '/inventory', label: 'Inventory', icon: Package, permission: 'view_inventory' as Permission },
+  { href: '/tanks', label: 'Tank Readings', icon: Beaker, permission: 'view_tank_readings' as Permission },
+  { href: '/purchases', label: 'Purchases', icon: ShoppingCart, permission: 'view_purchases' as Permission },
+  { href: '/supplier-payments', label: 'Supplier Payments', icon: Handshake, permission: 'view_supplier_payments' as Permission },
+  { href: '/purchase-returns', label: 'Purchase Returns', icon: Undo2, permission: 'view_purchase_returns' as Permission },
+  { href: '/investments', label: 'Partner Investments', icon: PiggyBank, permission: 'view_investments' as Permission },
+  { href: '/expenses', label: 'Expenses', icon: Receipt, permission: 'view_expenses' as Permission },
+  { href: '/other-incomes', label: 'Other Incomes', icon: DollarSign, permission: 'view_other_incomes' as Permission },
+  { href: '/employees', label: 'Employees', icon: Briefcase, permission: 'manage_employees' as Permission },
+  { href: '/bank-management', label: 'Bank Management', icon: Landmark, permission: 'manage_banks' as Permission },
+  { href: '/ledger', label: 'Ledger', icon: BookOpen, permission: 'view_ledger' as Permission },
+  { href: '/summary', label: 'Summary', icon: FileText, permission: 'view_summary' as Permission },
+  { href: '/roles', label: 'Roles', icon: Shield, permission: 'manage_roles' as Permission },
+  { href: '/settings', label: 'Settings', icon: Settings, permission: 'view_settings' as Permission },
 ];
 
 const AppLogo = () => (
@@ -58,8 +61,11 @@ const AppLogo = () => (
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { signOut } = useAuth();
+  const { hasPermission } = useRoles();
   const pathname = usePathname();
-  const pageTitle = navItems.find(item => pathname.startsWith(item.href))?.label ?? 'Dashboard';
+  
+  const visibleNavItems = navItems.filter(item => hasPermission(item.permission));
+  const pageTitle = visibleNavItems.find(item => pathname.startsWith(item.href))?.label ?? 'Dashboard';
 
   return (
     <SidebarProvider>
@@ -69,7 +75,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {navItems.map(item => (
+            {visibleNavItems.map(item => (
               <SidebarMenuItem key={item.href}>
                  <SidebarMenuButton asChild isActive={pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))} tooltip={item.label}>
                    <Link href={item.href} legacyBehavior={false}>
