@@ -23,7 +23,7 @@ const navItems = [
   { href: '/', label: 'Sale', icon: LayoutDashboard },
   { href: '/history', label: 'History', icon: History },
   { href: '/customers', label: 'Customers', icon: Users },
-  { href: '/customer-payments', label: 'Customer Payments', icon: HandCoins },
+  { href: '/partner-ledger', label: 'Partner Ledger', icon: HandCoins },
   { href: '/cash-advances', label: 'Cash Advances', icon: ArrowRightLeft },
   { href: '/inventory', label: 'Inventory', icon: Package },
   { href: '/tanks', label: 'Tank Readings', icon: Beaker },
@@ -55,7 +55,7 @@ const AppLogo = () => (
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { signOut } = useAuth();
   const pathname = usePathname();
-  const pageTitle = navItems.find(item => item.href === pathname)?.label ?? 'Dashboard';
+  const pageTitle = navItems.find(item => pathname.startsWith(item.href))?.label ?? 'Dashboard';
 
   return (
     <SidebarProvider>
@@ -67,7 +67,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarMenu>
             {navItems.map(item => (
               <SidebarMenuItem key={item.href}>
-                 <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.label}>
+                 <SidebarMenuButton asChild isActive={pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))} tooltip={item.label}>
                    <Link href={item.href} legacyBehavior={false}>
                       <item.icon />
                       <span>{item.label}</span>

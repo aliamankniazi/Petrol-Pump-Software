@@ -178,7 +178,7 @@ export default function CustomerLedgerPage() {
             </div>
             <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-muted-foreground"/>
-                <strong>Contact:</strong> {entity.contact}
+                <strong>Contact:</strong> {entity.contact || 'N/A'}
             </div>
             {isCustomer && 'vehicleNumber' in entity && (
                 <div className="flex items-center gap-2">
