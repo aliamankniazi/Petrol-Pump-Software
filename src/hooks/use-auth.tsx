@@ -35,16 +35,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
       setLoading(false);
-       if (!user && pathname !== '/login' && pathname !== '/signup') {
-         router.push('/login');
-       }
     });
-
     return () => unsubscribe();
-  }, [router, pathname]);
+  }, []);
+
+  useEffect(() => {
+    if (loading) return;
+
+    const isAuthPage = pathname === '/login' || pathname === '/signup';
+
+    if (user && isAuthPage) {
+      router.push('/');
+    } else if (!user && !isAuthPage) {
+      router.push('/login');
+    }
+  }, [user, loading, pathname, router]);
+
 
   const signIn = (data: AuthFormValues) => {
     return signInWithEmailAndPassword(auth, data.email, data.password);
@@ -56,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await firebaseSignOut(auth);
-    router.push('/login');
+    // The useEffect above will handle redirecting to /login
   };
 
   const value = {
@@ -68,11 +77,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   if (loading) {
-    // You can return a loading spinner here
     return (
         <div className="flex h-screen items-center justify-center">
             <p>Loading...</p>
         </div>
+    );
+  }
+
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
+  if (!user && !isAuthPage) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+          <p>Redirecting to login...</p>
+      </div>
+    );
+  }
+
+  if (user && isAuthPage) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+          <p>Redirecting to dashboard...</p>
+      </div>
     );
   }
 
