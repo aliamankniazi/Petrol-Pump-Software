@@ -40,6 +40,10 @@ export function useCustomerPayments() {
     ]);
   }, []);
   
+  const deleteCustomerPayment = useCallback((id: string) => {
+    setCustomerPayments(prev => prev.filter(p => p.id !== id));
+  }, []);
+
   const clearCustomerPayments = useCallback(() => {
     setCustomerPayments([]);
     try {
@@ -49,5 +53,5 @@ export function useCustomerPayments() {
     }
   }, []);
 
-  return { customerPayments, addCustomerPayment, clearCustomerPayments, isLoaded };
+  return { customerPayments, addCustomerPayment, deleteCustomerPayment, clearCustomerPayments, isLoaded };
 }

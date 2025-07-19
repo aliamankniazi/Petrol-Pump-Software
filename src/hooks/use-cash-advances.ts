@@ -41,9 +41,13 @@ export function useCashAdvances() {
     ]);
   }, []);
   
+  const deleteCashAdvance = useCallback((id: string) => {
+    setCashAdvances(prev => prev.filter(ca => ca.id !== id));
+  }, []);
+
   const clearCashAdvances = useCallback(() => {
     setCashAdvances([]);
   }, []);
 
-  return { cashAdvances, addCashAdvance, clearCashAdvances, isLoaded };
+  return { cashAdvances, addCashAdvance, deleteCashAdvance, clearCashAdvances, isLoaded };
 }
