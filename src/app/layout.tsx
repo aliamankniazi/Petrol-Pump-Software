@@ -13,13 +13,8 @@ const inter = Inter({
   variable: '--font-inter',
 })
 
-// Metadata can't be dynamically generated in a client component,
-// but we can define a static one. For dynamic titles, you'd use
-// the document.title property inside components.
-export const metadata: Metadata = {
-  title: 'Mianwali Petroleum Service',
-  description: 'Petrol pump management software.',
-};
+// Metadata can't be exported from a client component.
+// We can set the document title dynamically within components if needed.
 
 function PrintStyles() {
     const pathname = usePathname();
