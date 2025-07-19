@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { PiggyBank, PlusCircle, List, TrendingUp, TrendingDown, Calendar as CalendarIcon, Users, Percent, Edit, Trash2, AlertTriangle, BookText } from 'lucide-react';
+import { PiggyBank, PlusCircle, List, TrendingUp, TrendingDown, Calendar as CalendarIcon, Users, Percent, Edit, Trash2, AlertTriangle, BookText, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { useInvestments } from '@/hooks/use-investments';
 import { Textarea } from '@/components/ui/textarea';
@@ -39,6 +39,7 @@ type InvestmentFormValues = z.infer<typeof investmentSchema>;
 
 const partnerSchema = z.object({
   name: z.string().min(1, 'Partner name is required.'),
+  contact: z.string().optional(),
   sharePercentage: z.coerce.number().min(0, "Percentage can't be negative.").max(100, "Percentage can't exceed 100."),
 });
 type PartnerFormValues = z.infer<typeof partnerSchema>;
@@ -90,13 +91,14 @@ export default function InvestmentsPage() {
       toast({ title: 'Partner Added', description: `${data.name} has been added as a permanent partner.` });
     }
     setPartnerToEdit(null);
-    resetPartner({ name: '', sharePercentage: 0 });
+    resetPartner({ name: '', sharePercentage: 0, contact: '' });
   };
 
   const openEditDialog = (partner: BusinessPartner) => {
     setPartnerToEdit(partner);
     setPartnerValue('name', partner.name);
     setPartnerValue('sharePercentage', partner.sharePercentage);
+    setPartnerValue('contact', partner.contact);
   }
 
   const handleDeletePartner = () => {
@@ -368,6 +370,11 @@ export default function InvestmentsPage() {
                         <Input id="name" {...registerPartner('name')} />
                         {partnerErrors.name && <p className="text-sm text-destructive">{partnerErrors.name.message}</p>}
                     </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="contact" className="flex items-center gap-2"><Phone className="w-4 h-4"/> Contact Number (Optional)</Label>
+                        <Input id="contact" {...registerPartner('contact')} placeholder="e.g. 03001234567" />
+                        {partnerErrors.contact && <p className="text-sm text-destructive">{partnerErrors.contact.message}</p>}
+                    </div>
                     <div className="space-y-2">
                         <Label htmlFor="sharePercentage" className="flex items-center gap-2"><Percent className="w-4 h-4"/> Share Percentage</Label>
                         <Input id="sharePercentage" type="number" {...registerPartner('sharePercentage')} step="0.01" />
@@ -404,5 +411,3 @@ export default function InvestmentsPage() {
     </div>
   );
 }
-
-    

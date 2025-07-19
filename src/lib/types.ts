@@ -144,5 +144,6 @@ export interface BusinessPartner {
   id: string;
   name: string;
   sharePercentage: number;
+  contact?: string;
   timestamp: string;
 }

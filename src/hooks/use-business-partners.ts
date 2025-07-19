@@ -34,13 +34,14 @@ export function useBusinessPartners() {
   }, [businessPartners, isLoaded]);
 
   const addBusinessPartner = useCallback((partner: Omit<BusinessPartner, 'id' | 'timestamp'>) => {
+    const newPartner = { ...partner, id: crypto.randomUUID(), timestamp: new Date().toISOString() };
     setBusinessPartners(prev => [
-      { ...partner, id: crypto.randomUUID(), timestamp: new Date().toISOString() },
+      newPartner,
       ...prev,
     ]);
   }, []);
 
-  const updateBusinessPartner = useCallback((id: string, updatedPartner: Omit<BusinessPartner, 'id' | 'timestamp'>) => {
+  const updateBusinessPartner = useCallback((id: string, updatedPartner: Partial<Omit<BusinessPartner, 'id' | 'timestamp'>>) => {
     setBusinessPartners(prev =>
       prev.map(p => (p.id === id ? { ...p, ...updatedPartner } : p))
     );
