@@ -42,16 +42,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isConfigValid) {
+      // If Firebase isn't configured, use a mock user for offline demo purposes.
       setUser(FAKE_USER);
       setLoading(false);
       return;
     }
     
     if (!auth) {
+        // Handle case where auth is not initialized
         setLoading(false);
         return;
     }
 
+    // This listener handles the auth state changes from Firebase.
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
@@ -59,12 +62,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [isConfigValid]);
   
+  // This effect handles route protection.
   useEffect(() => {
-    if (loading) return;
+    if (loading) return; // Wait until auth state is determined
 
+    // If there is no user and the current page is not a public auth page, redirect to login.
     if (!user && !isAuthPage) {
         router.push('/login');
     }
+    // If there is a user and they are on an auth page, redirect to the dashboard.
     if (user && isAuthPage) {
         router.push('/');
     }
@@ -84,8 +90,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isConfigValid && auth) {
       await firebaseSignOut(auth);
     }
-    setUser(null);
-    router.push('/login');
+    setUser(null); // Explicitly set user to null on sign out
+    router.push('/login'); // Redirect to login page after sign out
   };
 
   const value = {
@@ -104,6 +110,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }
   
+  // Conditionally render the app layout or the auth pages.
+  // This ensures that the main layout (with sidebar) is only shown for authenticated users on protected pages.
   return (
       <AuthContext.Provider value={value}>
         {user && !isAuthPage ? <AppLayout>{children}</AppLayout> : children}
