@@ -82,12 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     if (isConfigValid && auth) {
       await firebaseSignOut(auth);
-      // onAuthStateChanged will handle the rest
-    } else {
-      // Handle offline mode sign out
-      setUser(null);
-      // The effect hook will now redirect to /login
     }
+    setUser(null);
   };
 
   const value = {
@@ -98,8 +94,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
   };
   
-  // Render a loading state while we check for the user.
-  // This is also important to prevent a flash of the wrong content.
   if (loading) {
      return (
         <div className="flex h-screen w-full items-center justify-center">
@@ -108,8 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }
   
-  // If we are on an auth page and there is a user, we are likely redirecting.
   const isAuthPage = pathname === '/login' || pathname === '/signup';
+
   if (user && isAuthPage) {
       return (
           <div className="flex h-screen w-full items-center justify-center">
@@ -118,7 +112,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
   }
 
-  // If we are not on an auth page and there is no user, we are also likely redirecting.
   if (!user && !isAuthPage) {
       return (
            <div className="flex h-screen w-full items-center justify-center">
