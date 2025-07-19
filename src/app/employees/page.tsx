@@ -22,7 +22,7 @@ import type { Employee } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCustomers } from '@/hooks/use-customers';
-import { useCashAdvances } from '@/hooks/use-cash-advances';
+import { useCustomerPayments } from '@/hooks/use-customer-payments';
 
 const employeeSchema = z.object({
   name: z.string().min(1, 'Employee name is required'),
@@ -43,7 +43,7 @@ export default function EmployeesPage() {
   const { employees, addEmployee } = useEmployees();
   const { addExpense } = useExpenses();
   const { customers, addCustomer } = useCustomers();
-  const { addCashAdvance } = useCashAdvances();
+  const { addCustomerPayment } = useCustomerPayments();
 
   const { toast } = useToast();
   
@@ -68,6 +68,7 @@ export default function EmployeesPage() {
 
     const monthName = months.find(m => m.value === selectedMonth)?.label;
     const expenseDescription = `Salary for ${selectedEmployee.name} for ${monthName}`;
+    const paymentDescription = `Salary for ${monthName}`;
 
     // 1. Log the salary as an expense
     addExpense({
@@ -88,19 +89,18 @@ export default function EmployeesPage() {
         });
     }
     
-    // 3. Log a cash advance against the employee's customer record
-    addCashAdvance({
+    // 3. Log a payment against the employee's customer record, which acts as a CREDIT
+    addCustomerPayment({
         customerId: employeeAsCustomer.id,
         customerName: employeeAsCustomer.name,
         amount: selectedEmployee.salary,
-        notes: `Salary for ${monthName}`,
-        timestamp: new Date().toISOString(),
+        paymentMethod: 'Salary', // Use a special method to identify this as a salary
     });
 
 
     toast({
       title: 'Salary Paid and Recorded',
-      description: `Salary for ${selectedEmployee.name} has been logged as an expense and a cash advance.`,
+      description: `Salary for ${selectedEmployee.name} has been logged as an expense and a credit in their ledger.`,
     });
 
     setSelectedEmployee(null); // Close the dialog

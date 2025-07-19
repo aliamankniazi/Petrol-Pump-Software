@@ -86,22 +86,24 @@ export default function CustomerLedgerPage() {
           credit: 0,
         }));
 
-        customerPaymentsReceived.forEach(p => combined.push({
-          id: `pay-${p.id}`,
-          timestamp: p.timestamp,
-          description: `Payment Received (${p.paymentMethod})`,
-          type: 'Payment',
-          debit: 0,
-          credit: p.amount,
-        }));
+        customerPaymentsReceived.forEach(p => {
+            const isSalary = p.paymentMethod === 'Salary';
+            combined.push({
+              id: `pay-${p.id}`,
+              timestamp: p.timestamp,
+              description: isSalary ? `Salary Credited` : `Payment Received (${p.paymentMethod})`,
+              type: isSalary ? 'Salary' : 'Payment',
+              debit: 0,
+              credit: p.amount,
+            })
+        });
         
         customerCashAdvances.forEach(ca => {
-            const isSalary = ca.notes?.toLowerCase().includes('salary');
             combined.push({
               id: `adv-${ca.id}`,
               timestamp: ca.timestamp,
               description: ca.notes || 'Cash Advance',
-              type: isSalary ? 'Salary' : 'Cash Advance',
+              type: 'Cash Advance',
               debit: ca.amount,
               credit: 0,
             })
