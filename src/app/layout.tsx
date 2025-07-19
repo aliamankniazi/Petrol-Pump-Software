@@ -3,7 +3,7 @@ import './globals.css';
 import { AppLayout } from '@/components/app-layout';
 import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
-import { AuthProvider } from '@/hooks/use-auth';
+import { AuthProvider, useAuth } from '@/hooks/use-auth';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -15,6 +15,17 @@ export const metadata: Metadata = {
   description: 'Petrol pump management software.',
 };
 
+function AppContent({ children }: { children: React.ReactNode }) {
+    const { user } = useAuth();
+    const isAuthPage = typeof window !== 'undefined' && (window.location.pathname === '/login' || window.location.pathname === '/signup');
+
+    if (user && !isAuthPage) {
+        return <AppLayout>{children}</AppLayout>
+    }
+    return <>{children}</>;
+}
+
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -24,9 +35,9 @@ export default function RootLayout({
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body className="font-body antialiased">
         <AuthProvider>
-          <AppLayout>
+          <AppContent>
             {children}
-          </AppLayout>
+          </AppContent>
           <Toaster />
         </AuthProvider>
       </body>

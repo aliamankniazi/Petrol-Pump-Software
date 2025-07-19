@@ -38,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   const isConfigValid = isFirebaseConfigValid(firebaseConfig);
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
 
   useEffect(() => {
     if (!isConfigValid) {
@@ -86,7 +87,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   useEffect(() => {
     if (loading) return;
-    const isAuthPage = pathname === '/login' || pathname === '/signup';
 
     if (!user && !isAuthPage) {
         router.push('/login');
@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user && isAuthPage) {
         router.push('/');
     }
-  }, [user, loading, pathname, router]);
+  }, [user, loading, pathname, router, isAuthPage]);
 
 
   if (loading) {
@@ -105,27 +105,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  const isAuthPage = pathname === '/login' || pathname === '/signup';
-  if (!user && isAuthPage) {
-      return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  if (user && isAuthPage) {
+      return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <p>Redirecting...</p>
+        </div>
+    );
   }
 
-  if (user) {
-    return (
-        <AuthContext.Provider value={value}>
-            <AppLayout>
-                {children}
-            </AppLayout>
-        </AuthContext.Provider>
+  if (!user && !isAuthPage) {
+      return (
+        <div className="flex h-screen w-full items-center justify-center">
+            <p>Redirecting...</p>
+        </div>
     );
   }
   
-  // If no user and not an auth page, the useEffect will redirect.
-  // Render a loading state while redirecting.
   return (
-    <div className="flex h-screen w-full items-center justify-center">
-        <p>Redirecting...</p>
-    </div>
+      <AuthContext.Provider value={value}>
+          {children}
+      </AuthContext.Provider>
   );
 }
 
