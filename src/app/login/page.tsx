@@ -14,8 +14,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { AuthFormValues } from '@/lib/types';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { firebaseConfig, isFirebaseConfigValid } from '@/lib/firebase';
 
 
 const loginSchema = z.object({
@@ -29,8 +27,6 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   
-  const isConfigValid = isFirebaseConfigValid(firebaseConfig);
-
   const { register, handleSubmit, formState: { errors } } = useForm<AuthFormValues>({
     resolver: zodResolver(loginSchema),
   });
@@ -54,31 +50,6 @@ export default function LoginPage() {
         setLoading(false);
     }
   };
-  
-  if (!isConfigValid) {
-    return (
-       <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-2xl">
-                    Offline Mode Active
-                </CardTitle>
-                <CardDescription>
-                    Firebase is not configured. The app is running in offline mode.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <p className="text-sm text-muted-foreground">
-                    You have been automatically logged in with a demo user. No need to sign in.
-                </p>
-                <Button asChild className="w-full mt-4">
-                    <Link href="/">Go to Dashboard</Link>
-                </Button>
-            </CardContent>
-        </Card>
-       </div>
-    )
-  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">

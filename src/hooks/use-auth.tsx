@@ -59,32 +59,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [isConfigValid]);
   
-  const signIn = (data: AuthFormValues) => {
-    if (!auth) return Promise.reject(new Error("Firebase is not configured."));
-    return signInWithEmailAndPassword(auth, data.email, data.password);
-  };
-
-  const signUp = (data: AuthFormValues) => {
-    if (!auth) return Promise.reject(new Error("Firebase is not configured."));
-    return createUserWithEmailAndPassword(auth, data.email, data.password);
-  };
-
-  const signOut = async () => {
-    if (isConfigValid && auth) {
-      await firebaseSignOut(auth);
-    }
-    setUser(null); // This will trigger the useEffect below to redirect.
-    router.push('/login');
-  };
-
-  const value = {
-    user,
-    loading,
-    signIn,
-    signUp,
-    signOut,
-  };
-  
   useEffect(() => {
     if (loading) return;
 
@@ -96,7 +70,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, loading, pathname, router, isAuthPage]);
 
+  const signIn = (data: AuthFormValues) => {
+    if (!isConfigValid || !auth) return Promise.reject(new Error("Firebase is not configured."));
+    return signInWithEmailAndPassword(auth, data.email, data.password);
+  };
 
+  const signUp = (data: AuthFormValues) => {
+    if (!isConfigValid || !auth) return Promise.reject(new Error("Firebase is not configured."));
+    return createUserWithEmailAndPassword(auth, data.email, data.password);
+  };
+
+  const signOut = async () => {
+    if (isConfigValid && auth) {
+      await firebaseSignOut(auth);
+    }
+    setUser(null);
+    router.push('/login');
+  };
+
+  const value = {
+    user,
+    loading,
+    signIn,
+    signUp,
+    signOut,
+  };
+  
   if (loading) {
      return (
         <div className="flex h-screen w-full items-center justify-center">
@@ -104,26 +103,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         </div>
     );
   }
-
-  if (user && isAuthPage) {
-      return (
-        <div className="flex h-screen w-full items-center justify-center">
-            <p>Redirecting...</p>
-        </div>
-    );
-  }
-
-  if (!user && !isAuthPage) {
-      return (
-        <div className="flex h-screen w-full items-center justify-center">
-            <p>Redirecting...</p>
-        </div>
-    );
-  }
   
   return (
       <AuthContext.Provider value={value}>
-          {children}
+        {user && !isAuthPage ? <AppLayout>{children}</AppLayout> : children}
       </AuthContext.Provider>
   );
 }
