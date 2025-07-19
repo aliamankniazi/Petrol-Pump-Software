@@ -183,7 +183,7 @@ export default function CustomersPage() {
                                 <BookText className="w-5 h-5" />
                               </Link>
                            </Button>
-                           <Button variant="ghost" size="icon" title="Edit Customer" onClick={() => openEditDialog(c)} disabled={c.isPartner}>
+                           <Button variant="ghost" size="icon" title="Edit Customer" onClick={() => openEditDialog(c)}>
                                 <Pencil className="w-4 h-4" />
                            </Button>
                            {c.contact && (
@@ -197,7 +197,7 @@ export default function CustomersPage() {
                               </a>
                             </Button>
                            )}
-                           <Button variant="ghost" size="icon" title="Delete Customer" className="text-destructive hover:text-destructive" onClick={() => setCustomerToDelete(c)} disabled={c.isPartner}>
+                           <Button variant="ghost" size="icon" title="Delete Customer" className="text-destructive hover:text-destructive" onClick={() => setCustomerToDelete(c)}>
                                 <Trash2 className="w-4 h-4" />
                            </Button>
                         </TableCell>
