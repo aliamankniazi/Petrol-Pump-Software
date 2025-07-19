@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { format, isSameDay, startOfDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +11,7 @@ import { usePurchases } from '@/hooks/use-purchases';
 import { useExpenses } from '@/hooks/use-expenses';
 import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
 import { useOtherIncomes } from '@/hooks/use-other-incomes';
+import { useSupplierPayments } from '@/hooks/use-supplier-payments';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -21,7 +21,7 @@ type LedgerEntry = {
   id: string;
   timestamp: string;
   description: string;
-  type: 'Sale' | 'Purchase' | 'Expense' | 'Purchase Return' | 'Other Income';
+  type: 'Sale' | 'Purchase' | 'Expense' | 'Purchase Return' | 'Other Income' | 'Supplier Payment';
   debit: number;
   credit: number;
   balance: number;
@@ -33,10 +33,11 @@ export default function LedgerPage() {
   const { expenses, isLoaded: expensesLoaded } = useExpenses();
   const { purchaseReturns, isLoaded: purchaseReturnsLoaded } = usePurchaseReturns();
   const { otherIncomes, isLoaded: otherIncomesLoaded } = useOtherIncomes();
+  const { supplierPayments, isLoaded: supplierPaymentsLoaded } = useSupplierPayments();
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
-  const isLoaded = transactionsLoaded && purchasesLoaded && expensesLoaded && purchaseReturnsLoaded && otherIncomesLoaded;
+  const isLoaded = transactionsLoaded && purchasesLoaded && expensesLoaded && purchaseReturnsLoaded && otherIncomesLoaded && supplierPaymentsLoaded;
 
   const { entries, finalBalance, openingBalance, totals } = useMemo(() => {
     if (!isLoaded) return { entries: [], finalBalance: 0, openingBalance: 0, totals: { debit: 0, credit: 0 } };
@@ -87,6 +88,15 @@ export default function LedgerPage() {
         debit: 0,
         credit: oi.amount,
     }));
+
+    supplierPayments.forEach(sp => combined.push({
+      id: `sp-${sp.id}`,
+      timestamp: sp.timestamp,
+      description: `Payment to ${sp.supplierName}`,
+      type: 'Supplier Payment',
+      debit: sp.amount,
+      credit: 0,
+    }));
     
     combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
@@ -123,12 +133,13 @@ export default function LedgerPage() {
         totals: calculatedTotals,
     };
 
-  }, [transactions, purchases, expenses, purchaseReturns, otherIncomes, isLoaded, selectedDate]);
+  }, [transactions, purchases, expenses, purchaseReturns, otherIncomes, supplierPayments, isLoaded, selectedDate]);
 
   const getBadgeVariant = (type: LedgerEntry['type']) => {
     switch (type) {
       case 'Purchase':
       case 'Expense': 
+      case 'Supplier Payment':
         return 'destructive';
       case 'Sale':
       case 'Purchase Return': 

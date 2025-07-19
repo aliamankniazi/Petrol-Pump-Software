@@ -88,6 +88,14 @@ export interface CustomerPayment {
   timestamp: string;
 }
 
+export interface SupplierPayment {
+  id: string;
+  supplierName: string;
+  amount: number;
+  paymentMethod: PaymentMethod;
+  timestamp: string;
+}
+
 export interface CashAdvance {
   id: string;
   customerId: string;
