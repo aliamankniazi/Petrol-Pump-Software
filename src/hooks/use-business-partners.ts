@@ -35,22 +35,27 @@ export function useBusinessPartners() {
     }
   }, [businessPartners, isLoaded]);
 
-  const addBusinessPartner = useCallback((partner: Omit<BusinessPartner, 'id' | 'timestamp'>) => {
-    const newPartnerId = crypto.randomUUID();
-    const newPartner = { ...partner, id: newPartnerId, timestamp: new Date().toISOString() };
-    setBusinessPartners(prev => [
-      newPartner,
-      ...prev,
-    ]);
-
-    // Also add as a customer
-    addCustomer({
-        id: newPartnerId, // Use the same ID
+  const addBusinessPartner = useCallback((partner: Omit<BusinessPartner, 'id' | 'timestamp'>): BusinessPartner => {
+    // Also add as a customer first to get a consistent ID
+    const newCustomer = addCustomer({
         name: partner.name,
         contact: partner.contact || '',
         area: 'Business Partner',
         isPartner: true,
     });
+
+    const newPartner: BusinessPartner = { 
+        ...partner, 
+        id: newCustomer.id, // Use the ID from the customer record
+        timestamp: newCustomer.timestamp 
+    };
+
+    setBusinessPartners(prev => [
+      newPartner,
+      ...prev,
+    ]);
+
+    return newPartner;
   }, [addCustomer]);
 
   const updateBusinessPartner = useCallback((id: string, updatedPartner: Partial<Omit<BusinessPartner, 'id' | 'timestamp'>>) => {
