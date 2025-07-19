@@ -19,6 +19,7 @@ import { auth, isFirebaseConfigValid, firebaseConfig } from '@/lib/firebase';
 import type { AuthFormValues, RoleId } from '@/lib/types';
 import { usePathname, useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/app-layout';
+import { useRoles } from './use-roles';
 
 const USER_ROLE_STORAGE_KEY = 'pumppal-user-role';
 
@@ -146,11 +147,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }
   
-  // Conditionally render the app layout or the auth pages.
-  // This ensures that the main layout (with sidebar) is only shown for authenticated users on protected pages.
+  // This component now defers the rendering of the main app layout to the RolesProvider
+  // which will have access to the auth context.
   return (
       <AuthContext.Provider value={value}>
-        {user && !isAuthPage ? <AppLayout>{children}</AppLayout> : children}
+        {children}
       </AuthContext.Provider>
   );
 }

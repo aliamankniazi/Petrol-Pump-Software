@@ -59,9 +59,8 @@ const AppLogo = () => (
 );
 
 
-export function AppLayout({ children }: { children: React.ReactNode }) {
+export function AppLayout({ children, hasPermission }: { children: React.ReactNode, hasPermission: (permission: Permission) => boolean }) {
   const { signOut } = useAuth();
-  const { hasPermission } = useRoles();
   const pathname = usePathname();
   
   const visibleNavItems = navItems.filter(item => hasPermission(item.permission));

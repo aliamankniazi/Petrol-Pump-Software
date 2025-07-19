@@ -5,6 +5,8 @@
 import { useState, useEffect, useCallback, createContext, useContext, type ReactNode } from 'react';
 import type { Role, RoleId, Permission } from '@/lib/types';
 import { useAuth } from './use-auth';
+import { AppLayout } from '@/components/app-layout';
+import { usePathname } from 'next/navigation';
 
 const STORAGE_KEY = 'pumppal-roles';
 
@@ -53,7 +55,10 @@ const RolesContext = createContext<RolesContextType | undefined>(undefined);
 export function RolesProvider({ children }: { children: ReactNode }) {
     const [roles, setRoles] = useState<Role[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
-    const { userRole } = useAuth();
+    const { user, userRole } = useAuth(); // Now this hook can be called safely.
+    const pathname = usePathname();
+    const isAuthPage = pathname === '/login' || pathname === '/signup';
+
 
     const loadData = useCallback(() => {
         try {
@@ -124,10 +129,11 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         deleteRole,
         hasPermission,
     };
-
+    
+    // The RolesProvider now decides whether to render the main app layout or the auth pages.
     return (
         <RolesContext.Provider value={value}>
-            {children}
+            {user && !isAuthPage ? <AppLayout hasPermission={hasPermission}>{children}</AppLayout> : children}
         </RolesContext.Provider>
     );
 }
