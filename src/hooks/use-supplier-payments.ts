@@ -33,9 +33,9 @@ export function useSupplierPayments() {
     }
   }, [supplierPayments, isLoaded]);
 
-  const addSupplierPayment = useCallback((payment: Omit<SupplierPayment, 'id' | 'timestamp'>) => {
+  const addSupplierPayment = useCallback((payment: Omit<SupplierPayment, 'id'>) => {
     setSupplierPayments(prev => [
-      { ...payment, id: crypto.randomUUID(), timestamp: new Date().toISOString() },
+      { ...payment, id: crypto.randomUUID() },
       ...prev,
     ]);
   }, []);

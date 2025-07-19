@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -11,17 +12,21 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Handshake, ListChecks, WalletCards, CreditCard, Wallet, Smartphone } from 'lucide-react';
+import { Handshake, ListChecks, WalletCards, CreditCard, Wallet, Smartphone, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePurchases } from '@/hooks/use-purchases';
 import { useSupplierPayments } from '@/hooks/use-supplier-payments';
 import type { PaymentMethod } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 const supplierPaymentSchema = z.object({
   supplierName: z.string().min(1, 'Please select a supplier.'),
   amount: z.coerce.number().min(0.01, 'Amount must be greater than 0'),
   paymentMethod: z.enum(['Cash', 'Card', 'Mobile'], { required_error: 'Please select a payment method.' }),
+  date: z.date({ required_error: "A date is required."}),
 });
 
 type SupplierPaymentFormValues = z.infer<typeof supplierPaymentSchema>;
@@ -33,6 +38,9 @@ export default function SupplierPaymentsPage() {
   
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<SupplierPaymentFormValues>({
     resolver: zodResolver(supplierPaymentSchema),
+    defaultValues: {
+      date: new Date(),
+    }
   });
 
   const suppliers = useMemo(() => {
@@ -42,13 +50,16 @@ export default function SupplierPaymentsPage() {
   }, [purchases, purchasesLoaded]);
 
   const onSubmit: SubmitHandler<SupplierPaymentFormValues> = (data) => {
-    addSupplierPayment(data);
+    addSupplierPayment({ 
+      ...data,
+      timestamp: data.date.toISOString(),
+    });
     
     toast({
       title: 'Payment Recorded',
       description: `Payment of PKR ${data.amount} to ${data.supplierName} has been logged.`,
     });
-    reset({ supplierName: '', amount: 0 });
+    reset({ supplierName: '', amount: 0, date: new Date() });
   };
   
   const getBadgeVariant = (method: PaymentMethod) => {
@@ -118,6 +129,39 @@ export default function SupplierPaymentsPage() {
                   )}
                 />
                  {errors.paymentMethod && <p className="text-sm text-destructive">{errors.paymentMethod.message}</p>}
+              </div>
+
+               <div className="space-y-2">
+                <Label>Date</Label>
+                <Controller
+                  name="date"
+                  control={control}
+                  render={({ field }) => (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                />
+                {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
               </div>
 
               <Button type="submit" className="w-full">Record Payment</Button>
