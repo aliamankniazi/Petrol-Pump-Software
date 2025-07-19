@@ -31,6 +31,8 @@ const companyDetails = {
     branch: 'Mianwali',
     mobile1: '03335425401',
     mobile2: '03335425401',
+    dealsIn: 'HSD, PREMIER, EURO 5',
+    saleTaxNo: '0400046568661',
     ntn: '04656866',
     bank: {
         name: 'Bank Name Here',
@@ -39,6 +41,24 @@ const companyDetails = {
     }
 }
 
+const InvoiceLogo = () => (
+    <div className="flex items-center justify-center w-16 h-16 bg-blue-600 text-white rounded-full">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 8h.01"></path>
+            <path d="M6 8h.01"></path>
+            <path d="M10 4h.01"></path>
+            <path d="M18 8h.01"></path>
+            <path d="m3 22 1.3-1.3a1.5 1.5 0 0 0 0-2.1L3 17"></path>
+            <path d="m19 17-1.3 1.3a1.5 1.5 0 0 0 0 2.1L19 22"></path>
+            <path d="M10 18h4"></path>
+            <path d="M12 14v4"></path>
+            <path d="M10 10h.01"></path>
+            <path d="M14 10h.01"></path>
+        </svg>
+    </div>
+);
+
+
 export function Invoice({ data }: { data: InvoiceData }) {
     
   const totalQuantity = data.items.reduce((sum, item) => sum + item.quantity, 0);
@@ -46,14 +66,19 @@ export function Invoice({ data }: { data: InvoiceData }) {
 
   return (
     <div className="font-sans text-xs text-gray-800">
-      <header className="grid grid-cols-3 gap-4 pb-4 border-b-2 border-gray-300">
-        <div className="col-span-2">
-            <h1 className="text-xl font-bold text-gray-900">{companyDetails.name}</h1>
-            <p>Branch: {companyDetails.branch}</p>
-            <p>Mobile No1: {companyDetails.mobile1}</p>
-            <p>Mobile No2: {companyDetails.mobile2}</p>
+      <header className="flex justify-between items-start pb-4 border-b-2 border-gray-300">
+        <div className="flex items-start gap-4">
+            <InvoiceLogo />
+            <div>
+                <h1 className="text-xl font-bold text-gray-900">{companyDetails.name}</h1>
+                <p>Branch: {companyDetails.branch}</p>
+                <p>Mobile No1: {companyDetails.mobile1}</p>
+                <p>Mobile No2: {companyDetails.mobile2}</p>
+                <p className="font-semibold">Deals in: {companyDetails.dealsIn}</p>
+                <p>Sale Tax Registration No. {companyDetails.saleTaxNo}</p>
+            </div>
         </div>
-        <div className="text-right">
+        <div className="text-right flex-shrink-0">
             <h2 className="text-2xl font-bold text-blue-600 mb-2">{data.type.toUpperCase()} INVOICE</h2>
             <p className="font-semibold">NTN NO: {companyDetails.ntn}</p>
         </div>
