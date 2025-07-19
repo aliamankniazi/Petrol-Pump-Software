@@ -11,17 +11,21 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Fuel, List, PlusCircle } from 'lucide-react';
+import { Fuel, List, PlusCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import type { FuelType } from '@/lib/types';
 import { useTankReadings } from '@/hooks/use-tank-readings';
 import { useFuelStock } from '@/hooks/use-fuel-stock';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
 const tankReadingSchema = z.object({
   fuelType: z.enum(FUEL_TYPES, { required_error: 'Please select a tank.' }),
   volume: z.coerce.number().min(0, 'Volume cannot be negative'),
+  date: z.date({ required_error: "A date is required."}),
 });
 
 type TankReadingFormValues = z.infer<typeof tankReadingSchema>;
@@ -32,16 +36,23 @@ export default function TankManagementPage() {
   const { toast } = useToast();
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<TankReadingFormValues>({
     resolver: zodResolver(tankReadingSchema),
+    defaultValues: {
+        date: new Date(),
+    }
   });
 
   const onSubmit: SubmitHandler<TankReadingFormValues> = (data) => {
-    addTankReading(data);
+    addTankReading({ 
+        fuelType: data.fuelType,
+        volume: data.volume,
+        timestamp: data.date.toISOString(),
+    });
     setFuelStock(data.fuelType, data.volume);
     toast({
       title: 'Tank Reading Logged',
       description: `New volume for ${data.fuelType} tank has been recorded as ${data.volume}L.`,
     });
-    reset();
+    reset({ volume: 0, date: new Date() });
   };
 
   return (
@@ -81,6 +92,39 @@ export default function TankManagementPage() {
                 <Label htmlFor="volume">Current Volume (Litres)</Label>
                 <Input id="volume" type="number" {...register('volume')} placeholder="e.g., 12500" step="0.01" />
                 {errors.volume && <p className="text-sm text-destructive">{errors.volume.message}</p>}
+              </div>
+
+               <div className="space-y-2">
+                <Label>Date</Label>
+                <Controller
+                  name="date"
+                  control={control}
+                  render={({ field }) => (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                />
+                {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
               </div>
 
               <Button type="submit" className="w-full">Log Reading</Button>
