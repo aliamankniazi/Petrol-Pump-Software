@@ -143,24 +143,28 @@ export default function AllTransactionsPage() {
   const handleDeleteEntry = () => {
     if (!entryToDelete) return;
     
-    switch(entryToDelete.type) {
-        case 'Sale': deleteTransaction(entryToDelete.originalId); break;
-        case 'Purchase': deletePurchase(entryToDelete.originalId); break;
-        case 'Purchase Return': deletePurchaseReturn(entryToDelete.originalId); break;
-        default:
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Could not delete entry of unknown type.',
-            });
-            return;
-    }
+    try {
+        switch(entryToDelete.type) {
+            case 'Sale': deleteTransaction(entryToDelete.originalId); break;
+            case 'Purchase': deletePurchase(entryToDelete.originalId); break;
+            case 'Purchase Return': deletePurchaseReturn(entryToDelete.originalId); break;
+            default:
+                throw new Error('Could not delete entry of unknown type.');
+        }
 
-    toast({
-        title: 'Entry Deleted',
-        description: `The ${entryToDelete.type} entry for ${entryToDelete.partner} has been successfully deleted.`,
-    });
-    setEntryToDelete(null);
+        toast({
+            title: 'Entry Deleted',
+            description: `The ${entryToDelete.type} entry for ${entryToDelete.partner} has been successfully deleted.`,
+        });
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: error.message || "An error occurred while deleting the entry.",
+        });
+    } finally {
+        setEntryToDelete(null);
+    }
   };
 
 
@@ -220,7 +224,7 @@ export default function AllTransactionsPage() {
                     <TableCell className="text-center space-x-0.5">
                         {isPrintable && (
                           <Button asChild variant="ghost" size="icon" title="Print Invoice">
-                            <Link href={`/invoice/${entry.type.toLowerCase()}/${entry.originalId}`} target="_blank">
+                            <Link href={`/invoice/${entry.type.toLowerCase().replace(' ', '')}/${entry.originalId}`} target="_blank">
                               <Printer className="w-4 h-4" />
                             </Link>
                           </Button>
@@ -236,9 +240,6 @@ export default function AllTransactionsPage() {
                                 </a>
                             </Button>
                         )}
-                        <Button variant="ghost" size="icon" title="Edit (Coming Soon)" disabled>
-                            <Pencil className="w-4 h-4" />
-                        </Button>
                         <Button variant="ghost" size="icon" title="Delete" className="text-destructive hover:text-destructive" onClick={() => setEntryToDelete(entry)}>
                             <Trash2 className="w-4 h-4" />
                         </Button>
@@ -273,7 +274,7 @@ export default function AllTransactionsPage() {
             <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the entry: <br />
-              <strong className="font-medium text-foreground">{entryToDelete?.type} to {entryToDelete?.partner} - {entryToDelete?.details}</strong>
+              <strong className="font-medium text-foreground">{entryToDelete?.type} for {entryToDelete?.partner} - {entryToDelete?.details}</strong>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

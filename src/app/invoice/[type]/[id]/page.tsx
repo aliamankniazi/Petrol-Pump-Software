@@ -40,7 +40,7 @@ export default function InvoicePage() {
           },
           items: [
             {
-              name: `Super Unleaded ${transaction.fuelType}`,
+              name: `Fuel - ${transaction.fuelType}`,
               group: 'Fuel',
               quantity: transaction.volume,
               price: transaction.pricePerLitre,
@@ -66,7 +66,7 @@ export default function InvoicePage() {
           },
           items: [
             {
-              name: `${purchase.fuelType} Fuel`,
+              name: `Fuel - ${purchase.fuelType}`,
               group: 'Fuel',
               quantity: purchase.volume,
               price: purchase.totalCost / purchase.volume,

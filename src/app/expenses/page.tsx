@@ -11,13 +11,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Receipt, ListChecks, WalletCards, Calendar as CalendarIcon } from 'lucide-react';
-import type { ExpenseCategory } from '@/lib/types';
+import { Receipt, ListChecks, WalletCards, Calendar as CalendarIcon, Trash2, AlertTriangle } from 'lucide-react';
+import type { ExpenseCategory, Expense } from '@/lib/types';
 import { format } from 'date-fns';
 import { useExpenses } from '@/hooks/use-expenses';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useState } from 'react';
 
 
 const EXPENSE_CATEGORIES: ExpenseCategory[] = ['Utilities', 'Salaries', 'Maintenance', 'Other'];
@@ -32,8 +34,10 @@ const expenseSchema = z.object({
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
 
 export default function ExpensesPage() {
-  const { expenses, addExpense } = useExpenses();
+  const { expenses, addExpense, deleteExpense } = useExpenses();
   const { toast } = useToast();
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
+
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
@@ -52,8 +56,19 @@ export default function ExpensesPage() {
     });
     reset({ description: '', amount: 0, date: new Date() });
   };
+  
+  const handleDeleteExpense = () => {
+    if (!expenseToDelete) return;
+    deleteExpense(expenseToDelete.id);
+    toast({
+      title: 'Expense Deleted',
+      description: `The expense for "${expenseToDelete.description}" has been removed.`,
+    });
+    setExpenseToDelete(null);
+  };
 
   return (
+    <>
     <div className="p-4 md:p-8 grid gap-8 lg:grid-cols-3">
       <div className="lg:col-span-1">
         <Card>
@@ -157,6 +172,7 @@ export default function ExpensesPage() {
                     <TableHead>Description</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -166,6 +182,11 @@ export default function ExpensesPage() {
                         <TableCell>{e.description}</TableCell>
                         <TableCell>{e.category}</TableCell>
                         <TableCell className="text-right">PKR {e.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-center">
+                            <Button variant="ghost" size="icon" title="Delete" className="text-destructive hover:text-destructive" onClick={() => setExpenseToDelete(e)}>
+                                <Trash2 className="w-4 h-4" />
+                            </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                 </TableBody>
@@ -181,5 +202,23 @@ export default function ExpensesPage() {
         </Card>
       </div>
     </div>
+    <AlertDialog open={!!expenseToDelete} onOpenChange={(isOpen) => !isOpen && setExpenseToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the expense entry for: <br />
+              <strong className="font-medium text-foreground">{expenseToDelete?.description}</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteExpense} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Yes, delete entry
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

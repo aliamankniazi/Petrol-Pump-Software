@@ -11,13 +11,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { DollarSign, ListChecks, WalletCards, Calendar as CalendarIcon } from 'lucide-react';
-import type { OtherIncomeCategory } from '@/lib/types';
+import { DollarSign, ListChecks, WalletCards, Calendar as CalendarIcon, Trash2, AlertTriangle } from 'lucide-react';
+import type { OtherIncomeCategory, OtherIncome } from '@/lib/types';
 import { format } from 'date-fns';
 import { useOtherIncomes } from '@/hooks/use-other-incomes';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useState } from 'react';
 
 const INCOME_CATEGORIES: OtherIncomeCategory[] = ['Service Station', 'Tire Shop', 'Tuck Shop', 'Other'];
 
@@ -31,8 +33,10 @@ const incomeSchema = z.object({
 type IncomeFormValues = z.infer<typeof incomeSchema>;
 
 export default function OtherIncomesPage() {
-  const { otherIncomes, addOtherIncome } = useOtherIncomes();
+  const { otherIncomes, addOtherIncome, deleteOtherIncome } = useOtherIncomes();
   const { toast } = useToast();
+  const [incomeToDelete, setIncomeToDelete] = useState<OtherIncome | null>(null);
+
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<IncomeFormValues>({
     resolver: zodResolver(incomeSchema),
     defaultValues: {
@@ -51,8 +55,19 @@ export default function OtherIncomesPage() {
     });
     reset({ description: '', amount: 0, date: new Date() });
   };
+  
+  const handleDeleteIncome = () => {
+    if (!incomeToDelete) return;
+    deleteOtherIncome(incomeToDelete.id);
+    toast({
+      title: 'Income Deleted',
+      description: `The income entry for "${incomeToDelete.description}" has been removed.`,
+    });
+    setIncomeToDelete(null);
+  };
 
   return (
+    <>
     <div className="p-4 md:p-8 grid gap-8 lg:grid-cols-3">
       <div className="lg:col-span-1">
         <Card>
@@ -155,6 +170,7 @@ export default function OtherIncomesPage() {
                     <TableHead>Description</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -164,6 +180,11 @@ export default function OtherIncomesPage() {
                         <TableCell>{e.description}</TableCell>
                         <TableCell>{e.category}</TableCell>
                         <TableCell className="text-right">PKR {e.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-center">
+                            <Button variant="ghost" size="icon" title="Delete" className="text-destructive hover:text-destructive" onClick={() => setIncomeToDelete(e)}>
+                                <Trash2 className="w-4 h-4" />
+                            </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                 </TableBody>
@@ -179,5 +200,23 @@ export default function OtherIncomesPage() {
         </Card>
       </div>
     </div>
+    <AlertDialog open={!!incomeToDelete} onOpenChange={(isOpen) => !isOpen && setIncomeToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the income entry for: <br />
+              <strong className="font-medium text-foreground">{incomeToDelete?.description}</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteIncome} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Yes, delete entry
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
