@@ -296,7 +296,7 @@ export default function SalePage() {
                     </div>
                 </div>
 
-                {selectedCustomer && (
+                {selectedCustomerId && selectedCustomer && (
                     <Card className="bg-destructive/10 border-destructive/50" onFocus={() => setNumpadTarget('payment')} onClick={() => setNumpadTarget('payment')}>
                         <CardHeader className='pb-4'>
                             <CardTitle className="text-base flex justify-between items-center">
