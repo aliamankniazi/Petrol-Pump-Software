@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useForm, type SubmitHandler } from 'react-hook-form';
+import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,10 +11,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Receipt, ListChecks, WalletCards } from 'lucide-react';
+import { Receipt, ListChecks, WalletCards, Calendar as CalendarIcon } from 'lucide-react';
 import type { ExpenseCategory } from '@/lib/types';
 import { format } from 'date-fns';
 import { useExpenses } from '@/hooks/use-expenses';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+
 
 const EXPENSE_CATEGORIES: ExpenseCategory[] = ['Utilities', 'Salaries', 'Maintenance', 'Other'];
 
@@ -21,6 +26,7 @@ const expenseSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   category: z.enum(EXPENSE_CATEGORIES, { required_error: 'Please select a category.' }),
   amount: z.coerce.number().min(0.01, 'Amount must be greater than 0'),
+  date: z.date({ required_error: "A date is required."}),
 });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
@@ -28,17 +34,23 @@ type ExpenseFormValues = z.infer<typeof expenseSchema>;
 export default function ExpensesPage() {
   const { expenses, addExpense } = useExpenses();
   const { toast } = useToast();
-  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<ExpenseFormValues>({
+  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
+    defaultValues: {
+        date: new Date(),
+    }
   });
 
   const onSubmit: SubmitHandler<ExpenseFormValues> = (data) => {
-    addExpense(data);
+    addExpense({
+      ...data,
+      timestamp: data.date.toISOString(),
+    });
     toast({
       title: 'Expense Recorded',
       description: `Expense of PKR ${data.amount} for "${data.description}" has been logged.`,
     });
-    reset();
+    reset({ description: '', amount: 0, date: new Date() });
   };
 
   return (
@@ -61,16 +73,22 @@ export default function ExpensesPage() {
 
               <div className="space-y-2">
                 <Label>Category</Label>
-                <Select onValueChange={(value: ExpenseCategory) => setValue('category', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EXPENSE_CATEGORIES.map(cat => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="category"
+                  control={control}
+                  render={({ field }) => (
+                     <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {EXPENSE_CATEGORIES.map(cat => (
+                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                  )}
+                />
                 {errors.category && <p className="text-sm text-destructive">{errors.category.message}</p>}
               </div>
 
@@ -79,6 +97,40 @@ export default function ExpensesPage() {
                 <Input id="amount" type="number" {...register('amount')} placeholder="e.g., 5000" step="0.01" />
                 {errors.amount && <p className="text-sm text-destructive">{errors.amount.message}</p>}
               </div>
+
+               <div className="space-y-2">
+                  <Label>Date</Label>
+                  <Controller
+                    name="date"
+                    control={control}
+                    render={({ field }) => (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                  />
+                  {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
+                </div>
+
 
               <Button type="submit" className="w-full">Record Expense</Button>
             </form>

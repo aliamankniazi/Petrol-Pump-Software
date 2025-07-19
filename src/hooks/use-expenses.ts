@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -33,9 +34,9 @@ export function useExpenses() {
     }
   }, [expenses, isLoaded]);
 
-  const addExpense = useCallback((expense: Omit<Expense, 'id' | 'timestamp'>) => {
+  const addExpense = useCallback((expense: Omit<Expense, 'id'>) => {
     setExpenses(prev => [
-      { ...expense, id: crypto.randomUUID(), timestamp: new Date().toISOString() },
+      { ...expense, id: crypto.randomUUID() },
       ...prev,
     ]);
   }, []);
