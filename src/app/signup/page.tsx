@@ -14,7 +14,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { AuthFormValues } from '@/lib/types';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { firebaseConfig, isFirebaseConfigValid } from '@/lib/firebase';
 
 
@@ -36,15 +35,6 @@ export default function SignupPage() {
   });
 
   const onSubmit: SubmitHandler<AuthFormValues> = async (data) => {
-    if (!isConfigValid) {
-        toast({
-            variant: 'destructive',
-            title: 'Firebase Not Configured',
-            description: 'Please add your Firebase credentials to src/lib/firebase.ts to enable sign up.',
-        });
-        return;
-    }
-
     setLoading(true);
     try {
       await signUp(data);
@@ -64,6 +54,31 @@ export default function SignupPage() {
     }
   };
 
+  if (!isConfigValid) {
+    return (
+       <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-2xl">
+                    Offline Mode Active
+                </CardTitle>
+                <CardDescription>
+                    Firebase is not configured. The app is running in offline mode.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <p className="text-sm text-muted-foreground">
+                    You have been automatically logged in with a demo user. Sign up is not required.
+                </p>
+                <Button asChild className="w-full mt-4">
+                    <Link href="/">Go to Dashboard</Link>
+                </Button>
+            </CardContent>
+        </Card>
+       </div>
+    )
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
@@ -74,14 +89,6 @@ export default function SignupPage() {
           <CardDescription>Create a new account to get started.</CardDescription>
         </CardHeader>
         <CardContent>
-          {!isConfigValid && (
-              <Alert variant="destructive" className="mb-4">
-                  <AlertTitle>Firebase Not Configured</AlertTitle>
-                  <AlertDescription>
-                      Sign up is disabled. Please add your Firebase credentials to <strong>src/lib/firebase.ts</strong> to continue.
-                  </AlertDescription>
-              </Alert>
-          )}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>

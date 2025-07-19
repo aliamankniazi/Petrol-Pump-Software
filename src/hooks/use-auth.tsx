@@ -28,7 +28,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const FAKE_USER = { uid: 'fake-user' } as User;
+const FAKE_USER = { uid: 'offline-user', email: 'demo@example.com' } as User;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isConfigValid) {
       console.warn("Firebase config is not valid. Running in offline mode.");
-      setUser(FAKE_USER); // Use a mock user if config is invalid
+      setUser(FAKE_USER);
       setLoading(false);
       return;
     }
@@ -59,13 +59,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [isConfigValid]);
 
   useEffect(() => {
-    if (loading || !isConfigValid) return;
+    if (loading) return;
 
     const isAuthPage = pathname === '/login' || pathname === '/signup';
 
     if (user && isAuthPage) {
       router.push('/');
-    } else if (!user && !isAuthPage) {
+    } else if (!user && !isAuthPage && isConfigValid) {
+      // Only redirect to login if config is valid
       router.push('/login');
     }
   }, [user, loading, pathname, router, isConfigValid]);
@@ -82,11 +83,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     if (!auth) {
-      setUser(null);
+      // In offline mode, signOut does nothing as you can't log out.
+      // If we set user to null, it would redirect to login, which is disabled.
       return;
     };
     await firebaseSignOut(auth);
-    // The useEffect above will handle redirecting to /login
+    router.push('/login');
   };
 
   const value = {
@@ -96,20 +98,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signUp,
     signOut,
   };
-
+  
+  // While loading, show a blank screen or a minimal loader
   if (loading) {
-    return (
+     return (
         <div className="flex h-screen items-center justify-center">
             <p>Loading...</p>
         </div>
     );
   }
 
-  // If firebase is not configured, we allow access to all pages for demo purposes
+  // If config is invalid, we're in offline mode. The user is set to FAKE_USER.
+  // We can render the children directly. The routing logic in useEffect handles auth pages.
   if (!isConfigValid) {
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    const isAuthPage = pathname === '/login' || pathname === '/signup';
+     if (isAuthPage) {
+        // Don't show auth pages in offline mode, redirect to home.
+        router.push('/');
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <p>Redirecting...</p>
+            </div>
+        );
+     }
+     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
   }
 
+  // If config is valid, proceed with standard auth flow
   const isAuthPage = pathname === '/login' || pathname === '/signup';
   if (!user && !isAuthPage) {
     return (
@@ -122,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   if (user && isAuthPage) {
     return (
       <div className="flex h-screen items-center justify-center">
-          <p>Redirecting to dashboard...</p>
+          <p>Redirecting...</p>
       </div>
     );
   }
