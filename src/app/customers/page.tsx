@@ -17,6 +17,7 @@ import { useCustomers } from '@/hooks/use-customers';
 import Link from 'next/link';
 import Barcode from 'react-barcode';
 import { useMemo } from 'react';
+import { Badge } from '@/components/ui/badge';
 
 const customerSchema = z.object({
   name: z.string().min(1, 'Customer name is required'),
@@ -44,10 +45,6 @@ export default function CustomersPage() {
   const { register, handleSubmit, reset, formState: { errors } } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
   });
-  
-  const regularCustomers = useMemo(() => {
-    return customers.filter(c => !c.isPartner);
-  }, [customers]);
 
   const onSubmit: SubmitHandler<CustomerFormValues> = (data) => {
     addCustomer({ ...data, isPartner: false });
@@ -109,14 +106,14 @@ export default function CustomersPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <List /> Customer List
+              <List /> Customer & Partner List
             </CardTitle>
             <CardDescription>
-              A record of all your customers. Business partners are managed in the Investments section.
+              A record of all your customers and business partners.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {regularCustomers.length > 0 ? (
+            {customers.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -126,10 +123,13 @@ export default function CustomersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {regularCustomers.map(c => (
+                  {customers.map(c => (
                       <TableRow key={c.id}>
                         <TableCell>
-                          <div className="font-medium">{c.name}</div>
+                          <div className="font-medium flex items-center gap-2">
+                            {c.name}
+                            {c.isPartner && <Badge variant="secondary">Partner</Badge>}
+                          </div>
                           <div className="text-sm text-muted-foreground">{c.contact}</div>
                            <div className="text-xs text-muted-foreground">{c.area || 'N/A'}</div>
                           <div className="text-xs text-muted-foreground">{c.vehicleNumber || 'N/A'}</div>
@@ -144,15 +144,17 @@ export default function CustomersPage() {
                                 <BookText className="w-5 h-5" />
                               </Link>
                            </Button>
-                           <Button asChild variant="ghost" size="icon" className="text-green-500 hover:text-green-600" title={`Message ${c.name} on WhatsApp`}>
-                             <a 
-                              href={`https://wa.me/${formatPhoneNumberForWhatsApp(c.contact)}`}
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                            >
-                               <WhatsAppIcon className="w-5 h-5" />
-                            </a>
-                          </Button>
+                           {c.contact && (
+                             <Button asChild variant="ghost" size="icon" className="text-green-500 hover:text-green-600" title={`Message ${c.name} on WhatsApp`}>
+                               <a 
+                                href={`https://wa.me/${formatPhoneNumberForWhatsApp(c.contact)}`}
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                              >
+                                 <WhatsAppIcon className="w-5 h-5" />
+                              </a>
+                            </Button>
+                           )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -171,3 +173,4 @@ export default function CustomersPage() {
     </div>
   );
 }
+
