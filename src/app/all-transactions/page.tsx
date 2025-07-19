@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 
 type CombinedEntry = {
@@ -199,6 +200,7 @@ export default function AllTransactionsPage() {
               <TableBody>
                 {filteredEntries.map(entry => {
                   const customer = getCustomerForEntry(entry);
+                  const isPrintable = entry.type === 'Sale' || entry.type === 'Purchase';
                   return (
                   <TableRow key={entry.id}>
                     <TableCell className="font-medium whitespace-nowrap">
@@ -216,9 +218,13 @@ export default function AllTransactionsPage() {
                         {entry.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell className="text-center space-x-0.5">
-                        <Button variant="ghost" size="icon" title="Print" onClick={() => window.print()}>
-                            <Printer className="w-4 h-4" />
-                        </Button>
+                        {isPrintable && (
+                          <Button asChild variant="ghost" size="icon" title="Print Invoice">
+                            <Link href={`/invoice/${entry.type.toLowerCase()}/${entry.originalId}`} target="_blank">
+                              <Printer className="w-4 h-4" />
+                            </Link>
+                          </Button>
+                        )}
                         {entry.type === 'Sale' && customer?.contact && (
                              <Button asChild variant="ghost" size="icon" className="text-green-500 hover:text-green-600" title={`Message ${customer.name} on WhatsApp`}>
                                 <a 

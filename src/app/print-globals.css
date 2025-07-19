@@ -1,0 +1,19 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    @media print {
+        body {
+            background-color: white !important;
+            -webkit-print-color-adjust: exact;
+        }
+        .print-only {
+            display: block !important;
+        }
+        .print\:hidden {
+            display: none !important;
+        }
+    }
+}
