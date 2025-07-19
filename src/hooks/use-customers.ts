@@ -11,7 +11,7 @@ export function useCustomers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
     try {
       const storedItems = localStorage.getItem(STORAGE_KEY);
       if (storedItems) {
@@ -24,6 +24,21 @@ export function useCustomers() {
       setIsLoaded(true);
     }
   }, []);
+
+  useEffect(() => {
+    loadData();
+    
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY) {
+        loadData();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [loadData]);
 
   useEffect(() => {
     if (isLoaded) {
