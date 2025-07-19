@@ -127,3 +127,12 @@ export interface TankReading {
     volume: number;
     timestamp: string;
 }
+
+export interface Investment {
+  id: string;
+  partnerName: string;
+  type: 'Investment' | 'Withdrawal';
+  amount: number;
+  notes?: string;
+  timestamp: string;
+}

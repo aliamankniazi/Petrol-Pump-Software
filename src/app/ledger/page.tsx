@@ -13,6 +13,7 @@ import { useExpenses } from '@/hooks/use-expenses';
 import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
 import { useOtherIncomes } from '@/hooks/use-other-incomes';
 import { useSupplierPayments } from '@/hooks/use-supplier-payments';
+import { useInvestments } from '@/hooks/use-investments';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -33,7 +34,7 @@ type LedgerEntry = {
   id: string;
   timestamp: string;
   description: string;
-  type: 'Sale' | 'Purchase' | 'Expense' | 'Purchase Return' | 'Other Income' | 'Supplier Payment';
+  type: 'Sale' | 'Purchase' | 'Expense' | 'Purchase Return' | 'Other Income' | 'Supplier Payment' | 'Investment' | 'Withdrawal';
   debit: number;
   credit: number;
   balance: number;
@@ -46,12 +47,13 @@ export default function LedgerPage() {
   const { purchaseReturns, deletePurchaseReturn, isLoaded: purchaseReturnsLoaded } = usePurchaseReturns();
   const { otherIncomes, deleteOtherIncome, isLoaded: otherIncomesLoaded } = useOtherIncomes();
   const { supplierPayments, deleteSupplierPayment, isLoaded: supplierPaymentsLoaded } = useSupplierPayments();
+  const { investments, deleteInvestment, isLoaded: investmentsLoaded } = useInvestments();
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [entryToDelete, setEntryToDelete] = useState<LedgerEntry | null>(null);
   const { toast } = useToast();
 
-  const isLoaded = transactionsLoaded && purchasesLoaded && expensesLoaded && purchaseReturnsLoaded && otherIncomesLoaded && supplierPaymentsLoaded;
+  const isLoaded = transactionsLoaded && purchasesLoaded && expensesLoaded && purchaseReturnsLoaded && otherIncomesLoaded && supplierPaymentsLoaded && investmentsLoaded;
 
   const { entries, finalBalance, openingBalance, totals } = useMemo(() => {
     if (!isLoaded) return { entries: [], finalBalance: 0, openingBalance: 0, totals: { debit: 0, credit: 0 } };
@@ -111,6 +113,28 @@ export default function LedgerPage() {
       debit: sp.amount,
       credit: 0,
     }));
+
+    investments.forEach(inv => {
+        if (inv.type === 'Investment') {
+            combined.push({
+                id: `inv-${inv.id}`,
+                timestamp: inv.timestamp,
+                description: `Investment from ${inv.partnerName}`,
+                type: 'Investment',
+                debit: 0,
+                credit: inv.amount,
+            });
+        } else {
+            combined.push({
+                id: `wdr-${inv.id}`,
+                timestamp: inv.timestamp,
+                description: `Withdrawal by ${inv.partnerName}`,
+                type: 'Withdrawal',
+                debit: inv.amount,
+                credit: 0,
+            });
+        }
+    });
     
     combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
@@ -147,17 +171,19 @@ export default function LedgerPage() {
         totals: calculatedTotals,
     };
 
-  }, [transactions, purchases, expenses, purchaseReturns, otherIncomes, supplierPayments, isLoaded, selectedDate]);
+  }, [transactions, purchases, expenses, purchaseReturns, otherIncomes, supplierPayments, investments, isLoaded, selectedDate]);
 
   const getBadgeVariant = (type: LedgerEntry['type']) => {
     switch (type) {
       case 'Purchase':
       case 'Expense': 
       case 'Supplier Payment':
+      case 'Withdrawal':
         return 'destructive';
       case 'Sale':
       case 'Purchase Return': 
       case 'Other Income':
+      case 'Investment':
         return 'outline';
       default: 
         return 'default';
@@ -165,7 +191,7 @@ export default function LedgerPage() {
   };
   
   const isCreditEntry = (type: LedgerEntry['type']) => {
-    return type === 'Sale' || type === 'Purchase Return' || type === 'Other Income';
+    return type === 'Sale' || type === 'Purchase Return' || type === 'Other Income' || type === 'Investment';
   }
   
   const handleDeleteEntry = () => {
@@ -180,6 +206,8 @@ export default function LedgerPage() {
         case 'pr': deletePurchaseReturn(id); break;
         case 'oi': deleteOtherIncome(id); break;
         case 'sp': deleteSupplierPayment(id); break;
+        case 'inv': deleteInvestment(id); break;
+        case 'wdr': deleteInvestment(id); break; // Both use same hook
         default:
             toast({
                 variant: 'destructive',

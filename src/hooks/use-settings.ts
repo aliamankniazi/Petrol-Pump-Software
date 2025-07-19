@@ -16,6 +16,7 @@ import { useOtherIncomes } from './use-other-incomes';
 import { useTankReadings } from './use-tank-readings';
 import { useSupplierPayments } from './use-supplier-payments';
 import { useSuppliers } from './use-suppliers';
+import { useInvestments } from './use-investments';
 
 export function useSettings() {
   const { clearTransactions } = useTransactions();
@@ -33,6 +34,7 @@ export function useSettings() {
   const { clearOtherIncomes } = useOtherIncomes();
   const { clearTankReadings } = useTankReadings();
   const { clearSupplierPayments } = useSupplierPayments();
+  const { clearInvestments } = useInvestments();
 
   const clearAllData = () => {
     clearTransactions();
@@ -50,6 +52,7 @@ export function useSettings() {
     clearOtherIncomes();
     clearTankReadings();
     clearSupplierPayments();
+    clearInvestments();
   };
 
   return {
