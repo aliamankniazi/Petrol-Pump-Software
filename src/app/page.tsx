@@ -8,7 +8,7 @@ import { Numpad } from '@/components/numpad';
 import { useTransactions } from '@/hooks/use-transactions';
 import type { FuelType, PaymentMethod, Customer } from '@/lib/types';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Fuel, Droplets, CreditCard, Wallet, Smartphone, Users, HandCoins, DollarSign, Calendar as CalendarIcon, Edit } from 'lucide-react';
+import { Fuel, Droplets, CreditCard, Wallet, Smartphone, Users, HandCoins, DollarSign, Calendar as CalendarIcon, Edit, HelpCircle } from 'lucide-react';
 import { useFuelPrices } from '@/hooks/use-fuel-prices';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -25,6 +25,8 @@ import { useFuelStock } from '@/hooks/use-fuel-stock';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
@@ -380,6 +382,23 @@ export default function SalePage() {
                     <Smartphone className="mr-2" /> Mobile
                     </Button>
                 </div>
+                <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="shortcuts">
+                        <AccordionTrigger className="text-sm">
+                            <div className="flex items-center gap-2">
+                                <HelpCircle className="w-4 h-4" />
+                                <span>Keyboard Shortcuts</span>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                            <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-5">
+                                <li><kbd className="font-mono bg-muted p-1 rounded-sm">Alt + 1</kbd> / <kbd className="font-mono bg-muted p-1 rounded-sm">2</kbd> / <kbd className="font-mono bg-muted p-1 rounded-sm">3</kbd> to select fuel type.</li>
+                                <li><kbd className="font-mono bg-muted p-1 rounded-sm">Alt + M</kbd> to switch between Amount and Volume mode.</li>
+                                <li><kbd className="font-mono bg-muted p-1 rounded-sm">Ctrl + 1</kbd> / <kbd className="font-mono bg-muted p-1 rounded-sm">2</kbd> / <kbd className="font-mono bg-muted p-1 rounded-sm">3</kbd> to process payment (Cash, Card, Mobile).</li>
+                            </ul>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
             </CardContent>
         </Card>
       </div>
