@@ -249,9 +249,9 @@ export default function PartnerLedgerPage() {
        <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <HandCoins /> Partner Ledger
+            <HandCoins /> Unified Ledger
           </CardTitle>
-          <CardDescription>A unified record of all transactions for customers and suppliers. Use the filters below to refine your search.</CardDescription>
+          <CardDescription>A unified record of all transactions for customers, suppliers, and business partners. Use the filters below to refine your search.</CardDescription>
           
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-4">
               <Select value={selectedEntityId} onValueChange={(value) => setSelectedEntityId(value === 'all' ? '' : value)}>
@@ -425,3 +425,4 @@ export default function PartnerLedgerPage() {
     </div>
   );
 }
+

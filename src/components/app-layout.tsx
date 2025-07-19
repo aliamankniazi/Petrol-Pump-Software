@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -24,7 +25,7 @@ const navItems = [
   { href: '/', label: 'Sale', icon: LayoutDashboard },
   { href: '/all-transactions', label: 'All Transactions', icon: Archive },
   { href: '/customers', label: 'Customers', icon: Users },
-  { href: '/partner-ledger', label: 'Partner Ledger', icon: HandCoins },
+  { href: '/partner-ledger', label: 'Unified Ledger', icon: HandCoins },
    { href: '/credit-recovery', label: 'Credit Recovery', icon: BarChartHorizontal },
   { href: '/cash-advances', label: 'Cash Advances', icon: ArrowRightLeft },
   { href: '/inventory', label: 'Inventory', icon: Package },
