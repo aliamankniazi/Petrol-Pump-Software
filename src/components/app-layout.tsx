@@ -15,7 +15,7 @@ import {
   SidebarTrigger,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { History, FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, LogOut, Fuel } from 'lucide-react';
+import { History, FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, LogOut, Fuel, DollarSign } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from './ui/button';
 
@@ -29,6 +29,7 @@ const navItems = [
   { href: '/purchases', label: 'Purchases', icon: ShoppingCart },
   { href: '/purchase-returns', label: 'Purchase Returns', icon: Undo2 },
   { href: '/expenses', label: 'Expenses', icon: Receipt },
+  { href: '/other-incomes', label: 'Other Incomes', icon: DollarSign },
   { href: '/employees', label: 'Employees', icon: Briefcase },
   { href: '/bank-management', label: 'Bank Management', icon: Landmark },
   { href: '/ledger', label: 'Ledger', icon: BookOpen },
@@ -36,8 +37,8 @@ const navItems = [
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
-const AppLogo = (props: React.SVGProps<SVGSVGElement>) => (
-    <div className="flex items-center gap-2.5" {...props}>
+const AppLogo = () => (
+    <div className="flex items-center gap-2.5">
       <div className="bg-primary rounded-lg p-2 text-primary-foreground">
         <Fuel className="w-6 h-6" />
       </div>
@@ -53,10 +54,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useAuth();
   const pathname = usePathname();
   const pageTitle = navItems.find(item => item.href === pathname)?.label ?? 'Dashboard';
-
-  if (!user) {
-    return <>{children}</>;
-  }
 
   return (
     <SidebarProvider>

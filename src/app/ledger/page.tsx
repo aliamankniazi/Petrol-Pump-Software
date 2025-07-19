@@ -11,6 +11,7 @@ import { useTransactions } from '@/hooks/use-transactions';
 import { usePurchases } from '@/hooks/use-purchases';
 import { useExpenses } from '@/hooks/use-expenses';
 import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
+import { useOtherIncomes } from '@/hooks/use-other-incomes';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -20,7 +21,7 @@ type LedgerEntry = {
   id: string;
   timestamp: string;
   description: string;
-  type: 'Sale' | 'Purchase' | 'Expense' | 'Purchase Return';
+  type: 'Sale' | 'Purchase' | 'Expense' | 'Purchase Return' | 'Other Income';
   debit: number;
   credit: number;
   balance: number;
@@ -31,10 +32,11 @@ export default function LedgerPage() {
   const { purchases, isLoaded: purchasesLoaded } = usePurchases();
   const { expenses, isLoaded: expensesLoaded } = useExpenses();
   const { purchaseReturns, isLoaded: purchaseReturnsLoaded } = usePurchaseReturns();
+  const { otherIncomes, isLoaded: otherIncomesLoaded } = useOtherIncomes();
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
-  const isLoaded = transactionsLoaded && purchasesLoaded && expensesLoaded && purchaseReturnsLoaded;
+  const isLoaded = transactionsLoaded && purchasesLoaded && expensesLoaded && purchaseReturnsLoaded && otherIncomesLoaded;
 
   const { entries, finalBalance } = useMemo(() => {
     if (!isLoaded) return { entries: [], finalBalance: 0 };
@@ -76,6 +78,15 @@ export default function LedgerPage() {
         debit: 0,
         credit: pr.totalRefund,
     }));
+
+    otherIncomes.forEach(oi => combined.push({
+        id: `oi-${oi.id}`,
+        timestamp: oi.timestamp,
+        description: `Income: ${oi.description}`,
+        type: 'Other Income',
+        debit: 0,
+        credit: oi.amount,
+    }));
     
     // Sort before filtering to calculate opening balance correctly
     combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
@@ -99,7 +110,7 @@ export default function LedgerPage() {
 
     return { entries: entriesWithBalance.reverse(), finalBalance: runningBalance };
 
-  }, [transactions, purchases, expenses, purchaseReturns, isLoaded, selectedDate]);
+  }, [transactions, purchases, expenses, purchaseReturns, otherIncomes, isLoaded, selectedDate]);
 
   const getBadgeVariant = (type: LedgerEntry['type']) => {
     switch (type) {
@@ -108,6 +119,7 @@ export default function LedgerPage() {
         return 'destructive';
       case 'Sale':
       case 'Purchase Return': 
+      case 'Other Income':
         return 'outline';
       default: 
         return 'default';
@@ -115,7 +127,7 @@ export default function LedgerPage() {
   };
   
   const isCreditEntry = (type: LedgerEntry['type']) => {
-    return type === 'Sale' || type === 'Purchase Return';
+    return type === 'Sale' || type === 'Purchase Return' || type === 'Other Income';
   }
 
   return (

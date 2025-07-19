@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useTransactions } from '@/hooks/use-transactions';
 import { usePurchases } from '@/hooks/use-purchases';
 import { useExpenses } from '@/hooks/use-expenses';
+import { useOtherIncomes } from '@/hooks/use-other-incomes';
 import { generateSalesSummary } from '@/ai/flows/generate-sales-summary';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { FileText, Sparkles, Terminal, AlertTriangle, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
@@ -17,17 +18,22 @@ export default function SummaryPage() {
   const { transactions, isLoaded: transactionsLoaded } = useTransactions();
   const { purchases, isLoaded: purchasesLoaded } = usePurchases();
   const { expenses, isLoaded: expensesLoaded } = useExpenses();
+  const { otherIncomes, isLoaded: otherIncomesLoaded } = useOtherIncomes();
+
 
   const [summary, setSummary] = useState('');
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
 
-  const isLoaded = transactionsLoaded && purchasesLoaded && expensesLoaded;
+  const isLoaded = transactionsLoaded && purchasesLoaded && expensesLoaded && otherIncomesLoaded;
 
   const financialSummary = useMemo(() => {
     if (!isLoaded) return null;
 
-    const totalRevenue = transactions.reduce((sum, tx) => sum + tx.totalAmount, 0);
+    const totalFuelRevenue = transactions.reduce((sum, tx) => sum + tx.totalAmount, 0);
+    const totalOtherRevenue = otherIncomes.reduce((sum, oi) => sum + oi.amount, 0);
+    const totalRevenue = totalFuelRevenue + totalOtherRevenue;
+
     const totalExpenses = expenses.reduce((sum, ex) => sum + ex.amount, 0);
     const totalCostOfGoods = purchases.reduce((sum, p) => sum + p.totalCost, 0);
 
@@ -43,7 +49,7 @@ export default function SummaryPage() {
       grossProfit,
       netProfit,
     };
-  }, [transactions, purchases, expenses, isLoaded]);
+  }, [transactions, purchases, expenses, otherIncomes, isLoaded]);
 
   const handleGenerateSummary = () => {
     setError('');
@@ -94,7 +100,7 @@ export default function SummaryPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">PKR {financialSummary.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                    <p className="text-xs text-muted-foreground">From all sales transactions</p>
+                    <p className="text-xs text-muted-foreground">From all sales and income sources</p>
                   </CardContent>
                 </Card>
                  <Card>

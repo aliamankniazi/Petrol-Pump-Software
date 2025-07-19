@@ -43,6 +43,16 @@ export interface Expense {
   timestamp: string;
 }
 
+export type OtherIncomeCategory = 'Service Station' | 'Tire Shop' | 'Tuck Shop' | 'Other';
+
+export interface OtherIncome {
+    id: string;
+    description: string;
+    category: OtherIncomeCategory;
+    amount: number;
+    timestamp: string;
+}
+
 export interface Customer {
   id: string;
   name: string;

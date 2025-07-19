@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Settings, Trash2, AlertTriangle, Droplets, Package, Edit } from 'lucide-react';
-import { useTransactions } from '@/hooks/use-transactions';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,16 +25,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { useFuelPrices } from '@/hooks/use-fuel-prices';
 import type { FuelType } from '@/lib/types';
-import { usePurchases } from '@/hooks/use-purchases';
-import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
-import { useExpenses } from '@/hooks/use-expenses';
-import { useCustomers } from '@/hooks/use-customers';
-import { useBankAccounts } from '@/hooks/use-bank-accounts';
-import { useEmployees } from '@/hooks/use-employees';
 import { useFuelStock } from '@/hooks/use-fuel-stock';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useCustomerPayments } from '@/hooks/use-customer-payments';
-import { useCashAdvances } from '@/hooks/use-cash-advances';
+import { useSettings } from '@/hooks/use-settings';
+
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
@@ -47,17 +40,9 @@ const adjustmentSchema = z.object({
 type AdjustmentFormValues = z.infer<typeof adjustmentSchema>;
 
 export default function SettingsPage() {
-  const { clearTransactions } = useTransactions();
-  const { clearPurchases } = usePurchases();
-  const { clearPurchaseReturns } = usePurchaseReturns();
-  const { clearExpenses } = useExpenses();
-  const { clearCustomers } = useCustomers();
-  const { clearBankAccounts } = useBankAccounts();
-  const { clearEmployees } = useEmployees();
-  const { clearCustomerPayments } = useCustomerPayments();
-  const { clearCashAdvances } = useCashAdvances();
-  const { fuelPrices, updateFuelPrice, clearFuelPrices, isLoaded: pricesLoaded } = useFuelPrices();
-  const { fuelStock, setFuelStock, clearFuelStock, isLoaded: stockLoaded } = useFuelStock();
+  const { clearAllData } = useSettings();
+  const { fuelPrices, updateFuelPrice, isLoaded: pricesLoaded } = useFuelPrices();
+  const { fuelStock, setFuelStock, isLoaded: stockLoaded } = useFuelStock();
   const { toast } = useToast();
 
   const { register, handleSubmit, control, reset, watch, formState: { errors } } = useForm<AdjustmentFormValues>({
@@ -77,17 +62,7 @@ export default function SettingsPage() {
   }, [currentStock, adjustmentValue]);
 
   const handleClearData = () => {
-    clearTransactions();
-    clearPurchases();
-    clearPurchaseReturns();
-    clearExpenses();
-    clearCustomers();
-    clearBankAccounts();
-    clearEmployees();
-    clearFuelPrices();
-    clearFuelStock();
-    clearCustomerPayments();
-    clearCashAdvances();
+    clearAllData();
     toast({
       title: "Data Cleared",
       description: "All application data has been removed.",
