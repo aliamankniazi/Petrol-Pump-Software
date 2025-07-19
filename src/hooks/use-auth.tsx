@@ -17,6 +17,7 @@ import {
 import { auth, isFirebaseConfigValid, firebaseConfig } from '@/lib/firebase';
 import type { AuthFormValues } from '@/lib/types';
 import { usePathname, useRouter } from 'next/navigation';
+import { AppLayout } from '@/components/app-layout';
 
 interface AuthContextType {
   user: User | null;
@@ -56,19 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return () => unsubscribe();
   }, [isConfigValid]);
-
-  useEffect(() => {
-    if (loading) return;
-
-    const isAuthPage = pathname === '/login' || pathname === '/signup';
-
-    if (!user && !isAuthPage) {
-        router.push('/login');
-    } else if (user && isAuthPage) {
-        router.push('/');
-    }
-  }, [user, loading, pathname, router]);
-
+  
   const signIn = (data: AuthFormValues) => {
     if (!auth) return Promise.reject(new Error("Firebase is not configured."));
     return signInWithEmailAndPassword(auth, data.email, data.password);
@@ -83,8 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isConfigValid && auth) {
       await firebaseSignOut(auth);
     }
-    setUser(null);
-    // No need to manually push, the useEffect hook will handle it.
+    setUser(null); // This will trigger the useEffect below to redirect.
+    router.push('/login');
   };
 
   const value = {
@@ -95,6 +84,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
   };
   
+  useEffect(() => {
+    if (loading) return;
+    const isAuthPage = pathname === '/login' || pathname === '/signup';
+
+    if (!user && !isAuthPage) {
+        router.push('/login');
+    }
+    if (user && isAuthPage) {
+        router.push('/');
+    }
+  }, [user, loading, pathname, router]);
+
+
   if (loading) {
      return (
         <div className="flex h-screen w-full items-center justify-center">
@@ -103,7 +105,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
+  if (!user && isAuthPage) {
+      return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  }
+
+  if (user) {
+    return (
+        <AuthContext.Provider value={value}>
+            <AppLayout>
+                {children}
+            </AppLayout>
+        </AuthContext.Provider>
+    );
+  }
+  
+  // If no user and not an auth page, the useEffect will redirect.
+  // Render a loading state while redirecting.
+  return (
+    <div className="flex h-screen w-full items-center justify-center">
+        <p>Redirecting...</p>
+    </div>
+  );
 }
 
 export const useAuth = () => {
