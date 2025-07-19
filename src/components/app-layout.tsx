@@ -13,8 +13,11 @@ import {
   SidebarMenuButton,
   SidebarInset,
   SidebarTrigger,
+  SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Fuel, History, FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft } from 'lucide-react';
+import { Fuel, History, FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, LogOut } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { Button } from './ui/button';
 
 const navItems = [
   { href: '/', label: 'Sale', icon: LayoutDashboard },
@@ -43,7 +46,12 @@ const ShellLogo = (props: React.SVGProps<SVGSVGElement>) => (
 
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
+  const { user, signOut } = useAuth();
   const pathname = usePathname();
+
+  if (!user) {
+    return <>{children}</>;
+  }
 
   const pageTitle = navItems.find(item => item.href === pathname)?.label ?? 'Dashboard';
 
@@ -70,6 +78,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             ))}
           </SidebarMenu>
         </SidebarContent>
+        <SidebarFooter>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <Button variant="ghost" className="w-full justify-start gap-2" onClick={signOut}>
+                <LogOut />
+                Sign Out
+              </Button>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/80 p-4 backdrop-blur-sm md:justify-end">

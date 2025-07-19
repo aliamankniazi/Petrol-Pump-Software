@@ -86,3 +86,8 @@ export interface CashAdvance {
   notes?: string;
   timestamp: string;
 }
+
+export interface AuthFormValues {
+  email: string;
+  password: string;
+}
