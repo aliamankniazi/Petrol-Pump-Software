@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Settings, Trash2, AlertTriangle, Droplets, Package, Edit, Truck, UserPlus } from 'lucide-react';
+import { Settings, Trash2, AlertTriangle, Droplets, Package, Edit, Truck, UserPlus, BookText } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useSettings } from '@/hooks/use-settings';
 import { useSuppliers } from '@/hooks/use-suppliers';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import Link from 'next/link';
 
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
@@ -166,6 +167,7 @@ export default function SettingsPage() {
                                 <TableRow>
                                     <TableHead>Name</TableHead>
                                     <TableHead>Contact</TableHead>
+                                    <TableHead className="text-center">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -173,10 +175,17 @@ export default function SettingsPage() {
                                     <TableRow key={s.id}>
                                         <TableCell className="font-medium">{s.name}</TableCell>
                                         <TableCell>{s.contact || 'N/A'}</TableCell>
+                                        <TableCell className="text-center">
+                                            <Button asChild variant="ghost" size="icon" title="View Ledger">
+                                               <Link href={`/customers/${s.id}/ledger`}>
+                                                 <BookText className="w-5 h-5" />
+                                               </Link>
+                                            </Button>
+                                        </TableCell>
                                     </TableRow>
                                 )) : (
                                     <TableRow>
-                                        <TableCell colSpan={2} className="h-24 text-center">
+                                        <TableCell colSpan={3} className="h-24 text-center">
                                             {suppliersLoaded ? 'No suppliers added yet.' : 'Loading suppliers...'}
                                         </TableCell>
                                     </TableRow>
