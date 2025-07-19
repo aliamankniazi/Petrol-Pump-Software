@@ -34,9 +34,9 @@ export function useCashAdvances() {
     }
   }, [cashAdvances, isLoaded]);
 
-  const addCashAdvance = useCallback((advance: Omit<CashAdvance, 'id' | 'timestamp'>) => {
+  const addCashAdvance = useCallback((advance: Omit<CashAdvance, 'id'>) => {
     setCashAdvances(prev => [
-      { ...advance, id: crypto.randomUUID(), timestamp: new Date().toISOString() },
+      { ...advance, id: crypto.randomUUID() },
       ...prev,
     ]);
   }, []);
