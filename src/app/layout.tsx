@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type { Metadata } from 'next';
@@ -7,7 +8,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/hooks/use-auth';
 import { usePathname } from 'next/navigation';
-import { RolesProvider } from '@/hooks/use-roles';
+import { RolesProvider } from '@/hooks/use-roles.tsx';
 
 const inter = Inter({
   subsets: ['latin'],
