@@ -12,6 +12,7 @@ import { useFuelStock } from '@/hooks/use-fuel-stock';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
 import { useCashAdvances } from '@/hooks/use-cash-advances';
 import { useOtherIncomes } from './use-other-incomes';
+import { useTankReadings } from './use-tank-readings';
 
 export function useSettings() {
   const { clearTransactions } = useTransactions();
@@ -26,6 +27,7 @@ export function useSettings() {
   const { clearCustomerPayments } = useCustomerPayments();
   const { clearCashAdvances } = useCashAdvances();
   const { clearOtherIncomes } = useOtherIncomes();
+  const { clearTankReadings } = useTankReadings();
 
   const clearAllData = () => {
     clearTransactions();
@@ -40,6 +42,7 @@ export function useSettings() {
     clearCustomerPayments();
     clearCashAdvances();
     clearOtherIncomes();
+    clearTankReadings();
   };
 
   return {

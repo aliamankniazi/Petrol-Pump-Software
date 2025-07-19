@@ -101,3 +101,10 @@ export interface AuthFormValues {
   email: string;
   password: string;
 }
+
+export interface TankReading {
+    id: string;
+    fuelType: FuelType;
+    volume: number;
+    timestamp: string;
+}

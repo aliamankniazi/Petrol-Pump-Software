@@ -15,7 +15,7 @@ import {
   SidebarTrigger,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { History, FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, LogOut, Fuel, DollarSign } from 'lucide-react';
+import { History, FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, LogOut, Fuel, DollarSign, Beaker } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from './ui/button';
 
@@ -26,6 +26,7 @@ const navItems = [
   { href: '/customer-payments', label: 'Customer Payments', icon: HandCoins },
   { href: '/cash-advances', label: 'Cash Advances', icon: ArrowRightLeft },
   { href: '/inventory', label: 'Inventory', icon: Package },
+  { href: '/tanks', label: 'Tank Management', icon: Beaker },
   { href: '/purchases', label: 'Purchases', icon: ShoppingCart },
   { href: '/purchase-returns', label: 'Purchase Returns', icon: Undo2 },
   { href: '/expenses', label: 'Expenses', icon: Receipt },
@@ -51,7 +52,7 @@ const AppLogo = () => (
 
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
   const pathname = usePathname();
   const pageTitle = navItems.find(item => item.href === pathname)?.label ?? 'Dashboard';
 
