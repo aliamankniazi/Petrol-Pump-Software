@@ -40,6 +40,10 @@ export function useSuppliers() {
       ...prev,
     ]);
   }, []);
+  
+  const deleteSupplier = useCallback((id: string) => {
+    setSuppliers(prev => prev.filter(s => s.id !== id));
+  }, []);
 
   const clearSuppliers = useCallback(() => {
     setSuppliers([]);
@@ -50,5 +54,5 @@ export function useSuppliers() {
     }
   }, []);
 
-  return { suppliers, addSupplier, clearSuppliers, isLoaded };
+  return { suppliers, addSupplier, deleteSupplier, clearSuppliers, isLoaded };
 }

@@ -25,7 +25,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { useFuelPrices } from '@/hooks/use-fuel-prices';
-import type { FuelType } from '@/lib/types';
+import type { FuelType, Supplier } from '@/lib/types';
 import { useFuelStock } from '@/hooks/use-fuel-stock';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSettings } from '@/hooks/use-settings';
@@ -54,8 +54,9 @@ export default function SettingsPage() {
   const { clearAllData } = useSettings();
   const { fuelPrices, updateFuelPrice, isLoaded: pricesLoaded } = useFuelPrices();
   const { fuelStock, setFuelStock, isLoaded: stockLoaded } = useFuelStock();
-  const { suppliers, addSupplier, isLoaded: suppliersLoaded } = useSuppliers();
+  const { suppliers, addSupplier, deleteSupplier, isLoaded: suppliersLoaded } = useSuppliers();
   const { toast } = useToast();
+  const [supplierToDelete, setSupplierToDelete] = React.useState<Supplier | null>(null);
 
   const { register, handleSubmit, control, reset, watch, formState: { errors } } = useForm<AdjustmentFormValues>({
     resolver: zodResolver(adjustmentSchema),
@@ -125,6 +126,16 @@ export default function SettingsPage() {
     });
     resetSupplier();
   };
+  
+  const handleDeleteSupplier = () => {
+    if (!supplierToDelete) return;
+    deleteSupplier(supplierToDelete.id);
+    toast({
+        title: "Supplier Deleted",
+        description: `${supplierToDelete.name} has been removed from your list.`,
+    });
+    setSupplierToDelete(null);
+  }
 
   return (
     <div className="p-4 md:p-8">
@@ -180,6 +191,9 @@ export default function SettingsPage() {
                                                <Link href={`/customers/${s.id}/ledger`}>
                                                  <BookText className="w-5 h-5" />
                                                </Link>
+                                            </Button>
+                                            <Button variant="ghost" size="icon" title="Delete Supplier" onClick={() => setSupplierToDelete(s)}>
+                                                <Trash2 className="w-5 h-5 text-destructive" />
                                             </Button>
                                         </TableCell>
                                     </TableRow>
@@ -337,6 +351,24 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+      
+      <AlertDialog open={!!supplierToDelete} onOpenChange={(isOpen) => !isOpen && setSupplierToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the supplier: <br />
+              <strong className="font-medium text-foreground">{supplierToDelete?.name}</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteSupplier} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Yes, delete supplier
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
