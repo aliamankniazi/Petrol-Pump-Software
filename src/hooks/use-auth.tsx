@@ -66,7 +66,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user && isAuthPage) {
       router.push('/');
     } else if (!user && !isAuthPage && isConfigValid) {
-      // Only redirect to login if config is valid
       router.push('/login');
     }
   }, [user, loading, pathname, router, isConfigValid]);
@@ -88,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     };
     await firebaseSignOut(auth);
-    router.push('/login');
+    // The onAuthStateChanged listener will handle the redirect.
   };
 
   const value = {
@@ -99,46 +98,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
   };
   
-  // While loading, show a blank screen or a minimal loader
   if (loading) {
      return (
-        <div className="flex h-screen items-center justify-center">
+        <div className="flex h-screen w-full items-center justify-center">
             <p>Loading...</p>
         </div>
-    );
-  }
-
-  // If config is invalid, we're in offline mode. The user is set to FAKE_USER.
-  // We can render the children directly. The routing logic in useEffect handles auth pages.
-  if (!isConfigValid) {
-    const isAuthPage = pathname === '/login' || pathname === '/signup';
-     if (isAuthPage) {
-        // Don't show auth pages in offline mode, redirect to home.
-        router.push('/');
-        return (
-            <div className="flex h-screen items-center justify-center">
-                <p>Redirecting...</p>
-            </div>
-        );
-     }
-     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-  }
-
-  // If config is valid, proceed with standard auth flow
-  const isAuthPage = pathname === '/login' || pathname === '/signup';
-  if (!user && !isAuthPage) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-          <p>Redirecting to login...</p>
-      </div>
-    );
-  }
-
-  if (user && isAuthPage) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-          <p>Redirecting...</p>
-      </div>
     );
   }
 
