@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { Archive, XCircle, Printer, MessageSquare, Trash2, Pencil } from 'lucide-react';
+import { Archive, XCircle, Printer, MessageSquare, Trash2, Pencil, AlertTriangle } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
 import { usePurchases } from '@/hooks/use-purchases';
 import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
@@ -15,15 +15,27 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useCustomers } from '@/hooks/use-customers';
 import type { Customer, Purchase, PurchaseReturn, Transaction } from '@/lib/types';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
+
 
 type CombinedEntry = {
   id: string;
+  originalId: string;
   timestamp: string;
   type: 'Sale' | 'Purchase' | 'Purchase Return';
   partner: string;
   details: string;
   amount: number;
-  // Add original object for actions
   original: Transaction | Purchase | PurchaseReturn;
 };
 
@@ -40,11 +52,13 @@ const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 
 export default function AllTransactionsPage() {
-  const { transactions, isLoaded: transactionsLoaded } = useTransactions();
-  const { purchases, isLoaded: purchasesLoaded } = usePurchases();
-  const { purchaseReturns, isLoaded: purchaseReturnsLoaded } = usePurchaseReturns();
+  const { transactions, deleteTransaction, isLoaded: transactionsLoaded } = useTransactions();
+  const { purchases, deletePurchase, isLoaded: purchasesLoaded } = usePurchases();
+  const { purchaseReturns, deletePurchaseReturn, isLoaded: purchaseReturnsLoaded } = usePurchaseReturns();
   const { customers, isLoaded: customersLoaded } = useCustomers();
   const [searchTerm, setSearchTerm] = useState('');
+  const [entryToDelete, setEntryToDelete] = useState<CombinedEntry | null>(null);
+  const { toast } = useToast();
 
   const isLoaded = transactionsLoaded && purchasesLoaded && purchaseReturnsLoaded && customersLoaded;
 
@@ -53,6 +67,7 @@ export default function AllTransactionsPage() {
 
     const sales: CombinedEntry[] = transactions.map(tx => ({
       id: `sale-${tx.id}`,
+      originalId: tx.id,
       timestamp: tx.timestamp,
       type: 'Sale',
       partner: tx.customerName || 'Walk-in Customer',
@@ -63,6 +78,7 @@ export default function AllTransactionsPage() {
 
     const allPurchases: CombinedEntry[] = purchases.map(p => ({
       id: `purchase-${p.id}`,
+      originalId: p.id,
       timestamp: p.timestamp,
       type: 'Purchase',
       partner: p.supplier,
@@ -73,6 +89,7 @@ export default function AllTransactionsPage() {
 
     const returns: CombinedEntry[] = purchaseReturns.map(pr => ({
       id: `return-${pr.id}`,
+      originalId: pr.id,
       timestamp: pr.timestamp,
       type: 'Purchase Return',
       partner: pr.supplier,
@@ -121,8 +138,33 @@ export default function AllTransactionsPage() {
       }
       return undefined;
   }
+  
+  const handleDeleteEntry = () => {
+    if (!entryToDelete) return;
+    
+    switch(entryToDelete.type) {
+        case 'Sale': deleteTransaction(entryToDelete.originalId); break;
+        case 'Purchase': deletePurchase(entryToDelete.originalId); break;
+        case 'Purchase Return': deletePurchaseReturn(entryToDelete.originalId); break;
+        default:
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Could not delete entry of unknown type.',
+            });
+            return;
+    }
+
+    toast({
+        title: 'Entry Deleted',
+        description: `The ${entryToDelete.type} entry for ${entryToDelete.partner} has been successfully deleted.`,
+    });
+    setEntryToDelete(null);
+  };
+
 
   return (
+    <>
     <div className="p-4 md:p-8">
       <Card>
         <CardHeader>
@@ -191,7 +233,7 @@ export default function AllTransactionsPage() {
                         <Button variant="ghost" size="icon" title="Edit (Coming Soon)" disabled>
                             <Pencil className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" title="Delete (Coming Soon)" disabled className="text-destructive hover:text-destructive">
+                        <Button variant="ghost" size="icon" title="Delete" className="text-destructive hover:text-destructive" onClick={() => setEntryToDelete(entry)}>
                             <Trash2 className="w-4 h-4" />
                         </Button>
                     </TableCell>
@@ -218,5 +260,24 @@ export default function AllTransactionsPage() {
         </CardContent>
       </Card>
     </div>
+
+    <AlertDialog open={!!entryToDelete} onOpenChange={(isOpen) => !isOpen && setEntryToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the entry: <br />
+              <strong className="font-medium text-foreground">{entryToDelete?.type} to {entryToDelete?.partner} - {entryToDelete?.details}</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteEntry} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Yes, delete entry
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
