@@ -55,11 +55,25 @@ export default function PartnerLedgerPage() {
 
   const entities = useMemo(() => {
     if (!isLoaded) return [];
-    const allEntities = [
-      ...customers.map(c => ({ id: c.id, name: c.name, type: 'Customer' as const })),
-      ...suppliers.map(s => ({ id: s.id, name: s.name, type: 'Supplier' as const })),
-      ...businessPartners.map(p => ({ id: p.id, name: p.name, type: 'Partner' as const }))
-    ];
+
+    const entityMap = new Map<string, { id: string; name: string; type: 'Customer' | 'Supplier' | 'Partner' }>();
+
+    customers.forEach(c => {
+      // It's a regular customer unless it's also in the partners list
+      entityMap.set(c.id, { id: c.id, name: c.name, type: 'Customer' });
+    });
+
+    suppliers.forEach(s => {
+      entityMap.set(s.id, { id: s.id, name: s.name, type: 'Supplier' });
+    });
+    
+    businessPartners.forEach(p => {
+        // If a partner exists, their type should be 'Partner'
+        entityMap.set(p.id, { id: p.id, name: p.name, type: 'Partner' });
+    });
+
+    const allEntities = Array.from(entityMap.values());
+    
     return allEntities.sort((a,b) => a.name.localeCompare(b.name));
   }, [customers, suppliers, businessPartners, isLoaded]);
 
@@ -169,8 +183,10 @@ export default function PartnerLedgerPage() {
         const lastDebitEntry = [...entityFilteredEntries].reverse().find(e => e.debit > 0);
         const lastCreditEntry = [...entityFilteredEntries].reverse().find(e => e.credit > 0);
         
+        const entityType = entities.find(e => e.id === selectedEntityId)?.type;
+        
         let entityTotalBalance;
-        if (entityFilteredEntries[0].entityType === 'Partner') {
+        if (entityType === 'Partner') {
           // For partners, positive balance is net investment (credit balance)
           entityTotalBalance = entityFilteredEntries.reduce((acc, entry) => acc + (entry.credit - entry.debit), 0);
         } else {
@@ -182,7 +198,7 @@ export default function PartnerLedgerPage() {
             totalBalance: entityTotalBalance,
             lastDebit: lastDebitEntry ? lastDebitEntry.debit : 0,
             lastCredit: lastCreditEntry ? lastCreditEntry.credit : 0,
-            entityType: entityFilteredEntries[0].entityType,
+            entityType: entityType || 'Customer',
         };
     }
 
@@ -199,7 +215,16 @@ export default function PartnerLedgerPage() {
 
     let runningBalance = openingBalance;
     const entriesWithBalance: CombinedEntry[] = entriesForDisplay.map(entry => {
-        runningBalance += (entry.debit - entry.credit);
+        const entityType = entities.find(e => e.id === entry.entityId)?.type;
+        if(entityType === 'Partner'){
+            runningBalance += entry.credit - entry.debit;
+        } else if (entityType === 'Supplier') {
+            runningBalance += entry.credit - entry.debit;
+        }
+        else {
+             runningBalance += entry.debit - entry.credit;
+        }
+
         return { ...entry, balance: runningBalance };
     });
 
@@ -218,7 +243,7 @@ export default function PartnerLedgerPage() {
         finalBalance: runningBalance,
         specialReport: reportData,
     };
-  }, [customerPayments, transactions, cashAdvances, purchases, supplierPayments, investments, selectedEntityId, selectedDate, isLoaded]);
+  }, [customerPayments, transactions, cashAdvances, purchases, supplierPayments, investments, selectedEntityId, selectedDate, isLoaded, entities]);
   
   const getBadgeVariant = (type: CombinedEntry['type']) => {
     switch (type) {
@@ -425,4 +450,3 @@ export default function PartnerLedgerPage() {
     </div>
   );
 }
-
