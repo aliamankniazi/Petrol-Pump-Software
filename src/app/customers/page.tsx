@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import { useCustomers } from '@/hooks/use-customers';
 import Link from 'next/link';
 import Barcode from 'react-barcode';
+import { useMemo } from 'react';
 
 const customerSchema = z.object({
   name: z.string().min(1, 'Customer name is required'),
@@ -43,6 +44,10 @@ export default function CustomersPage() {
   const { register, handleSubmit, reset, formState: { errors } } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
   });
+  
+  const regularCustomers = useMemo(() => {
+    return customers.filter(c => !c.isPartner);
+  }, [customers]);
 
   const onSubmit: SubmitHandler<CustomerFormValues> = (data) => {
     addCustomer(data);
@@ -107,11 +112,11 @@ export default function CustomersPage() {
               <List /> Customer List
             </CardTitle>
             <CardDescription>
-              A record of all your customers.
+              A record of all your customers. Business partners are managed in the Investments section.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {customers.length > 0 ? (
+            {regularCustomers.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -121,7 +126,7 @@ export default function CustomersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {customers.map(c => (
+                  {regularCustomers.map(c => (
                       <TableRow key={c.id}>
                         <TableCell>
                           <div className="font-medium">{c.name}</div>

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -34,18 +35,29 @@ export function useCustomers() {
     }
   }, [customers, isLoaded]);
 
-  const addCustomer = useCallback((customer: Omit<Customer, 'id' | 'timestamp'>): Customer => {
-    const newCustomer = { ...customer, id: crypto.randomUUID(), timestamp: new Date().toISOString() };
-    setCustomers(prev => [
-      newCustomer,
-      ...prev,
-    ]);
+  const addCustomer = useCallback((customer: Omit<Customer, 'timestamp'> & { id?: string }): Customer => {
+    const newCustomer = { 
+        ...customer, 
+        id: customer.id || crypto.randomUUID(), 
+        timestamp: new Date().toISOString() 
+    };
+    setCustomers(prev => {
+        // Avoid adding duplicates if an ID is provided
+        if (customer.id && prev.some(c => c.id === customer.id)) {
+            return prev;
+        }
+        return [newCustomer, ...prev];
+    });
     return newCustomer;
+  }, []);
+  
+  const updateCustomer = useCallback((id: string, updatedDetails: Partial<Customer>) => {
+    setCustomers(prev => prev.map(c => c.id === id ? { ...c, ...updatedDetails } : c));
   }, []);
 
   const clearCustomers = useCallback(() => {
     setCustomers([]);
   }, []);
 
-  return { customers, addCustomer, clearCustomers, isLoaded };
+  return { customers, addCustomer, updateCustomer, clearCustomers, isLoaded };
 }

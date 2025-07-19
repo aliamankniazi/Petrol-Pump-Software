@@ -63,6 +63,7 @@ export interface Customer {
   contact: string;
   vehicleNumber?: string;
   area?: string;
+  isPartner?: boolean;
   timestamp: string;
 }
 
