@@ -48,15 +48,14 @@ const ShellLogo = (props: React.SVGProps<SVGSVGElement>) => (
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useAuth();
   const pathname = usePathname();
-
+  const pageTitle = navItems.find(item => item.href === pathname)?.label ?? 'Dashboard';
+  
   // If there's no user, we are on a public page like /login, so just render the children.
   if (!user) {
     return <>{children}</>;
   }
 
   // If there is a user, render the full application layout.
-  const pageTitle = navItems.find(item => item.href === pathname)?.label ?? 'Dashboard';
-
   return (
     <SidebarProvider>
       <Sidebar>

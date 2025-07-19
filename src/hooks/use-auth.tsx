@@ -84,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await firebaseSignOut(auth);
     }
     setUser(null);
-    router.push('/login');
+    // No need to manually push, the useEffect hook will handle it.
   };
 
   const value = {
@@ -95,8 +95,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
   };
   
-  const isAuthPage = pathname === '/login' || pathname === '/signup';
-
   if (loading) {
      return (
         <div className="flex h-screen w-full items-center justify-center">
@@ -104,15 +102,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         </div>
     );
   }
-  
-  if ((user && isAuthPage) || (!user && !isAuthPage)) {
-      return (
-          <div className="flex h-screen w-full items-center justify-center">
-              <p>Redirecting...</p>
-          </div>
-      );
-  }
-
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
