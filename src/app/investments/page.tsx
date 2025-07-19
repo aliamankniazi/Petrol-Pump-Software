@@ -18,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { useBusinessPartners } from '@/hooks/use-business-partners';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -83,7 +83,7 @@ export default function InvestmentsPage() {
   };
   
   const onPartnerSubmit: SubmitHandler<PartnerFormValues> = (data) => {
-    if (partnerToEdit) {
+    if (partnerToEdit && partnerToEdit.id) {
       updateBusinessPartner(partnerToEdit.id, data);
       toast({ title: 'Partner Updated', description: `${data.name}'s details have been updated.` });
     } else {
@@ -98,7 +98,7 @@ export default function InvestmentsPage() {
     setPartnerToEdit(partner);
     setPartnerValue('name', partner.name);
     setPartnerValue('sharePercentage', partner.sharePercentage);
-    setPartnerValue('contact', partner.contact);
+    setPartnerValue('contact', partner.contact || '');
   }
 
   const handleDeletePartner = () => {
@@ -382,7 +382,7 @@ export default function InvestmentsPage() {
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setPartnerToEdit(null)}>Cancel</Button>
+                    <Button type="button" variant="outline" onClick={() => { setPartnerToEdit(null); resetPartner(); }}>Cancel</Button>
                     <Button type="submit">{partnerToEdit?.id ? 'Save Changes' : 'Add Partner'}</Button>
                 </DialogFooter>
             </form>

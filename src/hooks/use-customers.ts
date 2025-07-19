@@ -46,7 +46,7 @@ export function useCustomers() {
         if (customer.id && prev.some(c => c.id === customer.id)) {
             return prev;
         }
-        return [newCustomer, ...prev];
+        return [newCustomer, ...prev].sort((a,b) => a.name.localeCompare(b.name));
     });
     return newCustomer;
   }, []);
@@ -59,5 +59,5 @@ export function useCustomers() {
     setCustomers([]);
   }, []);
 
-  return { customers, addCustomer, updateCustomer, clearCustomers, isLoaded };
+  return { customers, setCustomers, addCustomer, updateCustomer, clearCustomers, isLoaded };
 }

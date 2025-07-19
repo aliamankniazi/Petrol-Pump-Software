@@ -50,7 +50,7 @@ export default function CustomersPage() {
   }, [customers]);
 
   const onSubmit: SubmitHandler<CustomerFormValues> = (data) => {
-    addCustomer(data);
+    addCustomer({ ...data, isPartner: false });
     toast({
       title: 'Customer Added',
       description: `${data.name} has been added to your customer list.`,

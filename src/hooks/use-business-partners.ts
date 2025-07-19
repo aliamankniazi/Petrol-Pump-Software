@@ -10,7 +10,7 @@ const STORAGE_KEY = 'pumppal-business-partners';
 export function useBusinessPartners() {
   const [businessPartners, setBusinessPartners] = useState<BusinessPartner[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const { addCustomer, updateCustomer, customers } = useCustomers();
+  const { customers, addCustomer, updateCustomer } = useCustomers();
 
   useEffect(() => {
     try {
@@ -53,7 +53,7 @@ export function useBusinessPartners() {
     setBusinessPartners(prev => [
       newPartner,
       ...prev,
-    ]);
+    ].sort((a,b) => a.name.localeCompare(b.name)));
 
     return newPartner;
   }, [addCustomer]);
