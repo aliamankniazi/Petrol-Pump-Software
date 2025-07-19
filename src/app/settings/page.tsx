@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -9,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Settings, Trash2, AlertTriangle, Droplets, Package, Edit } from 'lucide-react';
+import { Settings, Trash2, AlertTriangle, Droplets, Package, Edit, Truck, UserPlus } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +29,8 @@ import type { FuelType } from '@/lib/types';
 import { useFuelStock } from '@/hooks/use-fuel-stock';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSettings } from '@/hooks/use-settings';
+import { useSuppliers } from '@/hooks/use-suppliers';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
@@ -39,10 +42,18 @@ const adjustmentSchema = z.object({
 
 type AdjustmentFormValues = z.infer<typeof adjustmentSchema>;
 
+const supplierSchema = z.object({
+  name: z.string().min(1, 'Supplier name is required'),
+  contact: z.string().optional(),
+});
+type SupplierFormValues = z.infer<typeof supplierSchema>;
+
+
 export default function SettingsPage() {
   const { clearAllData } = useSettings();
   const { fuelPrices, updateFuelPrice, isLoaded: pricesLoaded } = useFuelPrices();
   const { fuelStock, setFuelStock, isLoaded: stockLoaded } = useFuelStock();
+  const { suppliers, addSupplier, isLoaded: suppliersLoaded } = useSuppliers();
   const { toast } = useToast();
 
   const { register, handleSubmit, control, reset, watch, formState: { errors } } = useForm<AdjustmentFormValues>({
@@ -50,6 +61,15 @@ export default function SettingsPage() {
     defaultValues: {
       adjustment: 0,
     }
+  });
+
+  const { 
+    register: registerSupplier, 
+    handleSubmit: handleSubmitSupplier, 
+    reset: resetSupplier, 
+    formState: { errors: supplierErrors } 
+  } = useForm<SupplierFormValues>({
+    resolver: zodResolver(supplierSchema),
   });
 
   const selectedFuelType = watch('fuelType');
@@ -95,6 +115,15 @@ export default function SettingsPage() {
     });
     reset({ fuelType: data.fuelType, adjustment: 0 });
   };
+  
+  const onSupplierSubmit: SubmitHandler<SupplierFormValues> = (data) => {
+    addSupplier(data);
+    toast({
+      title: 'Supplier Added',
+      description: `${data.name} has been added to your supplier list.`,
+    });
+    resetSupplier();
+  };
 
   return (
     <div className="p-4 md:p-8">
@@ -106,6 +135,61 @@ export default function SettingsPage() {
           <CardDescription>Customize application settings, fuel prices, and inventory.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
+        
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium flex items-center gap-2"><Truck /> Supplier Management</h3>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-xl flex items-center gap-2"><UserPlus /> Add New Supplier</CardTitle>
+                    <CardDescription>Add a new supplier to your permanent list.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleSubmitSupplier(onSupplierSubmit)} className="space-y-4">
+                        <div className="grid sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="supplierName">Supplier Name</Label>
+                                <Input id="supplierName" {...registerSupplier('name')} placeholder="e.g., PSO" />
+                                {supplierErrors.name && <p className="text-sm text-destructive">{supplierErrors.name.message}</p>}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="supplierContact">Contact (Optional)</Label>
+                                <Input id="supplierContact" {...registerSupplier('contact')} placeholder="e.g., 0300-1234567" />
+                            </div>
+                        </div>
+                        <Button type="submit">Add Supplier</Button>
+                    </form>
+                    <Separator className="my-6" />
+                    <h4 className="text-md font-medium mb-4">Existing Suppliers</h4>
+                    <div className="rounded-md border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Contact</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {suppliersLoaded && suppliers.length > 0 ? suppliers.map(s => (
+                                    <TableRow key={s.id}>
+                                        <TableCell className="font-medium">{s.name}</TableCell>
+                                        <TableCell>{s.contact || 'N/A'}</TableCell>
+                                    </TableRow>
+                                )) : (
+                                    <TableRow>
+                                        <TableCell colSpan={2} className="h-24 text-center">
+                                            {suppliersLoaded ? 'No suppliers added yet.' : 'Loading suppliers...'}
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+          </div>
+        
+          <Separator />
+        
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Fuel Prices</h3>
             <div className="space-y-4">

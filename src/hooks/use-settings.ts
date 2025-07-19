@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useTransactions } from '@/hooks/use-transactions';
@@ -14,6 +15,7 @@ import { useCashAdvances } from '@/hooks/use-cash-advances';
 import { useOtherIncomes } from './use-other-incomes';
 import { useTankReadings } from './use-tank-readings';
 import { useSupplierPayments } from './use-supplier-payments';
+import { useSuppliers } from './use-suppliers';
 
 export function useSettings() {
   const { clearTransactions } = useTransactions();
@@ -21,6 +23,7 @@ export function useSettings() {
   const { clearPurchaseReturns } = usePurchaseReturns();
   const { clearExpenses } = useExpenses();
   const { clearCustomers } = useCustomers();
+  const { clearSuppliers } = useSuppliers();
   const { clearBankAccounts } = useBankAccounts();
   const { clearEmployees } = useEmployees();
   const { clearFuelPrices } = useFuelPrices();
@@ -37,6 +40,7 @@ export function useSettings() {
     clearPurchaseReturns();
     clearExpenses();
     clearCustomers();
+    clearSuppliers();
     clearBankAccounts();
     clearEmployees();
     clearFuelPrices();

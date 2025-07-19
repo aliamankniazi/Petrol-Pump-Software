@@ -21,9 +21,10 @@ import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { useSuppliers } from '@/hooks/use-suppliers';
 
 const supplierPaymentSchema = z.object({
-  supplierName: z.string().min(1, 'Please select a supplier.'),
+  supplierId: z.string().min(1, 'Please select a supplier.'),
   amount: z.coerce.number().min(0.01, 'Amount must be greater than 0'),
   paymentMethod: z.enum(['Cash', 'Card', 'Mobile'], { required_error: 'Please select a payment method.' }),
   date: z.date({ required_error: "A date is required."}),
@@ -32,7 +33,7 @@ const supplierPaymentSchema = z.object({
 type SupplierPaymentFormValues = z.infer<typeof supplierPaymentSchema>;
 
 export default function SupplierPaymentsPage() {
-  const { purchases, isLoaded: purchasesLoaded } = usePurchases();
+  const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
   const { supplierPayments, addSupplierPayment } = useSupplierPayments();
   const { toast } = useToast();
   
@@ -43,23 +44,21 @@ export default function SupplierPaymentsPage() {
     }
   });
 
-  const suppliers = useMemo(() => {
-    if (!purchasesLoaded) return [];
-    const supplierSet = new Set(purchases.map(p => p.supplier));
-    return Array.from(supplierSet);
-  }, [purchases, purchasesLoaded]);
-
   const onSubmit: SubmitHandler<SupplierPaymentFormValues> = (data) => {
+    const supplier = suppliers.find(s => s.id === data.supplierId);
+    if (!supplier) return;
+
     addSupplierPayment({ 
       ...data,
+      supplierName: supplier.name, // Pass name for display
       timestamp: data.date.toISOString(),
     });
     
     toast({
       title: 'Payment Recorded',
-      description: `Payment of PKR ${data.amount} to ${data.supplierName} has been logged.`,
+      description: `Payment of PKR ${data.amount} to ${supplier.name} has been logged.`,
     });
-    reset({ supplierName: '', amount: 0, date: new Date() });
+    reset({ supplierId: '', amount: 0, date: new Date() });
   };
   
   const getBadgeVariant = (method: PaymentMethod) => {
@@ -86,7 +85,7 @@ export default function SupplierPaymentsPage() {
               <div className="space-y-2">
                 <Label>Supplier</Label>
                 <Controller
-                  name="supplierName"
+                  name="supplierId"
                   control={control}
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value} defaultValue="">
@@ -94,14 +93,14 @@ export default function SupplierPaymentsPage() {
                         <SelectValue placeholder="Select a supplier" />
                       </SelectTrigger>
                       <SelectContent>
-                        {purchasesLoaded ? suppliers.map(s => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        {suppliersLoaded ? suppliers.map(s => (
+                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                         )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
                       </SelectContent>
                     </Select>
                   )}
                 />
-                {errors.supplierName && <p className="text-sm text-destructive">{errors.supplierName.message}</p>}
+                {errors.supplierId && <p className="text-sm text-destructive">{errors.supplierId.message}</p>}
               </div>
 
               <div className="space-y-2">

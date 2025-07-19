@@ -1,3 +1,4 @@
+
 export type FuelType = 'Unleaded' | 'Premium' | 'Diesel';
 
 export type PaymentMethod = 'Cash' | 'Card' | 'Mobile';
@@ -16,6 +17,7 @@ export interface Transaction {
 
 export interface Purchase {
   id: string;
+  supplierId: string;
   supplier: string;
   fuelType: FuelType;
   volume: number;
@@ -25,6 +27,7 @@ export interface Purchase {
 
 export interface PurchaseReturn {
   id: string;
+  supplierId: string;
   supplier: string;
   fuelType: FuelType;
   volume: number;
@@ -61,6 +64,13 @@ export interface Customer {
   timestamp: string;
 }
 
+export interface Supplier {
+  id: string;
+  name: string;
+  contact?: string;
+  timestamp: string;
+}
+
 export interface BankAccount {
   id: string;
   bankName: string;
@@ -90,6 +100,7 @@ export interface CustomerPayment {
 
 export interface SupplierPayment {
   id: string;
+  supplierId: string;
   supplierName: string;
   amount: number;
   paymentMethod: PaymentMethod;

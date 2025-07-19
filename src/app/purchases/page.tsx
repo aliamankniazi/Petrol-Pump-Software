@@ -18,11 +18,12 @@ import { usePurchases } from '@/hooks/use-purchases';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { useSuppliers } from '@/hooks/use-suppliers';
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
 const purchaseSchema = z.object({
-  supplier: z.string().min(1, 'Supplier name is required'),
+  supplierId: z.string().min(1, 'Please select a supplier.'),
   fuelType: z.enum(FUEL_TYPES, { required_error: 'Please select a fuel type.' }),
   volume: z.coerce.number().min(0.01, 'Volume must be greater than 0'),
   totalCost: z.coerce.number().min(0.01, 'Total cost must be greater than 0'),
@@ -33,6 +34,7 @@ type PurchaseFormValues = z.infer<typeof purchaseSchema>;
 
 export default function PurchasesPage() {
   const { purchases, addPurchase } = usePurchases();
+  const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
   const { toast } = useToast();
   const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema),
@@ -42,16 +44,20 @@ export default function PurchasesPage() {
   });
 
   const onSubmit: SubmitHandler<PurchaseFormValues> = (data) => {
+    const supplier = suppliers.find(s => s.id === data.supplierId);
+    if (!supplier) return;
+
     addPurchase({
       ...data,
+      supplier: supplier.name, // Pass the name for display purposes
       timestamp: data.date.toISOString(),
     });
     toast({
       title: 'Purchase Recorded',
-      description: `Delivery from ${data.supplier} has been logged.`,
+      description: `Delivery from ${supplier.name} has been logged.`,
     });
     reset({
-        supplier: '',
+        supplierId: '',
         volume: 0,
         totalCost: 0,
         date: new Date(),
@@ -71,9 +77,24 @@ export default function PurchasesPage() {
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="supplier">Supplier</Label>
-                <Input id="supplier" {...register('supplier')} placeholder="e.g., Shell, PSO" />
-                {errors.supplier && <p className="text-sm text-destructive">{errors.supplier.message}</p>}
+                <Label htmlFor="supplierId">Supplier</Label>
+                <Controller
+                  name="supplierId"
+                  control={control}
+                  render={({ field }) => (
+                     <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a supplier" />
+                      </SelectTrigger>
+                      <SelectContent>
+                         {suppliersLoaded ? suppliers.map(s => (
+                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.supplierId && <p className="text-sm text-destructive">{errors.supplierId.message}</p>}
               </div>
 
               <div className="space-y-2">

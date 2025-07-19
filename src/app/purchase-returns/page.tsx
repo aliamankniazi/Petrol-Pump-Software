@@ -19,12 +19,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { useSuppliers } from '@/hooks/use-suppliers';
 
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
 const purchaseReturnSchema = z.object({
-  supplier: z.string().min(1, 'Supplier name is required'),
+  supplierId: z.string().min(1, 'Please select a supplier.'),
   fuelType: z.enum(FUEL_TYPES, { required_error: 'Please select a fuel type.' }),
   volume: z.coerce.number().min(0.01, 'Volume must be greater than 0'),
   totalRefund: z.coerce.number().min(0.01, 'Total refund must be greater than 0'),
@@ -36,6 +37,7 @@ type PurchaseReturnFormValues = z.infer<typeof purchaseReturnSchema>;
 
 export default function PurchaseReturnsPage() {
   const { purchaseReturns, addPurchaseReturn } = usePurchaseReturns();
+  const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
   const { toast } = useToast();
   const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<PurchaseReturnFormValues>({
     resolver: zodResolver(purchaseReturnSchema),
@@ -45,13 +47,20 @@ export default function PurchaseReturnsPage() {
   });
 
   const onSubmit: SubmitHandler<PurchaseReturnFormValues> = (data) => {
-    addPurchaseReturn({ ...data, timestamp: data.date.toISOString() });
+    const supplier = suppliers.find(s => s.id === data.supplierId);
+    if (!supplier) return;
+
+    addPurchaseReturn({ 
+        ...data, 
+        supplier: supplier.name, // Pass name for display
+        timestamp: data.date.toISOString() 
+    });
     toast({
       title: 'Purchase Return Recorded',
-      description: `Return to ${data.supplier} has been logged.`,
+      description: `Return to ${supplier.name} has been logged.`,
     });
     reset({
-        supplier: '',
+        supplierId: '',
         volume: 0,
         totalRefund: 0,
         reason: '',
@@ -72,9 +81,24 @@ export default function PurchaseReturnsPage() {
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="supplier">Supplier</Label>
-                <Input id="supplier" {...register('supplier')} placeholder="e.g., Shell, PSO" />
-                {errors.supplier && <p className="text-sm text-destructive">{errors.supplier.message}</p>}
+                <Label htmlFor="supplierId">Supplier</Label>
+                 <Controller
+                  name="supplierId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a supplier" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {suppliersLoaded ? suppliers.map(s => (
+                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.supplierId && <p className="text-sm text-destructive">{errors.supplierId.message}</p>}
               </div>
 
               <div className="space-y-2">
