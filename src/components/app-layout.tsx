@@ -15,7 +15,7 @@ import {
   SidebarTrigger,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { History, FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, LogOut } from 'lucide-react';
+import { History, FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, LogOut, Fuel } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from './ui/button';
 
@@ -36,28 +36,33 @@ const navItems = [
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
-const FuelFlowLogo = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg viewBox="0 0 160 40" xmlns="http://www.w3.org/2000/svg" {...props}>
-        <path d="M38.4,38.2c-1.9-0.9-3-2.6-3.7-4.4l-7.2-19.1c-0.7-1.9-2.6-3.7-4.4-3.7h-1.9c-1.9,0-3,1.9-3.7,3.7l-7.2,19.1 c-0.7,1.9-1.9,3.7-3.7,4.4L5,39.1c-1.9,0-3.7-0.7-4.4-2.6c-0.7-1.9,0-4.4,1.9-5.3l7.2-4.4c1.9-0.7,3-2.6,3.7-4.4L20.6,5.3 c0.7-1.9,2.6-3.7,4.4-3.7h1.9c1.9,0,3.7,1.9,4.4,3.7l7.2,19.1c0.7,1.9,2.6,3.7,4.4,4.4l7.2,4.4c1.9,0.7,2.6,3,1.9,5.3 c-0.7,1.9-2.6,2.6-4.4,2.6L38.4,38.2z" fill="#007bff"/>
-        <path d="M12.7,12.1c-2.4-0.9-4.8-1.7-7.2-2.6c-1.5-0.5-2.6-1.7-2.8-3.3C2.5,4.7,3.5,3.3,5,2.8c2.4-0.9,4.8-1.7,7.2-2.6 c1.5-0.5,3.3,0.2,4,1.7c0.7,1.5,0.2,3.3-1.3,4C13.5,11.2,13.1,11.6,12.7,12.1z" fill="#ffc107"/>
-        <text x="50" y="30" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="24" fill="#007bff">FUEL</text>
-        <text x="100" y="30" fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="24" fill="#ff9900">FLOW</text>
-    </svg>
+const AppLogo = (props: React.SVGProps<SVGSVGElement>) => (
+    <div className="flex items-center gap-2.5" {...props}>
+      <div className="bg-primary rounded-lg p-2 text-primary-foreground">
+        <Fuel className="w-6 h-6" />
+      </div>
+      <div className="flex flex-col">
+        <h2 className="text-lg font-bold tracking-tighter text-primary">Mianwali</h2>
+        <p className="text-xs text-muted-foreground -mt-1">Petroleum Service</p>
+      </div>
+    </div>
 );
 
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const pathname = usePathname();
   const pageTitle = navItems.find(item => item.href === pathname)?.label ?? 'Dashboard';
+
+  if (!user) {
+    return <>{children}</>;
+  }
 
   return (
     <SidebarProvider>
       <Sidebar>
-        <SidebarHeader className='p-4'>
-            <div className="flex items-center gap-2">
-                <FuelFlowLogo className="w-auto h-8" />
-            </div>
+        <SidebarHeader className='p-4 border-b border-sidebar-border'>
+            <AppLogo />
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
@@ -74,10 +79,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-           <div className="px-4 py-2 text-center text-xs text-sidebar-foreground/70">
-                <p className="font-semibold">FuelFlow Lite</p>
-                <p>By Mayuri K Freelancer</p>
-            </div>
           <SidebarMenu>
             <SidebarMenuItem>
               <Button variant="ghost" className="w-full justify-start gap-2" onClick={signOut}>
