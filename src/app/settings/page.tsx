@@ -20,7 +20,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
@@ -83,22 +82,22 @@ export default function SettingsPage() {
     return Number(currentStock) + adj;
   }, [currentStock, adjustmentValue]);
 
-  const handleClearData = () => {
+  const handleClearData = React.useCallback(() => {
     clearAllData();
     toast({
       title: "Data Cleared",
       description: "All application data has been removed.",
     });
-  };
+  }, [clearAllData, toast]);
 
-  const handlePriceChange = (fuelType: FuelType, value: string) => {
+  const handlePriceChange = React.useCallback((fuelType: FuelType, value: string) => {
     const price = parseFloat(value);
     if (!isNaN(price)) {
       updateFuelPrice(fuelType, price);
     }
-  };
+  }, [updateFuelPrice]);
 
-  const onAdjustmentSubmit: SubmitHandler<AdjustmentFormValues> = (data) => {
+  const onAdjustmentSubmit: SubmitHandler<AdjustmentFormValues> = React.useCallback((data) => {
     const currentStockValue = fuelStock[data.fuelType] || 0;
     const finalNewStock = currentStockValue + data.adjustment;
 
@@ -116,18 +115,18 @@ export default function SettingsPage() {
       description: `${data.fuelType} stock has been set to ${finalNewStock.toLocaleString()} L.`,
     });
     reset({ fuelType: data.fuelType, adjustment: 0 });
-  };
+  }, [fuelStock, setFuelStock, toast, reset]);
   
-  const onSupplierSubmit: SubmitHandler<SupplierFormValues> = (data) => {
+  const onSupplierSubmit: SubmitHandler<SupplierFormValues> = React.useCallback((data) => {
     addSupplier(data);
     toast({
       title: 'Supplier Added',
       description: `${data.name} has been added to your supplier list.`,
     });
     resetSupplier();
-  };
+  }, [addSupplier, toast, resetSupplier]);
   
-  const handleDeleteSupplier = () => {
+  const handleDeleteSupplier = React.useCallback(() => {
     if (!supplierToDelete) return;
     deleteSupplier(supplierToDelete.id);
     toast({
@@ -135,7 +134,7 @@ export default function SettingsPage() {
         description: `${supplierToDelete.name} has been removed from your list.`,
     });
     setSupplierToDelete(null);
-  }
+  }, [supplierToDelete, deleteSupplier, toast]);
 
   return (
     <div className="p-4 md:p-8">

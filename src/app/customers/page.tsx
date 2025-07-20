@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -57,16 +57,16 @@ export default function CustomersPage() {
     resolver: zodResolver(customerSchema),
   });
 
-  const onAddSubmit: SubmitHandler<CustomerFormValues> = (data) => {
+  const onAddSubmit: SubmitHandler<CustomerFormValues> = useCallback((data) => {
     addCustomer({ ...data, isPartner: false });
     toast({
       title: 'Customer Added',
       description: `${data.name} has been added to your customer list.`,
     });
     reset();
-  };
+  }, [addCustomer, toast, reset]);
   
-  const onEditSubmit: SubmitHandler<CustomerFormValues> = (data) => {
+  const onEditSubmit: SubmitHandler<CustomerFormValues> = useCallback((data) => {
     if (!customerToEdit) return;
     updateCustomer(customerToEdit.id, data);
     toast({
@@ -74,9 +74,9 @@ export default function CustomersPage() {
         description: "The customer's details have been saved."
     });
     setCustomerToEdit(null);
-  };
+  }, [customerToEdit, updateCustomer, toast]);
 
-  const handleDeleteCustomer = () => {
+  const handleDeleteCustomer = useCallback(() => {
     if (!customerToDelete) return;
     deleteCustomer(customerToDelete.id);
     toast({
@@ -84,15 +84,18 @@ export default function CustomersPage() {
         description: `${customerToDelete.name} has been removed.`,
     });
     setCustomerToDelete(null);
-  };
-
-  const openEditDialog = (customer: Customer) => {
-    setCustomerToEdit(customer);
-    setEditValue('name', customer.name);
-    setEditValue('contact', customer.contact);
-    setEditValue('vehicleNumber', customer.vehicleNumber || '');
-    setEditValue('area', customer.area || '');
-  }
+  }, [customerToDelete, deleteCustomer, toast]);
+  
+  useEffect(() => {
+      if (customerToEdit) {
+        setEditValue('name', customerToEdit.name);
+        setEditValue('contact', customerToEdit.contact);
+        setEditValue('vehicleNumber', customerToEdit.vehicleNumber || '');
+        setEditValue('area', customerToEdit.area || '');
+      } else {
+        resetEdit();
+      }
+  }, [customerToEdit, setEditValue, resetEdit]);
 
   const formatPhoneNumberForWhatsApp = (phone: string) => {
     return phone.replace(/[^0-9]/g, '');
@@ -183,7 +186,7 @@ export default function CustomersPage() {
                                 <BookText className="w-5 h-5" />
                               </Link>
                            </Button>
-                           <Button variant="ghost" size="icon" title="Edit Customer" onClick={() => openEditDialog(c)}>
+                           <Button variant="ghost" size="icon" title="Edit Customer" onClick={() => setCustomerToEdit(c)}>
                                 <Pencil className="w-4 h-4" />
                            </Button>
                            {c.contact && (

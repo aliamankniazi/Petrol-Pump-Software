@@ -1,7 +1,6 @@
 
 'use client';
 
-import { useMemo } from 'react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,7 +13,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Handshake, ListChecks, WalletCards, CreditCard, Wallet, Smartphone, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
-import { usePurchases } from '@/hooks/use-purchases';
 import { useSupplierPayments } from '@/hooks/use-supplier-payments';
 import type { PaymentMethod } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useSuppliers } from '@/hooks/use-suppliers';
+import { useCallback } from 'react';
 
 const supplierPaymentSchema = z.object({
   supplierId: z.string().min(1, 'Please select a supplier.'),
@@ -44,7 +43,7 @@ export default function SupplierPaymentsPage() {
     }
   });
 
-  const onSubmit: SubmitHandler<SupplierPaymentFormValues> = (data) => {
+  const onSubmit: SubmitHandler<SupplierPaymentFormValues> = useCallback((data) => {
     const supplier = suppliers.find(s => s.id === data.supplierId);
     if (!supplier) return;
 
@@ -58,10 +57,10 @@ export default function SupplierPaymentsPage() {
       title: 'Payment Recorded',
       description: `Payment of PKR ${data.amount} to ${supplier.name} has been logged.`,
     });
-    reset({ supplierId: '', amount: 0, date: new Date() });
-  };
+    reset({ supplierId: '', amount: 0, date: new Date(), paymentMethod: 'Cash' });
+  }, [suppliers, addSupplierPayment, toast, reset]);
   
-  const getBadgeVariant = (method: PaymentMethod) => {
+  const getBadgeVariant = (method: Omit<PaymentMethod, 'Salary'>) => {
     switch (method) {
       case 'Card': return 'default';
       case 'Cash': return 'secondary';

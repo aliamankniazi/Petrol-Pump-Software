@@ -1,5 +1,4 @@
 
-
 export type FuelType = 'Unleaded' | 'Premium' | 'Diesel';
 
 export type PaymentMethod = 'Cash' | 'Card' | 'Mobile' | 'Salary';
@@ -108,7 +107,7 @@ export interface SupplierPayment {
   supplierId: string;
   supplierName: string;
   amount: number;
-  paymentMethod: PaymentMethod;
+  paymentMethod: Omit<PaymentMethod, 'Salary'>;
   timestamp: string;
 }
 

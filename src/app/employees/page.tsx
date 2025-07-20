@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -54,23 +54,21 @@ export default function EmployeesPage() {
     resolver: zodResolver(employeeSchema),
   });
 
-  const onSubmit: SubmitHandler<EmployeeFormValues> = (data) => {
+  const onSubmit: SubmitHandler<EmployeeFormValues> = useCallback((data) => {
     addEmployee(data);
     toast({
       title: 'Employee Added',
       description: `${data.name} has been added to your employee records.`,
     });
     reset();
-  };
+  }, [addEmployee, toast, reset]);
   
-  const handlePaySalary = () => {
+  const handlePaySalary = useCallback(() => {
     if (!selectedEmployee) return;
 
     const monthName = months.find(m => m.value === selectedMonth)?.label;
     const expenseDescription = `Salary for ${selectedEmployee.name} for ${monthName}`;
-    const paymentDescription = `Salary for ${monthName}`;
 
-    // 1. Log the salary as an expense
     addExpense({
       description: expenseDescription,
       category: 'Salaries',
@@ -78,7 +76,6 @@ export default function EmployeesPage() {
       timestamp: new Date().toISOString(),
     });
 
-    // 2. Find or create a customer record for the employee
     let employeeAsCustomer = customers.find(c => c.name.toLowerCase() === selectedEmployee.name.toLowerCase() && c.area === 'Employee');
     
     if (!employeeAsCustomer) {
@@ -89,12 +86,11 @@ export default function EmployeesPage() {
         });
     }
     
-    // 3. Log a payment against the employee's customer record, which acts as a CREDIT
     addCustomerPayment({
         customerId: employeeAsCustomer.id,
         customerName: employeeAsCustomer.name,
         amount: selectedEmployee.salary,
-        paymentMethod: 'Salary', // Use a special method to identify this as a salary
+        paymentMethod: 'Salary',
     });
 
 
@@ -103,8 +99,8 @@ export default function EmployeesPage() {
       description: `Salary for ${selectedEmployee.name} has been logged as an expense and a credit in their ledger.`,
     });
 
-    setSelectedEmployee(null); // Close the dialog
-  };
+    setSelectedEmployee(null);
+  }, [selectedEmployee, selectedMonth, addExpense, customers, addCustomer, addCustomerPayment, toast]);
 
   return (
     <>

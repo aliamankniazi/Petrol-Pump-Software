@@ -1,8 +1,7 @@
 
-
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
 import { useCustomers } from '@/hooks/use-customers';
 import { useTransactions } from '@/hooks/use-transactions';
@@ -30,14 +29,14 @@ type CombinedEntry = {
   entityId: string;
   entityName: string;
   entityType: 'Customer' | 'Supplier' | 'Partner';
-  type: 'Sale' | 'Payment' | 'Cash Advance' | 'Purchase' | 'Supplier Payment' | 'Investment' | 'Withdrawal';
+  type: 'Sale' | 'Payment' | 'Cash Advance' | 'Purchase' | 'Supplier Payment' | 'Investment' | 'Withdrawal' | 'Salary';
   description: string;
   debit: number;
   credit: number;
   balance?: number;
 };
 
-export default function PartnerLedgerPage() {
+export default function UnifiedLedgerPage() {
   const { customerPayments, isLoaded: paymentsLoaded } = useCustomerPayments();
   const { customers, isLoaded: customersLoaded } = useCustomers();
   const { transactions, isLoaded: transactionsLoaded } = useTransactions();
@@ -59,7 +58,6 @@ export default function PartnerLedgerPage() {
     const entityMap = new Map<string, { id: string; name: string; type: 'Customer' | 'Supplier' | 'Partner' }>();
 
     customers.forEach(c => {
-      // It's a regular customer unless it's also in the partners list
       entityMap.set(c.id, { id: c.id, name: c.name, type: 'Customer' });
     });
 
@@ -68,7 +66,6 @@ export default function PartnerLedgerPage() {
     });
     
     businessPartners.forEach(p => {
-        // If a partner exists, their type should be 'Partner'
         entityMap.set(p.id, { id: p.id, name: p.name, type: 'Partner' });
     });
 
@@ -82,15 +79,15 @@ export default function PartnerLedgerPage() {
 
     const combined: Omit<CombinedEntry, 'balance'>[] = [];
 
-    // Customer transactions
     transactions.forEach(tx => {
       if (tx.customerId) {
+        const entityType = entities.find(e => e.id === tx.customerId)?.type || 'Customer';
         combined.push({
           id: `tx-${tx.id}`,
           timestamp: tx.timestamp,
           entityId: tx.customerId,
           entityName: tx.customerName || 'N/A',
-          entityType: 'Customer',
+          entityType: entityType,
           type: 'Sale',
           description: `${tx.volume.toFixed(2)}L of ${tx.fuelType}`,
           debit: tx.totalAmount,
@@ -100,26 +97,29 @@ export default function PartnerLedgerPage() {
     });
 
     customerPayments.forEach(p => {
+       const entityType = entities.find(e => e.id === p.customerId)?.type || 'Customer';
+       const isSalary = p.paymentMethod === 'Salary';
       combined.push({
         id: `pay-${p.id}`,
         timestamp: p.timestamp,
         entityId: p.customerId,
         entityName: p.customerName,
-        entityType: 'Customer',
-        type: 'Payment',
-        description: `Payment Received (${p.paymentMethod})`,
+        entityType: entityType,
+        type: isSalary ? 'Salary' : 'Payment',
+        description: isSalary ? `Salary for ${format(new Date(p.timestamp), 'MMMM')}` : `Payment Received (${p.paymentMethod})`,
         debit: 0,
         credit: p.amount,
       });
     });
 
     cashAdvances.forEach(ca => {
+       const entityType = entities.find(e => e.id === ca.customerId)?.type || 'Customer';
       combined.push({
         id: `adv-${ca.id}`,
         timestamp: ca.timestamp,
         entityId: ca.customerId,
         entityName: ca.customerName,
-        entityType: 'Customer',
+        entityType: entityType,
         type: 'Cash Advance',
         description: ca.notes || 'Cash Advance',
         debit: ca.amount,
@@ -127,7 +127,6 @@ export default function PartnerLedgerPage() {
       });
     });
     
-    // Supplier transactions
     purchases.forEach(p => {
         combined.push({
             id: `pur-${p.id}`,
@@ -156,7 +155,6 @@ export default function PartnerLedgerPage() {
         });
     });
 
-    // Partner transactions
     investments.forEach(inv => {
         combined.push({
             id: `inv-${inv.id}`,
@@ -206,7 +204,13 @@ export default function PartnerLedgerPage() {
     if (selectedDate) {
       openingBalance = entityFilteredEntries
         .filter(entry => new Date(entry.timestamp) < startOfDay(selectedDate))
-        .reduce((acc, entry) => acc + (entry.debit - entry.credit), 0);
+        .reduce((acc, entry) => {
+            const entityType = entities.find(e => e.id === entry.entityId)?.type;
+            if (entityType === 'Partner' || entityType === 'Supplier') {
+                return acc + (entry.credit - entry.debit);
+            }
+            return acc + (entry.debit - entry.credit);
+        }, 0);
 
       entriesForDisplay = entityFilteredEntries.filter(entry => isSameDay(new Date(entry.timestamp), selectedDate));
     }
@@ -251,19 +255,31 @@ export default function PartnerLedgerPage() {
       case 'Payment':
       case 'Purchase':
       case 'Investment':
+      case 'Salary':
         return 'outline';
       default:
         return 'default';
     }
   };
 
-  const clearFilters = () => {
+  const isCreditType = (type: CombinedEntry['type']) => {
+    return ['Payment', 'Purchase', 'Investment', 'Salary'].includes(type);
+  }
+
+  const clearFilters = useCallback(() => {
     setSelectedEntityId('');
     setSelectedDate(undefined);
-  };
+  }, []);
 
   const hasActiveFilters = selectedEntityId || selectedDate;
   const selectedEntity = entities.find(e => e.id === selectedEntityId);
+
+  const getBalanceColor = useCallback((balance: number, type: CombinedEntry['entityType']) => {
+    if (type === 'Partner' || type === 'Supplier') {
+        return balance >= 0 ? 'text-green-600' : 'text-destructive';
+    }
+    return balance > 0 ? 'text-destructive' : 'text-green-600';
+  }, []);
 
   return (
     <div className="p-4 md:p-8 space-y-6">
@@ -330,7 +346,7 @@ export default function PartnerLedgerPage() {
             <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="p-4 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground"><Wallet /> Total Balance</div>
-                    <div className={`text-2xl font-bold ${(specialReport.entityType === 'Partner' || specialReport.entityType === 'Supplier') ? (specialReport.totalBalance >= 0 ? 'text-green-600' : 'text-destructive') : (specialReport.totalBalance > 0 ? 'text-destructive' : 'text-green-600')}`}>
+                    <div className={cn("text-2xl font-bold", getBalanceColor(specialReport.totalBalance, specialReport.entityType))}>
                         PKR {specialReport.totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                 </div>
@@ -385,7 +401,7 @@ export default function PartnerLedgerPage() {
                     <TableCell className="text-center">
                        <Badge 
                          variant={getBadgeVariant(entry.type)}
-                         className={cn((entry.type === 'Payment' || entry.type === 'Purchase' || entry.type === 'Investment') && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}
+                         className={cn(isCreditType(entry.type) && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}
                        >
                          {entry.type}
                        </Badge>
@@ -396,7 +412,7 @@ export default function PartnerLedgerPage() {
                     <TableCell className="text-right font-mono text-green-600">
                         {entry.credit > 0 ? `PKR ${entry.credit.toFixed(2)}` : '-'}
                     </TableCell>
-                    <TableCell className={`text-right font-semibold font-mono ${entry.balance && entry.balance > 0 ? 'text-destructive' : 'text-green-600'}`}>
+                    <TableCell className={cn("text-right font-semibold font-mono", getBalanceColor(entry.balance || 0, entry.entityType))}>
                         {entry.balance?.toFixed(2)}
                     </TableCell>
                      <TableCell className="text-center">

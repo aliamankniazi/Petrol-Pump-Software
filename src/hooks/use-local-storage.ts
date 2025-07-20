@@ -40,7 +40,7 @@ function useLocalStorage<T>(key: string, initialValue: T): {
     if (!authLoading) {
       loadData();
     }
-  }, [authLoading, userScopedKey]);
+  }, [authLoading, userScopedKey, loadData]);
 
   useEffect(() => {
     if (isLoaded && userScopedKey) {
