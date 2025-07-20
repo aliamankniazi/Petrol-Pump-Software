@@ -9,12 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { AuthFormValues } from '@/lib/types';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 
 const signupSchema = z.object({
@@ -23,7 +24,7 @@ const signupSchema = z.object({
 });
 
 export default function SignupPage() {
-  const { signUp } = useAuth();
+  const { signUp, isConfigured } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -63,29 +64,41 @@ export default function SignupPage() {
           <CardDescription>Create a new account to get started.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" {...register('email')} placeholder="you@example.com" />
-              {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-            </div>
+          {!isConfigured ? (
+             <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Firebase Not Configured</AlertTitle>
+                <AlertDescription>
+                    Please add your Firebase project credentials to the file at <code className="font-mono text-xs bg-destructive-foreground/20 p-1 rounded">src/lib/firebase.ts</code> to enable authentication.
+                </AlertDescription>
+            </Alert>
+          ) : (
+            <>
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" {...register('email')} placeholder="you@example.com" />
+                    {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+                    </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" {...register('password')} placeholder="••••••••" />
-              {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
-            </div>
+                    <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input id="password" type="password" {...register('password')} placeholder="••••••••" />
+                    {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+                    </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating account...' : 'Sign Up'}
-            </Button>
-          </form>
-          <div className="mt-4 text-center text-sm">
-            Already have an account?{' '}
-            <Link href="/login" className="underline">
-              Login
-            </Link>
-          </div>
+                    <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? 'Creating account...' : 'Sign Up'}
+                    </Button>
+                </form>
+                <div className="mt-4 text-center text-sm">
+                    Already have an account?{' '}
+                    <Link href="/login" className="underline">
+                    Login
+                    </Link>
+                </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

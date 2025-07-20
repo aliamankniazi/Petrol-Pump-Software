@@ -27,6 +27,7 @@ interface AuthContextType {
   signIn: (data: AuthFormValues) => Promise<any>;
   signUp: (data: AuthFormValues) => Promise<any>;
   signOut: () => Promise<void>;
+  isConfigured: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,11 +36,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const isConfigValid = isFirebaseConfigValid(firebaseConfig);
+  const isConfigured = isFirebaseConfigValid(firebaseConfig);
 
   useEffect(() => {
-    if (!isConfigValid) {
-      setUser(null); // No fake user, just treat as logged out
+    if (!isConfigured) {
+      setUser(null);
       setLoading(false);
       return;
     }
@@ -51,33 +52,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser && !currentUser.emailVerified) {
+        // Automatically sign out users who haven't verified their email.
+        firebaseSignOut(auth);
         setUser(null);
       } else {
         setUser(currentUser);
       }
       setLoading(false);
     });
+
     return () => unsubscribe();
-  }, [isConfigValid]);
+  }, [isConfigured]);
   
   const signIn = useCallback(async (data: AuthFormValues) => {
-    if (!isConfigValid || !auth) throw new Error("Firebase is not configured.");
+    if (!isConfigured || !auth) throw new Error("Firebase is not configured.");
     const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
     if (!userCredential.user.emailVerified) {
       await firebaseSignOut(auth);
       throw new Error("Your email is not verified. Please check your inbox.");
     }
     return userCredential;
-  }, [isConfigValid]);
+  }, [isConfigured]);
 
   const signUp = useCallback(async (data: AuthFormValues) => {
-    if (!isFirebaseConfigValid(firebaseConfig) || !auth) {
+    if (!isConfigured || !auth) {
       throw new Error("Firebase is not configured. Please add your credentials in src/lib/firebase.ts");
     }
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
         await sendEmailVerification(userCredential.user);
-        await firebaseSignOut(auth);
+        await firebaseSignOut(auth); // Sign out user immediately after signup to force email verification.
         return userCredential;
     } catch (error) {
         if (error instanceof FirebaseError && error.code === 'auth/email-already-in-use') {
@@ -85,14 +89,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         throw error;
     }
-  }, [isConfigValid]);
+  }, [isConfigured]);
 
   const signOut = useCallback(async () => {
-    if (isConfigValid && auth) {
+    if (isConfigured && auth) {
         await firebaseSignOut(auth);
     }
     setUser(null);
-  }, [isConfigValid]);
+  }, [isConfigured]);
 
   const value = {
     user,
@@ -100,6 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signUp,
     signOut,
+    isConfigured,
   };
   
   return (
