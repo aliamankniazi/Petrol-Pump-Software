@@ -1,53 +1,14 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import type { Employee } from '@/lib/types';
+import { useLocalStorage } from './use-local-storage';
 
-const STORAGE_KEY = 'pumppal-employees';
+const STORAGE_KEY = 'employees';
 
 export function useEmployees() {
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  const loadData = useCallback(() => {
-    try {
-      const storedItems = localStorage.getItem(STORAGE_KEY);
-      if (storedItems) {
-        setEmployees(JSON.parse(storedItems));
-      }
-    } catch (error) {
-      console.error("Failed to parse employees from localStorage", error);
-      setEmployees([]);
-    } finally {
-      setIsLoaded(true);
-    }
-  }, []);
-  
-  useEffect(() => {
-    loadData();
-
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) {
-        loadData();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, [loadData]);
-
-  useEffect(() => {
-    if (isLoaded) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(employees));
-      } catch (error) {
-        console.error("Failed to save employees to localStorage", error);
-      }
-    }
-  }, [employees, isLoaded]);
+  const { data: employees, setData: setEmployees, isLoaded } = useLocalStorage<Employee[]>(STORAGE_KEY, []);
 
   const addEmployee = useCallback((employee: Omit<Employee, 'id' | 'timestamp' | 'hireDate'> & { hireDate: Date }) => {
     setEmployees(prev => [
@@ -57,13 +18,13 @@ export function useEmployees() {
         timestamp: new Date().toISOString(),
         hireDate: employee.hireDate.toISOString(),
       },
-      ...prev,
+      ...(prev || []),
     ]);
-  }, []);
+  }, [setEmployees]);
 
   const clearEmployees = useCallback(() => {
     setEmployees([]);
-  }, []);
+  }, [setEmployees]);
 
-  return { employees, addEmployee, clearEmployees, isLoaded };
+  return { employees: employees || [], addEmployee, clearEmployees, isLoaded };
 }

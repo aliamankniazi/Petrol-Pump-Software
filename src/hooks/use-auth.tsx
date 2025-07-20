@@ -77,7 +77,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
     await sendEmailVerification(userCredential.user);
-    // Sign the user out immediately after sending the verification email
     await firebaseSignOut(auth);
     return userCredential;
   }, [isConfigValid]);
@@ -87,7 +86,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await firebaseSignOut(auth);
     }
     setUser(null);
-    // The redirect is now handled by the RolesProvider
   }, [isConfigValid]);
 
   const value = {

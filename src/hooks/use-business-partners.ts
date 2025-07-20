@@ -1,55 +1,16 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import type { BusinessPartner } from '@/lib/types';
 import { useCustomers } from './use-customers';
+import { useLocalStorage } from './use-local-storage';
 
-const STORAGE_KEY = 'pumppal-business-partners';
+const STORAGE_KEY = 'business-partners';
 
 export function useBusinessPartners() {
-  const [businessPartners, setBusinessPartners] = useState<BusinessPartner[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const { data: businessPartners, setData: setBusinessPartners, isLoaded } = useLocalStorage<BusinessPartner[]>(STORAGE_KEY, []);
   const { customers, addCustomer, updateCustomer } = useCustomers();
-
-  const loadData = useCallback(() => {
-    try {
-      const storedItems = localStorage.getItem(STORAGE_KEY);
-      if (storedItems) {
-        setBusinessPartners(JSON.parse(storedItems));
-      }
-    } catch (error) {
-      console.error("Failed to parse business partners from localStorage", error);
-    } finally {
-      setIsLoaded(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) {
-        loadData();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, [loadData]);
-
-
-  useEffect(() => {
-    if (isLoaded) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(businessPartners));
-      } catch (error) {
-        console.error("Failed to save business partners to localStorage", error);
-      }
-    }
-  }, [businessPartners, isLoaded]);
 
   const addBusinessPartner = useCallback((partner: Omit<BusinessPartner, 'id' | 'timestamp'>): BusinessPartner => {
     const newCustomer = addCustomer({
@@ -66,37 +27,31 @@ export function useBusinessPartners() {
     };
 
     setBusinessPartners(prev => {
-        const updatedPartners = [newPartner, ...prev];
+        const updatedPartners = [newPartner, ...(prev || [])];
         return updatedPartners.sort((a,b) => a.name.localeCompare(b.name));
     });
 
     return newPartner;
-  }, [addCustomer]);
+  }, [addCustomer, setBusinessPartners]);
 
   const updateBusinessPartner = useCallback((id: string, updatedPartner: Partial<Omit<BusinessPartner, 'id' | 'timestamp'>>) => {
     setBusinessPartners(prev =>
-      prev.map(p => (p.id === id ? { ...p, ...updatedPartner, name: updatedPartner.name!, sharePercentage: updatedPartner.sharePercentage! } : p))
+      (prev || []).map(p => (p.id === id ? { ...p, ...updatedPartner, name: updatedPartner.name!, sharePercentage: updatedPartner.sharePercentage! } : p))
     );
     
     const customer = customers.find(c => c.id === id);
     if(customer) {
         updateCustomer(id, { name: updatedPartner.name, contact: updatedPartner.contact });
     }
-  }, [customers, updateCustomer]);
+  }, [customers, updateCustomer, setBusinessPartners]);
 
   const deleteBusinessPartner = useCallback((id: string) => {
-    setBusinessPartners(prev => prev.filter(p => p.id !== id));
-  }, []);
+    setBusinessPartners(prev => (prev || []).filter(p => p.id !== id));
+  }, [setBusinessPartners]);
 
   const clearBusinessPartners = useCallback(() => {
     setBusinessPartners([]);
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch (error)
-      {
-      console.error("Failed to remove business partners from localStorage", error);
-    }
-  }, []);
+  }, [setBusinessPartners]);
 
-  return { businessPartners, addBusinessPartner, updateBusinessPartner, deleteBusinessPartner, clearBusinessPartners, isLoaded };
+  return { businessPartners: businessPartners || [], addBusinessPartner, updateBusinessPartner, deleteBusinessPartner, clearBusinessPartners, isLoaded };
 }

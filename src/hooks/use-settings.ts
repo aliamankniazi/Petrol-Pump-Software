@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useTransactions } from '@/hooks/use-transactions';
@@ -19,44 +18,39 @@ import { useSupplierPayments } from './use-supplier-payments';
 import { useSuppliers } from './use-suppliers';
 import { useInvestments } from './use-investments';
 import { useBusinessPartners } from './use-business-partners';
+import { useAuth } from './use-auth';
 
+// This hook provides a function to clear all data FOR THE CURRENT USER.
 export function useSettings() {
-  const { clearTransactions } = useTransactions();
-  const { clearPurchases } = usePurchases();
-  const { clearPurchaseReturns } = usePurchaseReturns();
-  const { clearExpenses } = useExpenses();
-  const { clearCustomers } = useCustomers();
-  const { clearSuppliers } = useSuppliers();
-  const { clearBankAccounts } = useBankAccounts();
-  const { clearEmployees } = useEmployees();
-  const { clearFuelPrices } = useFuelPrices();
-  const { clearFuelStock } = useFuelStock();
-  const { clearCustomerPayments } = useCustomerPayments();
-  const { clearCashAdvances } = useCashAdvances();
-  const { clearOtherIncomes } = useOtherIncomes();
-  const { clearTankReadings } = useTankReadings();
-  const { clearSupplierPayments } = useSupplierPayments();
-  const { clearInvestments } = useInvestments();
-  const { clearBusinessPartners } = useBusinessPartners();
+  const { user } = useAuth();
+  const hooks = [
+    useTransactions, usePurchases, usePurchaseReturns, useExpenses,
+    useCustomers, useSuppliers, useBankAccounts, useEmployees,
+    useFuelPrices, useFuelStock, useCustomerPayments, useCashAdvances,
+    useOtherIncomes, useTankReadings, useSupplierPayments, useInvestments,
+    useBusinessPartners
+  ];
 
   const clearAllData = () => {
-    clearTransactions();
-    clearPurchases();
-    clearPurchaseReturns();
-    clearExpenses();
-    clearCustomers();
-    clearSuppliers();
-    clearBankAccounts();
-    clearEmployees();
-    clearFuelPrices();
-    clearFuelStock();
-    clearCustomerPayments();
-    clearCashAdvances();
-    clearOtherIncomes();
-    clearTankReadings();
-    clearSupplierPayments();
-    clearInvestments();
-    clearBusinessPartners();
+    if (!user) return;
+    
+    // This is a bit of a trick. We can't call hooks conditionally,
+    // but we can iterate through them and clear their associated localStorage.
+    const hookKeys = [
+      'transactions', 'purchases', 'purchase-returns', 'expenses',
+      'customers', 'suppliers', 'bank-accounts', 'employees',
+      'fuel-prices', 'fuel-stock', 'customer-payments', 'cash-advances',
+      'other-incomes', 'tank-readings', 'supplier-payments', 'investments',
+      'business-partners', 'manual-fuel-stock', 'initial-fuel-stock'
+    ];
+
+    hookKeys.forEach(key => {
+        const userScopedKey = `pumppal-${user.uid}-${key}`;
+        localStorage.removeItem(userScopedKey);
+    });
+
+    // Reload the page to reset all states to their initial values
+    window.location.reload();
   };
 
   return {

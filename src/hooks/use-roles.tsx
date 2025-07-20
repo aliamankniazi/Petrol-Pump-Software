@@ -7,9 +7,10 @@ import { useAuth } from './use-auth';
 import { AppLayout } from '@/components/app-layout';
 import { usePathname, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useLocalStorage } from './use-local-storage';
 
-const STORAGE_KEY = 'pumppal-roles';
-const USER_ROLE_STORAGE_KEY = 'pumppal-user-role';
+const ROLES_STORAGE_KEY = 'roles';
+const USER_ROLE_STORAGE_KEY_PREFIX = 'user-role';
 
 export const PERMISSIONS = [
     'view_dashboard', 'view_all_transactions', 'delete_transaction',
@@ -31,16 +32,8 @@ export const PERMISSIONS = [
 export type { Permission };
 
 const DEFAULT_ROLES: Role[] = [
-    {
-        id: 'admin',
-        name: 'Admin',
-        permissions: [...PERMISSIONS],
-    },
-    {
-        id: 'attendant',
-        name: 'Attendant',
-        permissions: ['view_dashboard'],
-    }
+    { id: 'admin', name: 'Admin', permissions: [...PERMISSIONS] },
+    { id: 'attendant', name: 'Attendant', permissions: ['view_dashboard'] }
 ];
 
 interface RolesContextType {
@@ -51,6 +44,7 @@ interface RolesContextType {
     deleteRole: (id: RoleId) => void;
     hasPermission: (permission: Permission) => boolean;
     assignRoleToUser: (userId: string, roleId: RoleId) => void;
+    getRoleForUser: (userId: string) => RoleId | null;
     isReady: boolean;
 }
 
@@ -68,86 +62,85 @@ const FullscreenLoader = () => (
 
 
 export function RolesProvider({ children }: { children: ReactNode }) {
-    const [roles, setRoles] = useState<Role[]>([]);
-    const [userRoles, setUserRoles] = useState<Record<string, RoleId>>({});
-    const [isRolesLoaded, setIsRolesLoaded] = useState(false);
-    const { user, loading: authLoading, signOut } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
-    const isAuthPage = pathname === '/login' || pathname === '/signup';
+    
+    // Global roles are stored without user scope
+    const [roles, setRoles] = useState<Role[]>([]);
+    const [isRolesLoaded, setIsRolesLoaded] = useState(false);
+
+    // User-to-role mapping is also global
+    const [userRoles, setUserRoles] = useState<Record<string, RoleId>>({});
+    const [isUserRolesLoaded, setIsUserRolesLoaded] = useState(false);
 
     const currentUserRole = user ? userRoles[user.uid] : null;
 
-    const loadData = useCallback(() => {
-        try {
-            const storedRoles = localStorage.getItem(STORAGE_KEY);
-            setRoles(storedRoles ? JSON.parse(storedRoles) : DEFAULT_ROLES);
-
-            const allUserRoles: Record<string, RoleId> = {};
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key?.startsWith(USER_ROLE_STORAGE_KEY)) {
-                    const userId = key.substring(key.indexOf(':') + 1);
-                    allUserRoles[userId] = localStorage.getItem(key) as RoleId;
-                }
-            }
-            setUserRoles(allUserRoles);
-        } catch (error) {
-            console.error("Failed to parse roles from localStorage", error);
-            setRoles(DEFAULT_ROLES);
-        } finally {
-            setIsRolesLoaded(true);
-        }
+    // Load global roles
+    useEffect(() => {
+      try {
+        const stored = localStorage.getItem(ROLES_STORAGE_KEY);
+        setRoles(stored ? JSON.parse(stored) : DEFAULT_ROLES);
+      } catch (e) {
+        setRoles(DEFAULT_ROLES);
+      } finally {
+        setIsRolesLoaded(true);
+      }
     }, []);
-    
-    useEffect(() => {
-        loadData();
-        const handleStorageChange = (e: StorageEvent) => {
-          if (e.key === STORAGE_KEY || e.key?.startsWith(USER_ROLE_STORAGE_KEY)) {
-            loadData();
-          }
-        };
-        window.addEventListener('storage', handleStorageChange);
-        return () => window.removeEventListener('storage', handleStorageChange);
-    }, [loadData]);
 
-
+    // Load user-role mappings
     useEffect(() => {
-        if (isRolesLoaded) {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(roles));
-            } catch (error) {
-                console.error("Failed to save roles to localStorage", error);
-            }
-        }
+      try {
+        const stored = localStorage.getItem(USER_ROLE_STORAGE_KEY_PREFIX);
+        setUserRoles(stored ? JSON.parse(stored) : {});
+      } catch (e) {
+        setUserRoles({});
+      } finally {
+        setIsUserRolesLoaded(true);
+      }
+    }, []);
+
+    // Persist global roles
+    useEffect(() => {
+      if (isRolesLoaded) {
+        localStorage.setItem(ROLES_STORAGE_KEY, JSON.stringify(roles));
+      }
     }, [roles, isRolesLoaded]);
+
+    // Persist user-role mappings
+    useEffect(() => {
+      if (isUserRolesLoaded) {
+        localStorage.setItem(USER_ROLE_STORAGE_KEY_PREFIX, JSON.stringify(userRoles));
+      }
+    }, [userRoles, isUserRolesLoaded]);
 
     const assignRoleToUser = useCallback((userId: string, roleId: RoleId) => {
         setUserRoles(prev => ({...prev, [userId]: roleId}));
-        localStorage.setItem(`${USER_ROLE_STORAGE_KEY}:${userId}`, roleId);
     }, []);
+
+    const getRoleForUser = useCallback((userId: string) => {
+        return userRoles[userId] || null;
+    }, [userRoles]);
     
     // Auto-assign 'admin' role to the very first user
     useEffect(() => {
-        if (!authLoading && user && isRolesLoaded && Object.keys(userRoles).length === 0) {
+        if (!authLoading && user && isRolesLoaded && isUserRolesLoaded && Object.keys(userRoles).length === 0) {
             assignRoleToUser(user.uid, 'admin');
         }
-    }, [authLoading, user, isRolesLoaded, userRoles, assignRoleToUser]);
+    }, [authLoading, user, isRolesLoaded, isUserRolesLoaded, userRoles, assignRoleToUser]);
     
+    const isReady = !authLoading && isRolesLoaded && isUserRolesLoaded;
+
     useEffect(() => {
-        if (authLoading || !isRolesLoaded) return;
+        if (!isReady) return;
 
+        const isAuthPage = pathname === '/login' || pathname === '/signup';
         if (user) {
-            if (isAuthPage) {
-                router.replace('/');
-            }
+            if (isAuthPage) router.replace('/');
         } else {
-            if (!isAuthPage) {
-                router.replace('/login');
-            }
+            if (!isAuthPage) router.replace('/login');
         }
-    }, [user, authLoading, isRolesLoaded, pathname, router, isAuthPage]);
-
+    }, [user, isReady, pathname, router]);
 
     const addRole = useCallback((role: Omit<Role, 'id'>) => {
         setRoles(prev => [...prev, { ...role, id: crypto.randomUUID() }]);
@@ -176,14 +169,16 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         deleteRole,
         hasPermission,
         assignRoleToUser,
-        isReady: !authLoading && isRolesLoaded
+        getRoleForUser,
+        isReady,
     };
     
-    if (!value.isReady) {
+    if (!isReady) {
        return <FullscreenLoader />;
     }
 
     if (!user) {
+        const isAuthPage = pathname === '/login' || pathname === '/signup';
         return isAuthPage ? (
             <RolesContext.Provider value={value}>
                 {children}
