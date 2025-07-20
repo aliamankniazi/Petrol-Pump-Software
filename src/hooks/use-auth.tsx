@@ -53,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isConfigValid) {
       setUser(FAKE_USER);
+      setUserRole('admin');
       setLoading(false);
       return;
     }
