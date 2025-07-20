@@ -32,7 +32,7 @@ export type { Permission };
 
 const DEFAULT_ROLES: Role[] = [
     { id: 'admin', name: 'Admin', permissions: [...PERMISSIONS] },
-    { id: 'attendant', name: 'Attendant', permissions: ['view_dashboard'] }
+    { id: 'attendant', name: 'Attendant', permissions: ['view_dashboard', 'view_all_transactions', 'view_customers', 'view_inventory', 'view_purchases', 'view_expenses', 'view_other_incomes'] }
 ];
 
 interface RolesContextType {
@@ -65,17 +65,14 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     const router = useRouter();
     const pathname = usePathname();
     
-    // Global roles are stored without user scope
     const [roles, setRoles] = useState<Role[]>([]);
     const [isRolesLoaded, setIsRolesLoaded] = useState(false);
 
-    // User-to-role mapping is also global
     const [userRoles, setUserRoles] = useState<Record<string, RoleId>>({});
     const [isUserRolesLoaded, setIsUserRolesLoaded] = useState(false);
-
+    
     const currentUserRole = user ? userRoles[user.uid] : null;
 
-    // Load global roles
     useEffect(() => {
       try {
         const stored = localStorage.getItem(ROLES_STORAGE_KEY);
@@ -87,7 +84,6 @@ export function RolesProvider({ children }: { children: ReactNode }) {
       }
     }, []);
 
-    // Load user-role mappings
     useEffect(() => {
       try {
         const stored = localStorage.getItem(USER_ROLE_STORAGE_KEY_PREFIX);
@@ -99,14 +95,12 @@ export function RolesProvider({ children }: { children: ReactNode }) {
       }
     }, []);
 
-    // Persist global roles
     useEffect(() => {
       if (isRolesLoaded) {
         localStorage.setItem(ROLES_STORAGE_KEY, JSON.stringify(roles));
       }
     }, [roles, isRolesLoaded]);
 
-    // Persist user-role mappings
     useEffect(() => {
       if (isUserRolesLoaded) {
         localStorage.setItem(USER_ROLE_STORAGE_KEY_PREFIX, JSON.stringify(userRoles));
@@ -121,15 +115,19 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         return userRoles[userId] || null;
     }, [userRoles]);
     
-    // Auto-assign 'admin' role to the very first user
     useEffect(() => {
-        if (!authLoading && user && isRolesLoaded && isUserRolesLoaded) {
-            const hasUsers = Object.keys(userRoles).length > 0;
-            if (!hasUsers) {
-                assignRoleToUser(user.uid, 'admin');
+        if (!authLoading && user && isUserRolesLoaded) {
+            const userHasRole = user.uid in userRoles;
+            if (!userHasRole) {
+                const isFirstUser = Object.keys(userRoles).length === 0;
+                if (isFirstUser) {
+                    assignRoleToUser(user.uid, 'admin');
+                } else {
+                    assignRoleToUser(user.uid, 'attendant');
+                }
             }
         }
-    }, [authLoading, user, isRolesLoaded, isUserRolesLoaded, userRoles, assignRoleToUser]);
+    }, [authLoading, user, isUserRolesLoaded, userRoles, assignRoleToUser]);
     
     const isReady = !authLoading && isRolesLoaded && isUserRolesLoaded;
 

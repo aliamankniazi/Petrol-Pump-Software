@@ -20,6 +20,7 @@ import {
 import { auth, isFirebaseConfigValid, firebaseConfig } from '@/lib/firebase';
 import type { AuthFormValues } from '@/lib/types';
 import { useSettings } from './use-settings';
+import { FirebaseError } from 'firebase/app';
 
 interface AuthContextType {
   user: User | null;
@@ -76,29 +77,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!isFirebaseConfigValid(firebaseConfig) || !auth) {
       throw new Error("Firebase is not configured. Please add your credentials in src/lib/firebase.ts");
     }
-    const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-    await sendEmailVerification(userCredential.user);
-    await firebaseSignOut(auth);
-    return userCredential;
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+        await sendEmailVerification(userCredential.user);
+        await firebaseSignOut(auth);
+        return userCredential;
+    } catch (error) {
+        if (error instanceof FirebaseError && error.code === 'auth/email-already-in-use') {
+            throw new Error('This email is already registered. Please log in.');
+        }
+        throw error;
+    }
   }, [isConfigValid]);
 
   const signOut = useCallback(async () => {
     if (isConfigValid && auth) {
-        // We get the user from auth directly here, because the state update might not be immediate.
-        const currentUser = auth.currentUser;
-        if(currentUser){
-            const hookKeys = [
-                'transactions', 'purchases', 'purchase-returns', 'expenses',
-                'customers', 'suppliers', 'bank-accounts', 'employees',
-                'fuel-prices', 'manual-fuel-stock', 'initial-fuel-stock',
-                'customer-payments', 'cash-advances', 'other-incomes', 'tank-readings',
-                'supplier-payments', 'investments', 'business-partners'
-            ];
-            hookKeys.forEach(key => {
-                const userScopedKey = `pumppal-${currentUser.uid}-${key}`;
-                localStorage.removeItem(userScopedKey);
-            });
-        }
         await firebaseSignOut(auth);
     }
     setUser(null);
