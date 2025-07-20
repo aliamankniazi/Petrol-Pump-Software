@@ -38,9 +38,10 @@ export default function SignupPage() {
       await signUp(data);
       toast({
         title: 'Signup Successful',
-        description: "You've been successfully registered.",
+        description: "A verification email has been sent. Please check your inbox.",
+        duration: 5000,
       });
-      router.push('/');
+      router.push('/login');
     } catch (error: any) {
       toast({
         variant: 'destructive',

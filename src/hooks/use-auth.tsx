@@ -14,12 +14,12 @@ import {
   signOut as firebaseSignOut,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendEmailVerification,
 } from 'firebase/auth';
 import { auth, isFirebaseConfigValid, firebaseConfig } from '@/lib/firebase';
 import type { AuthFormValues, RoleId } from '@/lib/types';
 import { usePathname, useRouter } from 'next/navigation';
-import { AppLayout } from '@/components/app-layout';
-import { useRoles } from './use-roles';
+import { RolesProvider } from './use-roles.tsx';
 
 const USER_ROLE_STORAGE_KEY = 'pumppal-user-role';
 
@@ -35,7 +35,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const FAKE_USER = { uid: 'offline-user', email: 'demo@example.com' } as User;
+const FAKE_USER = { uid: 'offline-user', email: 'demo@example.com', emailVerified: true } as User;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -47,11 +47,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isConfigValid = isFirebaseConfigValid(firebaseConfig);
   const isAuthPage = pathname === '/login' || pathname === '/signup';
 
-  // Effect to load user role from localStorage
   useEffect(() => {
     if (user) {
       const storedRole = localStorage.getItem(`${USER_ROLE_STORAGE_KEY}:${user.uid}`);
-      setUserRole(storedRole as RoleId || 'admin'); // Default to admin if no role is set
+      setUserRole(storedRole as RoleId || 'admin');
     } else {
       setUserRole(null);
     }
@@ -70,23 +69,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isConfigValid) {
-      // If Firebase isn't configured, use a mock user for offline demo purposes.
       setUser(FAKE_USER);
       setLoading(false);
       return;
     }
     
     if (!auth) {
-        // Handle case where auth is not initialized
         setLoading(false);
         return;
     }
 
-    // This listener handles the auth state changes from Firebase.
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+      if (currentUser && !currentUser.emailVerified) {
+        setUser(null); // Treat unverified user as logged out
+      } else {
+        setUser(currentUser);
+      }
+      
       if (currentUser && !localStorage.getItem(`${USER_ROLE_STORAGE_KEY}:${currentUser.uid}`)) {
-        // Assign admin role to the first user who signs up
         const allUserRoles = Object.keys(localStorage).filter(key => key.startsWith(USER_ROLE_STORAGE_KEY));
         if (allUserRoles.length === 0) {
             assignRoleToUser(currentUser.uid, 'admin');
@@ -97,36 +97,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [isConfigValid]);
   
-  // This effect handles route protection.
   useEffect(() => {
-    if (loading) return; // Wait until auth state is determined
+    if (loading) return;
 
-    // If there is no user and the current page is not a public auth page, redirect to login.
     if (!user && !isAuthPage) {
         router.push('/login');
     }
-    // If there is a user and they are on an auth page, redirect to the dashboard.
     if (user && isAuthPage) {
         router.push('/');
     }
   }, [user, loading, pathname, router, isAuthPage]);
 
-  const signIn = (data: AuthFormValues) => {
-    if (!isConfigValid || !auth) return Promise.reject(new Error("Firebase is not configured."));
-    return signInWithEmailAndPassword(auth, data.email, data.password);
+  const signIn = async (data: AuthFormValues) => {
+    if (!isConfigValid || !auth) throw new Error("Firebase is not configured.");
+    const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
+    if (!userCredential.user.emailVerified) {
+      await firebaseSignOut(auth);
+      throw new Error("Your email is not verified. Please check your inbox.");
+    }
+    return userCredential;
   };
 
-  const signUp = (data: AuthFormValues) => {
-    if (!isConfigValid || !auth) return Promise.reject(new Error("Firebase is not configured."));
-    return createUserWithEmailAndPassword(auth, data.email, data.password);
+  const signUp = async (data: AuthFormValues) => {
+    if (!isConfigValid || !auth) throw new Error("Firebase is not configured.");
+    const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+    await sendEmailVerification(userCredential.user);
+    // Sign the user out immediately after sending the verification email
+    await firebaseSignOut(auth);
+    return userCredential;
   };
 
   const signOut = async () => {
     if (isConfigValid && auth) {
       await firebaseSignOut(auth);
     }
-    setUser(null); // Explicitly set user to null on sign out
-    router.push('/login'); // Redirect to login page after sign out
+    setUser(null);
+    router.push('/login');
   };
 
   const value = {
@@ -147,8 +153,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }
   
-  // This component now defers the rendering of the main app layout to the RolesProvider
-  // which will have access to the auth context.
   return (
       <AuthContext.Provider value={value}>
         {children}
