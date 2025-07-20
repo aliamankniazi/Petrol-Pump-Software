@@ -4,9 +4,6 @@
 import { useState, useEffect, useCallback, createContext, useContext, type ReactNode } from 'react';
 import type { Role, RoleId, Permission } from '@/lib/types';
 import { useAuth } from './use-auth';
-import { AppLayout } from '@/components/app-layout';
-import { usePathname, useRouter } from 'next/navigation';
-import { Skeleton } from '@/components/ui/skeleton';
 
 const ROLES_STORAGE_KEY = 'roles';
 const USER_ROLE_STORAGE_KEY_PREFIX = 'user-role';
@@ -49,21 +46,8 @@ interface RolesContextType {
 
 const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
-const FullscreenLoader = () => (
-    <div className="flex h-screen w-full items-center justify-center bg-background">
-       <div className="space-y-4 w-1/2">
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-8 w-3/4" />
-        <Skeleton className="h-8 w-1/2" />
-       </div>
-   </div>
-);
-
-
 export function RolesProvider({ children }: { children: ReactNode }) {
     const { user, loading: authLoading } = useAuth();
-    const router = useRouter();
-    const pathname = usePathname();
     
     const [roles, setRoles] = useState<Role[]>([]);
     const [isRolesLoaded, setIsRolesLoaded] = useState(false);
@@ -131,18 +115,6 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     
     const isReady = !authLoading && isRolesLoaded && isUserRolesLoaded;
 
-    useEffect(() => {
-        if (!isReady) return;
-
-        const isAuthPage = pathname === '/login' || pathname === '/signup';
-        
-        if (user && isAuthPage) {
-            router.replace('/dashboard');
-        } else if (!user && !isAuthPage) {
-            router.replace('/login');
-        }
-    }, [user, isReady, pathname, router]);
-
     const addRole = useCallback((role: Omit<Role, 'id'>) => {
         setRoles(prev => [...prev, { ...role, id: crypto.randomUUID() }]);
     }, []);
@@ -174,19 +146,9 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         isReady,
     };
     
-    const isAuthPage = pathname === '/login' || pathname === '/signup';
-
-    if (!isReady || (!user && !isAuthPage)) {
-       return <FullscreenLoader />;
-    }
-    
-    if (!user) {
-        return <RolesContext.Provider value={value}>{children}</RolesContext.Provider>;
-    }
-    
     return (
         <RolesContext.Provider value={value}>
-            <AppLayout hasPermission={hasPermission}>{children}</AppLayout>
+            {children}
         </RolesContext.Provider>
     );
 }

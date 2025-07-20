@@ -16,11 +16,14 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendEmailVerification,
+  getAuth,
+  type Auth,
 } from 'firebase/auth';
-import { auth, isFirebaseConfigured } from '@/lib/firebase';
+import { firebaseConfig } from '@/lib/firebase';
 import type { AuthFormValues } from '@/lib/types';
 import { FirebaseError } from 'firebase/app';
 import { useSettings } from './use-settings';
+import { initializeApp, getApps } from 'firebase/app';
 
 interface AuthContextType {
   user: User | null;
@@ -38,25 +41,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const { clearAllDataForUser } = useSettings();
 
+  const [auth, setAuth] = useState<Auth | null>(null);
+  const [isConfigured, setIsConfigured] = useState(false);
+
   useEffect(() => {
-    if (!isFirebaseConfigured || !auth) {
-      setUser(null);
+    const isConfigProvided = firebaseConfig && firebaseConfig.apiKey;
+    setIsConfigured(isConfigProvided);
+
+    if (isConfigProvided) {
+      const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+      const authInstance = getAuth(app);
+      setAuth(authInstance);
+
+      const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
+        if (currentUser && !currentUser.emailVerified) {
+          firebaseSignOut(authInstance);
+          setUser(null);
+        } else {
+          setUser(currentUser);
+        }
+        setLoading(false);
+      });
+      return () => unsubscribe();
+    } else {
       setLoading(false);
-      return;
     }
-
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser && !currentUser.emailVerified) {
-        // Automatically sign out users who haven't verified their email.
-        firebaseSignOut(auth);
-        setUser(null);
-      } else {
-        setUser(currentUser);
-      }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
   }, []);
   
   const signIn = useCallback(async (data: AuthFormValues) => {
@@ -67,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error("Your email is not verified. Please check your inbox.");
     }
     return userCredential;
-  }, []);
+  }, [auth]);
 
   const signUp = useCallback(async (data: AuthFormValues) => {
     if (!auth) {
@@ -84,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         throw error;
     }
-  }, []);
+  }, [auth]);
 
   const signOut = useCallback(async () => {
     const signedOutUser = auth?.currentUser;
@@ -93,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearAllDataForUser(signedOutUser.uid);
     }
     setUser(null);
-  }, [clearAllDataForUser]);
+  }, [auth, clearAllDataForUser]);
 
   const value = {
     user,
@@ -101,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signUp,
     signOut,
-    isConfigured: isFirebaseConfigured,
+    isConfigured,
   };
   
   return (
