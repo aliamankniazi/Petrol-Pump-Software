@@ -3,27 +3,25 @@
 
 import { useCallback } from 'react';
 import type { Purchase } from '@/lib/types';
-import { useLocalStorage } from './use-local-storage';
+import { useFirestoreCollection } from './use-firestore-collection';
 
-const STORAGE_KEY = 'purchases';
+const COLLECTION_NAME = 'purchases';
 
 export function usePurchases() {
-  const { data: purchases, setData: setPurchases, isLoaded, clearDataForUser } = useLocalStorage<Purchase[]>(STORAGE_KEY, []);
+  const { data: purchases, addDoc, deleteDoc, loading } = useFirestoreCollection<Purchase>(COLLECTION_NAME);
 
   const addPurchase = useCallback((purchase: Omit<Purchase, 'id'>) => {
-    setPurchases(prev => [
-      { ...purchase, id: crypto.randomUUID() },
-      ...(prev || []),
-    ]);
-  }, [setPurchases]);
+    addDoc(purchase);
+  }, [addDoc]);
 
   const deletePurchase = useCallback((id: string) => {
-    setPurchases(prev => (prev || []).filter(p => p.id !== id));
-  }, [setPurchases]);
+    deleteDoc(id);
+  }, [deleteDoc]);
   
-  const clearPurchases = useCallback((userId: string) => {
-    clearDataForUser(userId);
-  }, [clearDataForUser]);
-
-  return { purchases: purchases || [], addPurchase, deletePurchase, clearPurchases, isLoaded };
+  return { 
+    purchases: purchases || [], 
+    addPurchase, 
+    deletePurchase, 
+    isLoaded: !loading 
+  };
 }

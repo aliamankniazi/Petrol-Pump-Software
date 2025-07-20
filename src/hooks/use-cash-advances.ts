@@ -3,27 +3,25 @@
 
 import { useCallback } from 'react';
 import type { CashAdvance } from '@/lib/types';
-import { useLocalStorage } from './use-local-storage';
+import { useFirestoreCollection } from './use-firestore-collection';
 
-const STORAGE_KEY = 'cash-advances';
+const COLLECTION_NAME = 'cash-advances';
 
 export function useCashAdvances() {
-  const { data: cashAdvances, setData: setCashAdvances, isLoaded, clearDataForUser } = useLocalStorage<CashAdvance[]>(STORAGE_KEY, []);
+  const { data: cashAdvances, addDoc, deleteDoc, loading } = useFirestoreCollection<CashAdvance>(COLLECTION_NAME);
 
   const addCashAdvance = useCallback((advance: Omit<CashAdvance, 'id'>) => {
-    setCashAdvances(prev => [
-      { ...advance, id: crypto.randomUUID() },
-      ...(prev || []),
-    ]);
-  }, [setCashAdvances]);
+    addDoc(advance);
+  }, [addDoc]);
   
   const deleteCashAdvance = useCallback((id: string) => {
-    setCashAdvances(prev => (prev || []).filter(ca => ca.id !== id));
-  }, [setCashAdvances]);
+    deleteDoc(id);
+  }, [deleteDoc]);
 
-  const clearCashAdvances = useCallback((userId: string) => {
-    clearDataForUser(userId);
-  }, [clearDataForUser]);
-
-  return { cashAdvances: cashAdvances || [], addCashAdvance, deleteCashAdvance, clearCashAdvances, isLoaded };
+  return { 
+    cashAdvances: cashAdvances || [], 
+    addCashAdvance, 
+    deleteCashAdvance, 
+    isLoaded: !loading 
+  };
 }

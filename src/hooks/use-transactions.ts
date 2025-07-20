@@ -3,27 +3,25 @@
 
 import { useCallback } from 'react';
 import type { Transaction } from '@/lib/types';
-import { useLocalStorage } from './use-local-storage';
+import { useFirestoreCollection } from './use-firestore-collection';
 
-const STORAGE_KEY = 'transactions';
+const COLLECTION_NAME = 'transactions';
 
 export function useTransactions() {
-  const { data: transactions, setData: setTransactions, isLoaded, clearDataForUser } = useLocalStorage<Transaction[]>(STORAGE_KEY, []);
+  const { data: transactions, addDoc, deleteDoc, loading } = useFirestoreCollection<Transaction>(COLLECTION_NAME);
 
   const addTransaction = useCallback((transaction: Omit<Transaction, 'id'>) => {
-    setTransactions(prev => [
-      { ...transaction, id: crypto.randomUUID() },
-      ...(prev || []),
-    ]);
-  }, [setTransactions]);
+    addDoc(transaction);
+  }, [addDoc]);
   
   const deleteTransaction = useCallback((id: string) => {
-    setTransactions(prev => (prev || []).filter(tx => tx.id !== id));
-  }, [setTransactions]);
+    deleteDoc(id);
+  }, [deleteDoc]);
 
-  const clearTransactions = useCallback((userId: string) => {
-    clearDataForUser(userId);
-  }, [clearDataForUser]);
-
-  return { transactions: transactions || [], addTransaction, deleteTransaction, clearTransactions, isLoaded };
+  return { 
+    transactions: transactions || [], 
+    addTransaction, 
+    deleteTransaction, 
+    isLoaded: !loading 
+  };
 }

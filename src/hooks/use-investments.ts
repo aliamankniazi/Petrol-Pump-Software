@@ -3,30 +3,25 @@
 
 import { useCallback } from 'react';
 import type { Investment } from '@/lib/types';
-import { useLocalStorage } from './use-local-storage';
+import { useFirestoreCollection } from './use-firestore-collection';
 
-const STORAGE_KEY = 'investments';
+const COLLECTION_NAME = 'investments';
 
 export function useInvestments() {
-  const { data: investments, setData: setInvestments, isLoaded, clearDataForUser } = useLocalStorage<Investment[]>(STORAGE_KEY, []);
+  const { data: investments, addDoc, deleteDoc, loading } = useFirestoreCollection<Investment>(COLLECTION_NAME);
 
   const addInvestment = useCallback((investment: Omit<Investment, 'id'>) => {
-    setInvestments(prev => {
-        const newInvestments = [
-            { ...investment, id: crypto.randomUUID() },
-            ...(prev || [])
-        ];
-        return newInvestments.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    });
-  }, [setInvestments]);
+    addDoc(investment);
+  }, [addDoc]);
   
   const deleteInvestment = useCallback((id: string) => {
-    setInvestments(prev => (prev || []).filter(inv => inv.id !== id));
-  }, [setInvestments]);
+    deleteDoc(id);
+  }, [deleteDoc]);
 
-  const clearInvestments = useCallback((userId: string) => {
-    clearDataForUser(userId);
-  }, [clearDataForUser]);
-
-  return { investments: investments || [], addInvestment, deleteInvestment, clearInvestments, isLoaded };
+  return { 
+    investments: investments || [], 
+    addInvestment, 
+    deleteInvestment, 
+    isLoaded: !loading 
+  };
 }

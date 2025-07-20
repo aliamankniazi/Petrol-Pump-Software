@@ -3,27 +3,25 @@
 
 import { useCallback } from 'react';
 import type { CustomerPayment } from '@/lib/types';
-import { useLocalStorage } from './use-local-storage';
+import { useFirestoreCollection } from './use-firestore-collection';
 
-const STORAGE_KEY = 'customer-payments';
+const COLLECTION_NAME = 'customer-payments';
 
 export function useCustomerPayments() {
-  const { data: customerPayments, setData: setCustomerPayments, isLoaded, clearDataForUser } = useLocalStorage<CustomerPayment[]>(STORAGE_KEY, []);
+  const { data: customerPayments, addDoc, deleteDoc, loading } = useFirestoreCollection<CustomerPayment>(COLLECTION_NAME);
 
-  const addCustomerPayment = useCallback((payment: Omit<CustomerPayment, 'id' | 'timestamp'>) => {
-    setCustomerPayments(prev => [
-      { ...payment, id: crypto.randomUUID(), timestamp: new Date().toISOString() },
-      ...(prev || []),
-    ]);
-  }, [setCustomerPayments]);
+  const addCustomerPayment = useCallback((payment: Omit<CustomerPayment, 'id'>) => {
+    addDoc(payment);
+  }, [addDoc]);
   
   const deleteCustomerPayment = useCallback((id: string) => {
-    setCustomerPayments(prev => (prev || []).filter(p => p.id !== id));
-  }, [setCustomerPayments]);
+    deleteDoc(id);
+  }, [deleteDoc]);
 
-  const clearCustomerPayments = useCallback((userId: string) => {
-    clearDataForUser(userId);
-  }, [clearDataForUser]);
-
-  return { customerPayments: customerPayments || [], addCustomerPayment, deleteCustomerPayment, clearCustomerPayments, isLoaded };
+  return { 
+    customerPayments: customerPayments || [], 
+    addCustomerPayment, 
+    deleteCustomerPayment, 
+    isLoaded: !loading
+  };
 }

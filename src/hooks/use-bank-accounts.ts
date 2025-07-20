@@ -3,31 +3,30 @@
 
 import { useCallback } from 'react';
 import type { BankAccount } from '@/lib/types';
-import { useLocalStorage } from './use-local-storage';
+import { useFirestoreCollection } from './use-firestore-collection';
 
-const STORAGE_KEY = 'bank-accounts';
+const COLLECTION_NAME = 'bank-accounts';
 
 export function useBankAccounts() {
-  const { data: bankAccounts, setData: setBankAccounts, isLoaded, clearDataForUser } = useLocalStorage<BankAccount[]>(STORAGE_KEY, []);
+  const { data: bankAccounts, addDoc, updateDoc, deleteDoc, loading } = useFirestoreCollection<BankAccount>(COLLECTION_NAME);
 
   const addBankAccount = useCallback((account: Omit<BankAccount, 'id' | 'timestamp'>) => {
-    setBankAccounts(prev => [
-      { ...account, id: crypto.randomUUID(), timestamp: new Date().toISOString() },
-      ...(prev || []),
-    ]);
-  }, [setBankAccounts]);
+    addDoc(account);
+  }, [addDoc]);
   
   const updateBankAccount = useCallback((id: string, updatedDetails: Partial<Omit<BankAccount, 'id' | 'timestamp'>>) => {
-    setBankAccounts(prev => (prev || []).map(acc => acc.id === id ? { ...acc, ...updatedDetails } : acc));
-  }, [setBankAccounts]);
+    updateDoc(id, updatedDetails);
+  }, [updateDoc]);
 
   const deleteBankAccount = useCallback((id: string) => {
-    setBankAccounts(prev => (prev || []).filter(acc => acc.id !== id));
-  }, [setBankAccounts]);
+    deleteDoc(id);
+  }, [deleteDoc]);
 
-  const clearBankAccounts = useCallback((userId: string) => {
-    clearDataForUser(userId);
-  }, [clearDataForUser]);
-
-  return { bankAccounts: bankAccounts || [], addBankAccount, updateBankAccount, deleteBankAccount, clearBankAccounts, isLoaded };
+  return { 
+    bankAccounts: bankAccounts || [], 
+    addBankAccount, 
+    updateBankAccount, 
+    deleteBankAccount, 
+    isLoaded: !loading 
+  };
 }

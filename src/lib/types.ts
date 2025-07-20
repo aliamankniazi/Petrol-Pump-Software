@@ -1,4 +1,6 @@
 
+import type { Timestamp } from "firebase/firestore";
+
 export type FuelType = 'Unleaded' | 'Premium' | 'Diesel';
 
 export type PaymentMethod = 'Cash' | 'Card' | 'Mobile' | 'Salary';
@@ -10,7 +12,7 @@ export interface Transaction {
   pricePerLitre: number;
   totalAmount: number;
   paymentMethod: PaymentMethod;
-  timestamp: string;
+  timestamp: Date | Timestamp;
   customerId?: string;
   customerName?: string;
   bankAccountId?: string;
@@ -24,7 +26,7 @@ export interface Purchase {
   fuelType: FuelType;
   volume: number;
   totalCost: number;
-  timestamp: string;
+  timestamp: Date | Timestamp;
 }
 
 export interface PurchaseReturn {
@@ -35,7 +37,7 @@ export interface PurchaseReturn {
   volume: number;
   totalRefund: number;
   reason: string;
-  timestamp: string;
+  timestamp: Date | Timestamp;
 }
 
 export type ExpenseCategory = 'Utilities' | 'Salaries' | 'Maintenance' | 'Other';
@@ -45,7 +47,7 @@ export interface Expense {
   description: string;
   category: ExpenseCategory;
   amount: number;
-  timestamp: string;
+  timestamp: Date | Timestamp;
 }
 
 export type OtherIncomeCategory = 'Service Station' | 'Tire Shop' | 'Tuck Shop' | 'Other';
@@ -55,7 +57,7 @@ export interface OtherIncome {
     description: string;
     category: OtherIncomeCategory;
     amount: number;
-    timestamp: string;
+    timestamp: Date | Timestamp;
 }
 
 export interface Customer {
@@ -65,14 +67,14 @@ export interface Customer {
   vehicleNumber?: string;
   area?: string;
   isPartner?: boolean;
-  timestamp: string;
+  timestamp: Date | Timestamp;
 }
 
 export interface Supplier {
   id: string;
   name: string;
   contact?: string;
-  timestamp: string;
+  timestamp: Date | Timestamp;
 }
 
 export interface BankAccount {
@@ -80,7 +82,7 @@ export interface BankAccount {
   bankName: string;
   accountNumber: string;
   balance: number;
-  timestamp: string;
+  timestamp: Date | Timestamp;
 }
 
 export interface Employee {
@@ -89,8 +91,8 @@ export interface Employee {
   mobileNumber?: string;
   position: string;
   salary: number;
-  hireDate: string;
-  timestamp: string;
+  hireDate: Date | Timestamp | string;
+  timestamp: Date | Timestamp;
 }
 
 export interface CustomerPayment {
@@ -99,7 +101,7 @@ export interface CustomerPayment {
   customerName: string;
   amount: number;
   paymentMethod: PaymentMethod;
-  timestamp: string;
+  timestamp: Date | Timestamp;
 }
 
 export interface SupplierPayment {
@@ -108,7 +110,7 @@ export interface SupplierPayment {
   supplierName: string;
   amount: number;
   paymentMethod: Omit<PaymentMethod, 'Salary'>;
-  timestamp: string;
+  timestamp: Date | Timestamp;
 }
 
 export interface CashAdvance {
@@ -117,7 +119,7 @@ export interface CashAdvance {
   customerName: string;
   amount: number;
   notes?: string;
-  timestamp: string;
+  timestamp: Date | Timestamp;
 }
 
 export interface AuthFormValues {
@@ -129,7 +131,7 @@ export interface TankReading {
     id: string;
     fuelType: FuelType;
     volume: number;
-    timestamp: string;
+    timestamp: Date | Timestamp;
 }
 
 export interface Investment {
@@ -139,7 +141,7 @@ export interface Investment {
   type: 'Investment' | 'Withdrawal';
   amount: number;
   notes?: string;
-  timestamp: string;
+  timestamp: Date | Timestamp;
 }
 
 export interface BusinessPartner {
@@ -147,7 +149,7 @@ export interface BusinessPartner {
   name: string;
   sharePercentage: number;
   contact?: string;
-  timestamp: string;
+  timestamp: Date | Timestamp;
 }
 
 // RBAC Types

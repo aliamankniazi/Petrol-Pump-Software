@@ -1,8 +1,11 @@
 
+// This file is no longer used and is replaced by use-firestore-collection.ts
+// It is kept here to prevent breaking changes if it was imported somewhere,
+// but it should be considered deprecated.
+
 'use client';
 
-import { useState, useEffect, useCallback, SetStateAction } from 'react';
-import { useAuth } from './use-auth';
+import { useState, useEffect, useCallback } from 'react';
 
 function useLocalStorage<T>(key: string, initialValue: T): {
   data: T;
@@ -10,64 +13,19 @@ function useLocalStorage<T>(key: string, initialValue: T): {
   isLoaded: boolean;
   clearDataForUser: (userId: string) => void;
 } {
-  const { user, loading: authLoading } = useAuth();
   const [data, setData] = useState<T>(initialValue);
   const [isLoaded, setIsLoaded] = useState(false);
   
-  const userScopedKey = user ? `pumppal-${user.uid}-${key}` : null;
-
-  const stableInitialValue = JSON.stringify(initialValue);
-
-  const loadData = useCallback(() => {
-    if (!userScopedKey) {
-        setData(JSON.parse(stableInitialValue)); 
-        if (!authLoading) setIsLoaded(true);
-        return;
-    }
-
-    try {
-      const item = window.localStorage.getItem(userScopedKey);
-      setData(item ? JSON.parse(item) : JSON.parse(stableInitialValue));
-    } catch (error) {
-      console.warn(`Error reading localStorage key "${userScopedKey}":`, error);
-      setData(JSON.parse(stableInitialValue));
-    } finally {
-      setIsLoaded(true);
-    }
-  }, [userScopedKey, stableInitialValue, authLoading]);
-
   useEffect(() => {
-    if (!authLoading) {
-      loadData();
-    }
-  }, [authLoading, userScopedKey, loadData]);
+    // This hook is deprecated, so we just set loaded to true.
+    setIsLoaded(true);
+  }, []);
 
-  useEffect(() => {
-    if (isLoaded && userScopedKey) {
-      try {
-        window.localStorage.setItem(userScopedKey, JSON.stringify(data));
-      } catch (error) {
-        console.warn(`Error setting localStorage key "${userScopedKey}":`, error);
-      }
-    }
-  }, [userScopedKey, data, isLoaded]);
+  const clearDataForUser = useCallback(() => {
+    // This function is now a no-op as data is stored in Firestore.
+  }, []);
 
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === userScopedKey) {
-        loadData();
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [userScopedKey, loadData]);
-
-  const clearDataForUser = useCallback((userId: string) => {
-    const keyToClear = `pumppal-${userId}-${key}`;
-    localStorage.removeItem(keyToClear);
-  }, [key]);
-
-  return { data, setData, isLoaded: isLoaded && !authLoading, clearDataForUser };
+  return { data, setData, isLoaded, clearDataForUser };
 }
 
 export { useLocalStorage };

@@ -3,27 +3,25 @@
 
 import { useCallback } from 'react';
 import type { Expense } from '@/lib/types';
-import { useLocalStorage } from './use-local-storage';
+import { useFirestoreCollection } from './use-firestore-collection';
 
-const STORAGE_KEY = 'expenses';
+const COLLECTION_NAME = 'expenses';
 
 export function useExpenses() {
-  const { data: expenses, setData: setExpenses, isLoaded, clearDataForUser } = useLocalStorage<Expense[]>(STORAGE_KEY, []);
+  const { data: expenses, addDoc, deleteDoc, loading } = useFirestoreCollection<Expense>(COLLECTION_NAME);
 
   const addExpense = useCallback((expense: Omit<Expense, 'id'>) => {
-    setExpenses(prev => {
-        const newExpenses = [{ ...expense, id: crypto.randomUUID() }, ...(prev || [])];
-        return newExpenses.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    });
-  }, [setExpenses]);
+    addDoc(expense);
+  }, [addDoc]);
   
   const deleteExpense = useCallback((id: string) => {
-    setExpenses(prev => (prev || []).filter(e => e.id !== id));
-  }, [setExpenses]);
+    deleteDoc(id);
+  }, [deleteDoc]);
 
-  const clearExpenses = useCallback((userId: string) => {
-    clearDataForUser(userId);
-  }, [clearDataForUser]);
-
-  return { expenses: expenses || [], addExpense, deleteExpense, clearExpenses, isLoaded };
+  return { 
+    expenses: expenses || [], 
+    addExpense, 
+    deleteExpense, 
+    isLoaded: !loading 
+  };
 }

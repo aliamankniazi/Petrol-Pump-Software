@@ -3,26 +3,20 @@
 
 import { useCallback } from 'react';
 import type { TankReading } from '@/lib/types';
-import { useLocalStorage } from './use-local-storage';
+import { useFirestoreCollection } from './use-firestore-collection';
 
-const STORAGE_KEY = 'tank-readings';
+const COLLECTION_NAME = 'tank-readings';
 
 export function useTankReadings() {
-  const { data: tankReadings, setData: setTankReadings, isLoaded, clearDataForUser } = useLocalStorage<TankReading[]>(STORAGE_KEY, []);
+  const { data: tankReadings, addDoc, loading } = useFirestoreCollection<TankReading>(COLLECTION_NAME);
 
   const addTankReading = useCallback((reading: Omit<TankReading, 'id'>) => {
-    setTankReadings(prev => {
-        const newReadings = [
-            { ...reading, id: crypto.randomUUID() },
-            ...(prev || []),
-        ];
-        return newReadings.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    });
-  }, [setTankReadings]);
+    addDoc(reading);
+  }, [addDoc]);
 
-  const clearTankReadings = useCallback((userId: string) => {
-    clearDataForUser(userId);
-  }, [clearDataForUser]);
-
-  return { tankReadings: tankReadings || [], addTankReading, clearTankReadings, isLoaded };
+  return { 
+    tankReadings: tankReadings || [], 
+    addTankReading, 
+    isLoaded: !loading 
+  };
 }

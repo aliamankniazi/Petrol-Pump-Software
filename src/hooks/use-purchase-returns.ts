@@ -3,27 +3,25 @@
 
 import { useCallback } from 'react';
 import type { PurchaseReturn } from '@/lib/types';
-import { useLocalStorage } from './use-local-storage';
+import { useFirestoreCollection } from './use-firestore-collection';
 
-const STORAGE_KEY = 'purchase-returns';
+const COLLECTION_NAME = 'purchase-returns';
 
 export function usePurchaseReturns() {
-  const { data: purchaseReturns, setData: setPurchaseReturns, isLoaded, clearDataForUser } = useLocalStorage<PurchaseReturn[]>(STORAGE_KEY, []);
+  const { data: purchaseReturns, addDoc, deleteDoc, loading } = useFirestoreCollection<PurchaseReturn>(COLLECTION_NAME);
 
   const addPurchaseReturn = useCallback((purchaseReturn: Omit<PurchaseReturn, 'id'>) => {
-    setPurchaseReturns(prev => [
-      { ...purchaseReturn, id: crypto.randomUUID() },
-      ...(prev || []),
-    ]);
-  }, [setPurchaseReturns]);
+    addDoc(purchaseReturn);
+  }, [addDoc]);
 
   const deletePurchaseReturn = useCallback((id: string) => {
-    setPurchaseReturns(prev => (prev || []).filter(pr => pr.id !== id));
-  }, [setPurchaseReturns]);
+    deleteDoc(id);
+  }, [deleteDoc]);
 
-  const clearPurchaseReturns = useCallback((userId: string) => {
-    clearDataForUser(userId);
-  }, [clearDataForUser]);
-
-  return { purchaseReturns: purchaseReturns || [], addPurchaseReturn, deletePurchaseReturn, clearPurchaseReturns, isLoaded };
+  return { 
+    purchaseReturns: purchaseReturns || [], 
+    addPurchaseReturn, 
+    deletePurchaseReturn, 
+    isLoaded: !loading 
+  };
 }

@@ -1,11 +1,16 @@
 
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { FuelType } from '@/lib/types';
-import { useLocalStorage } from './use-local-storage';
+import { useFirestoreCollection } from './use-firestore-collection';
 
-const STORAGE_KEY = 'fuel-prices';
+const COLLECTION_NAME = 'settings';
+const DOC_ID = 'fuel-prices';
+
+interface FuelPriceDoc {
+    prices: Record<FuelType, number>;
+}
 
 const DEFAULT_FUEL_PRICES: Record<FuelType, number> = {
   'Unleaded': 0,
@@ -14,19 +19,25 @@ const DEFAULT_FUEL_PRICES: Record<FuelType, number> = {
 };
 
 export function useFuelPrices() {
-  const { data: fuelPrices, setData: setFuelPrices, isLoaded, clearDataForUser } = useLocalStorage<Record<FuelType, number>>(STORAGE_KEY, DEFAULT_FUEL_PRICES);
+  const { data, updateDoc, loading } = useFirestoreCollection<FuelPriceDoc>(COLLECTION_NAME);
+  
+  const fuelPricesData = useMemo(() => {
+    const doc = data.find(d => d.id === DOC_ID);
+    return doc ? doc.prices : DEFAULT_FUEL_PRICES;
+  }, [data]);
 
   const updateFuelPrice = useCallback((fuelType: FuelType, newPrice: number) => {
     if (isNaN(newPrice) || newPrice < 0) return;
-    setFuelPrices(prev => ({
-      ...(prev || DEFAULT_FUEL_PRICES),
-      [fuelType]: newPrice,
-    }));
-  }, [setFuelPrices]);
+    
+    const doc = data.find(d => d.id === DOC_ID);
+    const updatedPrices = { ...(doc?.prices || DEFAULT_FUEL_PRICES), [fuelType]: newPrice };
+    updateDoc(DOC_ID, { prices: updatedPrices });
 
-  const clearFuelPrices = useCallback((userId: string) => {
-    clearDataForUser(userId);
-  }, [clearDataForUser]);
+  }, [data, updateDoc]);
 
-  return { fuelPrices: fuelPrices || DEFAULT_FUEL_PRICES, updateFuelPrice, clearFuelPrices, isLoaded };
+  return { 
+    fuelPrices: fuelPricesData, 
+    updateFuelPrice, 
+    isLoaded: !loading 
+  };
 }

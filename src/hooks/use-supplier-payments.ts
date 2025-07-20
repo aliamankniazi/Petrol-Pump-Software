@@ -3,27 +3,25 @@
 
 import { useCallback } from 'react';
 import type { SupplierPayment } from '@/lib/types';
-import { useLocalStorage } from './use-local-storage';
+import { useFirestoreCollection } from './use-firestore-collection';
 
-const STORAGE_KEY = 'supplier-payments';
+const COLLECTION_NAME = 'supplier-payments';
 
 export function useSupplierPayments() {
-  const { data: supplierPayments, setData: setSupplierPayments, isLoaded, clearDataForUser } = useLocalStorage<SupplierPayment[]>(STORAGE_KEY, []);
+  const { data: supplierPayments, addDoc, deleteDoc, loading } = useFirestoreCollection<SupplierPayment>(COLLECTION_NAME);
 
   const addSupplierPayment = useCallback((payment: Omit<SupplierPayment, 'id'>) => {
-    setSupplierPayments(prev => [
-      { ...payment, id: crypto.randomUUID() },
-      ...(prev || []),
-    ]);
-  }, [setSupplierPayments]);
+    addDoc(payment);
+  }, [addDoc]);
 
   const deleteSupplierPayment = useCallback((id: string) => {
-    setSupplierPayments(prev => (prev || []).filter(sp => sp.id !== id));
-  }, [setSupplierPayments]);
+    deleteDoc(id);
+  }, [deleteDoc]);
 
-  const clearSupplierPayments = useCallback((userId: string) => {
-    clearDataForUser(userId);
-  }, [clearDataForUser]);
-
-  return { supplierPayments: supplierPayments || [], addSupplierPayment, deleteSupplierPayment, clearSupplierPayments, isLoaded };
+  return { 
+    supplierPayments: supplierPayments || [], 
+    addSupplierPayment, 
+    deleteSupplierPayment, 
+    isLoaded: !loading
+  };
 }

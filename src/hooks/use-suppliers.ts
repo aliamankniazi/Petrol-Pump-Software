@@ -3,27 +3,25 @@
 
 import { useCallback } from 'react';
 import type { Supplier } from '@/lib/types';
-import { useLocalStorage } from './use-local-storage';
+import { useFirestoreCollection } from './use-firestore-collection';
 
-const STORAGE_KEY = 'suppliers';
+const COLLECTION_NAME = 'suppliers';
 
 export function useSuppliers() {
-  const { data: suppliers, setData: setSuppliers, isLoaded, clearDataForUser } = useLocalStorage<Supplier[]>(STORAGE_KEY, []);
+  const { data: suppliers, addDoc, deleteDoc, loading } = useFirestoreCollection<Supplier>(COLLECTION_NAME);
 
   const addSupplier = useCallback((supplier: Omit<Supplier, 'id' | 'timestamp'>) => {
-    setSuppliers(prev => [
-      { ...supplier, id: crypto.randomUUID(), timestamp: new Date().toISOString() },
-      ...(prev || []),
-    ]);
-  }, [setSuppliers]);
+    addDoc(supplier);
+  }, [addDoc]);
   
   const deleteSupplier = useCallback((id: string) => {
-    setSuppliers(prev => (prev || []).filter(s => s.id !== id));
-  }, [setSuppliers]);
+    deleteDoc(id);
+  }, [deleteDoc]);
 
-  const clearSuppliers = useCallback((userId: string) => {
-    clearDataForUser(userId);
-  }, [clearDataForUser]);
-
-  return { suppliers: suppliers || [], addSupplier, deleteSupplier, clearSuppliers, isLoaded };
+  return { 
+    suppliers: suppliers || [], 
+    addSupplier, 
+    deleteSupplier, 
+    isLoaded: !loading 
+  };
 }

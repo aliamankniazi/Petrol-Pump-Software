@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Briefcase, UserPlus, List, Calendar as CalendarIcon } from 'lucide-react';
+import { Briefcase, UserPlus, List, Calendar as CalendarIcon, Trash2, AlertTriangle, Edit } from 'lucide-react';
 import { format, getMonth, setMonth } from 'date-fns';
 import { useEmployees } from '@/hooks/use-employees';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -23,6 +23,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCustomers } from '@/hooks/use-customers';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogFooter, AlertDialogHeader } from '@/components/ui/alert-dialog';
 
 const employeeSchema = z.object({
   name: z.string().min(1, 'Employee name is required'),
@@ -40,48 +41,68 @@ const months = Array.from({ length: 12 }, (_, i) => ({
 }));
 
 export default function EmployeesPage() {
-  const { employees, addEmployee } = useEmployees();
+  const { employees, addEmployee, updateEmployee, deleteEmployee, isLoaded } = useEmployees();
   const { addExpense } = useExpenses();
   const { customers, addCustomer } = useCustomers();
   const { addCustomerPayment } = useCustomerPayments();
 
   const { toast } = useToast();
   
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [employeeToPay, setEmployeeToPay] = useState<Employee | null>(null);
+  const [employeeToEdit, setEmployeeToEdit] = useState<Employee | null>(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>(getMonth(new Date()).toString());
 
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
   });
+  
+  const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, setValue: setEditValue, formState: { errors: editErrors } } = useForm<EmployeeFormValues>({
+    resolver: zodResolver(employeeSchema),
+  });
 
-  const onSubmit: SubmitHandler<EmployeeFormValues> = useCallback((data) => {
+  const onAddSubmit: SubmitHandler<EmployeeFormValues> = useCallback((data) => {
     addEmployee(data);
     toast({
       title: 'Employee Added',
       description: `${data.name} has been added to your employee records.`,
     });
-    reset();
+    reset({ name: '', mobileNumber: '', position: '', salary: 0, hireDate: new Date() });
   }, [addEmployee, toast, reset]);
-  
+
+  const onEditSubmit: SubmitHandler<EmployeeFormValues> = useCallback((data) => {
+    if (!employeeToEdit) return;
+    updateEmployee(employeeToEdit.id, data);
+    toast({ title: 'Employee Updated', description: "The employee's details have been saved." });
+    setEmployeeToEdit(null);
+  }, [employeeToEdit, updateEmployee, toast]);
+
+  const handleDeleteEmployee = useCallback(() => {
+    if (!employeeToDelete) return;
+    deleteEmployee(employeeToDelete.id);
+    toast({ title: 'Employee Deleted', description: `${employeeToDelete.name} has been removed.` });
+    setEmployeeToDelete(null);
+  }, [employeeToDelete, deleteEmployee, toast]);
+
   const handlePaySalary = useCallback(() => {
-    if (!selectedEmployee) return;
+    if (!employeeToPay) return;
 
     const monthName = months.find(m => m.value === selectedMonth)?.label;
-    const expenseDescription = `Salary for ${selectedEmployee.name} for ${monthName}`;
+    const expenseDescription = `Salary for ${employeeToPay.name} for ${monthName}`;
 
     addExpense({
       description: expenseDescription,
       category: 'Salaries',
-      amount: selectedEmployee.salary,
-      timestamp: new Date().toISOString(),
+      amount: employeeToPay.salary,
+      timestamp: new Date(),
     });
 
-    let employeeAsCustomer = customers.find(c => c.name.toLowerCase() === selectedEmployee.name.toLowerCase() && c.area === 'Employee');
+    let employeeAsCustomer = customers.find(c => c.name.toLowerCase() === employeeToPay.name.toLowerCase() && c.area === 'Employee');
     
     if (!employeeAsCustomer) {
         employeeAsCustomer = addCustomer({
-            name: selectedEmployee.name,
-            contact: selectedEmployee.mobileNumber || '',
+            name: employeeToPay.name,
+            contact: employeeToPay.mobileNumber || '',
             area: 'Employee',
         });
     }
@@ -89,18 +110,28 @@ export default function EmployeesPage() {
     addCustomerPayment({
         customerId: employeeAsCustomer.id,
         customerName: employeeAsCustomer.name,
-        amount: selectedEmployee.salary,
+        amount: employeeToPay.salary,
         paymentMethod: 'Salary',
+        timestamp: new Date(),
     });
 
 
     toast({
       title: 'Salary Paid and Recorded',
-      description: `Salary for ${selectedEmployee.name} has been logged as an expense and a credit in their ledger.`,
+      description: `Salary for ${employeeToPay.name} has been logged as an expense and a credit in their ledger.`,
     });
 
-    setSelectedEmployee(null);
-  }, [selectedEmployee, selectedMonth, addExpense, customers, addCustomer, addCustomerPayment, toast]);
+    setEmployeeToPay(null);
+  }, [employeeToPay, selectedMonth, addExpense, customers, addCustomer, addCustomerPayment, toast]);
+
+  const openEditDialog = useCallback((employee: Employee) => {
+    setEmployeeToEdit(employee);
+    setEditValue('name', employee.name);
+    setEditValue('mobileNumber', employee.mobileNumber);
+    setEditValue('position', employee.position);
+    setEditValue('salary', employee.salary);
+    setEditValue('hireDate', new Date(employee.hireDate));
+  }, [setEditValue]);
 
   return (
     <>
@@ -114,7 +145,7 @@ export default function EmployeesPage() {
               <CardDescription>Add a new employee to your records.</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={handleSubmit(onAddSubmit)} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Employee Name</Label>
                   <Input id="name" {...register('name')} placeholder="e.g., Ali Khan" />
@@ -210,8 +241,14 @@ export default function EmployeesPage() {
                           </TableCell>
                           <TableCell>{e.position}</TableCell>
                           <TableCell className="text-right">{e.salary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                          <TableCell className="text-center">
-                            <Button size="sm" onClick={() => setSelectedEmployee(e)}>Pay Salary</Button>
+                          <TableCell className="text-center space-x-0">
+                            <Button size="sm" onClick={() => setEmployeeToPay(e)}>Pay Salary</Button>
+                            <Button variant="ghost" size="icon" title="Edit" onClick={() => openEditDialog(e)}>
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" title="Delete" className="text-destructive hover:text-destructive" onClick={() => setEmployeeToDelete(e)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -229,15 +266,15 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      <Dialog open={!!selectedEmployee} onOpenChange={(isOpen) => !isOpen && setSelectedEmployee(null)}>
+      <Dialog open={!!employeeToPay} onOpenChange={(isOpen) => !isOpen && setEmployeeToPay(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Pay Salary for {selectedEmployee?.name}</DialogTitle>
+            <DialogTitle>Pay Salary for {employeeToPay?.name}</DialogTitle>
             <DialogDescription>
-              Select the month for this salary payment. The amount is fixed at PKR {selectedEmployee?.salary.toLocaleString()}.
+              Select the month for this salary payment. The amount is fixed at PKR {employeeToPay?.salary.toLocaleString()}.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
+          <div className="space-y-2 py-4">
             <Label htmlFor="salaryMonth">Salary Month</Label>
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
               <SelectTrigger id="salaryMonth">
@@ -251,11 +288,102 @@ export default function EmployeesPage() {
             </Select>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectedEmployee(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setEmployeeToPay(null)}>Cancel</Button>
             <Button onClick={handlePaySalary}>Confirm Payment</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      <Dialog open={!!employeeToEdit} onOpenChange={(isOpen) => !isOpen && setEmployeeToEdit(null)}>
+        <DialogContent>
+          <form onSubmit={handleSubmitEdit(onEditSubmit)}>
+            <DialogHeader>
+              <DialogTitle>Edit Employee</DialogTitle>
+              <DialogDescription>Update the details for this employee.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+               <div className="space-y-2">
+                  <Label htmlFor="edit-name">Employee Name</Label>
+                  <Input id="edit-name" {...registerEdit('name')} />
+                  {editErrors.name && <p className="text-sm text-destructive">{editErrors.name.message}</p>}
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-mobileNumber">Mobile Number (Optional)</Label>
+                  <Input id="edit-mobileNumber" {...registerEdit('mobileNumber')} />
+                  {editErrors.mobileNumber && <p className="text-sm text-destructive">{editErrors.mobileNumber.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-position">Position</Label>
+                  <Input id="edit-position" {...registerEdit('position')} />
+                  {editErrors.position && <p className="text-sm text-destructive">{editErrors.position.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-salary">Salary (PKR)</Label>
+                  <Input id="edit-salary" type="number" {...registerEdit('salary')} step="100" />
+                  {editErrors.salary && <p className="text-sm text-destructive">{editErrors.salary.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Hire Date</Label>
+                  <Controller
+                    name="hireDate"
+                    control={control}
+                    render={({ field }) => (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                  />
+                  {editErrors.hireDate && <p className="text-sm text-destructive">{editErrors.hireDate.message}</p>}
+                </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEmployeeToEdit(null)}>Cancel</Button>
+              <Button type="submit">Save Changes</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      <AlertDialog open={!!employeeToDelete} onOpenChange={(isOpen) => !isOpen && setEmployeeToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the employee: <br/>
+              <strong className="font-medium text-foreground">{employeeToDelete?.name}</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteEmployee} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Yes, delete employee
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

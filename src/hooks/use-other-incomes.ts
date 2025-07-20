@@ -3,27 +3,25 @@
 
 import { useCallback } from 'react';
 import type { OtherIncome } from '@/lib/types';
-import { useLocalStorage } from './use-local-storage';
+import { useFirestoreCollection } from './use-firestore-collection';
 
-const STORAGE_KEY = 'other-incomes';
+const COLLECTION_NAME = 'other-incomes';
 
 export function useOtherIncomes() {
-  const { data: otherIncomes, setData: setOtherIncomes, isLoaded, clearDataForUser } = useLocalStorage<OtherIncome[]>(STORAGE_KEY, []);
+  const { data: otherIncomes, addDoc, deleteDoc, loading } = useFirestoreCollection<OtherIncome>(COLLECTION_NAME);
 
   const addOtherIncome = useCallback((income: Omit<OtherIncome, 'id'>) => {
-    setOtherIncomes(prev => [
-      { ...income, id: crypto.randomUUID() },
-      ...(prev || []),
-    ]);
-  }, [setOtherIncomes]);
+    addDoc(income);
+  }, [addDoc]);
 
   const deleteOtherIncome = useCallback((id: string) => {
-    setOtherIncomes(prev => (prev || []).filter(oi => oi.id !== id));
-  }, [setOtherIncomes]);
+    deleteDoc(id);
+  }, [deleteDoc]);
   
-  const clearOtherIncomes = useCallback((userId: string) => {
-    clearDataForUser(userId);
-  }, [clearDataForUser]);
-
-  return { otherIncomes: otherIncomes || [], addOtherIncome, deleteOtherIncome, clearOtherIncomes, isLoaded };
+  return { 
+    otherIncomes: otherIncomes || [], 
+    addOtherIncome, 
+    deleteOtherIncome, 
+    isLoaded: !loading 
+  };
 }
