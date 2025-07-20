@@ -186,11 +186,9 @@ export default function PartnerLedgerPage() {
         const entityType = entities.find(e => e.id === selectedEntityId)?.type;
         
         let entityTotalBalance;
-        if (entityType === 'Partner') {
-          // For partners, positive balance is net investment (credit balance)
+        if (entityType === 'Partner' || entityType === 'Supplier') {
           entityTotalBalance = entityFilteredEntries.reduce((acc, entry) => acc + (entry.credit - entry.debit), 0);
         } else {
-          // For customers/suppliers, positive balance is amount owed to us (debit balance)
           entityTotalBalance = entityFilteredEntries.reduce((acc, entry) => acc + (entry.debit - entry.credit), 0);
         }
 
@@ -216,9 +214,7 @@ export default function PartnerLedgerPage() {
     let runningBalance = openingBalance;
     const entriesWithBalance: CombinedEntry[] = entriesForDisplay.map(entry => {
         const entityType = entities.find(e => e.id === entry.entityId)?.type;
-        if(entityType === 'Partner'){
-            runningBalance += entry.credit - entry.debit;
-        } else if (entityType === 'Supplier') {
+        if(entityType === 'Partner' || entityType === 'Supplier'){
             runningBalance += entry.credit - entry.debit;
         }
         else {
@@ -334,7 +330,7 @@ export default function PartnerLedgerPage() {
             <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div className="p-4 bg-muted/50 rounded-lg">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground"><Wallet /> Total Balance</div>
-                    <div className={`text-2xl font-bold ${specialReport.entityType === 'Partner' ? (specialReport.totalBalance >= 0 ? 'text-green-600' : 'text-destructive') : (specialReport.totalBalance > 0 ? 'text-destructive' : 'text-green-600')}`}>
+                    <div className={`text-2xl font-bold ${(specialReport.entityType === 'Partner' || specialReport.entityType === 'Supplier') ? (specialReport.totalBalance >= 0 ? 'text-green-600' : 'text-destructive') : (specialReport.totalBalance > 0 ? 'text-destructive' : 'text-green-600')}`}>
                         PKR {specialReport.totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                 </div>

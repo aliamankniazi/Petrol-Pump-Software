@@ -20,17 +20,12 @@ import { auth, isFirebaseConfigValid, firebaseConfig } from '@/lib/firebase';
 import type { AuthFormValues, RoleId } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 
-const USER_ROLE_STORAGE_KEY = 'pumppal-user-role';
-
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (data: AuthFormValues) => Promise<any>;
   signUp: (data: AuthFormValues) => Promise<any>;
   signOut: () => Promise<void>;
-  userRole: RoleId | null;
-  assignRoleToUser: (userId: string, roleId: RoleId) => void;
-  setUserRole: (roleId: RoleId | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,20 +35,13 @@ const FAKE_USER = { uid: 'offline-user', email: 'demo@example.com', emailVerifie
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState<RoleId | null>(null);
   const router = useRouter();
 
   const isConfigValid = isFirebaseConfigValid(firebaseConfig);
 
-  const assignRoleToUser = (userId: string, roleId: RoleId) => {
-    localStorage.setItem(`${USER_ROLE_STORAGE_KEY}:${userId}`, roleId);
-    setUserRole(roleId);
-  }
-
   useEffect(() => {
     if (!isConfigValid) {
       setUser(FAKE_USER);
-      setUserRole('admin');
       setLoading(false);
       return;
     }
@@ -68,23 +56,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
       } else {
         setUser(currentUser);
-      }
-      
-      if (currentUser) {
-        const storedRole = localStorage.getItem(`${USER_ROLE_STORAGE_KEY}:${currentUser.uid}`);
-        if (storedRole) {
-          setUserRole(storedRole as RoleId);
-        } else {
-          // Check if this is the very first user
-          const allUserRoles = Object.keys(localStorage).filter(key => key.startsWith(USER_ROLE_STORAGE_KEY));
-          if (allUserRoles.length === 0) {
-              assignRoleToUser(currentUser.uid, 'admin');
-          } else {
-            setUserRole(null); // No role assigned yet
-          }
-        }
-      } else {
-        setUserRole(null);
       }
       setLoading(false);
     });
@@ -102,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (data: AuthFormValues) => {
-    if (!isConfigValid || !auth) {
+    if (!isFirebaseConfigValid(firebaseConfig) || !auth) {
       throw new Error("Firebase is not configured. Please add your credentials in src/lib/firebase.ts");
     }
     const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
@@ -126,9 +97,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signUp,
     signOut,
-    userRole,
-    assignRoleToUser,
-    setUserRole,
   };
   
   return (

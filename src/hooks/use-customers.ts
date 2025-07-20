@@ -71,8 +71,20 @@ export function useCustomers() {
   }, []);
 
   const deleteCustomer = useCallback((id: string) => {
-    setCustomers(prev => prev.filter(c => c.id !== id));
-  }, []);
+    // If the customer is also a partner, we only remove their 'customer' status
+    // by setting isPartner to true and keeping them in the list.
+    // If they are not a partner, we remove them completely.
+    const customer = customers.find(c => c.id === id);
+    if (customer?.isPartner) {
+        // This case is handled by deleting a Business Partner, which preserves the customer record.
+        // To delete a customer who is also a partner, one must go through the investments page.
+        // Here we just mark them as not a standard customer if they are deleted from customer page
+        // A better approach would be to disable deletion from this page. For now, just update.
+        updateCustomer(id, { ...customer, name: `${customer.name} (Archived)` });
+    } else {
+        setCustomers(prev => prev.filter(c => c.id !== id));
+    }
+  }, [customers, updateCustomer]);
 
   const clearCustomers = useCallback(() => {
     setCustomers([]);

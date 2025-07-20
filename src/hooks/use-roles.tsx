@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback, createContext, useContext, type ReactNode } from 'react';
@@ -7,8 +6,10 @@ import type { Role, RoleId, Permission } from '@/lib/types';
 import { useAuth } from './use-auth';
 import { AppLayout } from '@/components/app-layout';
 import { usePathname, useRouter } from 'next/navigation';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const STORAGE_KEY = 'pumppal-roles';
+const USER_ROLE_STORAGE_KEY = 'pumppal-user-role';
 
 export const PERMISSIONS = [
     'view_dashboard', 'view_all_transactions', 'delete_transaction',
@@ -44,22 +45,40 @@ const DEFAULT_ROLES: Role[] = [
 
 interface RolesContextType {
     roles: Role[];
+    userRole: RoleId | null;
     addRole: (role: Omit<Role, 'id'>) => void;
     updateRole: (id: RoleId, updatedRole: Role) => void;
     deleteRole: (id: RoleId) => void;
     hasPermission: (permission: Permission) => boolean;
+    assignRoleToUser: (userId: string, roleId: RoleId) => void;
 }
 
 const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
+const FullscreenLoader = () => (
+    <div className="flex h-screen w-full items-center justify-center">
+       <div className="space-y-4 w-1/2">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-8 w-3/4" />
+        <Skeleton className="h-8 w-1/2" />
+       </div>
+   </div>
+);
+
+
 export function RolesProvider({ children }: { children: ReactNode }) {
     const [roles, setRoles] = useState<Role[]>([]);
+    const [userRole, setUserRole] = useState<RoleId | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
-    const { user, userRole, loading: authLoading } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
     const isAuthPage = pathname === '/login' || pathname === '/signup';
 
+    const assignRoleToUser = useCallback((userId: string, roleId: RoleId) => {
+        localStorage.setItem(`${USER_ROLE_STORAGE_KEY}:${userId}`, roleId);
+        setUserRole(roleId);
+    }, []);
 
     const loadData = useCallback(() => {
         try {
@@ -102,17 +121,38 @@ export function RolesProvider({ children }: { children: ReactNode }) {
             }
         }
     }, [roles, isLoaded]);
-    
+
     useEffect(() => {
         if (authLoading) return;
+        
+        if (user) {
+            const storedRole = localStorage.getItem(`${USER_ROLE_STORAGE_KEY}:${user.uid}`);
+            if (storedRole) {
+                setUserRole(storedRole as RoleId);
+            } else {
+                const allUserRoles = Object.keys(localStorage).filter(key => key.startsWith(USER_ROLE_STORAGE_KEY));
+                if (allUserRoles.length === 0) {
+                    assignRoleToUser(user.uid, 'admin');
+                } else {
+                    setUserRole(null);
+                }
+            }
+        } else {
+            setUserRole(null);
+        }
+
+    }, [user, authLoading, assignRoleToUser]);
+    
+    useEffect(() => {
+        if (authLoading || !isLoaded) return;
 
         if (!user && !isAuthPage) {
-            router.push('/login');
+            router.replace('/login');
         }
         if (user && isAuthPage) {
-            router.push('/');
+            router.replace('/');
         }
-    }, [user, authLoading, pathname, router, isAuthPage]);
+    }, [user, authLoading, isLoaded, pathname, router, isAuthPage]);
 
 
     const addRole = useCallback((role: Omit<Role, 'id'>) => {
@@ -137,23 +177,29 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
     const value = {
         roles,
+        userRole,
         addRole,
         updateRole,
         deleteRole,
         hasPermission,
+        assignRoleToUser,
     };
     
     if (authLoading || !isLoaded) {
-        return (
-           <div className="flex h-screen w-full items-center justify-center">
-               <p>Loading...</p>
-           </div>
-       );
+       return <FullscreenLoader />;
     }
-    
+
+    if (!user) {
+        return isAuthPage ? (
+            <RolesContext.Provider value={value}>
+                {children}
+            </RolesContext.Provider>
+        ) : <FullscreenLoader />;
+    }
+
     return (
         <RolesContext.Provider value={value}>
-            {user && !isAuthPage ? <AppLayout hasPermission={hasPermission}>{children}</AppLayout> : children}
+            {isAuthPage ? <FullscreenLoader /> : <AppLayout hasPermission={hasPermission}>{children}</AppLayout>}
         </RolesContext.Provider>
     );
 }
