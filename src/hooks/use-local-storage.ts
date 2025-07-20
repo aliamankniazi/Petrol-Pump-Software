@@ -16,12 +16,11 @@ function useLocalStorage<T>(key: string, initialValue: T): {
   
   const userScopedKey = user ? `pumppal-${user.uid}-${key}` : null;
 
-  // By serializing initialValue, we create a stable dependency for useCallback.
   const stableInitialValue = JSON.stringify(initialValue);
 
   const loadData = useCallback(() => {
     if (!userScopedKey) {
-        setData(JSON.parse(stableInitialValue)); // Reset to initial if no user
+        setData(JSON.parse(stableInitialValue)); 
         if (!authLoading) setIsLoaded(true);
         return;
     }
@@ -41,7 +40,7 @@ function useLocalStorage<T>(key: string, initialValue: T): {
     if (!authLoading) {
       loadData();
     }
-  }, [authLoading, userScopedKey, loadData]);
+  }, [authLoading, userScopedKey]); // Removed loadData from dependencies
 
   useEffect(() => {
     if (isLoaded && userScopedKey) {
