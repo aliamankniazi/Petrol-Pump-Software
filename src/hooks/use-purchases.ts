@@ -3,12 +3,12 @@
 
 import { useCallback } from 'react';
 import type { Purchase } from '@/lib/types';
-import { useFirestoreCollection } from './use-firestore-collection';
+import { useDatabaseCollection } from './use-database-collection';
 
 const COLLECTION_NAME = 'purchases';
 
 export function usePurchases() {
-  const { data: purchases, addDoc, deleteDoc, loading } = useFirestoreCollection<Purchase>(COLLECTION_NAME);
+  const { data: purchases, addDoc, deleteDoc, loading } = useDatabaseCollection<Purchase>(COLLECTION_NAME);
 
   const addPurchase = useCallback((purchase: Omit<Purchase, 'id'>) => {
     addDoc(purchase);

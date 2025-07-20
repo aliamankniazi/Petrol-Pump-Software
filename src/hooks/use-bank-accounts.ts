@@ -3,12 +3,12 @@
 
 import { useCallback } from 'react';
 import type { BankAccount } from '@/lib/types';
-import { useFirestoreCollection } from './use-firestore-collection';
+import { useDatabaseCollection } from './use-database-collection';
 
 const COLLECTION_NAME = 'bank-accounts';
 
 export function useBankAccounts() {
-  const { data: bankAccounts, addDoc, updateDoc, deleteDoc, loading } = useFirestoreCollection<BankAccount>(COLLECTION_NAME);
+  const { data: bankAccounts, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<BankAccount>(COLLECTION_NAME);
 
   const addBankAccount = useCallback((account: Omit<BankAccount, 'id' | 'timestamp'>) => {
     addDoc(account);

@@ -3,12 +3,13 @@
 
 import { useCallback, useMemo } from 'react';
 import type { FuelType } from '@/lib/types';
-import { useFirestoreCollection } from './use-firestore-collection';
+import { useDatabaseCollection } from './use-database-collection';
 
 const COLLECTION_NAME = 'settings';
 const DOC_ID = 'fuel-prices';
 
 interface FuelPriceDoc {
+    id: string;
     prices: Record<FuelType, number>;
 }
 
@@ -19,7 +20,7 @@ const DEFAULT_FUEL_PRICES: Record<FuelType, number> = {
 };
 
 export function useFuelPrices() {
-  const { data, updateDoc, loading } = useFirestoreCollection<FuelPriceDoc>(COLLECTION_NAME);
+  const { data, updateDoc, addDoc, loading } = useDatabaseCollection<FuelPriceDoc>(COLLECTION_NAME);
   
   const fuelPricesData = useMemo(() => {
     const doc = data.find(d => d.id === DOC_ID);
@@ -31,9 +32,14 @@ export function useFuelPrices() {
     
     const doc = data.find(d => d.id === DOC_ID);
     const updatedPrices = { ...(doc?.prices || DEFAULT_FUEL_PRICES), [fuelType]: newPrice };
-    updateDoc(DOC_ID, { prices: updatedPrices });
+    
+    if (doc) {
+        updateDoc(DOC_ID, { prices: updatedPrices });
+    } else {
+        addDoc({ prices: updatedPrices }, DOC_ID);
+    }
 
-  }, [data, updateDoc]);
+  }, [data, updateDoc, addDoc]);
 
   return { 
     fuelPrices: fuelPricesData, 

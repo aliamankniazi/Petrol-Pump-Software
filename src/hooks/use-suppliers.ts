@@ -3,12 +3,12 @@
 
 import { useCallback } from 'react';
 import type { Supplier } from '@/lib/types';
-import { useFirestoreCollection } from './use-firestore-collection';
+import { useDatabaseCollection } from './use-database-collection';
 
 const COLLECTION_NAME = 'suppliers';
 
 export function useSuppliers() {
-  const { data: suppliers, addDoc, deleteDoc, loading } = useFirestoreCollection<Supplier>(COLLECTION_NAME);
+  const { data: suppliers, addDoc, deleteDoc, loading } = useDatabaseCollection<Supplier>(COLLECTION_NAME);
 
   const addSupplier = useCallback((supplier: Omit<Supplier, 'id' | 'timestamp'>) => {
     addDoc(supplier);

@@ -3,12 +3,12 @@
 
 import { useCallback } from 'react';
 import type { Investment } from '@/lib/types';
-import { useFirestoreCollection } from './use-firestore-collection';
+import { useDatabaseCollection } from './use-database-collection';
 
 const COLLECTION_NAME = 'investments';
 
 export function useInvestments() {
-  const { data: investments, addDoc, deleteDoc, loading } = useFirestoreCollection<Investment>(COLLECTION_NAME);
+  const { data: investments, addDoc, deleteDoc, loading } = useDatabaseCollection<Investment>(COLLECTION_NAME);
 
   const addInvestment = useCallback((investment: Omit<Investment, 'id'>) => {
     addDoc(investment);

@@ -3,12 +3,12 @@
 
 import { useCallback } from 'react';
 import type { OtherIncome } from '@/lib/types';
-import { useFirestoreCollection } from './use-firestore-collection';
+import { useDatabaseCollection } from './use-database-collection';
 
 const COLLECTION_NAME = 'other-incomes';
 
 export function useOtherIncomes() {
-  const { data: otherIncomes, addDoc, deleteDoc, loading } = useFirestoreCollection<OtherIncome>(COLLECTION_NAME);
+  const { data: otherIncomes, addDoc, deleteDoc, loading } = useDatabaseCollection<OtherIncome>(COLLECTION_NAME);
 
   const addOtherIncome = useCallback((income: Omit<OtherIncome, 'id'>) => {
     addDoc(income);

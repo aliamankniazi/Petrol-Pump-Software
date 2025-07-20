@@ -4,12 +4,12 @@
 import { useCallback } from 'react';
 import type { BusinessPartner } from '@/lib/types';
 import { useCustomers } from './use-customers';
-import { useFirestoreCollection } from './use-firestore-collection';
+import { useDatabaseCollection } from './use-database-collection';
 
 const COLLECTION_NAME = 'business-partners';
 
 export function useBusinessPartners() {
-  const { data: businessPartners, addDoc, updateDoc, deleteDoc, loading } = useFirestoreCollection<BusinessPartner>(COLLECTION_NAME);
+  const { data: businessPartners, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<BusinessPartner>(COLLECTION_NAME);
   const { customers, addCustomer, updateCustomer } = useCustomers();
 
   const addBusinessPartner = useCallback(async (partner: Omit<BusinessPartner, 'id' | 'timestamp'>): Promise<BusinessPartner> => {
@@ -23,7 +23,7 @@ export function useBusinessPartners() {
     const newPartnerData = { ...partner, id: newCustomer.id };
     await addDoc(newPartnerData, newCustomer.id);
     
-    return { ...newPartnerData, timestamp: new Date().toISOString() };
+    return { ...newPartnerData, timestamp: Date.now() };
   }, [addCustomer, addDoc]);
 
   const updateBusinessPartner = useCallback((id: string, updatedPartner: Partial<Omit<BusinessPartner, 'id' | 'timestamp'>>) => {

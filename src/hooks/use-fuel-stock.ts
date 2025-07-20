@@ -3,12 +3,13 @@
 
 import { useCallback, useMemo } from 'react';
 import type { FuelType } from '@/lib/types';
-import { useFirestoreCollection } from './use-firestore-collection';
+import { useDatabaseCollection } from './use-database-collection';
 
 const COLLECTION_NAME = 'settings';
 const DOC_ID = 'fuel-stock';
 
 interface FuelStockDoc {
+    id: string;
     stock: Record<FuelType, number>;
 }
 
@@ -19,7 +20,7 @@ const DEFAULT_FUEL_STOCK: Record<FuelType, number> = {
 };
 
 export function useFuelStock() {
-  const { data, updateDoc, loading } = useFirestoreCollection<FuelStockDoc>(COLLECTION_NAME);
+  const { data, updateDoc, addDoc, loading } = useDatabaseCollection<FuelStockDoc>(COLLECTION_NAME);
 
   const fuelStock = useMemo(() => {
     const doc = data.find(d => d.id === DOC_ID);
@@ -31,8 +32,13 @@ export function useFuelStock() {
     
     const doc = data.find(d => d.id === DOC_ID);
     const updatedStock = { ...(doc?.stock || DEFAULT_FUEL_STOCK), [fuelType]: newStock };
-    updateDoc(DOC_ID, { stock: updatedStock });
-  }, [data, updateDoc]);
+    
+    if (doc) {
+      updateDoc(DOC_ID, { stock: updatedStock });
+    } else {
+      addDoc({ stock: updatedStock }, DOC_ID);
+    }
+  }, [data, updateDoc, addDoc]);
 
   return { fuelStock, setFuelStock, isLoaded: !loading };
 }

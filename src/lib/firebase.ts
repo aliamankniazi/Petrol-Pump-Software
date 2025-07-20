@@ -2,7 +2,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
 import { getAuth, type Auth } from 'firebase/auth';
-import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getDatabase, type Database } from 'firebase/database';
 
 
 // Your web app's Firebase configuration
@@ -17,6 +17,7 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 export const firebaseConfig: FirebaseOptions = {
   // apiKey: "YOUR_API_KEY",
   // authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  // databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
   // projectId: "YOUR_PROJECT_ID",
   // storageBucket: "YOUR_PROJECT_ID.appspot.com",
   // messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
@@ -26,12 +27,12 @@ export const firebaseConfig: FirebaseOptions = {
 const isFirebaseConfigProvided = !!firebaseConfig.apiKey;
 
 let auth: Auth | null = null;
-let db: Firestore | null = null;
+let db: Database | null = null;
 
 if (isFirebaseConfigProvided) {
     const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
-    db = getFirestore(app);
+    db = getDatabase(app);
 } else {
     console.warn("Firebase config not provided. App will run in offline mode.");
 }

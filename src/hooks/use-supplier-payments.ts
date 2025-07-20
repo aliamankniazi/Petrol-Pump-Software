@@ -3,12 +3,12 @@
 
 import { useCallback } from 'react';
 import type { SupplierPayment } from '@/lib/types';
-import { useFirestoreCollection } from './use-firestore-collection';
+import { useDatabaseCollection } from './use-database-collection';
 
 const COLLECTION_NAME = 'supplier-payments';
 
 export function useSupplierPayments() {
-  const { data: supplierPayments, addDoc, deleteDoc, loading } = useFirestoreCollection<SupplierPayment>(COLLECTION_NAME);
+  const { data: supplierPayments, addDoc, deleteDoc, loading } = useDatabaseCollection<SupplierPayment>(COLLECTION_NAME);
 
   const addSupplierPayment = useCallback((payment: Omit<SupplierPayment, 'id'>) => {
     addDoc(payment);

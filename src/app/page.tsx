@@ -114,7 +114,7 @@ export default function SalesPage() {
       pricePerLitre: pricePerLitre,
       totalAmount: calculated.amount,
       paymentMethod: data.paymentMethod,
-      timestamp: new Date(),
+      timestamp: Date.now(),
       customerId: customer?.id,
       customerName: customer?.name,
       bankAccountId: bankAccount?.id,

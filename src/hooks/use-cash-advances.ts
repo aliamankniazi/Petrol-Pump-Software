@@ -3,12 +3,12 @@
 
 import { useCallback } from 'react';
 import type { CashAdvance } from '@/lib/types';
-import { useFirestoreCollection } from './use-firestore-collection';
+import { useDatabaseCollection } from './use-database-collection';
 
 const COLLECTION_NAME = 'cash-advances';
 
 export function useCashAdvances() {
-  const { data: cashAdvances, addDoc, deleteDoc, loading } = useFirestoreCollection<CashAdvance>(COLLECTION_NAME);
+  const { data: cashAdvances, addDoc, deleteDoc, loading } = useDatabaseCollection<CashAdvance>(COLLECTION_NAME);
 
   const addCashAdvance = useCallback((advance: Omit<CashAdvance, 'id'>) => {
     addDoc(advance);

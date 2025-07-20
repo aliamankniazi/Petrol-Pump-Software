@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, createContext, useContext, type ReactNode } from 'react';
+import { useMemo, useCallback, createContext, useContext, type ReactNode, useEffect } from 'react';
 import type { Role, RoleId, Permission } from '@/lib/types';
 import { useAuth } from './use-auth';
-import { useFirestoreCollection } from './use-firestore-collection';
+import { useDatabaseCollection } from './use-database-collection';
 
 const ROLES_COLLECTION = 'roles';
 const USER_ROLES_COLLECTION = 'user-roles';
@@ -55,8 +55,8 @@ const RolesContext = createContext<RolesContextType | undefined>(undefined);
 export function RolesProvider({ children }: { children: ReactNode }) {
     const { user, loading: authLoading } = useAuth();
     
-    const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useFirestoreCollection<Role>(ROLES_COLLECTION);
-    const { data: userRoles, addDoc: addUserRoleDoc, loading: userRolesLoading } = useFirestoreCollection<UserRoleDoc>(USER_ROLES_COLLECTION);
+    const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION);
+    const { data: userRoles, addDoc: addUserRoleDoc, loading: userRolesLoading } = useDatabaseCollection<UserRoleDoc>(USER_ROLES_COLLECTION);
 
     const isReady = !authLoading && !rolesLoading && !userRolesLoading;
     
