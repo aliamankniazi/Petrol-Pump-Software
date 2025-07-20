@@ -43,20 +43,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isConfigured, setIsConfigured] = useState(false);
 
   useEffect(() => {
-    // This check is simple and robust. If apiKey is missing, Firebase isn't configured.
     const isConfigProvided = firebaseConfig && firebaseConfig.apiKey;
     
     if (isConfigProvided) {
       const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
       const authInstance = getAuth(app);
       setAuth(authInstance);
-      setIsConfigured(true); // Set configured to true ONLY if initialization happens.
+      setIsConfigured(true);
 
       const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
         if (currentUser && currentUser.emailVerified) {
           setUser(currentUser);
         } else {
-          // If user exists but is not verified, sign them out.
           if (currentUser) {
             firebaseSignOut(authInstance);
           }
@@ -66,7 +64,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       return () => unsubscribe();
     } else {
-      // If no config, set configured to false and stop loading.
       setIsConfigured(false);
       setLoading(false);
     }
@@ -101,9 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     if (auth) {
-        await firebaseSignOut(auth);
+      await firebaseSignOut(auth);
     }
-    setUser(null);
+    // The user will be set to null by the onAuthStateChanged listener.
   }, [auth]);
 
   const value = {
