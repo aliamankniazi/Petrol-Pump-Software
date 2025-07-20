@@ -22,7 +22,6 @@ import {
 import { firebaseConfig } from '@/lib/firebase';
 import type { AuthFormValues } from '@/lib/types';
 import { FirebaseError } from 'firebase/app';
-import { useSettings } from './use-settings';
 import { initializeApp, getApps } from 'firebase/app';
 
 interface AuthContextType {
@@ -39,31 +38,36 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const { clearAllDataForUser } = useSettings();
 
   const [auth, setAuth] = useState<Auth | null>(null);
   const [isConfigured, setIsConfigured] = useState(false);
 
   useEffect(() => {
+    // This check is simple and robust. If apiKey is missing, Firebase isn't configured.
     const isConfigProvided = firebaseConfig && firebaseConfig.apiKey;
-    setIsConfigured(isConfigProvided);
-
+    
     if (isConfigProvided) {
       const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
       const authInstance = getAuth(app);
       setAuth(authInstance);
+      setIsConfigured(true); // Set configured to true ONLY if initialization happens.
 
       const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
-        if (currentUser && !currentUser.emailVerified) {
-          firebaseSignOut(authInstance);
-          setUser(null);
-        } else {
+        if (currentUser && currentUser.emailVerified) {
           setUser(currentUser);
+        } else {
+          // If user exists but is not verified, sign them out.
+          if (currentUser) {
+            firebaseSignOut(authInstance);
+          }
+          setUser(null);
         }
         setLoading(false);
       });
       return () => unsubscribe();
     } else {
+      // If no config, set configured to false and stop loading.
+      setIsConfigured(false);
       setLoading(false);
     }
   }, []);
@@ -96,13 +100,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [auth]);
 
   const signOut = useCallback(async () => {
-    const signedOutUser = auth?.currentUser;
-    if (auth && signedOutUser) {
+    if (auth) {
         await firebaseSignOut(auth);
-        clearAllDataForUser(signedOutUser.uid);
     }
     setUser(null);
-  }, [auth, clearAllDataForUser]);
+  }, [auth]);
 
   const value = {
     user,

@@ -8,15 +8,25 @@ import {
   push,
   update,
   remove,
+  set,
   serverTimestamp,
   type DatabaseReference,
+  getDatabase,
 } from 'firebase/database';
 import { useAuth } from './use-auth';
-import { db } from '@/lib/firebase';
+import { getApps, initializeApp } from 'firebase/app';
+import { firebaseConfig } from '@/lib/firebase';
 
 interface DbDoc {
   id: string;
   [key: string]: any;
+}
+
+// Initialize db connection here to be used by the hook
+let db: import('firebase/database').Database | null = null;
+if (firebaseConfig.apiKey) {
+    const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+    db = getDatabase(app);
 }
 
 export function useDatabaseCollection<T extends DbDoc>(collectionName: string) {
@@ -70,17 +80,16 @@ export function useDatabaseCollection<T extends DbDoc>(collectionName: string) {
   const addDoc = useCallback(async (newData: Omit<T, 'id' | 'timestamp'>, docId?: string) => {
     if (!user || !db) return Promise.reject(new Error("Not authenticated or DB not initialized"));
     
-    const collectionPath = `users/${user.uid}/${collectionName}`;
     const dataWithTimestamp = { ...newData, timestamp: serverTimestamp() };
 
     if (docId) {
-      const docRef = ref(db, `${collectionPath}/${docId}`);
-      await update(docRef.parent!, {[docId]: dataWithTimestamp});
+      const docRef = ref(db, `users/${user.uid}/${collectionName}/${docId}`);
+      await set(docRef, dataWithTimestamp);
       return { id: docId, ...newData, timestamp: Date.now() } as T;
     } else {
-      const collectionRef = ref(db, collectionPath);
+      const collectionRef = ref(db, `users/${user.uid}/${collectionName}`);
       const newDocRef = push(collectionRef);
-      await update(newDocRef.parent!, {[newDocRef.key!]: dataWithTimestamp});
+      await set(newDocRef, dataWithTimestamp);
       return { id: newDocRef.key!, ...newData, timestamp: Date.now() } as T;
     }
   }, [user, collectionName]);
