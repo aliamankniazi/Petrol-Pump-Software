@@ -7,7 +7,7 @@ import { getAuth } from "firebase/auth";
 // IMPORTANT: REPLACE THE PLACEHOLDER CONFIG WITH YOUR ACTUAL FIREBASE PROJECT CONFIGURATION.
 // You can get this from the Firebase console in your project's settings.
 // Go to Project Settings > General > Your apps > Web app > SDK setup and configuration
-// =================================e==========================================================
+// ==========================================================================================
 const firebaseConfig: FirebaseOptions = {
   // apiKey: "YOUR_API_KEY",
   // authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -17,17 +17,23 @@ const firebaseConfig: FirebaseOptions = {
   // appId: "YOUR_APP_ID"
 };
 
-// A function to check if the firebaseConfig is valid
-function isFirebaseConfigValid(config?: FirebaseOptions): config is FirebaseOptions {
-    return !!config && !!config.apiKey && config.apiKey !== 'YOUR_API_KEY';
+// A function to check if the firebaseConfig placeholder values have been replaced.
+function isConfigProvided(config?: FirebaseOptions): config is FirebaseOptions {
+    return !!config && !!config.apiKey && config.apiKey.includes('AIza');
 }
 
-// Initialize Firebase only if the config is valid
-const app = !getApps().length && isFirebaseConfigValid(firebaseConfig)
-  ? initializeApp(firebaseConfig)
-  : getApps().length ? getApp() : null;
 
-// Get auth instance only if app is initialized
-const auth = app ? getAuth(app) : null;
+// Initialize Firebase
+let app;
+let auth;
+const isFirebaseConfigured = isConfigProvided(firebaseConfig);
 
-export { app, auth, isFirebaseConfigValid, firebaseConfig };
+if (isFirebaseConfigured) {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
+} else {
+    app = null;
+    auth = null;
+}
+
+export { app, auth, firebaseConfig, isFirebaseConfigured };
