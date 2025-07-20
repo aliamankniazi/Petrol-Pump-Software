@@ -14,6 +14,8 @@ export interface Transaction {
   timestamp: string;
   customerId?: string;
   customerName?: string;
+  bankAccountId?: string;
+  bankAccountName?: string;
 }
 
 export interface Purchase {

@@ -8,7 +8,7 @@ import { Numpad } from '@/components/numpad';
 import { useTransactions } from '@/hooks/use-transactions';
 import type { FuelType, PaymentMethod, Customer } from '@/lib/types';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Fuel, Droplets, CreditCard, Wallet, Smartphone, Users, HandCoins, DollarSign, Calendar as CalendarIcon, Edit, HelpCircle } from 'lucide-react';
+import { Fuel, Droplets, CreditCard, Wallet, Smartphone, Users, HandCoins, DollarSign, Calendar as CalendarIcon, Edit, HelpCircle, Landmark } from 'lucide-react';
 import { useFuelPrices } from '@/hooks/use-fuel-prices';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -26,6 +26,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { useBankAccounts } from '@/hooks/use-bank-accounts';
 
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
@@ -40,6 +41,7 @@ export default function SalePage() {
   const { fuelPrices, isLoaded: pricesLoaded } = useFuelPrices();
   const { customers, isLoaded: customersLoaded } = useCustomers();
   const { fuelStock, isLoaded: stockLoaded } = useFuelStock();
+  const { bankAccounts, isLoaded: bankAccountsLoaded } = useBankAccounts();
   
   const [saleInput, setSaleInput] = useState('0');
   const [paymentInput, setPaymentInput] = useState('');
@@ -48,6 +50,9 @@ export default function SalePage() {
   const [mode, setMode] = useState<SaleMode>('amount');
   const [selectedFuel, setSelectedFuel] = useState<FuelType>('Unleaded');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [selectedBankAccountId, setSelectedBankAccountId] = useState<string | null>(null);
+  const [activePaymentMethod, setActivePaymentMethod] = useState<PaymentMethod | null>(null);
+
   const [saleDate, setSaleDate] = useState<Date>(new Date());
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [lastTransaction, setLastTransaction] = useState<{ amount: number; volume: number; fuelType: FuelType, customerName?: string } | null>(null);
@@ -58,6 +63,11 @@ export default function SalePage() {
       if (!selectedCustomerId) return null;
       return customers.find(c => c.id === selectedCustomerId);
   }, [customers, selectedCustomerId]);
+  
+  const selectedBankAccount = useMemo(() => {
+    if (!selectedBankAccountId) return null;
+    return bankAccounts.find(b => b.id === selectedBankAccountId);
+  }, [bankAccounts, selectedBankAccountId]);
 
   const { amount, volume } = useMemo(() => {
     const pricePerLitre = fuelPrices[selectedFuel] || 1;
@@ -105,6 +115,14 @@ export default function SalePage() {
 
   const handleSalePayment = useCallback((paymentMethod: PaymentMethod) => {
     if (amount <= 0 || volume <= 0) return;
+    if ((paymentMethod === 'Card' || paymentMethod === 'Mobile') && !selectedBankAccountId) {
+        toast({
+            variant: "destructive",
+            title: "Bank Account Required",
+            description: "Please select a bank account for Card or Mobile payments.",
+        });
+        return;
+    }
     
     const transaction = {
       timestamp: saleDate.toISOString(),
@@ -115,6 +133,8 @@ export default function SalePage() {
       paymentMethod,
       customerId: selectedCustomer?.id,
       customerName: selectedCustomer?.name,
+      bankAccountId: selectedBankAccountId,
+      bankAccountName: selectedBankAccount?.bankName
     };
     
     addTransaction(transaction);
@@ -125,7 +145,7 @@ export default function SalePage() {
       customerName: selectedCustomer?.name,
     });
     setShowConfirmation(true);
-  }, [amount, volume, saleDate, selectedFuel, selectedCustomer, fuelPrices, addTransaction]);
+  }, [amount, volume, saleDate, selectedFuel, selectedCustomer, fuelPrices, addTransaction, selectedBankAccountId, selectedBankAccount, toast]);
   
   const handleCustomerPayment = useCallback((paymentMethod: PaymentMethod) => {
     const amountNum = parseFloat(paymentInput);
@@ -155,6 +175,17 @@ export default function SalePage() {
     // Reset form
     setPaymentInput('');
   }, [paymentInput, selectedCustomerId, selectedCustomer, addCustomerPayment, toast]);
+
+  useEffect(() => {
+    if (activePaymentMethod !== 'Card' && activePaymentMethod !== 'Mobile') {
+        setSelectedBankAccountId(null);
+    }
+  }, [activePaymentMethod]);
+  
+  const handlePaymentMethodClick = (method: PaymentMethod) => {
+    setActivePaymentMethod(method);
+    handleSalePayment(method);
+  }
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -213,6 +244,8 @@ export default function SalePage() {
     setMode('amount');
     setSelectedFuel('Unleaded');
     setSelectedCustomerId(null);
+    setSelectedBankAccountId(null);
+    setActivePaymentMethod(null);
     setShowConfirmation(false);
     setLastTransaction(null);
     setSaleDate(new Date());
@@ -222,7 +255,7 @@ export default function SalePage() {
       ? (mode === 'amount' ? 'Amount (PKR)' : 'Volume (L)') 
       : 'Payment Amount (PKR)';
 
-  const dataIsReady = pricesLoaded && stockLoaded;
+  const dataIsReady = pricesLoaded && stockLoaded && bankAccountsLoaded;
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 p-4 md:p-8 h-full">
@@ -371,14 +404,32 @@ export default function SalePage() {
                     )}
                 </div>
 
+                {(activePaymentMethod === 'Card' || activePaymentMethod === 'Mobile') && (
+                    <div className="space-y-2">
+                        <Label className="flex items-center gap-2"><Landmark /> Bank Account</Label>
+                        <Select onValueChange={setSelectedBankAccountId} value={selectedBankAccountId || ''}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a bank account" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {bankAccounts.map(account => (
+                                    <SelectItem key={account.id} value={account.id}>
+                                        {account.bankName} - (...{account.accountNumber.slice(-4)})
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
+
                 <div className="grid grid-cols-3 gap-4" onClick={() => setNumpadTarget('sale')}>
-                    <Button className="py-6 text-base" onClick={() => handleSalePayment('Cash')} disabled={amount <= 0 || !dataIsReady} title="Ctrl + 1">
+                    <Button className="py-6 text-base" onClick={() => handlePaymentMethodClick('Cash')} disabled={amount <= 0 || !dataIsReady} title="Ctrl + 1">
                     <Wallet className="mr-2" /> Cash
                     </Button>
-                    <Button className="py-6 text-base" onClick={() => handleSalePayment('Card')} disabled={amount <= 0 || !dataIsReady} title="Ctrl + 2">
+                    <Button className="py-6 text-base" onClick={() => handlePaymentMethodClick('Card')} disabled={amount <= 0 || !dataIsReady} title="Ctrl + 2">
                     <CreditCard className="mr-2" /> Card
                     </Button>
-                    <Button className="py-6 text-base" onClick={() => handleSalePayment('Mobile')} disabled={amount <= 0 || !dataIsReady} title="Ctrl + 3">
+                    <Button className="py-6 text-base" onClick={() => handlePaymentMethodClick('Mobile')} disabled={amount <= 0 || !dataIsReady} title="Ctrl + 3">
                     <Smartphone className="mr-2" /> Mobile
                     </Button>
                 </div>

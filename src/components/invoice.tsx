@@ -24,6 +24,10 @@ interface InvoiceData {
   items: InvoiceItem[];
   totalAmount: number;
   paymentMethod: string;
+  bankDetails?: {
+    name: string;
+    number: string;
+  }
 }
 
 const companyDetails = {
@@ -89,6 +93,9 @@ export function Invoice({ data }: { data: InvoiceData }) {
             <h3 className="font-bold mb-1">Bill To:</h3>
             <p className="font-semibold">{data.partner.name}</p>
             <p>Contact No.: {data.partner.contact}</p>
+             {data.bankDetails && (
+                <p>Bank: {data.bankDetails.name} ({data.bankDetails.number})</p>
+             )}
         </div>
         <div className="text-right">
             <p><span className="font-semibold">Invoice No.:</span> {data.id.slice(0, 8)}</p>
