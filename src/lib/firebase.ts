@@ -20,21 +20,15 @@ const firebaseConfig: FirebaseOptions = {
   // appId: "YOUR_APP_ID"
 };
 
-// Initialize Firebase
-let app;
-let auth;
-
 // This check is the most reliable way to determine if the config is provided.
 const isFirebaseConfigured = firebaseConfig && firebaseConfig.apiKey;
+
+let app;
+let auth;
 
 if (isFirebaseConfigured) {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
-} else {
-    // If not configured, app and auth will be null.
-    // The useAuth hook handles this gracefully.
-    app = null;
-    auth = null;
 }
 
 export { app, auth, firebaseConfig, isFirebaseConfigured };

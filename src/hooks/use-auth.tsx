@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { clearAllDataForUser } = useSettings();
 
   useEffect(() => {
-    if (!auth) {
+    if (!isFirebaseConfigured || !auth) {
       setUser(null);
       setLoading(false);
       return;
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearAllDataForUser(signedOutUser.uid);
     }
     setUser(null);
-  }, [auth, clearAllDataForUser]);
+  }, [clearAllDataForUser]);
 
   const value = {
     user,
