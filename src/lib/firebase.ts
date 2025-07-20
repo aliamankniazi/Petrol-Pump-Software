@@ -18,18 +18,18 @@ const firebaseConfig: FirebaseOptions = {
 };
 
 // Initialize Firebase
-const isFirebaseConfigured = !!firebaseConfig.apiKey;
-
 let app;
 let auth;
+
+const isFirebaseConfigured = firebaseConfig && firebaseConfig.apiKey;
 
 if (isFirebaseConfigured) {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
 } else {
+    console.warn("Firebase is not configured. Please add your credentials in src/lib/firebase.ts");
     app = null;
     auth = null;
-    console.warn("Firebase is not configured. Please add your credentials in src/lib/firebase.ts");
 }
 
 export { app, auth, firebaseConfig, isFirebaseConfigured };

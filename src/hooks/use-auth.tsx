@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { clearAllDataForUser } = useSettings();
 
   useEffect(() => {
-    if (!isFirebaseConfigured || !auth) {
+    if (!auth) {
       setUser(null);
       setLoading(false);
       return;
@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
   
   const signIn = useCallback(async (data: AuthFormValues) => {
-    if (!isFirebaseConfigured || !auth) throw new Error("Firebase is not configured.");
+    if (!auth) throw new Error("Firebase is not configured.");
     const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
     if (!userCredential.user.emailVerified) {
       await firebaseSignOut(auth);
@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = useCallback(async (data: AuthFormValues) => {
-    if (!isFirebaseConfigured || !auth) {
+    if (!auth) {
       throw new Error("Firebase is not configured. Please add your credentials in src/lib/firebase.ts");
     }
     try {
@@ -88,12 +88,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     const signedOutUser = auth?.currentUser;
-    if (isFirebaseConfigured && auth && signedOutUser) {
+    if (auth && signedOutUser) {
         await firebaseSignOut(auth);
         clearAllDataForUser(signedOutUser.uid);
     }
     setUser(null);
-  }, [clearAllDataForUser]);
+  }, [auth, clearAllDataForUser]);
 
   const value = {
     user,
