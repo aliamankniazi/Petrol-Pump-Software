@@ -38,44 +38,42 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-
   const [auth, setAuth] = useState<Auth | null>(null);
-  const [isConfigured, setIsConfigured] = useState(false);
+
+  const isConfigured = !!firebaseConfig.apiKey;
 
   useEffect(() => {
-    const isConfigProvided = firebaseConfig && firebaseConfig.apiKey;
-    
-    if (isConfigProvided) {
+    if (isConfigured) {
       const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
       const authInstance = getAuth(app);
       setAuth(authInstance);
-      setIsConfigured(true);
 
       const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
         if (currentUser && currentUser.emailVerified) {
           setUser(currentUser);
         } else {
-          if (currentUser) {
-            firebaseSignOut(authInstance);
-          }
           setUser(null);
         }
         setLoading(false);
       });
+
       return () => unsubscribe();
     } else {
-      setIsConfigured(false);
       setLoading(false);
     }
-  }, []);
+  }, [isConfigured]);
   
   const signIn = useCallback(async (data: AuthFormValues) => {
     if (!auth) throw new Error("Firebase is not configured.");
+    
     const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
+    
     if (!userCredential.user.emailVerified) {
-      await firebaseSignOut(auth);
-      throw new Error("Your email is not verified. Please check your inbox.");
+      await firebaseSignOut(auth); // Sign out user until they are verified
+      throw new Error("Your email has not been verified. Please check your inbox for a verification link.");
     }
+    
+    // The onAuthStateChanged listener will handle setting the user state.
     return userCredential;
   }, [auth]);
 
@@ -86,11 +84,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
         await sendEmailVerification(userCredential.user);
-        await firebaseSignOut(auth); // Sign out user immediately after signup to force email verification.
+        await firebaseSignOut(auth); // Sign out user immediately after signup to force verification on login.
         return userCredential;
     } catch (error) {
         if (error instanceof FirebaseError && error.code === 'auth/email-already-in-use') {
-            throw new Error('This email is already registered. Please log in.');
+            throw new Error('This email is already registered. Please log in instead.');
         }
         throw error;
     }
@@ -100,10 +98,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (auth) {
       await firebaseSignOut(auth);
     }
-    // The user will be set to null by the onAuthStateChanged listener.
+    setUser(null);
   }, [auth]);
 
-  const value = {
+  const value: AuthContextType = {
     user,
     loading,
     signIn,
