@@ -7,7 +7,6 @@ import { useAuth } from './use-auth';
 import { AppLayout } from '@/components/app-layout';
 import { usePathname, useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useLocalStorage } from './use-local-storage';
 
 const ROLES_STORAGE_KEY = 'roles';
 const USER_ROLE_STORAGE_KEY_PREFIX = 'user-role';
@@ -124,8 +123,11 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     
     // Auto-assign 'admin' role to the very first user
     useEffect(() => {
-        if (!authLoading && user && isRolesLoaded && isUserRolesLoaded && Object.keys(userRoles).length === 0) {
-            assignRoleToUser(user.uid, 'admin');
+        if (!authLoading && user && isRolesLoaded && isUserRolesLoaded) {
+            const hasUsers = Object.keys(userRoles).length > 0;
+            if (!hasUsers) {
+                assignRoleToUser(user.uid, 'admin');
+            }
         }
     }, [authLoading, user, isRolesLoaded, isUserRolesLoaded, userRoles, assignRoleToUser]);
     
@@ -178,19 +180,20 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }
 
     const isAuthPage = pathname === '/login' || pathname === '/signup';
-    if (!user) {
-        return isAuthPage ? (
-            <RolesContext.Provider value={value}>
-                {children}
-            </RolesContext.Provider>
-        ) : <FullscreenLoader />;
-    }
 
-    return (
+    if (user) {
+        return (
+            <RolesContext.Provider value={value}>
+                <AppLayout hasPermission={hasPermission}>{children}</AppLayout>
+            </RolesContext.Provider>
+        );
+    }
+    
+    return isAuthPage ? (
         <RolesContext.Provider value={value}>
-            <AppLayout hasPermission={hasPermission}>{children}</AppLayout>
+            {children}
         </RolesContext.Provider>
-    );
+    ) : <FullscreenLoader />;
 }
 
 export const useRoles = () => {

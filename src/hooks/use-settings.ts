@@ -19,29 +19,21 @@ import { useSuppliers } from './use-suppliers';
 import { useInvestments } from './use-investments';
 import { useBusinessPartners } from './use-business-partners';
 import { useAuth } from './use-auth';
+import { useCallback } from 'react';
 
 // This hook provides a function to clear all data FOR THE CURRENT USER.
 export function useSettings() {
   const { user } = useAuth();
-  const hooks = [
-    useTransactions, usePurchases, usePurchaseReturns, useExpenses,
-    useCustomers, useSuppliers, useBankAccounts, useEmployees,
-    useFuelPrices, useFuelStock, useCustomerPayments, useCashAdvances,
-    useOtherIncomes, useTankReadings, useSupplierPayments, useInvestments,
-    useBusinessPartners
-  ];
 
-  const clearAllData = () => {
+  const clearAllData = useCallback(() => {
     if (!user) return;
     
-    // This is a bit of a trick. We can't call hooks conditionally,
-    // but we can iterate through them and clear their associated localStorage.
     const hookKeys = [
       'transactions', 'purchases', 'purchase-returns', 'expenses',
       'customers', 'suppliers', 'bank-accounts', 'employees',
-      'fuel-prices', 'fuel-stock', 'customer-payments', 'cash-advances',
-      'other-incomes', 'tank-readings', 'supplier-payments', 'investments',
-      'business-partners', 'manual-fuel-stock', 'initial-fuel-stock'
+      'fuel-prices', 'manual-fuel-stock', 'initial-fuel-stock',
+      'customer-payments', 'cash-advances', 'other-incomes', 'tank-readings',
+      'supplier-payments', 'investments', 'business-partners'
     ];
 
     hookKeys.forEach(key => {
@@ -49,9 +41,9 @@ export function useSettings() {
         localStorage.removeItem(userScopedKey);
     });
 
-    // Reload the page to reset all states to their initial values
+    // Reload the page to reset all states to their initial values from scratch
     window.location.reload();
-  };
+  }, [user]);
 
   return {
     clearAllData,

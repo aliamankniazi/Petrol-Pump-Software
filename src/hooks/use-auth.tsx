@@ -19,6 +19,7 @@ import {
 } from 'firebase/auth';
 import { auth, isFirebaseConfigValid, firebaseConfig } from '@/lib/firebase';
 import type { AuthFormValues } from '@/lib/types';
+import { useSettings } from './use-settings';
 
 interface AuthContextType {
   user: User | null;
@@ -83,7 +84,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     if (isConfigValid && auth) {
-      await firebaseSignOut(auth);
+        // We get the user from auth directly here, because the state update might not be immediate.
+        const currentUser = auth.currentUser;
+        if(currentUser){
+            const hookKeys = [
+                'transactions', 'purchases', 'purchase-returns', 'expenses',
+                'customers', 'suppliers', 'bank-accounts', 'employees',
+                'fuel-prices', 'manual-fuel-stock', 'initial-fuel-stock',
+                'customer-payments', 'cash-advances', 'other-incomes', 'tank-readings',
+                'supplier-payments', 'investments', 'business-partners'
+            ];
+            hookKeys.forEach(key => {
+                const userScopedKey = `pumppal-${currentUser.uid}-${key}`;
+                localStorage.removeItem(userScopedKey);
+            });
+        }
+        await firebaseSignOut(auth);
     }
     setUser(null);
   }, [isConfigValid]);

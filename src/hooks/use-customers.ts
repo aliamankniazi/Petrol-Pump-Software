@@ -4,7 +4,6 @@
 import { useCallback } from 'react';
 import type { Customer } from '@/lib/types';
 import { useLocalStorage } from './use-local-storage';
-import { useBusinessPartners } from './use-business-partners';
 
 const STORAGE_KEY = 'customers';
 

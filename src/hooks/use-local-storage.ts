@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, SetStateAction } from 'react';
 import { useAuth } from './use-auth';
 
 function useLocalStorage<T>(key: string, initialValue: T): {
@@ -17,7 +17,6 @@ function useLocalStorage<T>(key: string, initialValue: T): {
   const userScopedKey = user ? `pumppal-${user.uid}-${key}` : null;
 
   // By serializing initialValue, we create a stable dependency for useCallback.
-  // This prevents the infinite loop caused by new object/array references on each render.
   const stableInitialValue = JSON.stringify(initialValue);
 
   const loadData = useCallback(() => {
@@ -38,14 +37,12 @@ function useLocalStorage<T>(key: string, initialValue: T): {
     }
   }, [userScopedKey, stableInitialValue, authLoading]);
 
-  // Load data when authentication state or user changes
   useEffect(() => {
     if (!authLoading) {
       loadData();
     }
-  }, [authLoading, loadData]);
+  }, [authLoading, userScopedKey, loadData]);
 
-  // Save data to localStorage whenever it changes
   useEffect(() => {
     if (isLoaded && userScopedKey) {
       try {
@@ -56,7 +53,6 @@ function useLocalStorage<T>(key: string, initialValue: T): {
     }
   }, [userScopedKey, data, isLoaded]);
 
-  // Listen for storage events from other tabs
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === userScopedKey) {
@@ -68,8 +64,8 @@ function useLocalStorage<T>(key: string, initialValue: T): {
   }, [userScopedKey, loadData]);
 
   const clearData = useCallback(() => {
-    setData(initialValue);
-  }, [initialValue]);
+    setData(JSON.parse(stableInitialValue));
+  }, [stableInitialValue]);
 
   return { data, setData, isLoaded: isLoaded && !authLoading, clearData };
 }
