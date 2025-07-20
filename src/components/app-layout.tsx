@@ -24,7 +24,8 @@ import { useRoles } from '@/hooks/use-roles';
 import type { Permission } from '@/hooks/use-roles';
 
 const navItems = [
-  { href: '/', label: 'Sale', icon: LayoutDashboard, permission: 'view_dashboard' as Permission },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: 'view_dashboard' as Permission },
+  { href: '/', label: 'Sale', icon: Fuel, permission: 'view_dashboard' as Permission },
   { href: '/all-transactions', label: 'All Transactions', icon: Archive, permission: 'view_all_transactions' as Permission },
   { href: '/customers', label: 'Customers', icon: Users, permission: 'view_customers' as Permission },
   { href: '/partner-ledger', label: 'Unified Ledger', icon: HandCoins, permission: 'view_partner_ledger' as Permission },
@@ -76,7 +77,7 @@ export function AppLayout({ children, hasPermission }: { children: React.ReactNo
           <SidebarMenu>
             {visibleNavItems.map(item => (
               <SidebarMenuItem key={item.href}>
-                 <SidebarMenuButton asChild isActive={pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))} tooltip={item.label}>
+                 <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.label}>
                    <Link href={item.href} legacyBehavior={false}>
                       <item.icon />
                       <span>{item.label}</span>

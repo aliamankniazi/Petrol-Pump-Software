@@ -136,7 +136,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
         const isAuthPage = pathname === '/login' || pathname === '/signup';
         if (user) {
-            if (isAuthPage) router.replace('/');
+            if (isAuthPage) router.replace('/dashboard');
         } else {
             if (!isAuthPage) router.replace('/login');
         }
@@ -177,8 +177,8 @@ export function RolesProvider({ children }: { children: ReactNode }) {
        return <FullscreenLoader />;
     }
 
+    const isAuthPage = pathname === '/login' || pathname === '/signup';
     if (!user) {
-        const isAuthPage = pathname === '/login' || pathname === '/signup';
         return isAuthPage ? (
             <RolesContext.Provider value={value}>
                 {children}
