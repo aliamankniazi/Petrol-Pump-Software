@@ -7,6 +7,7 @@ import {
   useEffect,
   useContext,
   type ReactNode,
+  useCallback,
 } from 'react';
 import {
   onAuthStateChanged,
@@ -17,8 +18,7 @@ import {
   sendEmailVerification,
 } from 'firebase/auth';
 import { auth, isFirebaseConfigValid, firebaseConfig } from '@/lib/firebase';
-import type { AuthFormValues, RoleId } from '@/lib/types';
-import { useRouter } from 'next/navigation';
+import type { AuthFormValues } from '@/lib/types';
 
 interface AuthContextType {
   user: User | null;
@@ -35,7 +35,6 @@ const FAKE_USER = { uid: 'offline-user', email: 'demo@example.com', emailVerifie
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   const isConfigValid = isFirebaseConfigValid(firebaseConfig);
 
@@ -62,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [isConfigValid]);
   
-  const signIn = async (data: AuthFormValues) => {
+  const signIn = useCallback(async (data: AuthFormValues) => {
     if (!isConfigValid || !auth) throw new Error("Firebase is not configured.");
     const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
     if (!userCredential.user.emailVerified) {
@@ -70,9 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error("Your email is not verified. Please check your inbox.");
     }
     return userCredential;
-  };
+  }, [isConfigValid]);
 
-  const signUp = async (data: AuthFormValues) => {
+  const signUp = useCallback(async (data: AuthFormValues) => {
     if (!isFirebaseConfigValid(firebaseConfig) || !auth) {
       throw new Error("Firebase is not configured. Please add your credentials in src/lib/firebase.ts");
     }
@@ -81,15 +80,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Sign the user out immediately after sending the verification email
     await firebaseSignOut(auth);
     return userCredential;
-  };
+  }, [isConfigValid]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     if (isConfigValid && auth) {
       await firebaseSignOut(auth);
     }
     setUser(null);
-    router.push('/login');
-  };
+    // The redirect is now handled by the RolesProvider
+  }, [isConfigValid]);
 
   const value = {
     user,

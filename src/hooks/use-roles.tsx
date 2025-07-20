@@ -47,10 +47,11 @@ interface RolesContextType {
     roles: Role[];
     userRole: RoleId | null;
     addRole: (role: Omit<Role, 'id'>) => void;
-    updateRole: (id: RoleId, updatedRole: Role) => void;
+    updateRole: (id: RoleId, updatedRole: Partial<Omit<Role, 'id'>>) => void;
     deleteRole: (id: RoleId) => void;
     hasPermission: (permission: Permission) => boolean;
     assignRoleToUser: (userId: string, roleId: RoleId) => void;
+    isReady: boolean;
 }
 
 const RolesContext = createContext<RolesContextType | undefined>(undefined);
@@ -68,91 +69,84 @@ const FullscreenLoader = () => (
 
 export function RolesProvider({ children }: { children: ReactNode }) {
     const [roles, setRoles] = useState<Role[]>([]);
-    const [userRole, setUserRole] = useState<RoleId | null>(null);
-    const [isLoaded, setIsLoaded] = useState(false);
-    const { user, loading: authLoading } = useAuth();
+    const [userRoles, setUserRoles] = useState<Record<string, RoleId>>({});
+    const [isRolesLoaded, setIsRolesLoaded] = useState(false);
+    const { user, loading: authLoading, signOut } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
     const isAuthPage = pathname === '/login' || pathname === '/signup';
 
-    const assignRoleToUser = useCallback((userId: string, roleId: RoleId) => {
-        localStorage.setItem(`${USER_ROLE_STORAGE_KEY}:${userId}`, roleId);
-        setUserRole(roleId);
-    }, []);
+    const currentUserRole = user ? userRoles[user.uid] : null;
 
     const loadData = useCallback(() => {
         try {
-            const storedItems = localStorage.getItem(STORAGE_KEY);
-            if (storedItems) {
-                setRoles(JSON.parse(storedItems));
-            } else {
-                setRoles(DEFAULT_ROLES);
+            const storedRoles = localStorage.getItem(STORAGE_KEY);
+            setRoles(storedRoles ? JSON.parse(storedRoles) : DEFAULT_ROLES);
+
+            const allUserRoles: Record<string, RoleId> = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key?.startsWith(USER_ROLE_STORAGE_KEY)) {
+                    const userId = key.substring(key.indexOf(':') + 1);
+                    allUserRoles[userId] = localStorage.getItem(key) as RoleId;
+                }
             }
+            setUserRoles(allUserRoles);
         } catch (error) {
             console.error("Failed to parse roles from localStorage", error);
             setRoles(DEFAULT_ROLES);
         } finally {
-            setIsLoaded(true);
+            setIsRolesLoaded(true);
         }
     }, []);
     
     useEffect(() => {
         loadData();
-
         const handleStorageChange = (e: StorageEvent) => {
-          if (e.key === STORAGE_KEY) {
+          if (e.key === STORAGE_KEY || e.key?.startsWith(USER_ROLE_STORAGE_KEY)) {
             loadData();
           }
         };
-    
         window.addEventListener('storage', handleStorageChange);
-        return () => {
-          window.removeEventListener('storage', handleStorageChange);
-        };
+        return () => window.removeEventListener('storage', handleStorageChange);
     }, [loadData]);
 
 
     useEffect(() => {
-        if (isLoaded) {
+        if (isRolesLoaded) {
             try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(roles));
             } catch (error) {
                 console.error("Failed to save roles to localStorage", error);
             }
         }
-    }, [roles, isLoaded]);
+    }, [roles, isRolesLoaded]);
 
+    const assignRoleToUser = useCallback((userId: string, roleId: RoleId) => {
+        setUserRoles(prev => ({...prev, [userId]: roleId}));
+        localStorage.setItem(`${USER_ROLE_STORAGE_KEY}:${userId}`, roleId);
+    }, []);
+    
+    // Auto-assign 'admin' role to the very first user
     useEffect(() => {
-        if (authLoading) return;
-        
-        if (user) {
-            const storedRole = localStorage.getItem(`${USER_ROLE_STORAGE_KEY}:${user.uid}`);
-            if (storedRole) {
-                setUserRole(storedRole as RoleId);
-            } else {
-                const allUserRoles = Object.keys(localStorage).filter(key => key.startsWith(USER_ROLE_STORAGE_KEY));
-                if (allUserRoles.length === 0) {
-                    assignRoleToUser(user.uid, 'admin');
-                } else {
-                    setUserRole(null);
-                }
-            }
-        } else {
-            setUserRole(null);
+        if (!authLoading && user && isRolesLoaded && Object.keys(userRoles).length === 0) {
+            assignRoleToUser(user.uid, 'admin');
         }
-
-    }, [user, authLoading, assignRoleToUser]);
+    }, [authLoading, user, isRolesLoaded, userRoles, assignRoleToUser]);
     
     useEffect(() => {
-        if (authLoading || !isLoaded) return;
+        if (authLoading || !isRolesLoaded) return;
 
-        if (!user && !isAuthPage) {
-            router.replace('/login');
+        if (user) {
+            if (isAuthPage) {
+                router.replace('/');
+            }
+        } else {
+            if (!isAuthPage) {
+                router.replace('/login');
+            }
         }
-        if (user && isAuthPage) {
-            router.replace('/');
-        }
-    }, [user, authLoading, isLoaded, pathname, router, isAuthPage]);
+    }, [user, authLoading, isRolesLoaded, pathname, router, isAuthPage]);
 
 
     const addRole = useCallback((role: Omit<Role, 'id'>) => {
@@ -164,28 +158,28 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const deleteRole = useCallback((id: RoleId) => {
-        if (id === 'admin') return; // Prevent deleting admin role
+        if (id === 'admin') return; 
         setRoles(prev => prev.filter(r => r.id !== id));
     }, []);
 
     const hasPermission = useCallback((permission: Permission): boolean => {
-        if (!userRole) return false;
-        const role = roles.find(r => r.id === userRole);
-        if (!role) return false;
-        return role.permissions.includes(permission);
-    }, [userRole, roles]);
+        if (!currentUserRole) return false;
+        const role = roles.find(r => r.id === currentUserRole);
+        return !!role?.permissions.includes(permission);
+    }, [currentUserRole, roles]);
 
-    const value = {
+    const value: RolesContextType = {
         roles,
-        userRole,
+        userRole: currentUserRole,
         addRole,
         updateRole,
         deleteRole,
         hasPermission,
         assignRoleToUser,
+        isReady: !authLoading && isRolesLoaded
     };
     
-    if (authLoading || !isLoaded) {
+    if (!value.isReady) {
        return <FullscreenLoader />;
     }
 
@@ -199,7 +193,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
     return (
         <RolesContext.Provider value={value}>
-            {isAuthPage ? <FullscreenLoader /> : <AppLayout hasPermission={hasPermission}>{children}</AppLayout>}
+            <AppLayout hasPermission={hasPermission}>{children}</AppLayout>
         </RolesContext.Provider>
     );
 }

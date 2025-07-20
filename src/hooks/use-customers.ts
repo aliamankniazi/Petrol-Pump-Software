@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -57,34 +56,25 @@ export function useCustomers() {
         timestamp: new Date().toISOString() 
     };
     setCustomers(prev => {
-        // Avoid adding duplicates if an ID is provided
         if (customer.id && prev.some(c => c.id === customer.id)) {
             return prev;
         }
-        return [newCustomer, ...prev].sort((a,b) => a.name.localeCompare(b.name));
+        const updatedCustomers = [newCustomer, ...prev];
+        return updatedCustomers.sort((a,b) => a.name.localeCompare(b.name));
     });
     return newCustomer;
   }, []);
   
   const updateCustomer = useCallback((id: string, updatedDetails: Partial<Omit<Customer, 'id' | 'timestamp'>>) => {
-    setCustomers(prev => prev.map(c => c.id === id ? { ...c, ...updatedDetails } : c).sort((a,b) => a.name.localeCompare(b.name)));
+    setCustomers(prev => {
+        const updatedCustomers = prev.map(c => c.id === id ? { ...c, ...updatedDetails } : c);
+        return updatedCustomers.sort((a,b) => a.name.localeCompare(b.name));
+    });
   }, []);
 
   const deleteCustomer = useCallback((id: string) => {
-    // If the customer is also a partner, we only remove their 'customer' status
-    // by setting isPartner to true and keeping them in the list.
-    // If they are not a partner, we remove them completely.
-    const customer = customers.find(c => c.id === id);
-    if (customer?.isPartner) {
-        // This case is handled by deleting a Business Partner, which preserves the customer record.
-        // To delete a customer who is also a partner, one must go through the investments page.
-        // Here we just mark them as not a standard customer if they are deleted from customer page
-        // A better approach would be to disable deletion from this page. For now, just update.
-        updateCustomer(id, { ...customer, name: `${customer.name} (Archived)` });
-    } else {
-        setCustomers(prev => prev.filter(c => c.id !== id));
-    }
-  }, [customers, updateCustomer]);
+    setCustomers(prev => prev.filter(c => c.id !== id));
+  }, []);
 
   const clearCustomers = useCallback(() => {
     setCustomers([]);

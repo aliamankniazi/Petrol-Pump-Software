@@ -52,7 +52,6 @@ export function useBusinessPartners() {
   }, [businessPartners, isLoaded]);
 
   const addBusinessPartner = useCallback((partner: Omit<BusinessPartner, 'id' | 'timestamp'>): BusinessPartner => {
-    // Also add as a customer first to get a consistent ID
     const newCustomer = addCustomer({
         name: partner.name,
         contact: partner.contact || '',
@@ -62,14 +61,14 @@ export function useBusinessPartners() {
 
     const newPartner: BusinessPartner = { 
         ...partner, 
-        id: newCustomer.id, // Use the ID from the customer record
+        id: newCustomer.id,
         timestamp: newCustomer.timestamp 
     };
 
-    setBusinessPartners(prev => [
-      newPartner,
-      ...prev,
-    ].sort((a,b) => a.name.localeCompare(b.name)));
+    setBusinessPartners(prev => {
+        const updatedPartners = [newPartner, ...prev];
+        return updatedPartners.sort((a,b) => a.name.localeCompare(b.name));
+    });
 
     return newPartner;
   }, [addCustomer]);
@@ -79,7 +78,6 @@ export function useBusinessPartners() {
       prev.map(p => (p.id === id ? { ...p, ...updatedPartner, name: updatedPartner.name!, sharePercentage: updatedPartner.sharePercentage! } : p))
     );
     
-    // Also update the corresponding customer record
     const customer = customers.find(c => c.id === id);
     if(customer) {
         updateCustomer(id, { name: updatedPartner.name, contact: updatedPartner.contact });
@@ -87,8 +85,6 @@ export function useBusinessPartners() {
   }, [customers, updateCustomer]);
 
   const deleteBusinessPartner = useCallback((id: string) => {
-    // Note: We don't delete the customer record to preserve their ledger history.
-    // We can filter them out in the UI if needed.
     setBusinessPartners(prev => prev.filter(p => p.id !== id));
   }, []);
 
