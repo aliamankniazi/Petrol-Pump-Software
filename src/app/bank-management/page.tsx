@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm, type SubmitHandler } from 'react-hook-form';
@@ -9,9 +10,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Landmark, List, PlusCircle } from 'lucide-react';
+import { Landmark, List, PlusCircle, Edit, Trash2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { useBankAccounts } from '@/hooks/use-bank-accounts';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useState, useEffect } from 'react';
+import type { BankAccount } from '@/lib/types';
 
 const bankAccountSchema = z.object({
   bankName: z.string().min(1, 'Bank name is required'),
@@ -22,22 +27,61 @@ const bankAccountSchema = z.object({
 type BankAccountFormValues = z.infer<typeof bankAccountSchema>;
 
 export default function BankManagementPage() {
-  const { bankAccounts, addBankAccount } = useBankAccounts();
+  const { bankAccounts, addBankAccount, updateBankAccount, deleteBankAccount } = useBankAccounts();
   const { toast } = useToast();
+  
+  const [accountToEdit, setAccountToEdit] = useState<BankAccount | null>(null);
+  const [accountToDelete, setAccountToDelete] = useState<BankAccount | null>(null);
+
   const { register, handleSubmit, reset, formState: { errors } } = useForm<BankAccountFormValues>({
     resolver: zodResolver(bankAccountSchema),
   });
 
-  const onSubmit: SubmitHandler<BankAccountFormValues> = (data) => {
+  const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, setValue: setEditValue, formState: { errors: editErrors } } = useForm<BankAccountFormValues>({
+    resolver: zodResolver(bankAccountSchema),
+  });
+
+  const onAddSubmit: SubmitHandler<BankAccountFormValues> = (data) => {
     addBankAccount(data);
     toast({
       title: 'Bank Account Added',
       description: `${data.bankName} account has been added successfully.`,
     });
-    reset();
+    reset({ bankName: '', accountNumber: '', balance: 0 });
+  };
+  
+  const onEditSubmit: SubmitHandler<BankAccountFormValues> = (data) => {
+    if (!accountToEdit) return;
+    updateBankAccount(accountToEdit.id, data);
+    toast({
+        title: 'Account Updated',
+        description: "The bank account details have been saved."
+    });
+    setAccountToEdit(null);
   };
 
+  const handleDeleteAccount = () => {
+    if (!accountToDelete) return;
+    deleteBankAccount(accountToDelete.id);
+    toast({
+        title: 'Account Deleted',
+        description: `${accountToDelete.bankName} account has been removed.`,
+    });
+    setAccountToDelete(null);
+  };
+
+  useEffect(() => {
+    if (accountToEdit) {
+      setEditValue('bankName', accountToEdit.bankName);
+      setEditValue('accountNumber', accountToEdit.accountNumber);
+      setEditValue('balance', accountToEdit.balance);
+    } else {
+      resetEdit();
+    }
+  }, [accountToEdit, setEditValue, resetEdit]);
+
   return (
+    <>
     <div className="p-4 md:p-8 grid gap-8 lg:grid-cols-3">
       <div className="lg:col-span-1">
         <Card>
@@ -48,7 +92,7 @@ export default function BankManagementPage() {
             <CardDescription>Add a new bank account to your records.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit(onAddSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="bankName">Bank Name</Label>
                 <Input id="bankName" {...register('bankName')} placeholder="e.g., HBL, MCB" />
@@ -92,6 +136,7 @@ export default function BankManagementPage() {
                     <TableHead>Bank Name</TableHead>
                     <TableHead>Account No.</TableHead>
                     <TableHead className="text-right">Balance</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -101,6 +146,14 @@ export default function BankManagementPage() {
                         <TableCell>{account.bankName}</TableCell>
                         <TableCell>{account.accountNumber}</TableCell>
                         <TableCell className="text-right">PKR {account.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-center space-x-0">
+                           <Button variant="ghost" size="icon" title="Edit Account" onClick={() => setAccountToEdit(account)}>
+                                <Edit className="w-4 h-4" />
+                           </Button>
+                           <Button variant="ghost" size="icon" title="Delete Account" className="text-destructive hover:text-destructive" onClick={() => setAccountToDelete(account)}>
+                                <Trash2 className="w-4 h-4" />
+                           </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                 </TableBody>
@@ -116,5 +169,58 @@ export default function BankManagementPage() {
         </Card>
       </div>
     </div>
+    
+    <Dialog open={!!accountToEdit} onOpenChange={(isOpen) => !isOpen && setAccountToEdit(null)}>
+        <DialogContent>
+            <form onSubmit={handleSubmitEdit(onEditSubmit)}>
+                <DialogHeader>
+                    <DialogTitle>Edit Bank Account</DialogTitle>
+                    <DialogDescription>
+                        Update the details for this account.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-bankName">Bank Name</Label>
+                        <Input id="edit-bankName" {...registerEdit('bankName')} />
+                        {editErrors.bankName && <p className="text-sm text-destructive">{editErrors.bankName.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-accountNumber">Account Number</Label>
+                        <Input id="edit-accountNumber" {...registerEdit('accountNumber')} />
+                        {editErrors.accountNumber && <p className="text-sm text-destructive">{editErrors.accountNumber.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-balance">Balance</Label>
+                        <Input id="edit-balance" type="number" {...registerEdit('balance')} step="0.01" />
+                        {editErrors.balance && <p className="text-sm text-destructive">{editErrors.balance.message}</p>}
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setAccountToEdit(null)}>Cancel</Button>
+                    <Button type="submit">Save Changes</Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+    </Dialog>
+
+    <AlertDialog open={!!accountToDelete} onOpenChange={(isOpen) => !isOpen && setAccountToDelete(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete the account: <br />
+            <strong className="font-medium text-foreground">{accountToDelete?.bankName} ({accountToDelete?.accountNumber})</strong>.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            Yes, delete account
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

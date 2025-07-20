@@ -55,10 +55,18 @@ export function useBankAccounts() {
       ...prev,
     ]);
   }, []);
+  
+  const updateBankAccount = useCallback((id: string, updatedDetails: Partial<Omit<BankAccount, 'id' | 'timestamp'>>) => {
+    setBankAccounts(prev => prev.map(acc => acc.id === id ? { ...acc, ...updatedDetails } : acc));
+  }, []);
+
+  const deleteBankAccount = useCallback((id: string) => {
+    setBankAccounts(prev => prev.filter(acc => acc.id !== id));
+  }, []);
 
   const clearBankAccounts = useCallback(() => {
     setBankAccounts([]);
   }, []);
 
-  return { bankAccounts, addBankAccount, clearBankAccounts, isLoaded };
+  return { bankAccounts, addBankAccount, updateBankAccount, deleteBankAccount, clearBankAccounts, isLoaded };
 }
