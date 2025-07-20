@@ -7,6 +7,9 @@ import { getAuth } from "firebase/auth";
 // IMPORTANT: REPLACE THE PLACEHOLDER CONFIG WITH YOUR ACTUAL FIREBASE PROJECT CONFIGURATION.
 // You can get this from the Firebase console in your project's settings.
 // Go to Project Settings > General > Your apps > Web app > SDK setup and configuration
+//
+// The "This domain (localhost) is not authorized" error is often caused by an
+// incorrect or missing `authDomain` here.
 // ==========================================================================================
 const firebaseConfig: FirebaseOptions = {
   // apiKey: "YOUR_API_KEY",
@@ -21,13 +24,15 @@ const firebaseConfig: FirebaseOptions = {
 let app;
 let auth;
 
+// This check is the most reliable way to determine if the config is provided.
 const isFirebaseConfigured = firebaseConfig && firebaseConfig.apiKey;
 
 if (isFirebaseConfigured) {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
 } else {
-    console.warn("Firebase is not configured. Please add your credentials in src/lib/firebase.ts");
+    // If not configured, app and auth will be null.
+    // The useAuth hook handles this gracefully.
     app = null;
     auth = null;
 }
