@@ -19,7 +19,6 @@ import {
 } from 'firebase/auth';
 import { auth, isFirebaseConfigValid, firebaseConfig } from '@/lib/firebase';
 import type { AuthFormValues } from '@/lib/types';
-import { useSettings } from './use-settings';
 import { FirebaseError } from 'firebase/app';
 
 interface AuthContextType {
@@ -32,8 +31,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const FAKE_USER = { uid: 'offline-user', email: 'demo@example.com', emailVerified: true } as User;
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isConfigValid) {
-      setUser(FAKE_USER);
+      setUser(null); // No fake user, just treat as logged out
       setLoading(false);
       return;
     }

@@ -8,9 +8,9 @@ import { useLocalStorage } from './use-local-storage';
 const STORAGE_KEY = 'fuel-prices';
 
 const DEFAULT_FUEL_PRICES: Record<FuelType, number> = {
-  'Unleaded': 275.98,
-  'Premium': 285.50,
-  'Diesel': 282.44,
+  'Unleaded': 0,
+  'Premium': 0,
+  'Diesel': 0,
 };
 
 export function useFuelPrices() {

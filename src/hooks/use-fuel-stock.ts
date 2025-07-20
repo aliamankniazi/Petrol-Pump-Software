@@ -12,9 +12,9 @@ const MANUAL_STOCK_KEY = 'manual-fuel-stock';
 const INITIAL_STOCK_KEY = 'initial-fuel-stock';
 
 const DEFAULT_INITIAL_STOCK: Record<FuelType, number> = {
-  'Unleaded': 10000,
-  'Premium': 5000,
-  'Diesel': 15000,
+  'Unleaded': 0,
+  'Premium': 0,
+  'Diesel': 0,
 };
 
 export function useFuelStock() {
