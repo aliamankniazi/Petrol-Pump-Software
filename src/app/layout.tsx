@@ -79,11 +79,11 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-            <RolesProvider>
-                <AppContainer>
-                    {children}
-                </AppContainer>
-            </RolesProvider>
+          <RolesProvider>
+            <AppContainer>
+              {children}
+            </AppContainer>
+          </RolesProvider>
         </AuthProvider>
         <Toaster />
       </body>
