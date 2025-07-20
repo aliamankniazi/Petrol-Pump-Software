@@ -3,8 +3,11 @@ import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/a
 import { getAuth } from "firebase/auth";
 
 // Your web app's Firebase configuration
-// IMPORTANT: Replace this with your actual Firebase project configuration.
+// ==========================================================================================
+// IMPORTANT: REPLACE THE PLACEHOLDER CONFIG WITH YOUR ACTUAL FIREBASE PROJECT CONFIGURATION.
 // You can get this from the Firebase console in your project's settings.
+// Go to Project Settings > General > Your apps > Web app > SDK setup and configuration
+// ==========================================================================================
 const firebaseConfig: FirebaseOptions = {
   // apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
   // authDomain: "your-project-id.firebaseapp.com",
