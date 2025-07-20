@@ -16,25 +16,29 @@ function useLocalStorage<T>(key: string, initialValue: T): {
   
   const userScopedKey = user ? `pumppal-${user.uid}-${key}` : null;
 
+  // By serializing initialValue, we create a stable dependency for useCallback.
+  // This prevents the infinite loop caused by new object/array references on each render.
+  const stableInitialValue = JSON.stringify(initialValue);
+
   const loadData = useCallback(() => {
     if (!userScopedKey) {
-        setData(initialValue); // Reset to initial if no user
+        setData(JSON.parse(stableInitialValue)); // Reset to initial if no user
         if (!authLoading) setIsLoaded(true);
         return;
     }
 
     try {
       const item = window.localStorage.getItem(userScopedKey);
-      setData(item ? JSON.parse(item) : initialValue);
+      setData(item ? JSON.parse(item) : JSON.parse(stableInitialValue));
     } catch (error) {
       console.warn(`Error reading localStorage key "${userScopedKey}":`, error);
-      setData(initialValue);
+      setData(JSON.parse(stableInitialValue));
     } finally {
       setIsLoaded(true);
     }
-  }, [userScopedKey, initialValue, authLoading]);
+  }, [userScopedKey, stableInitialValue, authLoading]);
 
-  // Load data when user changes
+  // Load data when authentication state or user changes
   useEffect(() => {
     if (!authLoading) {
       loadData();
