@@ -74,36 +74,40 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     const currentUserRole = user ? userRoles[user.uid] : null;
 
     useEffect(() => {
-      try {
-        const stored = localStorage.getItem(ROLES_STORAGE_KEY);
-        setRoles(stored ? JSON.parse(stored) : DEFAULT_ROLES);
-      } catch (e) {
-        setRoles(DEFAULT_ROLES);
-      } finally {
-        setIsRolesLoaded(true);
-      }
+        try {
+            const userScopedKey = `pumppal-roles`;
+            const stored = localStorage.getItem(userScopedKey);
+            setRoles(stored ? JSON.parse(stored) : DEFAULT_ROLES);
+        } catch (e) {
+            setRoles(DEFAULT_ROLES);
+        } finally {
+            setIsRolesLoaded(true);
+        }
     }, []);
 
     useEffect(() => {
-      try {
-        const stored = localStorage.getItem(USER_ROLE_STORAGE_KEY_PREFIX);
-        setUserRoles(stored ? JSON.parse(stored) : {});
-      } catch (e) {
-        setUserRoles({});
-      } finally {
-        setIsUserRolesLoaded(true);
-      }
+        try {
+            const userScopedKey = `pumppal-user-roles`;
+            const stored = localStorage.getItem(userScopedKey);
+            setUserRoles(stored ? JSON.parse(stored) : {});
+        } catch (e) {
+            setUserRoles({});
+        } finally {
+            setIsUserRolesLoaded(true);
+        }
     }, []);
 
     useEffect(() => {
       if (isRolesLoaded) {
-        localStorage.setItem(ROLES_STORAGE_KEY, JSON.stringify(roles));
+        const userScopedKey = `pumppal-roles`;
+        localStorage.setItem(userScopedKey, JSON.stringify(roles));
       }
     }, [roles, isRolesLoaded]);
 
     useEffect(() => {
       if (isUserRolesLoaded) {
-        localStorage.setItem(USER_ROLE_STORAGE_KEY_PREFIX, JSON.stringify(userRoles));
+        const userScopedKey = `pumppal-user-roles`;
+        localStorage.setItem(userScopedKey, JSON.stringify(userRoles));
       }
     }, [userRoles, isUserRolesLoaded]);
 
@@ -135,10 +139,11 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         if (!isReady) return;
 
         const isAuthPage = pathname === '/login' || pathname === '/signup';
-        if (user) {
-            if (isAuthPage) router.replace('/dashboard');
-        } else {
-            if (!isAuthPage) router.replace('/login');
+        
+        if (user && isAuthPage) {
+            router.replace('/dashboard');
+        } else if (!user && !isAuthPage) {
+            router.replace('/login');
         }
     }, [user, isReady, pathname, router]);
 
@@ -176,22 +181,18 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     if (!isReady) {
        return <FullscreenLoader />;
     }
-
+    
     const isAuthPage = pathname === '/login' || pathname === '/signup';
-
-    if (user) {
-        return (
-            <RolesContext.Provider value={value}>
-                <AppLayout hasPermission={hasPermission}>{children}</AppLayout>
-            </RolesContext.Provider>
-        );
+    
+    if (!user) {
+        return isAuthPage ? <RolesContext.Provider value={value}>{children}</RolesContext.Provider> : <FullscreenLoader />;
     }
     
-    return isAuthPage ? (
+    return (
         <RolesContext.Provider value={value}>
-            {children}
+            <AppLayout hasPermission={hasPermission}>{children}</AppLayout>
         </RolesContext.Provider>
-    ) : <FullscreenLoader />;
+    );
 }
 
 export const useRoles = () => {
