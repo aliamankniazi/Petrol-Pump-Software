@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback, createContext, useContext, type React
 import type { Role, RoleId, Permission } from '@/lib/types';
 import { useAuth } from './use-auth';
 import { AppLayout } from '@/components/app-layout';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 const STORAGE_KEY = 'pumppal-roles';
 
@@ -55,7 +55,8 @@ const RolesContext = createContext<RolesContextType | undefined>(undefined);
 export function RolesProvider({ children }: { children: ReactNode }) {
     const [roles, setRoles] = useState<Role[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
-    const { user, userRole } = useAuth(); // Now this hook can be called safely.
+    const { user, userRole, loading: authLoading } = useAuth();
+    const router = useRouter();
     const pathname = usePathname();
     const isAuthPage = pathname === '/login' || pathname === '/signup';
 
@@ -101,13 +102,25 @@ export function RolesProvider({ children }: { children: ReactNode }) {
             }
         }
     }, [roles, isLoaded]);
+    
+    useEffect(() => {
+        if (authLoading) return;
+
+        if (!user && !isAuthPage) {
+            router.push('/login');
+        }
+        if (user && isAuthPage) {
+            router.push('/');
+        }
+    }, [user, authLoading, pathname, router, isAuthPage]);
+
 
     const addRole = useCallback((role: Omit<Role, 'id'>) => {
         setRoles(prev => [...prev, { ...role, id: crypto.randomUUID() }]);
     }, []);
 
-    const updateRole = useCallback((id: RoleId, updatedRole: Role) => {
-        setRoles(prev => prev.map(r => r.id === id ? { ...r, ...updatedRole } : r));
+    const updateRole = useCallback((id: RoleId, updatedRole: Partial<Omit<Role, 'id'>>) => {
+        setRoles(prev => prev.map(r => r.id === id ? { ...r, ...updatedRole, id: r.id } as Role : r));
     }, []);
 
     const deleteRole = useCallback((id: RoleId) => {
@@ -130,7 +143,14 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         hasPermission,
     };
     
-    // The RolesProvider now decides whether to render the main app layout or the auth pages.
+    if (authLoading || !isLoaded) {
+        return (
+           <div className="flex h-screen w-full items-center justify-center">
+               <p>Loading...</p>
+           </div>
+       );
+    }
+    
     return (
         <RolesContext.Provider value={value}>
             {user && !isAuthPage ? <AppLayout hasPermission={hasPermission}>{children}</AppLayout> : children}

@@ -18,8 +18,7 @@ import {
 } from 'firebase/auth';
 import { auth, isFirebaseConfigValid, firebaseConfig } from '@/lib/firebase';
 import type { AuthFormValues, RoleId } from '@/lib/types';
-import { usePathname, useRouter } from 'next/navigation';
-import { RolesProvider } from './use-roles.tsx';
+import { useRouter } from 'next/navigation';
 
 const USER_ROLE_STORAGE_KEY = 'pumppal-user-role';
 
@@ -31,6 +30,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   userRole: RoleId | null;
   assignRoleToUser: (userId: string, roleId: RoleId) => void;
+  setUserRole: (roleId: RoleId | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,30 +42,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<RoleId | null>(null);
   const router = useRouter();
-  const pathname = usePathname();
 
   const isConfigValid = isFirebaseConfigValid(firebaseConfig);
-  const isAuthPage = pathname === '/login' || pathname === '/signup';
-
-  useEffect(() => {
-    if (user) {
-      const storedRole = localStorage.getItem(`${USER_ROLE_STORAGE_KEY}:${user.uid}`);
-      setUserRole(storedRole as RoleId || 'admin');
-    } else {
-      setUserRole(null);
-    }
-  }, [user]);
 
   const assignRoleToUser = (userId: string, roleId: RoleId) => {
-    try {
-      localStorage.setItem(`${USER_ROLE_STORAGE_KEY}:${userId}`, roleId);
-      if (user && user.uid === userId) {
-        setUserRole(roleId);
-      }
-    } catch (error) {
-      console.error("Failed to save user role to localStorage", error);
-    }
-  };
+    localStorage.setItem(`${USER_ROLE_STORAGE_KEY}:${userId}`, roleId);
+    setUserRole(roleId);
+  }
 
   useEffect(() => {
     if (!isConfigValid) {
@@ -81,33 +64,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser && !currentUser.emailVerified) {
-        setUser(null); // Treat unverified user as logged out
+        setUser(null);
       } else {
         setUser(currentUser);
       }
       
-      if (currentUser && !localStorage.getItem(`${USER_ROLE_STORAGE_KEY}:${currentUser.uid}`)) {
-        const allUserRoles = Object.keys(localStorage).filter(key => key.startsWith(USER_ROLE_STORAGE_KEY));
-        if (allUserRoles.length === 0) {
-            assignRoleToUser(currentUser.uid, 'admin');
+      if (currentUser) {
+        const storedRole = localStorage.getItem(`${USER_ROLE_STORAGE_KEY}:${currentUser.uid}`);
+        if (storedRole) {
+          setUserRole(storedRole as RoleId);
+        } else {
+          // Check if this is the very first user
+          const allUserRoles = Object.keys(localStorage).filter(key => key.startsWith(USER_ROLE_STORAGE_KEY));
+          if (allUserRoles.length === 0) {
+              assignRoleToUser(currentUser.uid, 'admin');
+          } else {
+            setUserRole(null); // No role assigned yet
+          }
         }
+      } else {
+        setUserRole(null);
       }
       setLoading(false);
     });
     return () => unsubscribe();
   }, [isConfigValid]);
   
-  useEffect(() => {
-    if (loading) return;
-
-    if (!user && !isAuthPage) {
-        router.push('/login');
-    }
-    if (user && isAuthPage) {
-        router.push('/');
-    }
-  }, [user, loading, pathname, router, isAuthPage]);
-
   const signIn = async (data: AuthFormValues) => {
     if (!isConfigValid || !auth) throw new Error("Firebase is not configured.");
     const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
@@ -119,7 +101,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (data: AuthFormValues) => {
-    if (!isConfigValid || !auth) throw new Error("Firebase is not configured.");
+    if (!isConfigValid || !auth) {
+      throw new Error("Firebase is not configured. Please add your credentials in src/lib/firebase.ts");
+    }
     const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
     await sendEmailVerification(userCredential.user);
     // Sign the user out immediately after sending the verification email
@@ -143,15 +127,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
     userRole,
     assignRoleToUser,
+    setUserRole,
   };
-  
-  if (loading) {
-     return (
-        <div className="flex h-screen w-full items-center justify-center">
-            <p>Loading...</p>
-        </div>
-    );
-  }
   
   return (
       <AuthContext.Provider value={value}>
