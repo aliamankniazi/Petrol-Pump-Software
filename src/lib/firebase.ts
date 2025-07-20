@@ -17,16 +17,11 @@ const firebaseConfig: FirebaseOptions = {
   // appId: "YOUR_APP_ID"
 };
 
-// A function to check if the firebaseConfig placeholder values have been replaced.
-function isConfigProvided(config?: FirebaseOptions): config is FirebaseOptions {
-    return !!config && !!config.apiKey && config.apiKey.includes('AIza');
-}
-
-
 // Initialize Firebase
+const isFirebaseConfigured = !!firebaseConfig.apiKey;
+
 let app;
 let auth;
-const isFirebaseConfigured = isConfigProvided(firebaseConfig);
 
 if (isFirebaseConfigured) {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
@@ -34,6 +29,7 @@ if (isFirebaseConfigured) {
 } else {
     app = null;
     auth = null;
+    console.warn("Firebase is not configured. Please add your credentials in src/lib/firebase.ts");
 }
 
 export { app, auth, firebaseConfig, isFirebaseConfigured };
