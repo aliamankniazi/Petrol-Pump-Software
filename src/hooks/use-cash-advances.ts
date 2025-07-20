@@ -8,7 +8,7 @@ import { useLocalStorage } from './use-local-storage';
 const STORAGE_KEY = 'cash-advances';
 
 export function useCashAdvances() {
-  const { data: cashAdvances, setData: setCashAdvances, isLoaded } = useLocalStorage<CashAdvance[]>(STORAGE_KEY, []);
+  const { data: cashAdvances, setData: setCashAdvances, isLoaded, clearDataForUser } = useLocalStorage<CashAdvance[]>(STORAGE_KEY, []);
 
   const addCashAdvance = useCallback((advance: Omit<CashAdvance, 'id'>) => {
     setCashAdvances(prev => [
@@ -21,9 +21,9 @@ export function useCashAdvances() {
     setCashAdvances(prev => (prev || []).filter(ca => ca.id !== id));
   }, [setCashAdvances]);
 
-  const clearCashAdvances = useCallback(() => {
-    setCashAdvances([]);
-  }, [setCashAdvances]);
+  const clearCashAdvances = useCallback((userId: string) => {
+    clearDataForUser(userId);
+  }, [clearDataForUser]);
 
   return { cashAdvances: cashAdvances || [], addCashAdvance, deleteCashAdvance, clearCashAdvances, isLoaded };
 }

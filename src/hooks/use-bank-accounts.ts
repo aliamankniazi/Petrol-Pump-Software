@@ -8,7 +8,7 @@ import { useLocalStorage } from './use-local-storage';
 const STORAGE_KEY = 'bank-accounts';
 
 export function useBankAccounts() {
-  const { data: bankAccounts, setData: setBankAccounts, isLoaded } = useLocalStorage<BankAccount[]>(STORAGE_KEY, []);
+  const { data: bankAccounts, setData: setBankAccounts, isLoaded, clearDataForUser } = useLocalStorage<BankAccount[]>(STORAGE_KEY, []);
 
   const addBankAccount = useCallback((account: Omit<BankAccount, 'id' | 'timestamp'>) => {
     setBankAccounts(prev => [
@@ -25,9 +25,9 @@ export function useBankAccounts() {
     setBankAccounts(prev => (prev || []).filter(acc => acc.id !== id));
   }, [setBankAccounts]);
 
-  const clearBankAccounts = useCallback(() => {
-    setBankAccounts([]);
-  }, [setBankAccounts]);
+  const clearBankAccounts = useCallback((userId: string) => {
+    clearDataForUser(userId);
+  }, [clearDataForUser]);
 
   return { bankAccounts: bankAccounts || [], addBankAccount, updateBankAccount, deleteBankAccount, clearBankAccounts, isLoaded };
 }

@@ -15,8 +15,9 @@ import { format } from 'date-fns';
 import { useBankAccounts } from '@/hooks/use-bank-accounts';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { BankAccount } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const bankAccountSchema = z.object({
   bankName: z.string().min(1, 'Bank name is required'),
@@ -27,7 +28,7 @@ const bankAccountSchema = z.object({
 type BankAccountFormValues = z.infer<typeof bankAccountSchema>;
 
 export default function BankManagementPage() {
-  const { bankAccounts, addBankAccount, updateBankAccount, deleteBankAccount } = useBankAccounts();
+  const { bankAccounts, addBankAccount, updateBankAccount, deleteBankAccount, isLoaded } = useBankAccounts();
   const { toast } = useToast();
   
   const [accountToEdit, setAccountToEdit] = useState<BankAccount | null>(null);
@@ -41,16 +42,16 @@ export default function BankManagementPage() {
     resolver: zodResolver(bankAccountSchema),
   });
 
-  const onAddSubmit: SubmitHandler<BankAccountFormValues> = (data) => {
+  const onAddSubmit: SubmitHandler<BankAccountFormValues> = useCallback((data) => {
     addBankAccount(data);
     toast({
       title: 'Bank Account Added',
       description: `${data.bankName} account has been added successfully.`,
     });
     reset({ bankName: '', accountNumber: '', balance: 0 });
-  };
+  }, [addBankAccount, toast, reset]);
   
-  const onEditSubmit: SubmitHandler<BankAccountFormValues> = (data) => {
+  const onEditSubmit: SubmitHandler<BankAccountFormValues> = useCallback((data) => {
     if (!accountToEdit) return;
     updateBankAccount(accountToEdit.id, data);
     toast({
@@ -58,9 +59,9 @@ export default function BankManagementPage() {
         description: "The bank account details have been saved."
     });
     setAccountToEdit(null);
-  };
+  }, [accountToEdit, updateBankAccount, toast]);
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = useCallback(() => {
     if (!accountToDelete) return;
     deleteBankAccount(accountToDelete.id);
     toast({
@@ -68,7 +69,7 @@ export default function BankManagementPage() {
         description: `${accountToDelete.bankName} account has been removed.`,
     });
     setAccountToDelete(null);
-  };
+  }, [accountToDelete, deleteBankAccount, toast]);
 
   useEffect(() => {
     if (accountToEdit) {
@@ -128,7 +129,13 @@ export default function BankManagementPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {bankAccounts.length > 0 ? (
+            {!isLoaded ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : bankAccounts.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>

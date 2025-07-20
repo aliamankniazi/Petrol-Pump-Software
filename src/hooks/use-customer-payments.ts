@@ -8,7 +8,7 @@ import { useLocalStorage } from './use-local-storage';
 const STORAGE_KEY = 'customer-payments';
 
 export function useCustomerPayments() {
-  const { data: customerPayments, setData: setCustomerPayments, isLoaded } = useLocalStorage<CustomerPayment[]>(STORAGE_KEY, []);
+  const { data: customerPayments, setData: setCustomerPayments, isLoaded, clearDataForUser } = useLocalStorage<CustomerPayment[]>(STORAGE_KEY, []);
 
   const addCustomerPayment = useCallback((payment: Omit<CustomerPayment, 'id' | 'timestamp'>) => {
     setCustomerPayments(prev => [
@@ -21,9 +21,9 @@ export function useCustomerPayments() {
     setCustomerPayments(prev => (prev || []).filter(p => p.id !== id));
   }, [setCustomerPayments]);
 
-  const clearCustomerPayments = useCallback(() => {
-    setCustomerPayments([]);
-  }, [setCustomerPayments]);
+  const clearCustomerPayments = useCallback((userId: string) => {
+    clearDataForUser(userId);
+  }, [clearDataForUser]);
 
   return { customerPayments: customerPayments || [], addCustomerPayment, deleteCustomerPayment, clearCustomerPayments, isLoaded };
 }

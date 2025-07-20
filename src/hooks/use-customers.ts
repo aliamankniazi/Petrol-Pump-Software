@@ -8,7 +8,7 @@ import { useLocalStorage } from './use-local-storage';
 const STORAGE_KEY = 'customers';
 
 export function useCustomers() {
-  const { data: customers, setData: setCustomers, isLoaded } = useLocalStorage<Customer[]>(STORAGE_KEY, []);
+  const { data: customers, setData: setCustomers, isLoaded, clearDataForUser } = useLocalStorage<Customer[]>(STORAGE_KEY, []);
   
   const addCustomer = useCallback((customer: Omit<Customer, 'timestamp'> & { id?: string }): Customer => {
     const newCustomer = { 
@@ -35,19 +35,12 @@ export function useCustomers() {
   }, [setCustomers]);
 
   const deleteCustomer = useCallback((id: string) => {
-    setCustomers(prev => {
-        const customerToDelete = (prev || []).find(c => c.id === id);
-        // If the customer is also a partner, just remove their customer-specific fields.
-        if (customerToDelete?.isPartner) {
-            return (prev || []).map(c => c.id === id ? { ...c, vehicleNumber: undefined, area: undefined } : c);
-        }
-        return (prev || []).filter(c => c.id !== id);
-    });
+    setCustomers(prev => (prev || []).filter(c => c.id !== id));
   }, [setCustomers]);
 
-  const clearCustomers = useCallback(() => {
-    setCustomers([]);
-  }, [setCustomers]);
+  const clearCustomers = useCallback((userId: string) => {
+    clearDataForUser(userId);
+  }, [clearDataForUser]);
 
   return { customers: customers || [], setCustomers, addCustomer, updateCustomer, deleteCustomer, clearCustomers, isLoaded };
 }

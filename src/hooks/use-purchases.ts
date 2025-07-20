@@ -8,7 +8,7 @@ import { useLocalStorage } from './use-local-storage';
 const STORAGE_KEY = 'purchases';
 
 export function usePurchases() {
-  const { data: purchases, setData: setPurchases, isLoaded } = useLocalStorage<Purchase[]>(STORAGE_KEY, []);
+  const { data: purchases, setData: setPurchases, isLoaded, clearDataForUser } = useLocalStorage<Purchase[]>(STORAGE_KEY, []);
 
   const addPurchase = useCallback((purchase: Omit<Purchase, 'id'>) => {
     setPurchases(prev => [
@@ -21,9 +21,9 @@ export function usePurchases() {
     setPurchases(prev => (prev || []).filter(p => p.id !== id));
   }, [setPurchases]);
   
-  const clearPurchases = useCallback(() => {
-    setPurchases([]);
-  }, [setPurchases]);
+  const clearPurchases = useCallback((userId: string) => {
+    clearDataForUser(userId);
+  }, [clearDataForUser]);
 
   return { purchases: purchases || [], addPurchase, deletePurchase, clearPurchases, isLoaded };
 }

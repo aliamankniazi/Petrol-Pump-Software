@@ -8,7 +8,7 @@ import { useLocalStorage } from './use-local-storage';
 const STORAGE_KEY = 'expenses';
 
 export function useExpenses() {
-  const { data: expenses, setData: setExpenses, isLoaded } = useLocalStorage<Expense[]>(STORAGE_KEY, []);
+  const { data: expenses, setData: setExpenses, isLoaded, clearDataForUser } = useLocalStorage<Expense[]>(STORAGE_KEY, []);
 
   const addExpense = useCallback((expense: Omit<Expense, 'id'>) => {
     setExpenses(prev => {
@@ -21,9 +21,9 @@ export function useExpenses() {
     setExpenses(prev => (prev || []).filter(e => e.id !== id));
   }, [setExpenses]);
 
-  const clearExpenses = useCallback(() => {
-    setExpenses([]);
-  }, [setExpenses]);
+  const clearExpenses = useCallback((userId: string) => {
+    clearDataForUser(userId);
+  }, [clearDataForUser]);
 
   return { expenses: expenses || [], addExpense, deleteExpense, clearExpenses, isLoaded };
 }

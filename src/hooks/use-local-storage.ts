@@ -8,7 +8,7 @@ function useLocalStorage<T>(key: string, initialValue: T): {
   data: T;
   setData: React.Dispatch<React.SetStateAction<T>>;
   isLoaded: boolean;
-  clearData: () => void;
+  clearDataForUser: (userId: string) => void;
 } {
   const { user, loading: authLoading } = useAuth();
   const [data, setData] = useState<T>(initialValue);
@@ -40,7 +40,7 @@ function useLocalStorage<T>(key: string, initialValue: T): {
     if (!authLoading) {
       loadData();
     }
-  }, [authLoading, userScopedKey]); // Removed loadData from dependencies
+  }, [authLoading, userScopedKey]);
 
   useEffect(() => {
     if (isLoaded && userScopedKey) {
@@ -62,11 +62,12 @@ function useLocalStorage<T>(key: string, initialValue: T): {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [userScopedKey, loadData]);
 
-  const clearData = useCallback(() => {
-    setData(JSON.parse(stableInitialValue));
-  }, [stableInitialValue]);
+  const clearDataForUser = useCallback((userId: string) => {
+    const keyToClear = `pumppal-${userId}-${key}`;
+    localStorage.removeItem(keyToClear);
+  }, [key]);
 
-  return { data, setData, isLoaded: isLoaded && !authLoading, clearData };
+  return { data, setData, isLoaded: isLoaded && !authLoading, clearDataForUser };
 }
 
 export { useLocalStorage };

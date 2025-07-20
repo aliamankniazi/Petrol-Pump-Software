@@ -8,7 +8,7 @@ import { useLocalStorage } from './use-local-storage';
 const STORAGE_KEY = 'tank-readings';
 
 export function useTankReadings() {
-  const { data: tankReadings, setData: setTankReadings, isLoaded } = useLocalStorage<TankReading[]>(STORAGE_KEY, []);
+  const { data: tankReadings, setData: setTankReadings, isLoaded, clearDataForUser } = useLocalStorage<TankReading[]>(STORAGE_KEY, []);
 
   const addTankReading = useCallback((reading: Omit<TankReading, 'id'>) => {
     setTankReadings(prev => {
@@ -20,9 +20,9 @@ export function useTankReadings() {
     });
   }, [setTankReadings]);
 
-  const clearTankReadings = useCallback(() => {
-    setTankReadings([]);
-  }, [setTankReadings]);
+  const clearTankReadings = useCallback((userId: string) => {
+    clearDataForUser(userId);
+  }, [clearDataForUser]);
 
   return { tankReadings: tankReadings || [], addTankReading, clearTankReadings, isLoaded };
 }

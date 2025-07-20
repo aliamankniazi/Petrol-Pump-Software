@@ -9,7 +9,7 @@ import { useLocalStorage } from './use-local-storage';
 const STORAGE_KEY = 'business-partners';
 
 export function useBusinessPartners() {
-  const { data: businessPartners, setData: setBusinessPartners, isLoaded } = useLocalStorage<BusinessPartner[]>(STORAGE_KEY, []);
+  const { data: businessPartners, setData: setBusinessPartners, isLoaded, clearDataForUser } = useLocalStorage<BusinessPartner[]>(STORAGE_KEY, []);
   const { customers, addCustomer, updateCustomer } = useCustomers();
 
   const addBusinessPartner = useCallback((partner: Omit<BusinessPartner, 'id' | 'timestamp'>): BusinessPartner => {
@@ -49,9 +49,9 @@ export function useBusinessPartners() {
     setBusinessPartners(prev => (prev || []).filter(p => p.id !== id));
   }, [setBusinessPartners]);
 
-  const clearBusinessPartners = useCallback(() => {
-    setBusinessPartners([]);
-  }, [setBusinessPartners]);
+  const clearBusinessPartners = useCallback((userId: string) => {
+    clearDataForUser(userId);
+  }, [clearDataForUser]);
 
   return { businessPartners: businessPartners || [], addBusinessPartner, updateBusinessPartner, deleteBusinessPartner, clearBusinessPartners, isLoaded };
 }

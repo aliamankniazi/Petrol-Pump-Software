@@ -20,6 +20,7 @@ import {
 import { auth, isFirebaseConfigValid, firebaseConfig } from '@/lib/firebase';
 import type { AuthFormValues } from '@/lib/types';
 import { FirebaseError } from 'firebase/app';
+import { useSettings } from './use-settings';
 
 interface AuthContextType {
   user: User | null;
@@ -35,6 +36,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const { clearAllDataForUser } = useSettings();
 
   const isConfigured = isFirebaseConfigValid(firebaseConfig);
 
@@ -92,11 +94,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [isConfigured]);
 
   const signOut = useCallback(async () => {
-    if (isConfigured && auth) {
+    const signedOutUser = auth?.currentUser;
+    if (isConfigured && auth && signedOutUser) {
         await firebaseSignOut(auth);
+        clearAllDataForUser(signedOutUser.uid);
     }
     setUser(null);
-  }, [isConfigured]);
+  }, [isConfigured, clearAllDataForUser]);
 
   const value = {
     user,

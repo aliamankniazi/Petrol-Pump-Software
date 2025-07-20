@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { Archive, XCircle, Printer, MessageSquare, Trash2, Pencil, AlertTriangle } from 'lucide-react';
+import { Archive, XCircle, Printer, Trash2, AlertTriangle } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
 import { usePurchases } from '@/hooks/use-purchases';
 import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
@@ -133,14 +133,14 @@ export default function AllTransactionsPage() {
     return phone.replace(/[^0-9]/g, '');
   }
 
-  const getCustomerForEntry = (entry: CombinedEntry): Customer | undefined => {
+  const getCustomerForEntry = useCallback((entry: CombinedEntry): Customer | undefined => {
       if (entry.type === 'Sale' && 'customerId' in entry.original && entry.original.customerId) {
           return customers.find(c => c.id === entry.original.customerId);
       }
       return undefined;
-  }
+  }, [customers]);
   
-  const handleDeleteEntry = () => {
+  const handleDeleteEntry = useCallback(() => {
     if (!entryToDelete) return;
     
     try {
@@ -165,7 +165,7 @@ export default function AllTransactionsPage() {
     } finally {
         setEntryToDelete(null);
     }
-  };
+  }, [entryToDelete, deleteTransaction, deletePurchase, deletePurchaseReturn, toast]);
 
 
   return (
@@ -189,79 +189,79 @@ export default function AllTransactionsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoaded && filteredEntries.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Partner</TableHead>
-                  <TableHead>Details</TableHead>
-                  <TableHead className="text-right">Amount (PKR)</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredEntries.map(entry => {
-                  const customer = getCustomerForEntry(entry);
-                  const isPrintable = entry.type === 'Sale' || entry.type === 'Purchase';
-                  return (
-                  <TableRow key={entry.id}>
-                    <TableCell className="font-medium whitespace-nowrap">
-                      {format(new Date(entry.timestamp), 'PP pp')}
-                    </TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant={getBadgeVariant(entry.type)}
-                        className={cn(entry.type === 'Sale' && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}
-                      >{entry.type}</Badge>
-                    </TableCell>
-                    <TableCell>{entry.partner}</TableCell>
-                    <TableCell>{entry.details}</TableCell>
-                    <TableCell className={cn("text-right font-semibold font-mono", getAmountClass(entry.type))}>
-                        {entry.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </TableCell>
-                    <TableCell className="text-center space-x-0.5">
-                        {isPrintable && (
-                          <Button asChild variant="ghost" size="icon" title="Print Invoice">
-                            <Link href={`/invoice/${entry.type.toLowerCase().replace(' ', '')}/${entry.originalId}`} target="_blank">
-                              <Printer className="w-4 h-4" />
-                            </Link>
-                          </Button>
-                        )}
-                        {entry.type === 'Sale' && customer?.contact && (
-                             <Button asChild variant="ghost" size="icon" className="text-green-500 hover:text-green-600" title={`Message ${customer.name} on WhatsApp`}>
-                                <a 
-                                href={`https://wa.me/${formatPhoneNumberForWhatsApp(customer.contact)}`}
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                >
-                                <WhatsAppIcon className="w-5 h-5" />
-                                </a>
-                            </Button>
-                        )}
-                        <Button variant="ghost" size="icon" title="Delete" className="text-destructive hover:text-destructive" onClick={() => setEntryToDelete(entry)}>
-                            <Trash2 className="w-4 h-4" />
-                        </Button>
-                    </TableCell>
+          {isLoaded ? (
+            filteredEntries.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Partner</TableHead>
+                    <TableHead>Details</TableHead>
+                    <TableHead className="text-right">Amount (PKR)</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredEntries.map(entry => {
+                    const customer = getCustomerForEntry(entry);
+                    const isPrintable = entry.type === 'Sale' || entry.type === 'Purchase';
+                    return (
+                    <TableRow key={entry.id}>
+                      <TableCell className="font-medium whitespace-nowrap">
+                        {format(new Date(entry.timestamp), 'PP pp')}
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={getBadgeVariant(entry.type)}
+                          className={cn(entry.type === 'Sale' && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}
+                        >{entry.type}</Badge>
+                      </TableCell>
+                      <TableCell>{entry.partner}</TableCell>
+                      <TableCell>{entry.details}</TableCell>
+                      <TableCell className={cn("text-right font-semibold font-mono", getAmountClass(entry.type))}>
+                          {entry.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell className="text-center space-x-0.5">
+                          {isPrintable && (
+                            <Button asChild variant="ghost" size="icon" title="Print Invoice">
+                              <Link href={`/invoice/${entry.type.toLowerCase().replace(' ', '')}/${entry.originalId}`} target="_blank">
+                                <Printer className="w-4 h-4" />
+                              </Link>
+                            </Button>
+                          )}
+                          {entry.type === 'Sale' && customer?.contact && (
+                              <Button asChild variant="ghost" size="icon" className="text-green-500 hover:text-green-600" title={`Message ${customer.name} on WhatsApp`}>
+                                  <a 
+                                  href={`https://wa.me/${formatPhoneNumberForWhatsApp(customer.contact)}`}
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  >
+                                  <WhatsAppIcon className="w-5 h-5" />
+                                  </a>
+                              </Button>
+                          )}
+                          <Button variant="ghost" size="icon" title="Delete" className="text-destructive hover:text-destructive" onClick={() => setEntryToDelete(entry)}>
+                              <Trash2 className="w-4 h-4" />
+                          </Button>
+                      </TableCell>
+                    </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
+                <XCircle className="w-16 h-16" />
+                <h3 className="text-xl font-semibold">
+                  {searchTerm ? 'No Matching Transactions' : 'No Transactions Yet'}
+                </h3>
+                <p>{searchTerm ? 'Try a different search term.' : 'Sales, purchases, and returns will appear here.'}</p>
+              </div>
+            )
           ) : (
-            <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
-              {isLoaded ? (
-                <>
-                  <XCircle className="w-16 h-16" />
-                  <h3 className="text-xl font-semibold">
-                    {searchTerm ? 'No Matching Transactions' : 'No Transactions Yet'}
-                  </h3>
-                  <p>{searchTerm ? 'Try a different search term.' : 'Sales, purchases, and returns will appear here.'}</p>
-                </>
-              ) : (
-                <p>Loading transactions...</p>
-              )}
+            <div className="flex items-center justify-center p-8">
+              <p>Loading transactions...</p>
             </div>
           )}
         </CardContent>

@@ -8,7 +8,7 @@ import { useLocalStorage } from './use-local-storage';
 const STORAGE_KEY = 'suppliers';
 
 export function useSuppliers() {
-  const { data: suppliers, setData: setSuppliers, isLoaded } = useLocalStorage<Supplier[]>(STORAGE_KEY, []);
+  const { data: suppliers, setData: setSuppliers, isLoaded, clearDataForUser } = useLocalStorage<Supplier[]>(STORAGE_KEY, []);
 
   const addSupplier = useCallback((supplier: Omit<Supplier, 'id' | 'timestamp'>) => {
     setSuppliers(prev => [
@@ -21,9 +21,9 @@ export function useSuppliers() {
     setSuppliers(prev => (prev || []).filter(s => s.id !== id));
   }, [setSuppliers]);
 
-  const clearSuppliers = useCallback(() => {
-    setSuppliers([]);
-  }, [setSuppliers]);
+  const clearSuppliers = useCallback((userId: string) => {
+    clearDataForUser(userId);
+  }, [clearDataForUser]);
 
   return { suppliers: suppliers || [], addSupplier, deleteSupplier, clearSuppliers, isLoaded };
 }

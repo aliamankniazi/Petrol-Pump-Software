@@ -50,7 +50,7 @@ interface RolesContextType {
 const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
 const FullscreenLoader = () => (
-    <div className="flex h-screen w-full items-center justify-center">
+    <div className="flex h-screen w-full items-center justify-center bg-background">
        <div className="space-y-4 w-1/2">
         <Skeleton className="h-12 w-full" />
         <Skeleton className="h-8 w-3/4" />
@@ -75,8 +75,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         try {
-            const userScopedKey = `pumppal-roles`;
-            const stored = localStorage.getItem(userScopedKey);
+            const stored = localStorage.getItem(ROLES_STORAGE_KEY);
             setRoles(stored ? JSON.parse(stored) : DEFAULT_ROLES);
         } catch (e) {
             setRoles(DEFAULT_ROLES);
@@ -87,8 +86,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         try {
-            const userScopedKey = `pumppal-user-roles`;
-            const stored = localStorage.getItem(userScopedKey);
+            const stored = localStorage.getItem(USER_ROLE_STORAGE_KEY_PREFIX);
             setUserRoles(stored ? JSON.parse(stored) : {});
         } catch (e) {
             setUserRoles({});
@@ -99,15 +97,13 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
       if (isRolesLoaded) {
-        const userScopedKey = `pumppal-roles`;
-        localStorage.setItem(userScopedKey, JSON.stringify(roles));
+        localStorage.setItem(ROLES_STORAGE_KEY, JSON.stringify(roles));
       }
     }, [roles, isRolesLoaded]);
 
     useEffect(() => {
       if (isUserRolesLoaded) {
-        const userScopedKey = `pumppal-user-roles`;
-        localStorage.setItem(userScopedKey, JSON.stringify(userRoles));
+        localStorage.setItem(USER_ROLE_STORAGE_KEY_PREFIX, JSON.stringify(userRoles));
       }
     }, [userRoles, isUserRolesLoaded]);
 
@@ -178,14 +174,14 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         isReady,
     };
     
-    if (!isReady) {
+    const isAuthPage = pathname === '/login' || pathname === '/signup';
+
+    if (!isReady || (!user && !isAuthPage)) {
        return <FullscreenLoader />;
     }
     
-    const isAuthPage = pathname === '/login' || pathname === '/signup';
-    
     if (!user) {
-        return isAuthPage ? <RolesContext.Provider value={value}>{children}</RolesContext.Provider> : <FullscreenLoader />;
+        return <RolesContext.Provider value={value}>{children}</RolesContext.Provider>;
     }
     
     return (

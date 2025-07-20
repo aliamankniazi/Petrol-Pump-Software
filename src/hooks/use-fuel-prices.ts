@@ -14,7 +14,7 @@ const DEFAULT_FUEL_PRICES: Record<FuelType, number> = {
 };
 
 export function useFuelPrices() {
-  const { data: fuelPrices, setData: setFuelPrices, isLoaded } = useLocalStorage<Record<FuelType, number>>(STORAGE_KEY, DEFAULT_FUEL_PRICES);
+  const { data: fuelPrices, setData: setFuelPrices, isLoaded, clearDataForUser } = useLocalStorage<Record<FuelType, number>>(STORAGE_KEY, DEFAULT_FUEL_PRICES);
 
   const updateFuelPrice = useCallback((fuelType: FuelType, newPrice: number) => {
     if (isNaN(newPrice) || newPrice < 0) return;
@@ -24,9 +24,9 @@ export function useFuelPrices() {
     }));
   }, [setFuelPrices]);
 
-  const clearFuelPrices = useCallback(() => {
-    setFuelPrices(DEFAULT_FUEL_PRICES);
-  }, [setFuelPrices]);
+  const clearFuelPrices = useCallback((userId: string) => {
+    clearDataForUser(userId);
+  }, [clearDataForUser]);
 
   return { fuelPrices: fuelPrices || DEFAULT_FUEL_PRICES, updateFuelPrice, clearFuelPrices, isLoaded };
 }

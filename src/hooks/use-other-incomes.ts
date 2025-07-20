@@ -8,7 +8,7 @@ import { useLocalStorage } from './use-local-storage';
 const STORAGE_KEY = 'other-incomes';
 
 export function useOtherIncomes() {
-  const { data: otherIncomes, setData: setOtherIncomes, isLoaded } = useLocalStorage<OtherIncome[]>(STORAGE_KEY, []);
+  const { data: otherIncomes, setData: setOtherIncomes, isLoaded, clearDataForUser } = useLocalStorage<OtherIncome[]>(STORAGE_KEY, []);
 
   const addOtherIncome = useCallback((income: Omit<OtherIncome, 'id'>) => {
     setOtherIncomes(prev => [
@@ -21,9 +21,9 @@ export function useOtherIncomes() {
     setOtherIncomes(prev => (prev || []).filter(oi => oi.id !== id));
   }, [setOtherIncomes]);
   
-  const clearOtherIncomes = useCallback(() => {
-    setOtherIncomes([]);
-  }, [setOtherIncomes]);
+  const clearOtherIncomes = useCallback((userId: string) => {
+    clearDataForUser(userId);
+  }, [clearDataForUser]);
 
   return { otherIncomes: otherIncomes || [], addOtherIncome, deleteOtherIncome, clearOtherIncomes, isLoaded };
 }

@@ -8,7 +8,7 @@ import { useLocalStorage } from './use-local-storage';
 const STORAGE_KEY = 'transactions';
 
 export function useTransactions() {
-  const { data: transactions, setData: setTransactions, isLoaded } = useLocalStorage<Transaction[]>(STORAGE_KEY, []);
+  const { data: transactions, setData: setTransactions, isLoaded, clearDataForUser } = useLocalStorage<Transaction[]>(STORAGE_KEY, []);
 
   const addTransaction = useCallback((transaction: Omit<Transaction, 'id'>) => {
     setTransactions(prev => [
@@ -21,9 +21,9 @@ export function useTransactions() {
     setTransactions(prev => (prev || []).filter(tx => tx.id !== id));
   }, [setTransactions]);
 
-  const clearTransactions = useCallback(() => {
-    setTransactions([]);
-  }, [setTransactions]);
+  const clearTransactions = useCallback((userId: string) => {
+    clearDataForUser(userId);
+  }, [clearDataForUser]);
 
   return { transactions: transactions || [], addTransaction, deleteTransaction, clearTransactions, isLoaded };
 }

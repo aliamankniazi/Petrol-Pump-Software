@@ -22,8 +22,8 @@ export function useFuelStock() {
   const { purchases, isLoaded: purchasesLoaded } = usePurchases();
   const { purchaseReturns, isLoaded: purchaseReturnsLoaded } = usePurchaseReturns();
   
-  const { data: manualStock, setData: setManualStock, isLoaded: manualStockLoaded } = useLocalStorage<Partial<Record<FuelType, { value: number; timestamp: string }>>>(MANUAL_STOCK_KEY, {});
-  const { data: initialStock, setData: setInitialStock, isLoaded: initialStockLoaded } = useLocalStorage<Record<FuelType, number>>(INITIAL_STOCK_KEY, DEFAULT_INITIAL_STOCK);
+  const { data: manualStock, setData: setManualStock, isLoaded: manualStockLoaded, clearDataForUser: clearManualStock } = useLocalStorage<Partial<Record<FuelType, { value: number; timestamp: string }>>>(MANUAL_STOCK_KEY, {});
+  const { data: initialStock, setData: setInitialStock, isLoaded: initialStockLoaded, clearDataForUser: clearInitialStock } = useLocalStorage<Record<FuelType, number>>(INITIAL_STOCK_KEY, DEFAULT_INITIAL_STOCK);
 
   const isLoaded = transactionsLoaded && purchasesLoaded && purchaseReturnsLoaded && manualStockLoaded && initialStockLoaded;
 
@@ -72,10 +72,10 @@ export function useFuelStock() {
     }));
   }, [setManualStock]);
 
-  const clearFuelStock = useCallback(() => {
-    setManualStock({});
-    setInitialStock(DEFAULT_INITIAL_STOCK);
-  }, [setManualStock, setInitialStock]);
+  const clearFuelStock = useCallback((userId: string) => {
+    clearManualStock(userId);
+    clearInitialStock(userId);
+  }, [clearManualStock, clearInitialStock]);
 
   return { fuelStock, setFuelStock, clearFuelStock, isLoaded };
 }
