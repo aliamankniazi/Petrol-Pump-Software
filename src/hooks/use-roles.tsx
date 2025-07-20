@@ -24,7 +24,7 @@ export const PERMISSIONS = [
     'view_expenses', 'add_expense', 'delete_expense',
     'view_other_incomes', 'add_other_income', 'delete_other_income',
     'view_ledger', 'view_summary', 'generate_ai_summary',
-    'manage_employees', 'manage_banks',
+    'manage_employees', 'manage_banks', 'view_reports',
     'view_settings', 'manage_roles', 'manage_users'
 ] as const;
 

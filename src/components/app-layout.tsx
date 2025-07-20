@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -17,7 +16,7 @@ import {
   SidebarTrigger,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { History, FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, LogOut, Fuel, DollarSign, Beaker, Handshake, PiggyBank, Archive, BarChartHorizontal, Shield } from 'lucide-react';
+import { History, FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, LogOut, Fuel, DollarSign, Beaker, Handshake, PiggyBank, Archive, BarChartHorizontal, Shield, AreaChart } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from './ui/button';
 import { useRoles } from '@/hooks/use-roles';
@@ -43,6 +42,7 @@ const navItems = [
   { href: '/bank-management', label: 'Bank Management', icon: Landmark, permission: 'manage_banks' as Permission },
   { href: '/ledger', label: 'Ledger', icon: BookOpen, permission: 'view_ledger' as Permission },
   { href: '/summary', label: 'Summary', icon: FileText, permission: 'view_summary' as Permission },
+  { href: '/reports', label: 'Reports', icon: AreaChart, permission: 'view_reports' as Permission },
   { href: '/roles', label: 'Roles', icon: Shield, permission: 'manage_roles' as Permission },
   { href: '/settings', label: 'Settings', icon: Settings, permission: 'view_settings' as Permission },
 ];
