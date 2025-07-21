@@ -41,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // This effect runs once on mount to initialize Firebase and set up the auth listener.
     if (firebaseConfig.apiKey) {
       const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
       const authInstance = getAuth(app);
@@ -51,9 +52,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       });
 
+      // Cleanup function for the effect.
       return () => unsubscribe();
     } else {
-      console.warn("Firebase config is missing, authentication is disabled.");
+      console.warn("Firebase config is missing. Authentication is disabled.");
       setLoading(false);
     }
   }, []);
