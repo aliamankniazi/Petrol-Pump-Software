@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo, useCallback, createContext, useContext, type ReactNode, useEffect } from 'react';
+import { useMemo, useCallback, createContext, useContext, type ReactNode, useEffect, useState } from 'react';
 import type { Role, RoleId, Permission } from '@/lib/types';
 import { useAuth } from './use-auth';
 import { useDatabaseCollection } from './use-database-collection';
@@ -57,18 +57,26 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     
     const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION);
     const { data: userRoles, addDoc: addUserRoleDoc, loading: userRolesLoading } = useDatabaseCollection<UserRoleDoc>(USER_ROLES_COLLECTION);
+    const [defaultsInitialized, setDefaultsInitialized] = useState(false);
 
-    const isReady = !authLoading && !rolesLoading && !userRolesLoading;
+    const isReady = !authLoading && !rolesLoading && !userRolesLoading && defaultsInitialized;
     
     // Initialize default roles if the collection is empty
     useEffect(() => {
-        if (!rolesLoading && roles.length === 0) {
-            DEFAULT_ROLES.forEach(role => {
-                const id = role.name.toLowerCase();
-                addRoleDoc(role, id);
-            });
+        if (!rolesLoading && !defaultsInitialized) {
+            if (roles.length === 0) {
+                console.log("No roles found, initializing defaults...");
+                Promise.all(DEFAULT_ROLES.map(role => {
+                    const id = role.name.toLowerCase();
+                    return addRoleDoc(role, id);
+                })).then(() => {
+                    setDefaultsInitialized(true);
+                });
+            } else {
+                 setDefaultsInitialized(true);
+            }
         }
-    }, [roles, rolesLoading, addRoleDoc]);
+    }, [roles, rolesLoading, addRoleDoc, defaultsInitialized]);
     
     const currentUserRoleDoc = useMemo(() => user ? userRoles.find(ur => ur.id === user.uid) : null, [user, userRoles]);
     const currentUserRole = useMemo(() => currentUserRoleDoc?.roleId ?? null, [currentUserRoleDoc]);
@@ -112,6 +120,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
     const hasPermission = useCallback((permission: Permission): boolean => {
         if (!user || !currentUserRole) return false;
+        if (currentUserRole === 'admin') return true; // Admin has all permissions
         const role = roles.find(r => r.id === currentUserRole);
         return !!role?.permissions.includes(permission);
     }, [user, currentUserRole, roles]);
