@@ -63,7 +63,8 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     
     // Initialize default roles if the collection is empty
     useEffect(() => {
-        if (!rolesLoading && !defaultsInitialized) {
+        // Wait until auth and roles are loaded, and ensure we have a user
+        if (!authLoading && !rolesLoading && user && !defaultsInitialized) {
             if (roles.length === 0) {
                 console.log("No roles found, initializing defaults...");
                 Promise.all(DEFAULT_ROLES.map(role => {
@@ -71,12 +72,14 @@ export function RolesProvider({ children }: { children: ReactNode }) {
                     return addRoleDoc(role, id);
                 })).then(() => {
                     setDefaultsInitialized(true);
+                }).catch(error => {
+                    console.error("Failed to initialize default roles:", error);
                 });
             } else {
                  setDefaultsInitialized(true);
             }
         }
-    }, [roles, rolesLoading, addRoleDoc, defaultsInitialized]);
+    }, [user, roles, authLoading, rolesLoading, addRoleDoc, defaultsInitialized]);
     
     const currentUserRoleDoc = useMemo(() => user ? userRoles.find(ur => ur.id === user.uid) : null, [user, userRoles]);
     const currentUserRole = useMemo(() => currentUserRoleDoc?.roleId ?? null, [currentUserRoleDoc]);
