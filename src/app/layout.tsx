@@ -10,6 +10,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { RolesProvider, useRoles } from '@/hooks/use-roles';
 import { AppLayout } from '@/components/app-layout';
 import { Skeleton } from '@/components/ui/skeleton';
+import VerifyEmailPage from './verify-email/page';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -36,31 +37,44 @@ const FullscreenLoader = () => (
 
 
 function AppContainer({ children }: { children: React.ReactNode }) {
-  const { user, isConfigured, loading: authLoading } = useAuth();
+  const { user, loading } = useAuth();
   const { isReady: rolesReady, hasPermission } = useRoles();
   const pathname = usePathname();
   const router = useRouter();
 
-  const isLoading = authLoading || !rolesReady;
-  
+  const isLoading = loading || !rolesReady;
+
   React.useEffect(() => {
-    if (!isLoading) {
-      const isAuthPage = pathname === '/login' || pathname === '/signup';
-      if (user && isAuthPage) {
-        router.replace('/dashboard');
-      } else if (!user && !isAuthPage) {
-        router.replace('/login');
+    if (isLoading) return;
+
+    const isAuthPage = pathname === '/login' || pathname === '/signup';
+    const isVerifyPage = pathname === '/verify-email';
+    
+    if (user) { // User is authenticated with Firebase
+      if (!user.emailVerified) {
+        if (!isVerifyPage) router.replace('/verify-email');
+      } else { // User is verified
+        if (isAuthPage || isVerifyPage) router.replace('/dashboard');
       }
+    } else { // No user
+      if (!isAuthPage) router.replace('/login');
     }
-  }, [user, isLoading, pathname, router]);
+
+  }, [user, isLoading, rolesReady, pathname, router]);
 
   if (isLoading) {
     return <FullscreenLoader />;
   }
-
+  
   const isAuthPage = pathname === '/login' || pathname === '/signup';
+  const isVerifyPage = pathname === '/verify-email';
+
   if (!user || isAuthPage) {
     return <>{children}</>;
+  }
+
+  if (!user.emailVerified) {
+    return <VerifyEmailPage />;
   }
 
   return <AppLayout hasPermission={hasPermission}>{children}</AppLayout>;

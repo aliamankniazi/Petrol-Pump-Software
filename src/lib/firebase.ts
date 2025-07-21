@@ -1,7 +1,5 @@
 
 import { type FirebaseOptions } from "firebase/app";
-import { getAuth, type Auth } from 'firebase/auth';
-import { getDatabase, type Database } from 'firebase/database';
 
 // Your web app's Firebase configuration
 // ==========================================================================================
@@ -22,5 +20,5 @@ export const firebaseConfig: FirebaseOptions = {
   // appId: "YOUR_APP_ID"
 };
 
-// We export the config directly. The useAuth hook will handle initialization.
-// This simplifies the logic and prevents race conditions on app load.
+// This file should ONLY export the configuration object.
+// Initialization is handled in the useAuth hook to prevent race conditions.

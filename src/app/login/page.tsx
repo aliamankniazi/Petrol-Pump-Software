@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { AuthFormValues } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { firebaseConfig } from '@/lib/firebase';
 
 
 const loginSchema = z.object({
@@ -24,10 +25,11 @@ const loginSchema = z.object({
 });
 
 export default function LoginPage() {
-  const { signIn, isConfigured } = useAuth();
+  const { signIn } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const isConfigured = !!firebaseConfig.apiKey;
   
   const { register, handleSubmit, formState: { errors } } = useForm<AuthFormValues>({
     resolver: zodResolver(loginSchema),
@@ -36,12 +38,23 @@ export default function LoginPage() {
   const onSubmit: SubmitHandler<AuthFormValues> = async (data) => {
     setLoading(true);
     try {
-      await signIn(data);
-      toast({
-        title: 'Login Successful',
-        description: 'Welcome back!',
-      });
-      router.push('/dashboard');
+      const userCredential = await signIn(data);
+
+      if (!userCredential.user.emailVerified) {
+        // The redirect to /verify-email is handled by the AppContainer
+        // but we can provide immediate feedback here.
+        toast({
+            variant: 'destructive',
+            title: 'Verification Required',
+            description: "Your email has not been verified. Please check your inbox.",
+        });
+      } else {
+        toast({
+          title: 'Login Successful',
+          description: 'Welcome back!',
+        });
+        // AppContainer will handle the redirect to /dashboard
+      }
     } catch (error: any) {
       toast({
         variant: 'destructive',

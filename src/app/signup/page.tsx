@@ -16,7 +16,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { AuthFormValues } from '@/lib/types';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-
+import { firebaseConfig } from '@/lib/firebase';
 
 const signupSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -24,10 +24,11 @@ const signupSchema = z.object({
 });
 
 export default function SignupPage() {
-  const { signUp, isConfigured } = useAuth();
+  const { signUp } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const isConfigured = !!firebaseConfig.apiKey;
 
   const { register, handleSubmit, formState: { errors } } = useForm<AuthFormValues>({
     resolver: zodResolver(signupSchema),
@@ -42,7 +43,7 @@ export default function SignupPage() {
         description: "A verification email has been sent. Please check your inbox.",
         duration: 5000,
       });
-      router.push('/login');
+      // The AppContainer will now handle the redirect to the verify-email page
     } catch (error: any) {
       toast({
         variant: 'destructive',

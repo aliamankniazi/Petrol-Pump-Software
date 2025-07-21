@@ -30,52 +30,37 @@ interface AuthContextType {
   signIn: (data: AuthFormValues) => Promise<any>;
   signUp: (data: AuthFormValues) => Promise<any>;
   signOut: () => Promise<void>;
-  isConfigured: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+let auth: Auth | null = null;
+if (firebaseConfig.apiKey) {
+    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    auth = getAuth(app);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [auth, setAuth] = useState<Auth | null>(null);
-
-  const isConfigured = !!firebaseConfig.apiKey;
 
   useEffect(() => {
-    if (isConfigured) {
-      const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
-      const authInstance = getAuth(app);
-      setAuth(authInstance);
-
-      const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
-        if (currentUser && currentUser.emailVerified) {
-          setUser(currentUser);
-        } else {
-          setUser(null);
-        }
+    if (!auth) {
         setLoading(false);
-      });
-
-      return () => unsubscribe();
-    } else {
-      setLoading(false);
+        return;
     }
-  }, [isConfigured]);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
   
   const signIn = useCallback(async (data: AuthFormValues) => {
     if (!auth) throw new Error("Firebase is not configured.");
-    
-    const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
-    
-    if (!userCredential.user.emailVerified) {
-      await firebaseSignOut(auth); // Sign out user until they are verified
-      throw new Error("Your email has not been verified. Please check your inbox for a verification link.");
-    }
-    
-    // The onAuthStateChanged listener will handle setting the user state.
-    return userCredential;
-  }, [auth]);
+    return signInWithEmailAndPassword(auth, data.email, data.password);
+  }, []);
 
   const signUp = useCallback(async (data: AuthFormValues) => {
     if (!auth) {
@@ -84,22 +69,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
         await sendEmailVerification(userCredential.user);
-        await firebaseSignOut(auth); // Sign out user immediately after signup to force verification on login.
+        // Do not sign out here. Let the user be in a "logged-in, but unverified" state.
         return userCredential;
     } catch (error) {
         if (error instanceof FirebaseError && error.code === 'auth/email-already-in-use') {
-            throw new Error('This email is already registered. Please log in instead.');
+            throw new Error('This email is already registered. Please try to log in instead.');
         }
         throw error;
     }
-  }, [auth]);
+  }, []);
 
   const signOut = useCallback(async () => {
     if (auth) {
       await firebaseSignOut(auth);
     }
-    setUser(null);
-  }, [auth]);
+  }, []);
 
   const value: AuthContextType = {
     user,
@@ -107,7 +91,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signUp,
     signOut,
-    isConfigured,
   };
   
   return (
