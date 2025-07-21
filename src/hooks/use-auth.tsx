@@ -26,6 +26,7 @@ import { initializeApp, getApps } from 'firebase/app';
 
 interface AuthContextType {
   user: User | null;
+  auth: Auth | null;
   loading: boolean;
   signIn: (data: AuthFormValues) => Promise<any>;
   signUp: (data: AuthFormValues) => Promise<any>;
@@ -34,33 +35,33 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-let auth: Auth | null = null;
-if (firebaseConfig.apiKey) {
-    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-    auth = getAuth(app);
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [auth, setAuth] = useState<Auth | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!auth) {
-        setLoading(false);
-        return;
-    }
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
+    if (firebaseConfig.apiKey) {
+      const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+      const authInstance = getAuth(app);
+      setAuth(authInstance);
 
-    return () => unsubscribe();
+      const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
+        setUser(currentUser);
+        setLoading(false);
+      });
+
+      return () => unsubscribe();
+    } else {
+      console.warn("Firebase config is missing, authentication is disabled.");
+      setLoading(false);
+    }
   }, []);
-  
+
   const signIn = useCallback(async (data: AuthFormValues) => {
     if (!auth) throw new Error("Firebase is not configured.");
     return signInWithEmailAndPassword(auth, data.email, data.password);
-  }, []);
+  }, [auth]);
 
   const signUp = useCallback(async (data: AuthFormValues) => {
     if (!auth) {
@@ -69,7 +70,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
         await sendEmailVerification(userCredential.user);
-        // Do not sign out here. Let the user be in a "logged-in, but unverified" state.
         return userCredential;
     } catch (error) {
         if (error instanceof FirebaseError && error.code === 'auth/email-already-in-use') {
@@ -77,16 +77,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         throw error;
     }
-  }, []);
+  }, [auth]);
 
   const signOut = useCallback(async () => {
     if (auth) {
       await firebaseSignOut(auth);
     }
-  }, []);
+  }, [auth]);
 
   const value: AuthContextType = {
     user,
+    auth,
     loading,
     signIn,
     signUp,

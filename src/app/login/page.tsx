@@ -16,7 +16,6 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { AuthFormValues } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { firebaseConfig } from '@/lib/firebase';
 
 
 const loginSchema = z.object({
@@ -25,11 +24,11 @@ const loginSchema = z.object({
 });
 
 export default function LoginPage() {
-  const { signIn } = useAuth();
+  const { signIn, auth } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const isConfigured = !!firebaseConfig.apiKey;
+  const isConfigured = !!auth;
   
   const { register, handleSubmit, formState: { errors } } = useForm<AuthFormValues>({
     resolver: zodResolver(loginSchema),
@@ -41,8 +40,6 @@ export default function LoginPage() {
       const userCredential = await signIn(data);
 
       if (!userCredential.user.emailVerified) {
-        // The redirect to /verify-email is handled by the AppContainer
-        // but we can provide immediate feedback here.
         toast({
             variant: 'destructive',
             title: 'Verification Required',
@@ -53,7 +50,6 @@ export default function LoginPage() {
           title: 'Login Successful',
           description: 'Welcome back!',
         });
-        // AppContainer will handle the redirect to /dashboard
       }
     } catch (error: any) {
       toast({
