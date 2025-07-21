@@ -37,12 +37,12 @@ const FullscreenLoader = () => (
 
 
 function AppContainer({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { isReady: rolesReady, hasPermission } = useRoles();
   const pathname = usePathname();
   const router = useRouter();
 
-  const isLoading = loading || !rolesReady;
+  const isLoading = authLoading || !rolesReady;
 
   React.useEffect(() => {
     if (isLoading) return;
@@ -67,7 +67,6 @@ function AppContainer({ children }: { children: React.ReactNode }) {
   }
   
   const isAuthPage = pathname === '/login' || pathname === '/signup';
-  const isVerifyPage = pathname === '/verify-email';
 
   if (!user || isAuthPage) {
     return <>{children}</>;

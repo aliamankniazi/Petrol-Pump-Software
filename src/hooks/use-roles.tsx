@@ -1,12 +1,13 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, createContext, useContext, type ReactNode } from 'react';
+import { useMemo, useCallback, createContext, useContext, type ReactNode, useEffect } from 'react';
 import type { Role, RoleId, Permission } from '@/lib/types';
 import { useAuth } from './use-auth';
+import { useDatabaseCollection } from './use-database-collection';
 
-const ROLES_STORAGE_KEY = 'roles';
-const USER_ROLE_STORAGE_KEY_PREFIX = 'user-role';
+const ROLES_COLLECTION = 'roles';
+const USER_ROLES_COLLECTION = 'user-roles';
 
 export const PERMISSIONS = [
     'view_dashboard', 'view_all_transactions', 'delete_transaction',
@@ -20,17 +21,22 @@ export const PERMISSIONS = [
     'view_investments', 'add_investment', 'delete_investment',
     'view_expenses', 'add_expense', 'delete_expense',
     'view_other_incomes', 'add_other_income', 'delete_other_income',
-    'view_ledger', 'view_summary', 'generate_ai_summary',
-    'manage_employees', 'manage_banks', 'view_reports',
+    'view_ledger', 'view_summary', 'generate_ai_summary', 'view_reports',
+    'manage_employees', 'manage_banks',
     'view_settings', 'manage_roles', 'manage_users'
 ] as const;
 
 export type { Permission };
 
-const DEFAULT_ROLES: Role[] = [
-    { id: 'admin', name: 'Admin', permissions: [...PERMISSIONS] },
-    { id: 'attendant', name: 'Attendant', permissions: ['view_dashboard', 'view_all_transactions', 'view_customers', 'view_inventory', 'view_purchases', 'view_expenses', 'view_other_incomes'] }
+const DEFAULT_ROLES: Omit<Role, 'id'>[] = [
+    { name: 'Admin', permissions: [...PERMISSIONS] },
+    { name: 'Attendant', permissions: ['view_dashboard', 'view_all_transactions', 'view_customers', 'view_inventory', 'view_purchases', 'view_expenses', 'view_other_incomes'] }
 ];
+
+interface UserRoleDoc {
+  id: string; // Will be user.uid
+  roleId: RoleId;
+}
 
 interface RolesContextType {
     roles: Role[];
@@ -49,61 +55,38 @@ const RolesContext = createContext<RolesContextType | undefined>(undefined);
 export function RolesProvider({ children }: { children: ReactNode }) {
     const { user, loading: authLoading } = useAuth();
     
-    const [roles, setRoles] = useState<Role[]>([]);
-    const [isRolesLoaded, setIsRolesLoaded] = useState(false);
+    const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION);
+    const { data: userRoles, addDoc: addUserRoleDoc, loading: userRolesLoading } = useDatabaseCollection<UserRoleDoc>(USER_ROLES_COLLECTION);
 
-    const [userRoles, setUserRoles] = useState<Record<string, RoleId>>({});
-    const [isUserRolesLoaded, setIsUserRolesLoaded] = useState(false);
+    const isReady = !authLoading && !rolesLoading && !userRolesLoading;
     
-    const currentUserRole = user ? userRoles[user.uid] : null;
-
+    // Initialize default roles if the collection is empty
     useEffect(() => {
-        try {
-            const stored = localStorage.getItem(ROLES_STORAGE_KEY);
-            setRoles(stored ? JSON.parse(stored) : DEFAULT_ROLES);
-        } catch (e) {
-            setRoles(DEFAULT_ROLES);
-        } finally {
-            setIsRolesLoaded(true);
+        if (!rolesLoading && roles.length === 0) {
+            DEFAULT_ROLES.forEach(role => {
+                const id = role.name.toLowerCase();
+                addRoleDoc(role, id);
+            });
         }
-    }, []);
-
-    useEffect(() => {
-        try {
-            const stored = localStorage.getItem(USER_ROLE_STORAGE_KEY_PREFIX);
-            setUserRoles(stored ? JSON.parse(stored) : {});
-        } catch (e) {
-            setUserRoles({});
-        } finally {
-            setIsUserRolesLoaded(true);
-        }
-    }, []);
-
-    useEffect(() => {
-      if (isRolesLoaded) {
-        localStorage.setItem(ROLES_STORAGE_KEY, JSON.stringify(roles));
-      }
-    }, [roles, isRolesLoaded]);
-
-    useEffect(() => {
-      if (isUserRolesLoaded) {
-        localStorage.setItem(USER_ROLE_STORAGE_KEY_PREFIX, JSON.stringify(userRoles));
-      }
-    }, [userRoles, isUserRolesLoaded]);
+    }, [roles, rolesLoading, addRoleDoc]);
+    
+    const currentUserRoleDoc = useMemo(() => user ? userRoles.find(ur => ur.id === user.uid) : null, [user, userRoles]);
+    const currentUserRole = useMemo(() => currentUserRoleDoc?.roleId ?? null, [currentUserRoleDoc]);
 
     const assignRoleToUser = useCallback((userId: string, roleId: RoleId) => {
-        setUserRoles(prev => ({...prev, [userId]: roleId}));
-    }, []);
+        addUserRoleDoc({ roleId }, userId);
+    }, [addUserRoleDoc]);
 
-    const getRoleForUser = useCallback((userId: string) => {
-        return userRoles[userId] || null;
+    const getRoleForUser = useCallback((userId: string): RoleId | null => {
+        return userRoles.find(ur => ur.id === userId)?.roleId ?? null;
     }, [userRoles]);
     
+    // Auto-assign role to new users or the first user
     useEffect(() => {
-        if (!authLoading && user && isUserRolesLoaded) {
-            const userHasRole = user.uid in userRoles;
+        if (isReady && user) {
+            const userHasRole = userRoles.some(ur => ur.id === user.uid);
             if (!userHasRole) {
-                const isFirstUser = Object.keys(userRoles).length === 0;
+                const isFirstUser = userRoles.length === 0;
                 if (isFirstUser) {
                     assignRoleToUser(user.uid, 'admin');
                 } else {
@@ -111,28 +94,27 @@ export function RolesProvider({ children }: { children: ReactNode }) {
                 }
             }
         }
-    }, [authLoading, user, isUserRolesLoaded, userRoles, assignRoleToUser]);
+    }, [isReady, user, userRoles, assignRoleToUser]);
     
-    const isReady = !authLoading && isRolesLoaded && isUserRolesLoaded;
-
     const addRole = useCallback((role: Omit<Role, 'id'>) => {
-        setRoles(prev => [...prev, { ...role, id: crypto.randomUUID() }]);
-    }, []);
+        const id = role.name.toLowerCase().replace(/\s+/g, '-');
+        addRoleDoc(role, id);
+    }, [addRoleDoc]);
 
     const updateRole = useCallback((id: RoleId, updatedRole: Partial<Omit<Role, 'id'>>) => {
-        setRoles(prev => prev.map(r => r.id === id ? { ...r, ...updatedRole, id: r.id } as Role : r));
-    }, []);
+        updateRoleDoc(id, updatedRole);
+    }, [updateRoleDoc]);
 
     const deleteRole = useCallback((id: RoleId) => {
         if (id === 'admin') return; 
-        setRoles(prev => prev.filter(r => r.id !== id));
-    }, []);
+        deleteRoleDoc(id);
+    }, [deleteRoleDoc]);
 
     const hasPermission = useCallback((permission: Permission): boolean => {
-        if (!currentUserRole) return false;
+        if (!user || !currentUserRole) return false;
         const role = roles.find(r => r.id === currentUserRole);
         return !!role?.permissions.includes(permission);
-    }, [currentUserRole, roles]);
+    }, [user, currentUserRole, roles]);
 
     const value: RolesContextType = {
         roles,
