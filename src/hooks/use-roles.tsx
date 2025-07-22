@@ -74,10 +74,14 @@ export function RolesProvider({ children }: { children: ReactNode }) {
                     setDefaultsInitialized(true);
                 }).catch(error => {
                     console.error("Failed to initialize default roles:", error);
+                     setDefaultsInitialized(true); // Mark as initialized even on error to prevent loops
                 });
             } else {
                  setDefaultsInitialized(true);
             }
+        } else if (!authLoading && !user) {
+            // If there's no user, we can consider defaults "initialized" for a logged-out state.
+            setDefaultsInitialized(true);
         }
     }, [user, roles, authLoading, rolesLoading, addRoleDoc, defaultsInitialized]);
     
