@@ -8,28 +8,15 @@ let app: FirebaseApp;
 let auth: Auth;
 let db: Database;
 
+// This ensures that we initialize the app only once.
 if (getApps().length === 0) {
-  if (firebaseConfig.apiKey) {
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    db = getDatabase(app);
-  } else {
-    // This case should ideally not be reached if the config is present.
-    // We throw an error to make it clear that the app cannot function without configuration.
-    // This helps in debugging during setup.
-    console.error("Firebase config is missing. The application cannot be initialized.");
-    // In a real app, you might want to show a user-friendly message
-    // instead of throwing an error, but for development, this is clearer.
-    // We'll assign empty objects to satisfy TypeScript, but the app will not be functional.
-    app = {} as FirebaseApp;
-    auth = {} as Auth;
-    db = {} as Database;
-  }
+  // The initializeApp function will throw a helpful error if the config is missing any required fields.
+  app = initializeApp(firebaseConfig);
 } else {
-  // If the app is already initialized, just get the existing instances.
   app = getApps()[0];
-  auth = getAuth(app);
-  db = getDatabase(app);
 }
+
+auth = getAuth(app);
+db = getDatabase(app);
 
 export { app, auth, db };

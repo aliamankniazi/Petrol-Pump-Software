@@ -5,20 +5,18 @@ import { type FirebaseOptions } from "firebase/app";
 // ==========================================================================================
 // IMPORTANT: REPLACE THE PLACEHOLDER CONFIG WITH YOUR ACTUAL FIREBASE PROJECT CONFIGURATION.
 // You can get this from the Firebase console in your project's settings.
-// Go to Project Settings > General > Your apps > Web app > SDK setup and configuration
 //
-// The "This domain (localhost) is not authorized" error is often caused by an
-// incorrect or missing `authDomain` here.
+// The "Firebase: Error (auth/invalid-api-key)" error is caused by an
+// incorrect or missing configuration below.
 // ==========================================================================================
 export const firebaseConfig: FirebaseOptions = {
-  // apiKey: "YOUR_API_KEY",
-  // authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  // databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-  // projectId: "YOUR_PROJECT_ID",
-  // storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  // messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  // appId: "YOUR_APP_ID"
+  // PASTE YOUR FIREBASE CONFIGURATION OBJECT HERE.
+  // For example:
+  // apiKey: "AIzaSy...",
+  // authDomain: "your-project-id.firebaseapp.com",
+  // databaseURL: "https://your-project-id-default-rtdb.firebaseio.com",
+  // projectId: "your-project-id",
+  // storageBucket: "your-project-id.appspot.com",
+  // messagingSenderId: "1234567890",
+  // appId: "1:1234567890:web:..."
 };
-
-// This file should ONLY export the configuration object.
-// Initialization is handled in the useAuth hook to prevent race conditions.

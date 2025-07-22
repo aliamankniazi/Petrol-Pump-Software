@@ -36,19 +36,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Ensure `auth` is a valid object with `onAuthStateChanged` method
-    if (auth && typeof auth.onAuthStateChanged === 'function') {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-          setUser(currentUser);
-          setLoading(false);
-        });
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+    });
 
-        return () => unsubscribe();
-    } else {
-        // If auth is not correctly initialized, stop loading and maybe log an error
-        console.error("Firebase Auth is not initialized correctly.");
-        setLoading(false);
-    }
+    return () => unsubscribe();
   }, []);
 
   const signIn = useCallback(async (data: AuthFormValues) => {
