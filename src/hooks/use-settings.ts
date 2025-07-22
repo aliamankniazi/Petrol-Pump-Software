@@ -2,17 +2,9 @@
 'use client';
 
 import { useCallback } from 'react';
-import { ref, remove, getDatabase } from 'firebase/database';
+import { ref, remove } from 'firebase/database';
 import { useAuth } from './use-auth';
-import { firebaseConfig } from '@/lib/firebase';
-import { getApps, initializeApp } from 'firebase/app';
-
-
-let db: import('firebase/database').Database | null = null;
-if (firebaseConfig.apiKey) {
-    const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
-    db = getDatabase(app);
-}
+import { db } from '@/lib/firebase-client';
 
 // This hook provides a function to clear all data for the current user.
 // It is a destructive operation and should be used with caution.

@@ -11,22 +11,13 @@ import {
   set,
   serverTimestamp,
   type DatabaseReference,
-  getDatabase,
 } from 'firebase/database';
 import { useAuth } from './use-auth';
-import { getApps, initializeApp } from 'firebase/app';
-import { firebaseConfig } from '@/lib/firebase';
+import { db } from '@/lib/firebase-client';
 
 interface DbDoc {
   id: string;
   [key: string]: any;
-}
-
-// Initialize db connection here to be used by the hook
-let db: import('firebase/database').Database | null = null;
-if (firebaseConfig.apiKey) {
-    const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
-    db = getDatabase(app);
 }
 
 export function useDatabaseCollection<T extends DbDoc>(collectionName: string) {
@@ -35,10 +26,16 @@ export function useDatabaseCollection<T extends DbDoc>(collectionName: string) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user || !db) {
+    if (!user) {
       setLoading(false);
       setData([]);
       return;
+    }
+
+    if (!db) {
+        console.error("Database not initialized.");
+        setLoading(false);
+        return;
     }
 
     let collectionRef: DatabaseReference;
@@ -78,7 +75,7 @@ export function useDatabaseCollection<T extends DbDoc>(collectionName: string) {
   }, [user, collectionName]);
 
   const addDoc = useCallback(async (newData: Omit<T, 'id' | 'timestamp'>, docId?: string) => {
-    if (!user || !db) return Promise.reject(new Error("Not authenticated or DB not initialized"));
+    if (!user || !db) throw new Error("Not authenticated or DB not initialized");
     
     const dataWithTimestamp = { ...newData, timestamp: serverTimestamp() };
 
