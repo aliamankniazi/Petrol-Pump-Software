@@ -1,87 +1,53 @@
 
 'use client';
 
-import { useForm, type SubmitHandler } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { UserPlus } from 'lucide-react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { useState } from 'react';
-import { AuthFormValues } from '@/lib/types';
-
-const signupSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
+import { useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { UserPlus } from 'lucide-react';
 
 export default function SignupPage() {
-  const { signUp } = useAuth();
-  const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const { user, isFirstUser, loading } = useAuth();
+  const router = useRouter();
 
-  const { register, handleSubmit, formState: { errors } } = useForm<AuthFormValues>({
-    resolver: zodResolver(signupSchema),
-  });
-
-  const onSubmit: SubmitHandler<AuthFormValues> = async (data) => {
-    setLoading(true);
-    try {
-      await signUp(data);
-      toast({
-        title: 'Signup Successful',
-        description: "A verification email has been sent. Please check your inbox.",
-        duration: 5000,
-      });
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Signup Failed',
-        description: error.message || 'An unexpected error occurred.',
-      });
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (!loading) {
+      if (user) {
+        // If a user is already logged in, redirect them away.
+        router.replace('/dashboard');
+      } else if (!isFirstUser) {
+        // If it's not the first user setup, this page is forbidden.
+        router.replace('/login');
+      }
     }
-  };
+  }, [user, isFirstUser, loading, router]);
+
+  // The actual form is now on the /users page.
+  // This page is just a placeholder during the first user creation.
+  
+  if (loading || !isFirstUser) {
+     return (
+        <div className="flex min-h-screen items-center justify-center bg-background p-4">
+            <p>Loading...</p>
+        </div>
+     );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-2xl">
-            <UserPlus /> Sign Up
+            <UserPlus /> Create Super Admin
           </CardTitle>
-          <CardDescription>Create a new account to get started.</CardDescription>
+          <CardDescription>
+            This page is for the initial setup of the one and only Super Admin account. Please proceed to create other users from the 'Manage Users' section after logging in.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" {...register('email')} placeholder="you@example.com" />
-                {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-                </div>
-
-                <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" {...register('password')} placeholder="••••••••" />
-                {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
-                </div>
-
-                <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Creating account...' : 'Sign Up'}
-                </Button>
-            </form>
-            <div className="mt-4 text-center text-sm">
-                Already have an account?{' '}
-                <Link href="/login" className="underline">
-                Login
-                </Link>
-            </div>
+           {/* The user creation form is now part of the /users page. This is a deliberate redirection. */}
+           <p>Redirecting to user management to create the first account...</p>
         </CardContent>
       </Card>
     </div>

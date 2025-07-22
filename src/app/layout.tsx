@@ -10,7 +10,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { RolesProvider, useRoles } from '@/hooks/use-roles';
 import { AppLayout } from '@/components/app-layout';
 import { Skeleton } from '@/components/ui/skeleton';
-import VerifyEmailPage from './verify-email/page';
 import { isFirebaseConfigured } from '@/lib/firebase-client';
 
 const inter = Inter({
@@ -49,14 +48,9 @@ function AppContainer({ children }: { children: React.ReactNode }) {
     if (isLoading || !configured) return;
 
     const isAuthPage = pathname === '/login' || pathname === '/signup';
-    const isVerifyPage = pathname === '/verify-email';
     
     if (user) { 
-      if (!user.emailVerified) {
-        if (!isVerifyPage) router.replace('/verify-email');
-      } else { 
-        if (isAuthPage || isVerifyPage) router.replace('/dashboard');
-      }
+      if (isAuthPage) router.replace('/dashboard');
     } else { 
       if (!isAuthPage) router.replace('/login');
     }
@@ -70,17 +64,11 @@ function AppContainer({ children }: { children: React.ReactNode }) {
   const isAuthPage = pathname === '/login' || pathname === '/signup';
   
   if (!configured) {
-    // If not configured, just show the children, which will include the alert
-    // from the specific page (e.g., Sales Page)
-     return <>{children}</>;
+    return <>{children}</>;
   }
 
   if (!user || isAuthPage) {
     return <>{children}</>;
-  }
-
-  if (!user.emailVerified) {
-    return <VerifyEmailPage />;
   }
 
   return <AppLayout hasPermission={hasPermission}>{children}</AppLayout>;

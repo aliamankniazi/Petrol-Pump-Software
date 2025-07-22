@@ -29,6 +29,7 @@ export const PERMISSIONS = [
 export type { Permission };
 
 const DEFAULT_ROLES: Omit<Role, 'id'>[] = [
+    { name: 'Super Admin', permissions: [...PERMISSIONS] },
     { name: 'Admin', permissions: [...PERMISSIONS] },
     { name: 'Attendant', permissions: ['view_dashboard', 'view_all_transactions', 'view_customers', 'view_inventory', 'view_purchases', 'view_expenses', 'view_other_incomes'] }
 ];
@@ -40,7 +41,9 @@ interface UserRoleDoc {
 
 interface RolesContextType {
     roles: Role[];
+    userRoles: UserRoleDoc[];
     userRole: RoleId | null;
+    isFirstUser: boolean;
     addRole: (role: Omit<Role, 'id'>) => void;
     updateRole: (id: RoleId, updatedRole: Partial<Omit<Role, 'id'>>) => void;
     deleteRole: (id: RoleId) => void;
@@ -48,6 +51,7 @@ interface RolesContextType {
     assignRoleToUser: (userId: string, roleId: RoleId) => void;
     getRoleForUser: (userId: string) => RoleId | null;
     isReady: boolean;
+    superAdminUid: string | null;
 }
 
 const RolesContext = createContext<RolesContextType | undefined>(undefined);
@@ -55,38 +59,53 @@ const RolesContext = createContext<RolesContextType | undefined>(undefined);
 export function RolesProvider({ children }: { children: ReactNode }) {
     const { user, loading: authLoading } = useAuth();
     
-    const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION);
-    const { data: userRoles, addDoc: addUserRoleDoc, loading: userRolesLoading } = useDatabaseCollection<UserRoleDoc>(USER_ROLES_COLLECTION);
+    // Step 1: Find the super-admin UID first.
+    // For this, we must fetch ALL `user-roles` which we can't do without a known root.
+    // This creates a chicken-and-egg problem.
+    // We must assume that the currently logged-in user's data root is correct for now.
+    // This will be corrected once we can identify the super-admin.
+    
+    // Let's assume the logged-in user is the one whose data we should check first.
+    const { data: allUserRoles, loading: allUserRolesLoading } = useDatabaseCollection<UserRoleDoc>(USER_ROLES_COLLECTION, user?.uid);
+    
+    const superAdminUid = useMemo(() => {
+        if (!allUserRoles || allUserRoles.length === 0) {
+            // If there are no roles defined, the current user will become super-admin.
+            return user?.uid || null;
+        }
+        const superAdminEntry = allUserRoles.find(ur => ur.roleId === 'super-admin');
+        return superAdminEntry?.id || null;
+    }, [allUserRoles, user]);
+
+    const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, superAdminUid);
+    const { data: userRoles, addDoc: addUserRoleDoc, loading: userRolesLoading } = useDatabaseCollection<UserRoleDoc>(USER_ROLES_COLLECTION, superAdminUid);
     const [defaultsInitialized, setDefaultsInitialized] = useState(false);
 
-    const isReady = !authLoading && !rolesLoading && !userRolesLoading && defaultsInitialized;
+    const isReady = !authLoading && !rolesLoading && !userRolesLoading && !allUserRolesLoading && defaultsInitialized;
     
-    // Initialize default roles if the collection is empty
     useEffect(() => {
-        // Wait until auth and roles are loaded, and ensure we have a user
-        if (!authLoading && !rolesLoading && user && !defaultsInitialized) {
+        if (superAdminUid && !rolesLoading && !defaultsInitialized) {
             if (roles.length === 0) {
-                console.log("No roles found, initializing defaults...");
                 Promise.all(DEFAULT_ROLES.map(role => {
-                    const id = role.name.toLowerCase();
+                    const id = role.name.toLowerCase().replace(' ', '-');
                     return addRoleDoc(role, id);
                 })).then(() => {
                     setDefaultsInitialized(true);
                 }).catch(error => {
                     console.error("Failed to initialize default roles:", error);
-                     setDefaultsInitialized(true); // Mark as initialized even on error to prevent loops
+                     setDefaultsInitialized(true);
                 });
             } else {
                  setDefaultsInitialized(true);
             }
-        } else if (!authLoading && !user) {
-            // If there's no user, we can consider defaults "initialized" for a logged-out state.
+        } else if (!superAdminUid && !authLoading) {
             setDefaultsInitialized(true);
         }
-    }, [user, roles, authLoading, rolesLoading, addRoleDoc, defaultsInitialized]);
+    }, [superAdminUid, roles, authLoading, rolesLoading, addRoleDoc, defaultsInitialized]);
     
     const currentUserRoleDoc = useMemo(() => user ? userRoles.find(ur => ur.id === user.uid) : null, [user, userRoles]);
     const currentUserRole = useMemo(() => currentUserRoleDoc?.roleId ?? null, [currentUserRoleDoc]);
+    const isFirstUser = useMemo(() => !userRolesLoading && userRoles.length === 0, [userRoles, userRolesLoading]);
 
     const assignRoleToUser = useCallback((userId: string, roleId: RoleId) => {
         addUserRoleDoc({ roleId }, userId);
@@ -96,20 +115,11 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         return userRoles.find(ur => ur.id === userId)?.roleId ?? null;
     }, [userRoles]);
     
-    // Auto-assign role to new users or the first user
     useEffect(() => {
-        if (isReady && user) {
-            const userHasRole = userRoles.some(ur => ur.id === user.uid);
-            if (!userHasRole) {
-                const isFirstUser = userRoles.length === 0;
-                if (isFirstUser) {
-                    assignRoleToUser(user.uid, 'admin');
-                } else {
-                    assignRoleToUser(user.uid, 'attendant');
-                }
-            }
+        if (isReady && user && isFirstUser) {
+            assignRoleToUser(user.uid, 'super-admin');
         }
-    }, [isReady, user, userRoles, assignRoleToUser]);
+    }, [isReady, user, isFirstUser, assignRoleToUser]);
     
     const addRole = useCallback((role: Omit<Role, 'id'>) => {
         const id = role.name.toLowerCase().replace(/\s+/g, '-');
@@ -121,20 +131,22 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, [updateRoleDoc]);
 
     const deleteRole = useCallback((id: RoleId) => {
-        if (id === 'admin') return; 
+        if (id === 'super-admin' || id === 'admin') return; 
         deleteRoleDoc(id);
     }, [deleteRoleDoc]);
 
     const hasPermission = useCallback((permission: Permission): boolean => {
         if (!user || !currentUserRole) return false;
-        if (currentUserRole === 'admin') return true; // Admin has all permissions
+        if (currentUserRole === 'super-admin') return true;
         const role = roles.find(r => r.id === currentUserRole);
         return !!role?.permissions.includes(permission);
     }, [user, currentUserRole, roles]);
 
     const value: RolesContextType = {
         roles,
+        userRoles: userRoles || [],
         userRole: currentUserRole,
+        isFirstUser,
         addRole,
         updateRole,
         deleteRole,
@@ -142,6 +154,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         assignRoleToUser,
         getRoleForUser,
         isReady,
+        superAdminUid,
     };
     
     return (

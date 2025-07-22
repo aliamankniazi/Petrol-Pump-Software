@@ -13,16 +13,16 @@ import { LogIn } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useState } from 'react';
-import { AuthFormValues } from '@/lib/types';
+import type { AuthFormValues } from '@/lib/types';
 
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string().min(1, 'Password is required'),
 });
 
 export default function LoginPage() {
-  const { signIn } = useAuth();
+  const { signIn, isFirstUser } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   
@@ -33,20 +33,11 @@ export default function LoginPage() {
   const onSubmit: SubmitHandler<AuthFormValues> = async (data) => {
     setLoading(true);
     try {
-      const userCredential = await signIn(data);
-
-      if (!userCredential.user.emailVerified) {
-        toast({
-            variant: 'destructive',
-            title: 'Verification Required',
-            description: "Your email has not been verified. Please check your inbox.",
-        });
-      } else {
-        toast({
-          title: 'Login Successful',
-          description: 'Welcome back!',
-        });
-      }
+      await signIn(data);
+      toast({
+        title: 'Login Successful',
+        description: 'Welcome back!',
+      });
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -85,12 +76,14 @@ export default function LoginPage() {
                 {loading ? 'Logging in...' : 'Login'}
                 </Button>
             </form>
-            <div className="mt-4 text-center text-sm">
-                Don't have an account?{' '}
-                <Link href="/signup" className="underline">
-                Sign up
-                </Link>
-            </div>
+            {isFirstUser && (
+              <div className="mt-4 text-center text-sm">
+                  No account?{' '}
+                  <Link href="/signup" className="underline">
+                  Create Super Admin Account
+                  </Link>
+              </div>
+            )}
         </CardContent>
       </Card>
     </div>

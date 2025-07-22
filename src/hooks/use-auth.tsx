@@ -15,19 +15,17 @@ import {
   signOut as firebaseSignOut,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  sendEmailVerification,
+  type UserCredential,
 } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '@/lib/firebase-client';
 import type { AuthFormValues } from '@/lib/types';
 import { FirebaseError } from 'firebase/app';
-import { useToast } from './use-toast';
-
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signIn: (data: AuthFormValues) => Promise<any>;
-  signUp: (data: AuthFormValues) => Promise<any>;
+  signIn: (data: AuthFormValues) => Promise<UserCredential>;
+  signUp: (data: AuthFormValues) => Promise<UserCredential>;
   signOut: () => Promise<void>;
 }
 
@@ -36,8 +34,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-
+  
   useEffect(() => {
     if (!isFirebaseConfigured()) {
       setLoading(false);
@@ -47,6 +44,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
+    }, (error) => {
+        console.error("Auth state change error:", error);
+        setLoading(false);
     });
 
     return () => unsubscribe();
@@ -54,33 +54,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = useCallback(async (data: AuthFormValues) => {
     if (!isFirebaseConfigured()) {
-        throw new Error("Firebase is not configured. Please add your credentials to src/lib/firebase.ts");
+        throw new Error("Firebase is not configured.");
     }
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-      try {
-        await sendEmailVerification(userCredential.user);
-      } catch(emailError: any) {
-        console.error("Failed to send verification email:", emailError);
-        toast({
-          variant: "destructive",
-          title: "Could Not Send Verification Email",
-          description: "Your account was created, but the verification email failed to send. Please check your Firebase project settings (Authentication -> Settings) and ensure the Identity Toolkit API is enabled.",
-          duration: 10000,
-        });
-      }
       return userCredential;
     } catch (error) {
       if (error instanceof FirebaseError && error.code === 'auth/email-already-in-use') {
-        throw new Error('This email is already registered. Please try to log in instead.');
+        throw new Error('This email is already in use.');
       }
       throw error;
     }
-  }, [toast]);
+  }, []);
   
   const signIn = useCallback(async (data: AuthFormValues) => {
     if (!isFirebaseConfigured()) {
-        throw new Error("Firebase is not configured. Please add your credentials to src/lib/firebase.ts");
+        throw new Error("Firebase is not configured.");
     }
     return signInWithEmailAndPassword(auth, data.email, data.password);
   }, []);
