@@ -9,7 +9,7 @@ import { useInstitution } from './use-institution';
 
 export function useSettings() {
   const { user } = useAuth();
-  const { currentInstitution } = useInstitution();
+  const { currentInstitution, clearCurrentInstitution: clearFromContext } = useInstitution();
 
   const clearAllData = useCallback(async () => {
     if (!user || !currentInstitution) {
@@ -29,11 +29,12 @@ export function useSettings() {
     const institutionRootRef = ref(db, `institutions/${currentInstitution.id}`);
     try {
       await remove(institutionRootRef);
+      clearFromContext(); // Also clear from the context to force re-selection
       console.log(`All data for institution ${currentInstitution.name} has been cleared.`);
     } catch (error) {
       console.error(`Failed to clear data for institution ${currentInstitution.id}:`, error);
     }
-  }, [user, currentInstitution]);
+  }, [user, currentInstitution, clearFromContext]);
 
   return {
     clearAllData,

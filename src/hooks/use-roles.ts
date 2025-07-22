@@ -61,10 +61,10 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     const { currentInstitution, isLoaded: institutionLoaded } = useInstitution();
     
     // Roles are specific to an institution
-    const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION);
+    const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, currentInstitution?.id);
     
     // User mappings are global
-    const { data: userMappings, addDoc: addUserMappingDoc, loading: userMappingsLoading } = useDatabaseCollection<UserMapping>(USER_MAP_COLLECTION, { allInstitutions: true });
+    const { data: userMappings, addDoc: addUserMappingDoc, loading: userMappingsLoading } = useDatabaseCollection<UserMapping>(USER_MAP_COLLECTION, null, { allInstitutions: true });
 
     const [defaultsInitialized, setDefaultsInitialized] = useState(false);
 
@@ -106,6 +106,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, [addUserMappingDoc]);
     
     const getRoleForUserInInstitution = useCallback((userId: string, institutionId: string): RoleId | null => {
+        if (!userMappings) return null;
         const mapping = userMappings.find(m => m.userId === userId && m.institutionId === institutionId);
         return mapping?.roleId || null;
     }, [userMappings]);
@@ -133,7 +134,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, [user, currentUserRole, roles, isSuperAdmin]);
 
     const value: RolesContextType = {
-        roles,
+        roles: roles || [],
         userRole: currentUserRole,
         isSuperAdmin,
         addRole,

@@ -13,7 +13,6 @@ import {
   type DatabaseReference,
 } from 'firebase/database';
 import { db, isFirebaseConfigured } from '@/lib/firebase-client';
-import { useInstitution } from './use-institution';
 
 interface DbDoc {
   id: string;
@@ -22,12 +21,11 @@ interface DbDoc {
 
 export function useDatabaseCollection<T extends DbDoc>(
   collectionName: string,
+  institutionId: string | null,
   options?: { allInstitutions?: boolean }
 ) {
-  const { currentInstitution } = useInstitution();
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
-  const institutionId = currentInstitution?.id;
 
   useEffect(() => {
     if (!isFirebaseConfigured() || !db) {
@@ -44,7 +42,7 @@ export function useDatabaseCollection<T extends DbDoc>(
     let collectionRef: DatabaseReference;
     try {
       const path = options?.allInstitutions
-        ? collectionName // e.g., 'institutions' or 'user-to-institution-map'
+        ? collectionName
         : `institutions/${institutionId}/${collectionName}`;
       collectionRef = ref(db, path);
     } catch (error) {
@@ -82,12 +80,17 @@ export function useDatabaseCollection<T extends DbDoc>(
   }, [institutionId, collectionName, options?.allInstitutions]);
 
   const addDoc = useCallback(async (newData: Omit<T, 'id' | 'timestamp'>, docId?: string) => {
-    if ((!institutionId && !options?.allInstitutions) || !db) throw new Error("Not authenticated or DB not initialized");
+    if (!db) throw new Error("DB not initialized");
+
+    const path = options?.allInstitutions
+        ? collectionName
+        : `institutions/${institutionId}/${collectionName}`;
+
+    if (!institutionId && !options?.allInstitutions) {
+        throw new Error("Cannot add document without an institutionId unless 'allInstitutions' is true.");
+    }
     
     const dataWithTimestamp = { ...newData, timestamp: serverTimestamp() };
-    const path = options?.allInstitutions
-      ? collectionName
-      : `institutions/${institutionId}/${collectionName}`;
 
     if (docId) {
       const docRef = ref(db, `${path}/${docId}`);
@@ -102,19 +105,21 @@ export function useDatabaseCollection<T extends DbDoc>(
   }, [institutionId, collectionName, options?.allInstitutions]);
   
   const updateDoc = useCallback(async (id: string, updatedData: Partial<Omit<T, 'id'>>) => {
-    if ((!institutionId && !options?.allInstitutions) || !db) return;
-    const path = options?.allInstitutions
-      ? `${collectionName}/${id}`
-      : `institutions/${institutionId}/${collectionName}/${id}`;
+     if (!db) return;
+     const path = options?.allInstitutions
+        ? `${collectionName}/${id}`
+        : `institutions/${institutionId}/${collectionName}/${id}`;
+    if (!institutionId && !options?.allInstitutions) return;
     const docRef = ref(db, path);
     await update(docRef, updatedData);
   }, [institutionId, collectionName, options?.allInstitutions]);
 
   const deleteDoc = useCallback(async (id: string) => {
-    if ((!institutionId && !options?.allInstitutions) || !db) return;
+    if (!db) return;
     const path = options?.allInstitutions
         ? `${collectionName}/${id}`
         : `institutions/${institutionId}/${collectionName}/${id}`;
+    if (!institutionId && !options?.allInstitutions) return;
     const docRef = ref(db, path);
     await remove(docRef);
   }, [institutionId, collectionName, options?.allInstitutions]);

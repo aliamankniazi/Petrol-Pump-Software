@@ -32,8 +32,8 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     const { user } = useAuth();
     const [currentInstitutionId, setCurrentInstitutionId] = useState<string | null>(null);
     
-    const { data: allInstitutions, isLoaded: institutionsLoaded } = useDatabaseCollection<Institution>(INSTITUTION_COLLECTION, { allInstitutions: true });
-    const { data: allUserMappings, isLoaded: mappingsLoaded } = useDatabaseCollection<UserToInstitution>(USER_MAP_COLLECTION, { allInstitutions: true });
+    const { data: allInstitutions, loading: institutionsLoaded } = useDatabaseCollection<Institution>(INSTITUTION_COLLECTION, null, { allInstitutions: true });
+    const { data: allUserMappings, loading: mappingsLoaded } = useDatabaseCollection<UserToInstitution>(USER_MAP_COLLECTION, null, { allInstitutions: true });
 
     useEffect(() => {
         const storedId = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -43,14 +43,14 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const userInstitutions = useMemo(() => {
-        if (!user || !institutionsLoaded || !mappingsLoaded) return [];
-        const userMappings = allUserMappings.filter(m => m.userId === user.uid);
+        if (!user || institutionsLoaded || mappingsLoaded) return [];
+        const userMappings = (allUserMappings || []).filter(m => m.userId === user.uid);
         const institutionIds = userMappings.map(m => m.institutionId);
-        return allInstitutions.filter(inst => institutionIds.includes(inst.id));
+        return (allInstitutions || []).filter(inst => institutionIds.includes(inst.id));
     }, [user, allInstitutions, allUserMappings, institutionsLoaded, mappingsLoaded]);
 
     const currentInstitution = useMemo(() => {
-        return allInstitutions.find(inst => inst.id === currentInstitutionId) ?? null;
+        return (allInstitutions || []).find(inst => inst.id === currentInstitutionId) ?? null;
     }, [currentInstitutionId, allInstitutions]);
 
     const setCurrentInstitutionCallback = useCallback((institutionId: string) => {
@@ -63,7 +63,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         setCurrentInstitutionId(null);
     }, []);
 
-    const isLoaded = institutionsLoaded && mappingsLoaded;
+    const isLoaded = !institutionsLoaded && !mappingsLoaded;
 
     const value = useMemo(() => ({
         userInstitutions,
@@ -91,7 +91,7 @@ export const useInstitution = () => {
 // A separate hook just for creating/managing institutions, usually for super admins
 export function useInstitutions() {
     const { user } = useAuth();
-    const { data, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<Institution>(INSTITUTION_COLLECTION, { allInstitutions: true });
+    const { data, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<Institution>(INSTITUTION_COLLECTION, null, { allInstitutions: true });
     
     const addInstitution = useCallback((institution: Omit<Institution, 'id' | 'ownerId'>) => {
         if (!user) throw new Error("User must be logged in to create an institution.");
