@@ -80,8 +80,9 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         
 
         return () => {
-            onInstitutionsValue();
-            onMappingsValue();
+            // Detach listeners
+            onValue(institutionsRef, () => {}, { onlyOnce: true });
+            onValue(mappingsRef, () => {}, { onlyOnce: true });
         };
     }, []);
 
@@ -158,7 +159,7 @@ export function useInstitutions() {
     const { userInstitutions, isLoaded } = useInstitution();
     
     return {
-        userInstitutions,
+        institutions: userInstitutions,
         addInstitution,
         updateInstitution,
         deleteInstitution,
