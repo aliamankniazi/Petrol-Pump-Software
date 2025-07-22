@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Fuel, Tag, ScanLine, Calculator, Database, CreditCard, Wallet, Smartphone, Banknote } from 'lucide-react';
+import { Fuel, Tag, ScanLine, Calculator, Database, CreditCard, Wallet, Smartphone, Banknote, Terminal } from 'lucide-react';
 import { Numpad } from '@/components/numpad';
 import type { FuelType, Customer, BankAccount } from '@/lib/types';
 import { useFuelPrices } from '@/hooks/use-fuel-prices';
@@ -20,6 +20,9 @@ import { useCustomers } from '@/hooks/use-customers';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomerBalance } from '@/hooks/use-customer-balance';
 import { useBankAccounts } from '@/hooks/use-bank-accounts';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { isFirebaseConfigured } from '@/lib/firebase-client';
+import { cn } from '@/lib/utils';
 
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
@@ -35,12 +38,26 @@ const saleSchema = z.object({
 
 type SaleFormValues = z.infer<typeof saleSchema>;
 
+const FirebaseNotConfiguredAlert = () => (
+  <div className="absolute bottom-4 right-4 z-50">
+    <Alert variant="destructive" className="max-w-md">
+      <Terminal className="h-4 w-4" />
+      <AlertTitle>Firebase Not Configured</AlertTitle>
+      <AlertDescription>
+        The application is running in a limited, offline mode. To enable saving data, login, and all other features, please add your Firebase credentials to <strong>src/lib/firebase.ts</strong>.
+      </AlertDescription>
+    </Alert>
+  </div>
+);
+
+
 export default function SalesPage() {
   const { fuelPrices } = useFuelPrices();
   const { customers, isLoaded: customersLoaded } = useCustomers();
   const { bankAccounts, isLoaded: bankAccountsLoaded } = useBankAccounts();
   const { addTransaction } = useTransactions();
   const { toast } = useToast();
+  const configured = isFirebaseConfigured();
 
   const [activeInput, setActiveInput] = React.useState<'value' | 'barcode'>('value');
   const [barcode, setBarcode] = React.useState('');
@@ -137,8 +154,10 @@ export default function SalesPage() {
 
   return (
     <div className="flex h-[calc(100vh-81px)]">
+      {!configured && <FirebaseNotConfiguredAlert />}
       <div className="flex-1 p-4 md:p-8">
         <form onSubmit={handleSubmit(onSubmit)} className="h-full flex flex-col">
+          <fieldset disabled={!configured} className="h-full flex flex-col contents">
           <Card className="flex-grow flex flex-col">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Fuel/> Electronic Point of Sale (EPOS)</CardTitle>
@@ -209,7 +228,7 @@ export default function SalesPage() {
                   />
                    <span className="absolute top-1/2 right-4 -translate-y-1/2 text-xl font-semibold text-muted-foreground">
                     {saleType === 'amount' ? 'PKR' : 'L'}
-                  </span>
+                   </span>
                 </div>
                 {errors.value && <p className="text-sm text-destructive">{errors.value.message}</p>}
                 
@@ -266,7 +285,7 @@ export default function SalesPage() {
                          <RadioGroupItem value="Mobile" className="sr-only"/>
                          <Smartphone className="w-5 h-5"/> Mobile
                        </Label>
-                       <Label className="flex flex-col items-center justify-center gap-1 border rounded-md p-2 cursor-pointer has-[:checked]:border-primary text-xs h-16 disabled:cursor-not-allowed disabled:opacity-50" disabled={!customerId || customerId === 'walk-in'}>
+                       <Label className={cn("flex flex-col items-center justify-center gap-1 border rounded-md p-2 cursor-pointer has-[:checked]:border-primary text-xs h-16", (!customerId || customerId === 'walk-in') && "cursor-not-allowed opacity-50")}>
                          <RadioGroupItem value="Salary" className="sr-only" disabled={!customerId || customerId === 'walk-in'}/>
                          <Banknote className="w-5 h-5"/> On Credit
                        </Label>
@@ -339,6 +358,7 @@ export default function SalesPage() {
               </Button>
             </CardFooter>
           </Card>
+          </fieldset>
         </form>
       </div>
 

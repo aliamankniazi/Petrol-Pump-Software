@@ -9,7 +9,8 @@ let auth: Auth;
 let db: Database;
 
 export const isFirebaseConfigured = () => {
-    return firebaseConfig && firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("AIzaSy");
+    // A valid config will have a non-empty apiKey.
+    return firebaseConfig && firebaseConfig.apiKey;
 }
 
 if (isFirebaseConfigured()) {
@@ -22,7 +23,7 @@ if (isFirebaseConfigured()) {
     auth = getAuth(app);
     db = getDatabase(app);
 } else {
-    console.warn("Firebase is not configured. The app will run in offline mode.");
+    console.warn("Firebase is not configured. The app will run in a limited, offline mode.");
 }
 
 

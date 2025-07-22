@@ -11,9 +11,7 @@ import { RolesProvider, useRoles } from '@/hooks/use-roles';
 import { AppLayout } from '@/components/app-layout';
 import { Skeleton } from '@/components/ui/skeleton';
 import VerifyEmailPage from './verify-email/page';
-import { firebaseConfig } from '@/lib/firebase';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Terminal } from 'lucide-react';
+import { isFirebaseConfigured } from '@/lib/firebase-client';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -38,30 +36,17 @@ const FullscreenLoader = () => (
    </div>
 );
 
-const FirebaseNotConfiguredAlert = () => (
-  <div className="fixed bottom-4 right-4 z-50">
-    <Alert variant="destructive" className="max-w-md">
-      <Terminal className="h-4 w-4" />
-      <AlertTitle>Firebase Not Configured</AlertTitle>
-      <AlertDescription>
-        The application is running in a limited, offline mode. To enable saving data, login, and all other features, please add your Firebase credentials to <strong>src/lib/firebase.ts</strong>.
-      </AlertDescription>
-    </Alert>
-  </div>
-);
-
-
 function AppContainer({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
   const { isReady: rolesReady, hasPermission } = useRoles();
   const pathname = usePathname();
   const router = useRouter();
   
-  const isConfigured = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("AIzaSy");
-  const isLoading = isConfigured ? (authLoading || !rolesReady) : false;
+  const configured = isFirebaseConfigured();
+  const isLoading = configured ? (authLoading || !rolesReady) : false;
 
   React.useEffect(() => {
-    if (isLoading || !isConfigured) return;
+    if (isLoading || !configured) return;
 
     const isAuthPage = pathname === '/login' || pathname === '/signup';
     const isVerifyPage = pathname === '/verify-email';
@@ -76,26 +61,19 @@ function AppContainer({ children }: { children: React.ReactNode }) {
       if (!isAuthPage) router.replace('/login');
     }
 
-  }, [user, isLoading, rolesReady, pathname, router, isConfigured]);
+  }, [user, isLoading, rolesReady, pathname, router, configured]);
 
   if (isLoading) {
     return <FullscreenLoader />;
   }
   
   const isAuthPage = pathname === '/login' || pathname === '/signup';
-
-  if (!isConfigured) {
-      if (isAuthPage) {
-          return (
-              <div>
-                  <FirebaseNotConfiguredAlert />
-                  {children}
-              </div>
-          );
-      }
-      return <AppLayout hasPermission={() => true}>{children}<FirebaseNotConfiguredAlert/></AppLayout>;
+  
+  if (!configured) {
+    // If not configured, just show the children, which will include the alert
+    // from the specific page (e.g., Sales Page)
+     return <>{children}</>;
   }
-
 
   if (!user || isAuthPage) {
     return <>{children}</>;
