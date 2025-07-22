@@ -105,21 +105,19 @@ export function useDatabaseCollection<T extends DbDoc>(
   }, [institutionId, collectionName, options?.allInstitutions]);
   
   const updateDoc = useCallback(async (id: string, updatedData: Partial<Omit<T, 'id'>>) => {
-     if (!db) return;
+     if (!db || (!institutionId && !options?.allInstitutions)) return;
      const path = options?.allInstitutions
         ? `${collectionName}/${id}`
         : `institutions/${institutionId}/${collectionName}/${id}`;
-    if (!institutionId && !options?.allInstitutions) return;
     const docRef = ref(db, path);
     await update(docRef, updatedData);
   }, [institutionId, collectionName, options?.allInstitutions]);
 
   const deleteDoc = useCallback(async (id: string) => {
-    if (!db) return;
+    if (!db || (!institutionId && !options?.allInstitutions)) return;
     const path = options?.allInstitutions
         ? `${collectionName}/${id}`
         : `institutions/${institutionId}/${collectionName}/${id}`;
-    if (!institutionId && !options?.allInstitutions) return;
     const docRef = ref(db, path);
     await remove(docRef);
   }, [institutionId, collectionName, options?.allInstitutions]);

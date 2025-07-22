@@ -61,7 +61,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     const { currentInstitution, isLoaded: institutionLoaded } = useInstitution();
     
     // Roles are specific to an institution
-    const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, currentInstitution?.id);
+    const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, currentInstitution?.id || null);
     
     // User mappings are global
     const { data: userMappings, addDoc: addUserMappingDoc, loading: userMappingsLoading } = useDatabaseCollection<UserMapping>(USER_MAP_COLLECTION, null, { allInstitutions: true });

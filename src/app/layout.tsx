@@ -94,13 +94,13 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-          <RolesProvider>
-            <InstitutionProvider>
-                <AppContainer>
-                  {children}
-                </AppContainer>
-            </InstitutionProvider>
-          </RolesProvider>
+          <InstitutionProvider>
+            <RolesProvider>
+              <AppContainer>
+                {children}
+              </AppContainer>
+            </RolesProvider>
+          </InstitutionProvider>
         </AuthProvider>
         <Toaster />
       </body>
