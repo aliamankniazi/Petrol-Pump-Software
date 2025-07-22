@@ -36,6 +36,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!auth) {
+        // Firebase is not configured, so we are not in a loading state.
+        setLoading(false);
+        return;
+    }
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
@@ -45,10 +50,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(async (data: AuthFormValues) => {
+    if (!auth) throw new Error("Firebase is not configured.");
     return signInWithEmailAndPassword(auth, data.email, data.password);
   }, []);
 
   const signUp = useCallback(async (data: AuthFormValues) => {
+    if (!auth) throw new Error("Firebase is not configured.");
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       await sendEmailVerification(userCredential.user);
@@ -62,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    if (!auth) return;
     await firebaseSignOut(auth);
   }, []);
 
