@@ -1,7 +1,15 @@
 
+
 export type FuelType = 'Unleaded' | 'Premium' | 'Diesel';
 
 export type PaymentMethod = 'Cash' | 'Card' | 'Mobile' | 'Salary';
+
+export interface Institution {
+  id: string;
+  name: string;
+  logoUrl?: string;
+  ownerId: string;
+}
 
 export interface Transaction {
   id: string;
@@ -165,7 +173,7 @@ export const PERMISSIONS = [
     'view_other_incomes', 'add_other_income', 'delete_other_income',
     'view_ledger', 'view_summary', 'generate_ai_summary', 'view_reports',
     'manage_employees', 'manage_banks',
-    'view_settings', 'manage_roles', 'manage_users'
+    'view_settings', 'manage_roles', 'manage_users', 'manage_institutions'
 ] as const;
 
 export type Permission = typeof PERMISSIONS[number];

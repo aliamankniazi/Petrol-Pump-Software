@@ -1,0 +1,69 @@
+
+'use client';
+
+import { useInstitutions, useInstitution } from "@/hooks/use-institution";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Building, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import Link from "next/link";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+
+export function InstitutionSelector() {
+    const { userInstitutions, isLoaded } = useInstitutions();
+    const { setCurrentInstitution } = useInstitution();
+    const { user, signOut } = useAuth();
+
+    return (
+        <div className="flex min-h-screen items-center justify-center bg-background p-4">
+            <Card className="w-full max-w-md">
+                <CardHeader>
+                    <CardTitle>Select an Institution</CardTitle>
+                    <CardDescription>Choose which institution you want to manage.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {isLoaded ? (
+                        userInstitutions.length > 0 ? (
+                            <ul className="space-y-2">
+                                {userInstitutions.map(inst => (
+                                    <li key={inst.id}>
+                                        <Button
+                                            variant="outline"
+                                            className="w-full justify-start h-auto p-4 gap-4"
+                                            onClick={() => setCurrentInstitution(inst.id)}
+                                        >
+                                            <Avatar>
+                                                <AvatarImage src={inst.logoUrl} alt={inst.name} />
+                                                <AvatarFallback><Building /></AvatarFallback>
+                                            </Avatar>
+                                            <span className="font-semibold">{inst.name}</span>
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <div className="text-center text-muted-foreground p-4 border rounded-md">
+                                <p>You are not assigned to any institutions yet.</p>
+                                <p className="text-xs">A Super Admin needs to create an institution and assign you to it.</p>
+                                <Button asChild variant="link" className="mt-2">
+                                    <Link href="/institutions">Create an Institution</Link>
+                                </Button>
+                            </div>
+                        )
+                    ) : (
+                        <div className="space-y-2">
+                            <Skeleton className="h-16 w-full" />
+                            <Skeleton className="h-16 w-full" />
+                        </div>
+                    )}
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                     <Button variant="ghost" onClick={signOut}>
+                        <LogOut className="mr-2 h-4 w-4" /> Sign Out
+                    </Button>
+                </CardFooter>
+            </Card>
+        </div>
+    )
+}

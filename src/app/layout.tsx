@@ -11,6 +11,8 @@ import { RolesProvider, useRoles } from '@/hooks/use-roles';
 import { AppLayout } from '@/components/app-layout';
 import { Skeleton } from '@/components/ui/skeleton';
 import { isFirebaseConfigured } from '@/lib/firebase-client';
+import { InstitutionProvider, useInstitution } from '@/hooks/use-institution';
+import { InstitutionSelector } from '@/components/institution-selector';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -38,11 +40,12 @@ const FullscreenLoader = () => (
 function AppContainer({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
   const { isReady: rolesReady, hasPermission } = useRoles();
+  const { currentInstitution, isLoaded: institutionLoaded } = useInstitution();
   const pathname = usePathname();
   const router = useRouter();
   
   const configured = isFirebaseConfigured();
-  const isLoading = configured ? (authLoading || !rolesReady) : false;
+  const isLoading = configured ? (authLoading || !rolesReady || !institutionLoaded) : false;
 
   React.useEffect(() => {
     if (isLoading || !configured) return;
@@ -70,6 +73,10 @@ function AppContainer({ children }: { children: React.ReactNode }) {
   if (!user || isAuthPage) {
     return <>{children}</>;
   }
+  
+  if (!currentInstitution) {
+    return <InstitutionSelector />;
+  }
 
   return <AppLayout hasPermission={hasPermission}>{children}</AppLayout>;
 }
@@ -88,9 +95,11 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <AuthProvider>
           <RolesProvider>
-            <AppContainer>
-              {children}
-            </AppContainer>
+            <InstitutionProvider>
+                <AppContainer>
+                  {children}
+                </AppContainer>
+            </InstitutionProvider>
           </RolesProvider>
         </AuthProvider>
         <Toaster />

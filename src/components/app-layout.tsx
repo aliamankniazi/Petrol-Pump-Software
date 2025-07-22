@@ -16,10 +16,12 @@ import {
   SidebarTrigger,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, LogOut, Fuel, DollarSign, Beaker, Handshake, PiggyBank, Archive, BarChartHorizontal, Shield, AreaChart, UserCog } from 'lucide-react';
+import { FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, LogOut, Fuel, DollarSign, Beaker, Handshake, PiggyBank, Archive, BarChartHorizontal, Shield, AreaChart, UserCog, Building } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from './ui/button';
 import type { Permission } from '@/hooks/use-roles';
+import { useInstitution } from '@/hooks/use-institution';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, permission: 'view_dashboard' as Permission },
@@ -44,28 +46,40 @@ const navItems = [
   { href: '/reports', label: 'Reports', icon: AreaChart, permission: 'view_reports' as Permission },
   { href: '/users', label: 'Manage Users', icon: UserCog, permission: 'manage_users' as Permission },
   { href: '/roles', label: 'Roles', icon: Shield, permission: 'manage_roles' as Permission },
+  { href: '/institutions', label: 'Institutions', icon: Building, permission: 'manage_institutions' as Permission },
   { href: '/settings', label: 'Settings', icon: Settings, permission: 'view_settings' as Permission },
 ];
 
-const AppLogo = () => (
+const AppLogo = () => {
+  const { currentInstitution } = useInstitution();
+
+  return (
     <div className="flex items-center gap-2.5">
-      <div className="bg-primary rounded-lg p-2 text-primary-foreground">
-        <Fuel className="w-6 h-6" />
-      </div>
+      <Avatar>
+          <AvatarImage src={currentInstitution?.logoUrl} alt={currentInstitution?.name} />
+          <AvatarFallback><Fuel /></AvatarFallback>
+      </Avatar>
       <div className="flex flex-col">
-        <h2 className="text-lg font-bold tracking-tighter text-primary">Mianwali</h2>
-        <p className="text-xs text-muted-foreground -mt-1">Petroleum Service</p>
+        <h2 className="text-lg font-bold tracking-tighter text-primary">{currentInstitution?.name || 'Petrol Pump'}</h2>
+        <p className="text-xs text-muted-foreground -mt-1">Management Software</p>
       </div>
     </div>
-);
+  )
+};
 
 
 export function AppLayout({ children, hasPermission }: { children: React.ReactNode, hasPermission: (permission: Permission) => boolean }) {
   const { signOut } = useAuth();
+  const { clearCurrentInstitution } = useInstitution();
   const pathname = usePathname();
   
   const visibleNavItems = navItems.filter(item => hasPermission(item.permission));
   const pageTitle = visibleNavItems.find(item => pathname.startsWith(item.href))?.label ?? 'Dashboard';
+
+  const handleSignOut = () => {
+    signOut();
+    clearCurrentInstitution();
+  }
 
   return (
     <SidebarProvider>
@@ -90,7 +104,7 @@ export function AppLayout({ children, hasPermission }: { children: React.ReactNo
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
-              <Button variant="ghost" className="w-full justify-start gap-2" onClick={signOut}>
+              <Button variant="ghost" className="w-full justify-start gap-2" onClick={handleSignOut}>
                 <LogOut />
                 Sign Out
               </Button>

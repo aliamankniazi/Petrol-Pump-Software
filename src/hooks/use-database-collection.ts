@@ -13,39 +13,39 @@ import {
   type DatabaseReference,
 } from 'firebase/database';
 import { db, isFirebaseConfigured } from '@/lib/firebase-client';
-import { useAuth } from './use-auth';
+import { useInstitution } from './use-institution';
 
 interface DbDoc {
   id: string;
   [key: string]: any;
 }
 
-
-// This hook now requires a rootUserId to function.
-// The rootUserId should be the UID of the super-admin.
-export function useDatabaseCollection<T extends DbDoc>(collectionName: string, rootUserId?: string | null, fetchAll = false) {
+export function useDatabaseCollection<T extends DbDoc>(
+  collectionName: string,
+  options?: { allInstitutions?: boolean }
+) {
+  const { currentInstitution } = useInstitution();
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const institutionId = currentInstitution?.id;
 
   useEffect(() => {
-    // If no rootUserId is provided (and we are not in fetchAll mode), we can't fetch data.
-    if ((!rootUserId && !fetchAll) || !isFirebaseConfigured()) {
+    if (!isFirebaseConfigured() || !db) {
+      setLoading(false);
+      return;
+    }
+    
+    if (!institutionId && !options?.allInstitutions) {
       setLoading(false);
       setData([]);
       return;
     }
 
-    if (!db) {
-        console.error("Database not initialized.");
-        setLoading(false);
-        return;
-    }
-
     let collectionRef: DatabaseReference;
     try {
-      // If fetchAll is true, get the root of 'users', otherwise get the user-specific collection.
-      const path = fetchAll ? 'users' : `users/${rootUserId}/${collectionName}`;
+      const path = options?.allInstitutions
+        ? collectionName // e.g., 'institutions' or 'user-to-institution-map'
+        : `institutions/${institutionId}/${collectionName}`;
       collectionRef = ref(db, path);
     } catch (error) {
       console.error("Error creating database reference:", error);
@@ -54,42 +54,24 @@ export function useDatabaseCollection<T extends DbDoc>(collectionName: string, r
     }
 
     const unsubscribe = onValue(collectionRef, (snapshot) => {
+      const dataArray: T[] = [];
       if (snapshot.exists()) {
         const fetchedData = snapshot.val();
-        
-        let dataArray: T[] = [];
-
-        if (fetchAll) {
-            // Data is nested under user UIDs, e.g., /users/{uid}/user-roles/{uid}
-            Object.keys(fetchedData).forEach(uid => {
-                const userData = fetchedData[uid];
-                if (userData && userData[collectionName]) {
-                    const items = userData[collectionName];
-                     Object.keys(items).forEach(key => {
-                        dataArray.push({
-                            id: key,
-                            ...items[key]
-                        } as T)
-                     });
-                }
-            });
-        } else {
-             dataArray = Object.keys(fetchedData).map(key => ({
-                id: key,
-                ...fetchedData[key],
-            })) as T[];
-        }
-        
-        dataArray.sort((a, b) => {
-          const timestampA = a.timestamp || 0;
-          const timestampB = b.timestamp || 0;
-          return timestampB - timestampA;
+        Object.keys(fetchedData).forEach(key => {
+          dataArray.push({
+            id: key,
+            ...fetchedData[key],
+          } as T);
         });
-
-        setData(dataArray);
-      } else {
-        setData([]);
       }
+      
+      dataArray.sort((a, b) => {
+        const timestampA = a.timestamp || 0;
+        const timestampB = b.timestamp || 0;
+        return (typeof timestampB === 'number' && typeof timestampA === 'number') ? timestampB - timestampA : 0;
+      });
+
+      setData(dataArray);
       setLoading(false);
     }, (error) => {
       console.error(`Error fetching ${collectionName}:`, error);
@@ -97,41 +79,45 @@ export function useDatabaseCollection<T extends DbDoc>(collectionName: string, r
     });
 
     return () => unsubscribe();
-  }, [rootUserId, collectionName, fetchAll]);
+  }, [institutionId, collectionName, options?.allInstitutions]);
 
   const addDoc = useCallback(async (newData: Omit<T, 'id' | 'timestamp'>, docId?: string) => {
-    // We need the root user ID to know where to write. If it's not provided, use the current user's UID.
-    // This is crucial for the very first user signup.
-    const effectiveRootId = rootUserId || user?.uid;
-    if (!effectiveRootId || !db || !isFirebaseConfigured()) throw new Error("Not authenticated or DB not initialized");
+    if ((!institutionId && !options?.allInstitutions) || !db) throw new Error("Not authenticated or DB not initialized");
     
     const dataWithTimestamp = { ...newData, timestamp: serverTimestamp() };
-    const collectionRef = ref(db, `users/${effectiveRootId}/${collectionName}`);
+    const path = options?.allInstitutions
+      ? collectionName
+      : `institutions/${institutionId}/${collectionName}`;
 
     if (docId) {
-      const docRef = ref(db, `users/${effectiveRootId}/${collectionName}/${docId}`);
+      const docRef = ref(db, `${path}/${docId}`);
       await set(docRef, dataWithTimestamp);
       return { id: docId, ...newData, timestamp: Date.now() } as T;
     } else {
+      const collectionRef = ref(db, path);
       const newDocRef = push(collectionRef);
       await set(newDocRef, dataWithTimestamp);
       return { id: newDocRef.key!, ...newData, timestamp: Date.now() } as T;
     }
-  }, [rootUserId, user, collectionName]);
+  }, [institutionId, collectionName, options?.allInstitutions]);
   
   const updateDoc = useCallback(async (id: string, updatedData: Partial<Omit<T, 'id'>>) => {
-    const effectiveRootId = rootUserId || user?.uid;
-    if (!effectiveRootId || !db || !isFirebaseConfigured()) return;
-    const docRef = ref(db, `users/${effectiveRootId}/${collectionName}/${id}`);
+    if ((!institutionId && !options?.allInstitutions) || !db) return;
+    const path = options?.allInstitutions
+      ? `${collectionName}/${id}`
+      : `institutions/${institutionId}/${collectionName}/${id}`;
+    const docRef = ref(db, path);
     await update(docRef, updatedData);
-  }, [rootUserId, user, collectionName]);
+  }, [institutionId, collectionName, options?.allInstitutions]);
 
   const deleteDoc = useCallback(async (id: string) => {
-    const effectiveRootId = rootUserId || user?.uid;
-    if (!effectiveRootId || !db || !isFirebaseConfigured()) return;
-    const docRef = ref(db, `users/${effectiveRootId}/${collectionName}/${id}`);
+    if ((!institutionId && !options?.allInstitutions) || !db) return;
+    const path = options?.allInstitutions
+        ? `${collectionName}/${id}`
+        : `institutions/${institutionId}/${collectionName}/${id}`;
+    const docRef = ref(db, path);
     await remove(docRef);
-  }, [rootUserId, user, collectionName]);
+  }, [institutionId, collectionName, options?.allInstitutions]);
 
   return { data, addDoc, updateDoc, deleteDoc, loading };
 }

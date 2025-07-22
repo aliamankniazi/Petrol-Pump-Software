@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,11 +11,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { UserCog, UserPlus, List, AlertTriangle } from 'lucide-react';
+import { UserCog, UserPlus, List } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useRoles } from '@/hooks/use-roles';
 import type { RoleId } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useInstitution } from '@/hooks/use-institution';
 
 const newUserSchema = z.object({
   email: z.string().email('A valid email is required.'),
@@ -26,26 +27,35 @@ const newUserSchema = z.object({
 type NewUserFormValues = z.infer<typeof newUserSchema>;
 
 export default function UserManagementPage() {
-  const { signUp, isFirstUser } = useAuth();
-  const { roles, assignRoleToUser, userRoles, getRoleForUser } = useRoles();
+  const { signUp } = useAuth();
+  const { roles, assignRoleToUser, getRoleForUserInInstitution } = useRoles();
+  const { currentInstitution } = useInstitution();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+
+  // This is a placeholder for a real user list, which would require another hook.
+  // For now, we'll just demonstrate adding users.
+  const [users, setUsers] = useState<{email: string, uid: string}[]>([]); 
 
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
   });
 
   const onAddUserSubmit: SubmitHandler<NewUserFormValues> = useCallback(async (data) => {
+    if (!currentInstitution) {
+        toast({ variant: 'destructive', title: 'No Institution Selected', description: 'Please select an institution before adding users.' });
+        return;
+    }
     setLoading(true);
     try {
       const userCredential = await signUp({ email: data.email, password: data.password });
-      const roleToAssign = isFirstUser ? 'super-admin' : data.roleId;
-      assignRoleToUser(userCredential.user.uid, roleToAssign);
+      assignRoleToUser(userCredential.user.uid, data.roleId, currentInstitution.id);
       
       toast({
         title: 'User Created',
-        description: `Account for ${data.email} created with the ${roleToAssign} role.`,
+        description: `Account for ${data.email} created with the ${data.roleId} role for ${currentInstitution.name}.`,
       });
+      setUsers(prev => [...prev, { email: userCredential.user.email!, uid: userCredential.user.uid }]);
       reset({ email: '', password: '', roleId: '' });
     } catch (error: any) {
       toast({
@@ -56,9 +66,22 @@ export default function UserManagementPage() {
     } finally {
       setLoading(false);
     }
-  }, [signUp, assignRoleToUser, toast, reset, isFirstUser]);
+  }, [signUp, assignRoleToUser, toast, reset, currentInstitution]);
   
-  const availableRoles = roles.filter(role => role.id !== 'super-admin');
+  const availableRoles = useMemo(() => roles.filter(role => role.id !== 'super-admin'), [roles]);
+
+  if (!currentInstitution) {
+    return (
+        <div className="p-4 md:p-8">
+            <Card>
+                <CardHeader>
+                    <CardTitle>No Institution Selected</CardTitle>
+                    <CardDescription>Please select an institution from the selector to manage users.</CardDescription>
+                </CardHeader>
+            </Card>
+        </div>
+    )
+  }
 
   return (
     <div className="p-4 md:p-8 grid gap-8 lg:grid-cols-3">
@@ -66,10 +89,10 @@ export default function UserManagementPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <UserPlus /> {isFirstUser ? 'Create Super Admin' : 'Create New User'}
+              <UserPlus /> Create New User
             </CardTitle>
             <CardDescription>
-                {isFirstUser ? 'Create the first Super Admin account. This can only be done once.' : 'Add a new user and assign them a role.'}
+                Add a new user to the '{currentInstitution.name}' institution and assign them a role.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -86,31 +109,29 @@ export default function UserManagementPage() {
                 {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
               </div>
               
-              {!isFirstUser && (
-                  <div className="space-y-2">
-                    <Label>Role</Label>
-                    <Controller
-                        name="roleId"
-                        control={control}
-                        render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value} defaultValue="">
-                                <SelectTrigger>
-                                <SelectValue placeholder="Select a role" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                {availableRoles.map(role => (
-                                    <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
-                                ))}
-                                </SelectContent>
-                            </Select>
-                        )}
-                    />
-                    {errors.roleId && <p className="text-sm text-destructive">{errors.roleId.message}</p>}
-                  </div>
-              )}
+              <div className="space-y-2">
+                <Label>Role</Label>
+                <Controller
+                    name="roleId"
+                    control={control}
+                    render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                            <SelectTrigger>
+                            <SelectValue placeholder="Select a role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                            {availableRoles.map(role => (
+                                <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                            ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                />
+                {errors.roleId && <p className="text-sm text-destructive">{errors.roleId.message}</p>}
+              </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Creating...' : (isFirstUser ? 'Create Super Admin' : 'Create User')}
+                {loading ? 'Creating...' : 'Create User'}
               </Button>
             </form>
           </CardContent>
@@ -123,32 +144,34 @@ export default function UserManagementPage() {
             <CardTitle className="flex items-center gap-2">
               <List /> User List
             </CardTitle>
-            <CardDescription>A list of all registered users and their roles.</CardDescription>
+            <CardDescription>A list of all registered users and their roles for this institution.</CardDescription>
           </CardHeader>
           <CardContent>
-            {userRoles.length > 0 ? (
+            {users.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>User ID</TableHead>
+                    <TableHead>User Email</TableHead>
                     <TableHead>Role</TableHead>
-                    {/* Add actions column if needed */}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {userRoles.map(userRole => (
-                      <TableRow key={userRole.id}>
-                        <TableCell className="font-mono">{userRole.id}</TableCell>
-                        <TableCell className="font-medium capitalize">{userRole.roleId.replace('-', ' ')}</TableCell>
+                  {users.map(userItem => {
+                      const role = getRoleForUserInInstitution(userItem.uid, currentInstitution.id);
+                      return (
+                      <TableRow key={userItem.uid}>
+                        <TableCell className="font-mono">{userItem.email}</TableCell>
+                        <TableCell className="font-medium capitalize">{role?.replace('-', ' ') || 'N/A'}</TableCell>
                       </TableRow>
-                    ))}
+                    )
+                  })}
                 </TableBody>
               </Table>
             ) : (
               <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
                 <UserCog className="w-16 h-16" />
                 <h3 className="text-xl font-semibold">No Users Found</h3>
-                <p>{isFirstUser ? 'Create the Super Admin to begin.' : 'Use the form to create the first user.'}</p>
+                <p>Use the form to create the first user for this institution.</p>
               </div>
             )}
           </CardContent>

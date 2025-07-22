@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,17 +15,16 @@ import { useToast } from '@/hooks/use-toast';
 import { Shield, ShieldPlus, List, Edit, Trash2, AlertTriangle, KeyRound } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useRoles, PERMISSIONS, type Permission } from '@/hooks/use-roles';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import type { Role } from '@/lib/types';
-import { Separator } from '@/components/ui/separator';
+import { useInstitution } from '@/hooks/use-institution';
 
 const PERMISSION_CATEGORIES: Record<string, Permission[]> = {
     'General': ['view_dashboard', 'view_all_transactions', 'view_summary', 'generate_ai_summary'],
     'Customers & Partners': ['view_customers', 'add_customer', 'edit_customer', 'delete_customer', 'view_partner_ledger', 'view_credit_recovery'],
     'Inventory & Purchases': ['view_inventory', 'view_purchases', 'add_purchase', 'delete_purchase', 'view_purchase_returns', 'add_purchase_return', 'delete_purchase_return', 'view_tank_readings', 'add_tank_reading'],
     'Financial': ['view_ledger', 'view_expenses', 'add_expense', 'delete_expense', 'view_other_incomes', 'add_other_income', 'delete_other_income', 'view_investments', 'add_investment', 'delete_investment', 'view_cash_advances', 'add_cash_advance', 'delete_cash_advance', 'view_supplier_payments', 'add_supplier_payment', 'delete_supplier_payment'],
-    'Administration': ['view_settings', 'manage_roles', 'manage_users', 'manage_employees', 'manage_banks'],
+    'Administration': ['manage_institutions', 'view_settings', 'manage_roles', 'manage_users', 'manage_employees', 'manage_banks'],
 };
 
 
@@ -37,6 +37,7 @@ type RoleFormValues = z.infer<typeof roleSchema>;
 
 export default function RolesPage() {
   const { roles, addRole, updateRole, deleteRole } = useRoles();
+  const { currentInstitution } = useInstitution();
   const { toast } = useToast();
   
   const [roleToEdit, setRoleToEdit] = useState<Role | null>(null);
@@ -47,6 +48,15 @@ export default function RolesPage() {
   });
   
   const selectedPermissions = watch('permissions') || [];
+
+  useEffect(() => {
+    if (roleToEdit) {
+        setValue('name', roleToEdit.name);
+        setValue('permissions', roleToEdit.permissions);
+    } else {
+        reset({ name: '', permissions: [] });
+    }
+  }, [roleToEdit, setValue, reset]);
 
   const onFormSubmit: SubmitHandler<RoleFormValues> = (data) => {
     if (roleToEdit) {
@@ -62,8 +72,6 @@ export default function RolesPage() {
   
   const openEditDialog = (role: Role) => {
     setRoleToEdit(role);
-    setValue('name', role.name);
-    setValue('permissions', role.permissions);
   }
 
   const handleDeleteRole = () => {
@@ -76,6 +84,19 @@ export default function RolesPage() {
     deleteRole(roleToDelete.id);
     toast({ title: 'Role Deleted', description: `The "${roleToDelete.name}" role has been removed.` });
     setRoleToDelete(null);
+  }
+  
+  if (!currentInstitution) {
+    return (
+        <div className="p-4 md:p-8">
+            <Card>
+                <CardHeader>
+                    <CardTitle>No Institution Selected</CardTitle>
+                    <CardDescription>Please select an institution to manage roles.</CardDescription>
+                </CardHeader>
+            </Card>
+        </div>
+    )
   }
 
   return (
@@ -145,7 +166,7 @@ export default function RolesPage() {
               <List /> Role List
             </CardTitle>
             <CardDescription>
-              A list of all defined roles in the system.
+              A list of all defined roles in '{currentInstitution.name}'.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -179,7 +200,7 @@ export default function RolesPage() {
               <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
                 <Shield className="w-16 h-16" />
                 <h3 className="text-xl font-semibold">No Roles Found</h3>
-                <p>Use the form to create your first role.</p>
+                <p>Use the form to create your first role for this institution.</p>
               </div>
             )}
           </CardContent>
