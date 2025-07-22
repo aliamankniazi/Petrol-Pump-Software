@@ -20,6 +20,7 @@ import {
 import { auth, isFirebaseConfigured } from '@/lib/firebase-client';
 import type { AuthFormValues } from '@/lib/types';
 import { FirebaseError } from 'firebase/app';
+import { useToast } from './use-toast';
 
 
 interface AuthContextType {
@@ -35,6 +36,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!isFirebaseConfigured()) {
@@ -56,7 +58,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-      await sendEmailVerification(userCredential.user);
+      try {
+        await sendEmailVerification(userCredential.user);
+      } catch(emailError: any) {
+        console.error("Failed to send verification email:", emailError);
+        toast({
+          variant: "destructive",
+          title: "Could Not Send Verification Email",
+          description: "Your account was created, but the verification email failed to send. Please try the 'Resend' button on the verification page.",
+        });
+      }
       return userCredential;
     } catch (error) {
       if (error instanceof FirebaseError && error.code === 'auth/email-already-in-use') {
@@ -64,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       throw error;
     }
-  }, []);
+  }, [toast]);
   
   const signIn = useCallback(async (data: AuthFormValues) => {
     if (!isFirebaseConfigured()) {
