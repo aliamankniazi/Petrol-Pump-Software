@@ -13,21 +13,24 @@ import {
   type DatabaseReference,
 } from 'firebase/database';
 import { db, isFirebaseConfigured } from '@/lib/firebase-client';
+import { useAuth } from './use-auth';
 
 interface DbDoc {
   id: string;
   [key: string]: any;
 }
 
+
 // This hook now requires a rootUserId to function.
 // The rootUserId should be the UID of the super-admin.
-export function useDatabaseCollection<T extends DbDoc>(collectionName: string, rootUserId?: string | null) {
+export function useDatabaseCollection<T extends DbDoc>(collectionName: string, rootUserId?: string | null, fetchAll = false) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
-    // If no rootUserId is provided, we can't fetch data, so we reset.
-    if (!rootUserId || !isFirebaseConfigured()) {
+    // If no rootUserId is provided (and we are not in fetchAll mode), we can't fetch data.
+    if ((!rootUserId && !fetchAll) || !isFirebaseConfigured()) {
       setLoading(false);
       setData([]);
       return;
@@ -41,7 +44,9 @@ export function useDatabaseCollection<T extends DbDoc>(collectionName: string, r
 
     let collectionRef: DatabaseReference;
     try {
-      collectionRef = ref(db, `users/${rootUserId}/${collectionName}`);
+      // If fetchAll is true, get the root of 'users', otherwise get the user-specific collection.
+      const path = fetchAll ? 'users' : `users/${rootUserId}/${collectionName}`;
+      collectionRef = ref(db, path);
     } catch (error) {
       console.error("Error creating database reference:", error);
       setLoading(false);
@@ -51,10 +56,29 @@ export function useDatabaseCollection<T extends DbDoc>(collectionName: string, r
     const unsubscribe = onValue(collectionRef, (snapshot) => {
       if (snapshot.exists()) {
         const fetchedData = snapshot.val();
-        const dataArray = Object.keys(fetchedData).map(key => ({
-          id: key,
-          ...fetchedData[key],
-        })) as T[];
+        
+        let dataArray: T[] = [];
+
+        if (fetchAll) {
+            // Data is nested under user UIDs, e.g., /users/{uid}/user-roles/{uid}
+            Object.keys(fetchedData).forEach(uid => {
+                const userData = fetchedData[uid];
+                if (userData && userData[collectionName]) {
+                    const items = userData[collectionName];
+                     Object.keys(items).forEach(key => {
+                        dataArray.push({
+                            id: key,
+                            ...items[key]
+                        } as T)
+                     });
+                }
+            });
+        } else {
+             dataArray = Object.keys(fetchedData).map(key => ({
+                id: key,
+                ...fetchedData[key],
+            })) as T[];
+        }
         
         dataArray.sort((a, b) => {
           const timestampA = a.timestamp || 0;
@@ -73,16 +97,19 @@ export function useDatabaseCollection<T extends DbDoc>(collectionName: string, r
     });
 
     return () => unsubscribe();
-  }, [rootUserId, collectionName]);
+  }, [rootUserId, collectionName, fetchAll]);
 
   const addDoc = useCallback(async (newData: Omit<T, 'id' | 'timestamp'>, docId?: string) => {
-    if (!rootUserId || !db || !isFirebaseConfigured()) throw new Error("Not authenticated or DB not initialized");
+    // We need the root user ID to know where to write. If it's not provided, use the current user's UID.
+    // This is crucial for the very first user signup.
+    const effectiveRootId = rootUserId || user?.uid;
+    if (!effectiveRootId || !db || !isFirebaseConfigured()) throw new Error("Not authenticated or DB not initialized");
     
     const dataWithTimestamp = { ...newData, timestamp: serverTimestamp() };
-    const collectionRef = ref(db, `users/${rootUserId}/${collectionName}`);
+    const collectionRef = ref(db, `users/${effectiveRootId}/${collectionName}`);
 
     if (docId) {
-      const docRef = ref(db, `users/${rootUserId}/${collectionName}/${docId}`);
+      const docRef = ref(db, `users/${effectiveRootId}/${collectionName}/${docId}`);
       await set(docRef, dataWithTimestamp);
       return { id: docId, ...newData, timestamp: Date.now() } as T;
     } else {
@@ -90,19 +117,21 @@ export function useDatabaseCollection<T extends DbDoc>(collectionName: string, r
       await set(newDocRef, dataWithTimestamp);
       return { id: newDocRef.key!, ...newData, timestamp: Date.now() } as T;
     }
-  }, [rootUserId, collectionName]);
+  }, [rootUserId, user, collectionName]);
   
   const updateDoc = useCallback(async (id: string, updatedData: Partial<Omit<T, 'id'>>) => {
-    if (!rootUserId || !db || !isFirebaseConfigured()) return;
-    const docRef = ref(db, `users/${rootUserId}/${collectionName}/${id}`);
+    const effectiveRootId = rootUserId || user?.uid;
+    if (!effectiveRootId || !db || !isFirebaseConfigured()) return;
+    const docRef = ref(db, `users/${effectiveRootId}/${collectionName}/${id}`);
     await update(docRef, updatedData);
-  }, [rootUserId, collectionName]);
+  }, [rootUserId, user, collectionName]);
 
   const deleteDoc = useCallback(async (id: string) => {
-    if (!rootUserId || !db || !isFirebaseConfigured()) return;
-    const docRef = ref(db, `users/${rootUserId}/${collectionName}/${id}`);
+    const effectiveRootId = rootUserId || user?.uid;
+    if (!effectiveRootId || !db || !isFirebaseConfigured()) return;
+    const docRef = ref(db, `users/${effectiveRootId}/${collectionName}/${id}`);
     await remove(docRef);
-  }, [rootUserId, collectionName]);
+  }, [rootUserId, user, collectionName]);
 
   return { data, addDoc, updateDoc, deleteDoc, loading };
 }

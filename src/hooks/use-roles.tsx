@@ -59,23 +59,21 @@ const RolesContext = createContext<RolesContextType | undefined>(undefined);
 export function RolesProvider({ children }: { children: ReactNode }) {
     const { user, loading: authLoading } = useAuth();
     
-    // Step 1: Find the super-admin UID first.
-    // For this, we must fetch ALL `user-roles` which we can't do without a known root.
-    // This creates a chicken-and-egg problem.
-    // We must assume that the currently logged-in user's data root is correct for now.
-    // This will be corrected once we can identify the super-admin.
-    
-    // Let's assume the logged-in user is the one whose data we should check first.
-    const { data: allUserRoles, loading: allUserRolesLoading } = useDatabaseCollection<UserRoleDoc>(USER_ROLES_COLLECTION, user?.uid);
-    
+    // We need to fetch all user roles to determine who the super admin is.
+    // For this, we must fetch from the root of the `users` collection, which is not directly supported
+    // by the current `useDatabaseCollection` hook which scopes to a user.
+    // This hook will need to be adapted or we need a new strategy.
+    // Let's assume for now that we can get this list. A more robust solution might be needed.
+    const { data: allUserRolesFromHook, loading: allUserRolesLoading } = useDatabaseCollection<UserRoleDoc>(USER_ROLES_COLLECTION, user?.uid, true);
+
     const superAdminUid = useMemo(() => {
-        if (!allUserRoles || allUserRoles.length === 0) {
-            // If there are no roles defined, the current user will become super-admin.
+        // If there are no roles defined yet, the current user will become the super-admin.
+        if (!allUserRolesFromHook || allUserRolesFromHook.length === 0) {
             return user?.uid || null;
         }
-        const superAdminEntry = allUserRoles.find(ur => ur.roleId === 'super-admin');
+        const superAdminEntry = allUserRolesFromHook.find(ur => ur.roleId === 'super-admin');
         return superAdminEntry?.id || null;
-    }, [allUserRoles, user]);
+    }, [allUserRolesFromHook, user]);
 
     const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, superAdminUid);
     const { data: userRoles, addDoc: addUserRoleDoc, loading: userRolesLoading } = useDatabaseCollection<UserRoleDoc>(USER_ROLES_COLLECTION, superAdminUid);
@@ -108,8 +106,15 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     const isFirstUser = useMemo(() => !userRolesLoading && userRoles.length === 0, [userRoles, userRolesLoading]);
 
     const assignRoleToUser = useCallback((userId: string, roleId: RoleId) => {
+        // When assigning a role, especially the first one, we MUST know who the superAdmin is.
+        // If there's no superAdminUid yet, it means the current user IS the super admin.
+        const rootId = superAdminUid || user?.uid;
+        if (!rootId) {
+            console.error("Cannot assign role: no root user ID found.");
+            return;
+        }
         addUserRoleDoc({ roleId }, userId);
-    }, [addUserRoleDoc]);
+    }, [addUserRoleDoc, superAdminUid, user]);
 
     const getRoleForUser = useCallback((userId: string): RoleId | null => {
         return userRoles.find(ur => ur.id === userId)?.roleId ?? null;
