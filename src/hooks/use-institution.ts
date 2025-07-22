@@ -23,6 +23,9 @@ interface InstitutionContextType {
     setCurrentInstitution: (institutionId: string) => void;
     clearCurrentInstitution: () => void;
     isLoaded: boolean;
+    addInstitution: (institution: Omit<Institution, 'id' | 'ownerId' | 'timestamp'>) => Promise<Institution>;
+    updateInstitution: (id: string, data: Partial<Omit<Institution, 'id' | 'ownerId'>>) => Promise<void>;
+    deleteInstitution: (id: string) => Promise<void>;
 }
 
 const InstitutionContext = createContext<InstitutionContextType | undefined>(undefined);
@@ -37,9 +40,14 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const storedId = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (storedId) {
-            setCurrentInstitutionId(storedId);
+        let storedId: string | null = null;
+        try {
+            storedId = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (storedId) {
+                setCurrentInstitutionId(storedId);
+            }
+        } catch (error) {
+            console.error("Could not access localStorage:", error);
         }
 
         if (!isFirebaseConfigured() || !db) {
@@ -57,9 +65,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
                 Object.keys(data).forEach(key => institutionsArray.push({ id: key, ...data[key] }));
             }
             setAllInstitutions(institutionsArray);
-        }, (error) => {
-            console.error(error);
-        });
+        }, (error) => console.error("Error fetching institutions:", error));
 
         const onMappingsValue = onValue(mappingsRef, (snapshot) => {
             const mappingsArray: UserToInstitution[] = [];
@@ -68,52 +74,92 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
                 Object.keys(data).forEach(key => mappingsArray.push({ id: key, ...data[key] }));
             }
             setAllUserMappings(mappingsArray);
-        }, (error) => {
-            console.error(error);
-        });
+        }, (error) => console.error("Error fetching user mappings:", error));
 
-        // Determine loading state
         Promise.all([
-          new Promise(resolve => onValue(institutionsRef, () => resolve(true), { onlyOnce: true })),
-          new Promise(resolve => onValue(mappingsRef, () => resolve(true), { onlyOnce: true }))
+            new Promise<void>(resolve => onValue(institutionsRef, () => resolve(), { onlyOnce: true })),
+            new Promise<void>(resolve => onValue(mappingsRef, () => resolve(), { onlyOnce: true }))
         ]).finally(() => setLoading(false));
-        
 
         return () => {
-            // Detach listeners
-            onValue(institutionsRef, () => {}, { onlyOnce: true });
-            onValue(mappingsRef, () => {}, { onlyOnce: true });
+           onInstitutionsValue();
+           onMappingsValue();
         };
     }, []);
 
     const userInstitutions = useMemo(() => {
-        if (!user || !allUserMappings || !allInstitutions) return [];
+        if (!user) return [];
         const userMappings = allUserMappings.filter(m => m.userId === user.uid);
         const institutionIds = userMappings.map(m => m.institutionId);
         return allInstitutions.filter(inst => institutionIds.includes(inst.id));
     }, [user, allInstitutions, allUserMappings]);
 
     const currentInstitution = useMemo(() => {
-        return allInstitutions?.find(inst => inst.id === currentInstitutionId) ?? null;
+        return allInstitutions.find(inst => inst.id === currentInstitutionId) ?? null;
     }, [currentInstitutionId, allInstitutions]);
 
-    const setCurrentInstitutionCallback = useCallback((institutionId: string) => {
-        localStorage.setItem(LOCAL_STORAGE_KEY, institutionId);
+    const setCurrentInstitution = useCallback((institutionId: string) => {
+        try {
+            localStorage.setItem(LOCAL_STORAGE_KEY, institutionId);
+        } catch (error) {
+            console.error("Could not set item in localStorage:", error);
+        }
         setCurrentInstitutionId(institutionId);
     }, []);
 
     const clearCurrentInstitution = useCallback(() => {
-        localStorage.removeItem(LOCAL_STORAGE_KEY);
+        try {
+            localStorage.removeItem(LOCAL_STORAGE_KEY);
+        } catch (error) {
+            console.error("Could not remove item from localStorage:", error);
+        }
         setCurrentInstitutionId(null);
+    }, []);
+    
+    const addInstitution = useCallback(async (institution: Omit<Institution, 'id' | 'ownerId' | 'timestamp'>): Promise<Institution> => {
+        if (!user) throw new Error("User must be logged in to create an institution.");
+        if (!db) throw new Error("Database not initialized");
+
+        const newDocRef = push(ref(db, INSTITUTIONS_COLLECTION));
+        const newId = newDocRef.key;
+        if (!newId) throw new Error("Failed to create new institution ID.");
+        
+        const dataWithOwner = { ...institution, ownerId: user.uid, timestamp: serverTimestamp() };
+        await set(newDocRef, dataWithOwner);
+        return { ...dataWithOwner, id: newId, timestamp: Date.now() } as Institution;
+    }, [user]);
+
+    const updateInstitution = useCallback(async (id: string, data: Partial<Omit<Institution, 'id' | 'ownerId'>>) => {
+        if (!db) return;
+        const docRef = ref(db, `${INSTITUTIONS_COLLECTION}/${id}`);
+        await update(docRef, data);
+    }, []);
+
+    const deleteInstitution = useCallback(async (id: string) => {
+        if (!db) return;
+        const docRef = ref(db, `${INSTITUTIONS_COLLECTION}/${id}`);
+        await remove(docRef);
     }, []);
 
     const value = useMemo(() => ({
         userInstitutions,
         currentInstitution,
-        setCurrentInstitution: setCurrentInstitutionCallback,
+        setCurrentInstitution,
         clearCurrentInstitution,
         isLoaded: !loading,
-    }), [userInstitutions, currentInstitution, setCurrentInstitutionCallback, clearCurrentInstitution, loading]);
+        addInstitution,
+        updateInstitution,
+        deleteInstitution
+    }), [
+        userInstitutions,
+        currentInstitution,
+        setCurrentInstitution,
+        clearCurrentInstitution,
+        loading,
+        addInstitution,
+        updateInstitution,
+        deleteInstitution
+    ]);
 
     return (
         <InstitutionContext.Provider value={value}>
@@ -130,33 +176,14 @@ export const useInstitution = () => {
     return context;
 };
 
-// Simplified useInstitutions hook for creating a new institution
 export function useInstitutions() {
-    const { user } = useAuth();
-    
-    const addInstitution = useCallback(async (institution: Omit<Institution, 'id' | 'ownerId' | 'timestamp'>) => {
-        if (!user) throw new Error("User must be logged in to create an institution.");
-        if (!db) throw new Error("Database not initialized");
-
-        const newDocRef = push(ref(db, INSTITUTIONS_COLLECTION));
-        const dataWithOwner = { ...institution, ownerId: user.uid, timestamp: serverTimestamp() };
-        await set(newDocRef, dataWithOwner);
-        return { ...dataWithOwner, id: newDocRef.key!, timestamp: Date.now() };
-    }, [user]);
-
-    const updateInstitution = useCallback(async (id: string, data: Partial<Omit<Institution, 'id' | 'ownerId'>>) => {
-        if (!db) return;
-        const docRef = ref(db, `${INSTITUTIONS_COLLECTION}/${id}`);
-        await update(docRef, data);
-    }, []);
-
-    const deleteInstitution = useCallback(async (id: string) => {
-        if (!db) return;
-        const docRef = ref(db, `${INSTITUTIONS_COLLECTION}/${id}`);
-        await remove(docRef);
-    }, []);
-    
-    const { userInstitutions, isLoaded } = useInstitution();
+    const { 
+        userInstitutions, 
+        isLoaded, 
+        addInstitution, 
+        updateInstitution, 
+        deleteInstitution 
+    } = useInstitution();
     
     return {
         institutions: userInstitutions,
