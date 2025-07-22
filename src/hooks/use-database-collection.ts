@@ -13,7 +13,7 @@ import {
   type DatabaseReference,
 } from 'firebase/database';
 import { useAuth } from './use-auth';
-import { db } from '@/lib/firebase-client';
+import { db, isFirebaseConfigured } from '@/lib/firebase-client';
 
 interface DbDoc {
   id: string;
@@ -26,7 +26,7 @@ export function useDatabaseCollection<T extends DbDoc>(collectionName: string) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !isFirebaseConfigured()) {
       setLoading(false);
       setData([]);
       return;
@@ -75,7 +75,7 @@ export function useDatabaseCollection<T extends DbDoc>(collectionName: string) {
   }, [user, collectionName]);
 
   const addDoc = useCallback(async (newData: Omit<T, 'id' | 'timestamp'>, docId?: string) => {
-    if (!user || !db) throw new Error("Not authenticated or DB not initialized");
+    if (!user || !db || !isFirebaseConfigured()) throw new Error("Not authenticated or DB not initialized");
     
     const dataWithTimestamp = { ...newData, timestamp: serverTimestamp() };
 
@@ -92,13 +92,13 @@ export function useDatabaseCollection<T extends DbDoc>(collectionName: string) {
   }, [user, collectionName]);
   
   const updateDoc = useCallback(async (id: string, updatedData: Partial<Omit<T, 'id'>>) => {
-    if (!user || !db) return;
+    if (!user || !db || !isFirebaseConfigured()) return;
     const docRef = ref(db, `users/${user.uid}/${collectionName}/${id}`);
     await update(docRef, updatedData);
   }, [user, collectionName]);
 
   const deleteDoc = useCallback(async (id: string) => {
-    if (!user || !db) return;
+    if (!user || !db || !isFirebaseConfigured()) return;
     const docRef = ref(db, `users/${user.uid}/${collectionName}/${id}`);
     await remove(docRef);
   }, [user, collectionName]);

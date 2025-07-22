@@ -17,9 +17,10 @@ import {
   signInWithEmailAndPassword,
   sendEmailVerification,
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase-client';
+import { auth, isFirebaseConfigured } from '@/lib/firebase-client';
 import type { AuthFormValues } from '@/lib/types';
 import { FirebaseError } from 'firebase/app';
+
 
 interface AuthContextType {
   user: User | null;
@@ -36,6 +37,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isFirebaseConfigured()) {
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
@@ -44,11 +50,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const signIn = useCallback(async (data: AuthFormValues) => {
-    return signInWithEmailAndPassword(auth, data.email, data.password);
-  }, []);
-
   const signUp = useCallback(async (data: AuthFormValues) => {
+    if (!isFirebaseConfigured()) {
+        throw new Error("Firebase is not configured. Please add your credentials to src/lib/firebase.ts");
+    }
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       await sendEmailVerification(userCredential.user);
@@ -60,8 +65,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw error;
     }
   }, []);
+  
+  const signIn = useCallback(async (data: AuthFormValues) => {
+    if (!isFirebaseConfigured()) {
+        throw new Error("Firebase is not configured. Please add your credentials to src/lib/firebase.ts");
+    }
+    return signInWithEmailAndPassword(auth, data.email, data.password);
+  }, []);
+
 
   const signOut = useCallback(async () => {
+    if (!isFirebaseConfigured()) return;
     await firebaseSignOut(auth);
   }, []);
 

@@ -8,28 +8,23 @@ let app: FirebaseApp;
 let auth: Auth;
 let db: Database;
 
-// This check is a safeguard to remind you to fill in your Firebase configuration.
-// The "Firebase: Error (auth/invalid-api-key)" error is caused by an
-// incorrect or missing configuration below.
-if (!firebaseConfig || !firebaseConfig.apiKey) {
-  console.error(`
-    ****************************************************************************
-    *  Your Firebase configuration is missing or using placeholder values!     *
-    *  Please open 'src/lib/firebase.ts' and replace the placeholder           *
-    *  configuration with your actual Firebase project credentials.            *
-    *  You can find these credentials in your Firebase project settings.       *
-    ****************************************************************************
-  `);
+export const isFirebaseConfigured = () => {
+    return firebaseConfig && firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("AIzaSy");
 }
 
+if (isFirebaseConfigured()) {
+    if (getApps().length === 0) {
+      app = initializeApp(firebaseConfig);
+    } else {
+      app = getApps()[0];
+    }
 
-if (getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getDatabase(app);
 } else {
-  app = getApps()[0];
+    console.warn("Firebase is not configured. The app will run in offline mode.");
 }
 
-auth = getAuth(app);
-db = getDatabase(app);
 
+// @ts-ignore
 export { app, auth, db };
