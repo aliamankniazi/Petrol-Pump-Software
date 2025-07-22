@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = useCallback(async (data: AuthFormValues) => {
-    if (!isFirebaseConfigured()) {
+    if (!isFirebaseConfigured() || !auth) {
         throw new Error("Firebase is not configured.");
     }
     try {
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
   
   const signIn = useCallback(async (data: AuthFormValues) => {
-    if (!isFirebaseConfigured()) {
+    if (!isFirebaseConfigured() || !auth) {
         throw new Error("Firebase is not configured.");
     }
     return signInWithEmailAndPassword(auth, data.email, data.password);
@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
   const signOut = useCallback(async () => {
-    if (!isFirebaseConfigured()) return;
+    if (!isFirebaseConfigured() || !auth) return;
     await firebaseSignOut(auth);
   }, []);
 

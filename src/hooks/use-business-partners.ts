@@ -5,11 +5,13 @@ import { useCallback } from 'react';
 import type { BusinessPartner } from '@/lib/types';
 import { useCustomers } from './use-customers';
 import { useDatabaseCollection } from './use-database-collection';
+import { useInstitution } from './use-institution';
 
 const COLLECTION_NAME = 'business-partners';
 
 export function useBusinessPartners() {
-  const { data: businessPartners, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<BusinessPartner>(COLLECTION_NAME);
+  const { currentInstitution } = useInstitution();
+  const { data: businessPartners, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<BusinessPartner>(COLLECTION_NAME, currentInstitution?.id || null);
   const { customers, addCustomer, updateCustomer } = useCustomers();
 
   const addBusinessPartner = useCallback(async (partner: Omit<BusinessPartner, 'id' | 'timestamp'>): Promise<BusinessPartner> => {

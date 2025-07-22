@@ -58,7 +58,7 @@ const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
 export function RolesProvider({ children }: { children: ReactNode }) {
     const { user, loading: authLoading } = useAuth();
-    const { currentInstitution, isLoaded: institutionLoaded } = useInstitution();
+    const { currentInstitution } = useInstitution();
     
     // Roles are specific to an institution
     const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, currentInstitution?.id || null);
@@ -68,7 +68,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
     const [defaultsInitialized, setDefaultsInitialized] = useState(false);
 
-    const isReady = !authLoading && !rolesLoading && !userMappingsLoading && institutionLoaded && defaultsInitialized;
+    const isReady = !authLoading && !rolesLoading && !userMappingsLoading && (!!currentInstitution || authLoading) && defaultsInitialized;
     
     const isSuperAdmin = useMemo(() => {
         if (!user || !currentInstitution) return false;
@@ -77,22 +77,19 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
     // Initialize default roles if they don't exist for the current institution
     useEffect(() => {
-        if (institutionLoaded && currentInstitution && !rolesLoading && !defaultsInitialized) {
-            if (roles.length === 0) {
+        if (currentInstitution && !rolesLoading && !defaultsInitialized) {
+            if (!roles || roles.length === 0) {
                 Promise.all(DEFAULT_ROLES.map(role => {
                     const id = role.name.toLowerCase().replace(/\s+/g, '-');
                     return addRoleDoc(role, id);
                 })).then(() => {
                     setDefaultsInitialized(true);
-                });
+                }).catch(console.error);
             } else {
                  setDefaultsInitialized(true);
             }
-        } else if (!currentInstitution && institutionLoaded) {
-            // No institution selected, so defaults are not applicable yet
-            setDefaultsInitialized(true);
         }
-    }, [currentInstitution, roles, rolesLoading, institutionLoaded, addRoleDoc, defaultsInitialized]);
+    }, [currentInstitution, roles, rolesLoading, addRoleDoc, defaultsInitialized]);
     
     const currentUserRole = useMemo(() => {
         if (!user || !currentInstitution || !userMappings) return null;
@@ -126,12 +123,13 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, [deleteRoleDoc]);
 
     const hasPermission = useCallback((permission: Permission): boolean => {
-        if (!user || !currentUserRole) return false;
-        if (isSuperAdmin) return true; // Super admin has all permissions
-        const role = roles.find(r => r.id === currentUserRole);
-        if (permission === 'manage_institutions') return false; // Only super admin can manage institutions
+        if (!user || !currentInstitution) return false;
+        // Super Admin (owner of the institution) has all permissions implicitly.
+        if (isSuperAdmin) return true;
+        if (!currentUserRole) return false;
+        const role = roles?.find(r => r.id === currentUserRole);
         return !!role?.permissions.includes(permission);
-    }, [user, currentUserRole, roles, isSuperAdmin]);
+    }, [user, currentInstitution, currentUserRole, roles, isSuperAdmin]);
 
     const value: RolesContextType = {
         roles: roles || [],

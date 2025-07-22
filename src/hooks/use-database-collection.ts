@@ -16,6 +16,7 @@ import { db, isFirebaseConfigured } from '@/lib/firebase-client';
 
 interface DbDoc {
   id: string;
+  timestamp?: number;
   [key: string]: any;
 }
 
@@ -30,13 +31,15 @@ export function useDatabaseCollection<T extends DbDoc>(
   useEffect(() => {
     if (!isFirebaseConfigured() || !db) {
       setLoading(false);
-      return;
+      return () => {};
     }
     
-    if (!institutionId && !options?.allInstitutions) {
+    // If we are not fetching from all institutions and no institutionId is provided,
+    // we should not proceed to fetch. This prevents errors on initial load.
+    if (!options?.allInstitutions && !institutionId) {
       setLoading(false);
       setData([]);
-      return;
+      return () => {};
     }
 
     let collectionRef: DatabaseReference;
@@ -48,7 +51,7 @@ export function useDatabaseCollection<T extends DbDoc>(
     } catch (error) {
       console.error("Error creating database reference:", error);
       setLoading(false);
-      return;
+      return () => {};
     }
 
     const unsubscribe = onValue(collectionRef, (snapshot) => {
@@ -59,7 +62,7 @@ export function useDatabaseCollection<T extends DbDoc>(
           dataArray.push({
             id: key,
             ...fetchedData[key],
-          } as T);
+          });
         });
       }
       
@@ -79,9 +82,9 @@ export function useDatabaseCollection<T extends DbDoc>(
     return () => unsubscribe();
   }, [institutionId, collectionName, options?.allInstitutions]);
 
-  const addDoc = useCallback(async (newData: Omit<T, 'id' | 'timestamp'>, docId?: string) => {
+  const addDoc = useCallback(async (newData: Omit<T, 'id' | 'timestamp'>, docId?: string): Promise<T> => {
     if (!db) throw new Error("DB not initialized");
-
+    
     const path = options?.allInstitutions
         ? collectionName
         : `institutions/${institutionId}/${collectionName}`;

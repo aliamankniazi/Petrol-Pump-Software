@@ -1,5 +1,4 @@
 
-
 export type FuelType = 'Unleaded' | 'Premium' | 'Diesel';
 
 export type PaymentMethod = 'Cash' | 'Card' | 'Mobile' | 'Salary';
@@ -9,6 +8,7 @@ export interface Institution {
   name: string;
   logoUrl?: string;
   ownerId: string;
+  timestamp: number;
 }
 
 export interface Transaction {

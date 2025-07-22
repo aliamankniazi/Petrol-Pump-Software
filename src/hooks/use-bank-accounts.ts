@@ -4,14 +4,16 @@
 import { useCallback } from 'react';
 import type { BankAccount } from '@/lib/types';
 import { useDatabaseCollection } from './use-database-collection';
+import { useInstitution } from './use-institution';
 
 const COLLECTION_NAME = 'bank-accounts';
 
 export function useBankAccounts() {
-  const { data: bankAccounts, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<BankAccount>(COLLECTION_NAME);
+  const { currentInstitution } = useInstitution();
+  const { data: bankAccounts, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<BankAccount>(COLLECTION_NAME, currentInstitution?.id || null);
 
   const addBankAccount = useCallback((account: Omit<BankAccount, 'id' | 'timestamp'>) => {
-    addDoc(account);
+    return addDoc(account);
   }, [addDoc]);
   
   const updateBankAccount = useCallback((id: string, updatedDetails: Partial<Omit<BankAccount, 'id' | 'timestamp'>>) => {

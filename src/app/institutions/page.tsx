@@ -16,7 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useState, useCallback, useEffect } from 'react';
 import type { Institution } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useInstitutions } from '@/hooks/use-institutions';
+import { useInstitutions } from '@/hooks/use-institution';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 
@@ -32,23 +32,28 @@ export default function InstitutionsPage() {
   const { institutions, addInstitution, updateInstitution, deleteInstitution, isLoaded } = useInstitutions();
   const { toast } = useToast();
   
-  const [institutionToEdit, setInstitutionToEdit] = useState<Institution | null>(null);
+  const [institutionToEdit, setInstitutionToEdit] = useState<Partial<Institution> | null>(null);
   const [institutionToDelete, setInstitutionToDelete] = useState<Institution | null>(null);
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<InstitutionFormValues>({
     resolver: zodResolver(institutionSchema),
   });
 
-  const onFormSubmit: SubmitHandler<InstitutionFormValues> = useCallback((data) => {
-    if (institutionToEdit) {
-        updateInstitution(institutionToEdit.id, data);
-        toast({ title: 'Institution Updated', description: `The details for ${data.name} have been updated.` });
-    } else {
-        addInstitution(data);
-        toast({ title: 'Institution Added', description: `${data.name} has been created successfully.` });
+  const onFormSubmit: SubmitHandler<InstitutionFormValues> = useCallback(async (data) => {
+    try {
+        if (institutionToEdit && institutionToEdit.id) {
+            await updateInstitution(institutionToEdit.id, data);
+            toast({ title: 'Institution Updated', description: `The details for ${data.name} have been updated.` });
+        } else {
+            await addInstitution(data);
+            toast({ title: 'Institution Added', description: `${data.name} has been created successfully.` });
+        }
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message });
+    } finally {
+        setInstitutionToEdit(null);
+        reset();
     }
-    setInstitutionToEdit(null);
-    reset();
   }, [institutionToEdit, addInstitution, updateInstitution, toast, reset]);
   
   const handleDeleteInstitution = useCallback(() => {
@@ -63,7 +68,7 @@ export default function InstitutionsPage() {
 
   useEffect(() => {
     if (institutionToEdit) {
-      setValue('name', institutionToEdit.name);
+      setValue('name', institutionToEdit.name || '');
       setValue('logoUrl', institutionToEdit.logoUrl || '');
     } else {
       reset({ name: '', logoUrl: '' });
@@ -130,7 +135,7 @@ export default function InstitutionsPage() {
             )}
           </CardContent>
           <CardFooter>
-            <Button onClick={() => setInstitutionToEdit({} as Institution)}><PlusCircle className="mr-2 h-4 w-4"/>Create New Institution</Button>
+            <Button onClick={() => setInstitutionToEdit({})}><PlusCircle className="mr-2 h-4 w-4"/>Create New Institution</Button>
           </CardFooter>
         </Card>
       </div>
