@@ -65,13 +65,13 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
 
     const isLoaded = institutionsLoaded && mappingsLoaded;
 
-    const value = {
+    const value = useMemo(() => ({
         userInstitutions,
         currentInstitution,
         setCurrentInstitution: setCurrentInstitutionCallback,
         clearCurrentInstitution,
         isLoaded,
-    };
+    }), [userInstitutions, currentInstitution, setCurrentInstitutionCallback, clearCurrentInstitution, isLoaded]);
 
     return (
         <InstitutionContext.Provider value={value}>
