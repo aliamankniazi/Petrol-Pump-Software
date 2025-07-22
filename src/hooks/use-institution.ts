@@ -82,7 +82,6 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         Promise.all([institutionsPromise, mappingsPromise]).finally(() => setLoading(false));
 
         return () => {
-           // Detach listeners by passing null as the callback
            onValue(institutionsRef, null as any);
            onValue(mappingsRef, null as any);
         };
