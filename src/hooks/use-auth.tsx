@@ -65,7 +65,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         toast({
           variant: "destructive",
           title: "Could Not Send Verification Email",
-          description: "Your account was created, but the verification email failed to send. Please try the 'Resend' button on the verification page.",
+          description: "Your account was created, but the verification email failed to send. Please check your Firebase project settings (Authentication -> Settings) and ensure the Identity Toolkit API is enabled.",
+          duration: 10000,
         });
       }
       return userCredential;
