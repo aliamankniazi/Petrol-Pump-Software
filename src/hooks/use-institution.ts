@@ -76,14 +76,15 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
             setAllUserMappings(mappingsArray);
         }, (error) => console.error("Error fetching user mappings:", error));
 
-        Promise.all([
-            new Promise<void>(resolve => onValue(institutionsRef, () => resolve(), { onlyOnce: true })),
-            new Promise<void>(resolve => onValue(mappingsRef, () => resolve(), { onlyOnce: true }))
-        ]).finally(() => setLoading(false));
+        const institutionsPromise = new Promise<void>(resolve => onValue(institutionsRef, () => resolve(), { onlyOnce: true }));
+        const mappingsPromise = new Promise<void>(resolve => onValue(mappingsRef, () => resolve(), { onlyOnce: true }));
+
+        Promise.all([institutionsPromise, mappingsPromise]).finally(() => setLoading(false));
 
         return () => {
-           onInstitutionsValue();
-           onMappingsValue();
+           // Detach listeners by passing null as the callback
+           onValue(institutionsRef, null as any);
+           onValue(mappingsRef, null as any);
         };
     }, []);
 
@@ -98,7 +99,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         return allInstitutions.find(inst => inst.id === currentInstitutionId) ?? null;
     }, [currentInstitutionId, allInstitutions]);
 
-    const setCurrentInstitution = useCallback((institutionId: string) => {
+    const setCurrentInstitutionCB = useCallback((institutionId: string) => {
         try {
             localStorage.setItem(LOCAL_STORAGE_KEY, institutionId);
         } catch (error) {
@@ -107,11 +108,11 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         setCurrentInstitutionId(institutionId);
     }, []);
 
-    const clearCurrentInstitution = useCallback(() => {
+    const clearCurrentInstitutionCB = useCallback(() => {
         try {
             localStorage.removeItem(LOCAL_STORAGE_KEY);
         } catch (error) {
-            console.error("Could not remove item from localStorage:", error);
+            console.error("Could not remove item in localStorage:", error);
         }
         setCurrentInstitutionId(null);
     }, []);
@@ -144,8 +145,8 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     const value = useMemo(() => ({
         userInstitutions,
         currentInstitution,
-        setCurrentInstitution,
-        clearCurrentInstitution,
+        setCurrentInstitution: setCurrentInstitutionCB,
+        clearCurrentInstitution: clearCurrentInstitutionCB,
         isLoaded: !loading,
         addInstitution,
         updateInstitution,
@@ -153,8 +154,8 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     }), [
         userInstitutions,
         currentInstitution,
-        setCurrentInstitution,
-        clearCurrentInstitution,
+        setCurrentInstitutionCB,
+        clearCurrentInstitutionCB,
         loading,
         addInstitution,
         updateInstitution,
