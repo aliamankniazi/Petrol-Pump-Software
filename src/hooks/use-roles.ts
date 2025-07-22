@@ -2,6 +2,8 @@
 'use client';
 
 import { useMemo, useCallback, createContext, useContext, type ReactNode, useEffect, useState } from 'react';
+import { ref, set, push } from 'firebase/database';
+import { db } from '@/lib/firebase-client';
 import type { Role, RoleId, Permission } from '@/lib/types';
 import { useAuth } from './use-auth';
 import { useDatabaseCollection } from './use-database-collection';
@@ -58,24 +60,40 @@ const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
 export function RolesProvider({ children }: { children: ReactNode }) {
     const { user, loading: authLoading } = useAuth();
-    const { currentInstitution } = useInstitution();
+    const { currentInstitution, isLoaded: institutionLoaded } = useInstitution();
     
-    // Roles are specific to an institution
     const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, currentInstitution?.id || null);
     
-    // User mappings are global
-    const { data: userMappings, addDoc: addUserMappingDoc, loading: userMappingsLoading } = useDatabaseCollection<UserMapping>(USER_MAP_COLLECTION, null, { allInstitutions: true });
+    const [userMappings, setUserMappings] = useState<UserMapping[]>([]);
+    const [userMappingsLoading, setUserMappingsLoading] = useState(true);
+
+    useEffect(() => {
+        if (!db) {
+            setUserMappingsLoading(false);
+            return;
+        }
+        const mappingsRef = ref(db, USER_MAP_COLLECTION);
+        const unsubscribe = onValue(mappingsRef, (snapshot) => {
+            const mappingsArray: UserMapping[] = [];
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                Object.keys(data).forEach(key => mappingsArray.push({ id: key, ...data[key] }));
+            }
+            setUserMappings(mappingsArray);
+            setUserMappingsLoading(false);
+        });
+        return () => unsubscribe();
+    }, []);
 
     const [defaultsInitialized, setDefaultsInitialized] = useState(false);
 
-    const isReady = !authLoading && !rolesLoading && !userMappingsLoading && (!!currentInstitution || authLoading) && defaultsInitialized;
+    const isReady = !authLoading && !rolesLoading && !userMappingsLoading && institutionLoaded && (!!currentInstitution || authLoading) && defaultsInitialized;
     
     const isSuperAdmin = useMemo(() => {
         if (!user || !currentInstitution) return false;
         return user.uid === currentInstitution.ownerId;
     }, [user, currentInstitution]);
 
-    // Initialize default roles if they don't exist for the current institution
     useEffect(() => {
         if (currentInstitution && !rolesLoading && !defaultsInitialized) {
             if (!roles || roles.length === 0) {
@@ -97,10 +115,12 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         return mapping?.roleId ?? null;
     }, [user, currentInstitution, userMappings]);
 
-    const assignRoleToUser = useCallback((userId: string, roleId: RoleId, institutionId: string) => {
+    const assignRoleToUser = useCallback(async (userId: string, roleId: RoleId, institutionId: string) => {
+        if (!db) return;
         const docId = `${userId}_${institutionId}`;
-        addUserMappingDoc({ userId, roleId, institutionId }, docId);
-    }, [addUserMappingDoc]);
+        const mappingRef = ref(db, `${USER_MAP_COLLECTION}/${docId}`);
+        await set(mappingRef, { userId, roleId, institutionId });
+    }, []);
     
     const getRoleForUserInInstitution = useCallback((userId: string, institutionId: string): RoleId | null => {
         if (!userMappings) return null;
@@ -124,7 +144,6 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
     const hasPermission = useCallback((permission: Permission): boolean => {
         if (!user || !currentInstitution) return false;
-        // Super Admin (owner of the institution) has all permissions implicitly.
         if (isSuperAdmin) return true;
         if (!currentUserRole) return false;
         const role = roles?.find(r => r.id === currentUserRole);

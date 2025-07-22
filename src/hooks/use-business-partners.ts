@@ -46,6 +46,6 @@ export function useBusinessPartners() {
     addBusinessPartner, 
     updateBusinessPartner, 
     deleteBusinessPartner, 
-    isLoaded: !loading 
+    isLoaded: !loading && customers.length > 0
   };
 }

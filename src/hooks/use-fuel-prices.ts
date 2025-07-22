@@ -22,7 +22,7 @@ const DEFAULT_FUEL_PRICES: Record<FuelType, number> = {
 
 export function useFuelPrices() {
   const { currentInstitution } = useInstitution();
-  const { data, updateDoc, addDoc, loading } = useDatabaseCollection<FuelPriceDoc>(COLLECTION_NAME, currentInstitution?.id);
+  const { data, updateDoc, addDoc, loading } = useDatabaseCollection<FuelPriceDoc>(COLLECTION_NAME, currentInstitution?.id || null);
   
   const fuelPricesData = useMemo(() => {
     const doc = data.find(d => d.id === DOC_ID);

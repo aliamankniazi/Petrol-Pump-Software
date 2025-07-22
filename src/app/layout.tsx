@@ -40,14 +40,12 @@ const FullscreenLoader = () => (
 function AppContainer({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
   const { currentInstitution, isLoaded: institutionLoaded } = useInstitution();
-  // We need to get roles data after institution is loaded.
   const { isReady: rolesReady, hasPermission } = useRoles();
   const pathname = usePathname();
   const router = useRouter();
   
   const configured = isFirebaseConfigured();
-  // isLoading now depends on auth, then institutions, then roles.
-  const isLoading = configured ? (authLoading || !institutionLoaded || !rolesReady) : false;
+  const isLoading = configured ? (authLoading || !institutionLoaded || (user && currentInstitution && !rolesReady)) : false;
 
   React.useEffect(() => {
     if (isLoading || !configured) return;
