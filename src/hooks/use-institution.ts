@@ -149,7 +149,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         isLoaded: !loading,
         addInstitution,
         updateInstitution,
-        deleteInstitution
+        deleteInstitution,
     }), [
         userInstitutions,
         currentInstitution,
