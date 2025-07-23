@@ -51,6 +51,17 @@ const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const pathname = usePathname();
 
+  React.useEffect(() => {
+    // This effect runs only after the initial readiness check.
+    if (!isReady) return;
+
+    // If the user has no institutions, they should be on the institutions page to create one.
+    if (userInstitutions.length === 0 && pathname !== '/institutions') {
+      router.replace('/institutions');
+    }
+  }, [isReady, userInstitutions, pathname, router]);
+
+
   if (!isReady) {
     return (
       <FullscreenMessage title="Loading Your Profile..." showSpinner>
@@ -59,19 +70,17 @@ const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
     );
   }
   
-  // After ready, check if user has institutions
   if (userInstitutions.length === 0) {
-      // If user has no institutions, they can only access the institutions page to create one.
-      if (pathname !== '/institutions') {
-          router.replace('/institutions');
-          return (
-             <FullscreenMessage title="Redirecting..." showSpinner>
-                <p className="text-center text-muted-foreground">No institution found. Redirecting to setup.</p>
-             </FullscreenMessage>
-          );
+      // Allow rendering the institutions page within the layout.
+      if (pathname === '/institutions') {
+          return <AppLayout>{children}</AppLayout>;
       }
-      // Render the institutions page wrapped in the AppLayout to allow creation
-      return <AppLayout>{children}</AppLayout>;
+      // Otherwise, show a loading/redirecting message while the effect above does its work.
+      return (
+          <FullscreenMessage title="Setting Up..." showSpinner>
+            <p className="text-center text-muted-foreground">No institution found. Preparing setup page.</p>
+          </FullscreenMessage>
+      );
   }
 
   if (!currentInstitution) {
@@ -86,6 +95,20 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
   const router = useRouter();
 
+  // Handle redirects within a useEffect hook to prevent errors during render.
+  React.useEffect(() => {
+    if (authLoading) return; // Don't do anything while auth state is resolving
+
+    const isAuthPage = pathname === '/login' || pathname === '/signup';
+
+    if (!user && !isAuthPage) {
+      router.replace('/login');
+    } else if (user && isAuthPage) {
+      router.replace('/dashboard');
+    }
+  }, [user, authLoading, pathname, router]);
+
+
   if (!isFirebaseConfigured()) {
     return (
         <FullscreenMessage title="Firebase Not Configured">
@@ -96,6 +119,7 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
     );
   }
   
+  // Show a generic loading screen while auth is resolving or redirects are pending.
   if (authLoading) {
     return (
       <FullscreenMessage title="Authenticating..." showSpinner>
@@ -105,28 +129,19 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
   }
 
   const isAuthPage = pathname === '/login' || pathname === '/signup';
-
-  if (!user) {
-    if (!isAuthPage) {
-      router.replace('/login');
-      return (
-         <FullscreenMessage title="Redirecting..." showSpinner>
-          <p className="text-center text-muted-foreground">You are not logged in. Redirecting to the login page.</p>
-        </FullscreenMessage>
-      );
-    }
-    // Render login/signup pages without the full authenticated layout
+  
+  // If we are on an auth page, render it directly.
+  if (isAuthPage) {
     return <>{children}</>;
   }
-  
-  // User is logged in
-  if (isAuthPage) {
-      router.replace('/dashboard');
-      return (
-        <FullscreenMessage title="Redirecting..." showSpinner>
-          <p className="text-center text-muted-foreground">You are already logged in. Redirecting to the dashboard.</p>
-        </FullscreenMessage>
-      );
+
+  // If there's no user, show a redirecting message. The useEffect will handle the redirect.
+  if (!user) {
+    return (
+      <FullscreenMessage title="Redirecting..." showSpinner>
+        <p className="text-center text-muted-foreground">You are not logged in. Redirecting to the login page.</p>
+      </FullscreenMessage>
+    );
   }
 
   // User is logged in and not on an auth page, render the full app with providers.
