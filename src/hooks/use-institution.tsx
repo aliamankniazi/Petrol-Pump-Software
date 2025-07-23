@@ -49,8 +49,10 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         } catch (error) {
             console.error("Could not access localStorage:", error);
         }
+    }, []);
 
-        if (!isFirebaseConfigured() || !db) {
+    useEffect(() => {
+        if (!isFirebaseConfigured() || !db || !user) {
             setLoading(false);
             return;
         }
@@ -65,7 +67,6 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
                 Object.keys(data).forEach(key => institutionsArray.push({ id: key, ...data[key] }));
             }
             setAllInstitutions(institutionsArray);
-            if (!loading) setLoading(false);
         }, (error) => console.error("Error fetching institutions:", error));
 
         const onMappingsValue = onValue(mappingsRef, (snapshot) => {
@@ -75,7 +76,6 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
                 Object.keys(data).forEach(key => mappingsArray.push({ id: key, ...data[key] }));
             }
             setAllUserMappings(mappingsArray);
-             if (!loading) setLoading(false);
         }, (error) => console.error("Error fetching user mappings:", error));
 
         // Set loading to false once initial data is fetched
@@ -85,11 +85,10 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         Promise.all([institutionsPromise, mappingsPromise]).finally(() => setLoading(false));
 
         return () => {
-            // Detach listeners
             onValue(institutionsRef, null as any);
             onValue(mappingsRef, null as any);
         };
-    }, []);
+    }, [user]);
 
     const userInstitutions = useMemo(() => {
         if (!user) return [];

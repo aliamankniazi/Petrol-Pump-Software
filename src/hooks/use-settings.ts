@@ -5,7 +5,7 @@ import { useCallback } from 'react';
 import { ref, remove } from 'firebase/database';
 import { useAuth } from './use-auth';
 import { db } from '@/lib/firebase-client';
-import { useInstitution } from './use-institution.tsx';
+import { useInstitution } from './use-institution';
 
 export function useSettings() {
   const { user } = useAuth();
@@ -13,18 +13,15 @@ export function useSettings() {
 
   const clearAllData = useCallback(async () => {
     if (!user || !currentInstitution) {
-        console.error("No authenticated user or institution selected to clear data for.");
-        return;
+        throw new Error("No authenticated user or institution selected to clear data for.");
     }
     
     // Allow owner to clear all data
     if (user.uid !== currentInstitution.ownerId) {
-        console.error("Permission denied. Only the institution owner can clear all data.");
-        return;
+        throw new Error("Permission denied. Only the institution owner can clear all data.");
     }
     if (!db) {
-      console.error("Database not initialized.");
-      return;
+      throw new Error("Database not initialized.");
     }
 
     // This is a very destructive operation. It removes the entire institution node.

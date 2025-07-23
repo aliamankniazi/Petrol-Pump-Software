@@ -7,7 +7,7 @@ import { db } from '@/lib/firebase-client';
 import type { Role, RoleId, Permission } from '@/lib/types';
 import { useAuth } from './use-auth';
 import { useDatabaseCollection } from './use-database-collection';
-import { useInstitution } from './use-institution.tsx';
+import { useInstitution } from './use-institution';
 
 const ROLES_COLLECTION = 'roles';
 const USER_MAP_COLLECTION = 'userMappings';

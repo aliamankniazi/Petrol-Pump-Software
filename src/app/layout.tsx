@@ -11,7 +11,7 @@ import { RolesProvider, useRoles } from '@/hooks/use-roles';
 import { AppLayout } from '@/components/app-layout';
 import { Skeleton } from '@/components/ui/skeleton';
 import { isFirebaseConfigured } from '@/lib/firebase-client';
-import { InstitutionProvider, useInstitution } from '@/hooks/use-institution.tsx';
+import { InstitutionProvider, useInstitution } from '@/hooks/use-institution';
 import { InstitutionSelector } from '@/components/institution-selector';
 
 const inter = Inter({
@@ -45,20 +45,24 @@ function AppContainer({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   
   const configured = isFirebaseConfigured();
-  const isLoading = configured ? (authLoading || !institutionLoaded || (user && !rolesReady)) : false;
+  const isLoading = authLoading || (user && (!institutionLoaded || !rolesReady));
 
   React.useEffect(() => {
-    if (isLoading || !configured) return;
+    if (authLoading || !configured) return;
 
     const isAuthPage = pathname === '/login' || pathname === '/signup';
     
     if (user) { 
-      if (isAuthPage) router.replace('/dashboard');
+      if (isAuthPage) {
+        router.replace('/dashboard');
+      }
     } else { 
-      if (!isAuthPage) router.replace('/login');
+      if (!isAuthPage) {
+        router.replace('/login');
+      }
     }
 
-  }, [user, isLoading, pathname, router, configured]);
+  }, [user, authLoading, pathname, router, configured]);
 
   if (!configured) {
     return <>{children}</>;

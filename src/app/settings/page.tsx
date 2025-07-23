@@ -82,12 +82,20 @@ export default function SettingsPage() {
     return Number(currentStock) + adj;
   }, [currentStock, adjustmentValue]);
 
-  const handleClearData = React.useCallback(() => {
-    clearAllData();
-    toast({
-      title: "Data Cleared",
-      description: "All application data has been removed.",
-    });
+  const handleClearData = React.useCallback(async () => {
+    try {
+        await clearAllData();
+        toast({
+          title: "Data Cleared",
+          description: "All application data has been removed.",
+        });
+    } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message || "Failed to clear data.",
+        });
+    }
   }, [clearAllData, toast]);
 
   const handlePriceChange = React.useCallback((fuelType: FuelType, value: string) => {
