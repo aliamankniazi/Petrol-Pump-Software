@@ -46,6 +46,43 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
    </div>
 );
 
+// This component now contains the providers that depend on a logged-in user.
+const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <InstitutionProvider>
+      <RolesProvider>
+        <AppContent>{children}</AppContent>
+      </RolesProvider>
+    </InstitutionProvider>
+  );
+};
+
+const AppContent = ({ children }: { children: React.ReactNode }) => {
+  const { currentInstitution, institutionLoading } = useInstitution();
+  const { isReady: rolesReady, loading: rolesLoading } = useRoles();
+
+  if (institutionLoading) {
+    return (
+      <FullscreenMessage title="Loading Institutions..." showSpinner>
+        <p className="text-center text-muted-foreground">Fetching your assigned institutions.</p>
+      </FullscreenMessage>
+    );
+  }
+
+  if (!currentInstitution) {
+    return <InstitutionSelector />;
+  }
+
+  if (rolesLoading || !rolesReady) {
+    return (
+      <FullscreenMessage title="Loading User Profile..." showSpinner>
+        <p className="text-center text-muted-foreground">Loading your roles and permissions for '{currentInstitution.name}'.</p>
+      </FullscreenMessage>
+    );
+  }
+  
+  return <AppLayout>{children}</AppLayout>;
+}
 
 const AppContainer = ({ children }: { children: React.ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
@@ -81,9 +118,11 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
         </FullscreenMessage>
       );
     }
+    // Render login/signup pages without the full authenticated layout
     return <>{children}</>;
   }
-
+  
+  // User is logged in
   if (isAuthPage) {
       router.replace('/dashboard');
       return (
@@ -93,34 +132,8 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
       );
   }
 
+  // User is logged in and not on an auth page, render the full app with providers.
   return <AuthenticatedApp>{children}</AuthenticatedApp>;
-}
-
-const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
-  const { currentInstitution, institutionLoading } = useInstitution();
-  const { isReady: rolesReady, loading: rolesLoading } = useRoles();
-  
-  if (institutionLoading) {
-      return (
-         <FullscreenMessage title="Loading Institutions..." showSpinner>
-          <p className="text-center text-muted-foreground">Fetching your assigned institutions.</p>
-        </FullscreenMessage>
-      );
-  }
-  
-  if (!currentInstitution) {
-     return <InstitutionSelector />;
-  }
-
-  if (rolesLoading || !rolesReady) {
-    return (
-        <FullscreenMessage title="Loading User Profile..." showSpinner>
-          <p className="text-center text-muted-foreground">Loading your roles and permissions for '{currentInstitution.name}'.</p>
-        </FullscreenMessage>
-    );
-  }
-  
-  return <AppLayout>{children}</AppLayout>;
 }
 
 
@@ -136,13 +149,9 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-          <InstitutionProvider>
-            <RolesProvider>
-              <AppContainer>
-                {children}
-              </AppContainer>
-            </RolesProvider>
-          </InstitutionProvider>
+          <AppContainer>
+            {children}
+          </AppContainer>
         </AuthProvider>
         <Toaster />
       </body>

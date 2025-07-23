@@ -29,9 +29,6 @@ type InstitutionAction =
     | { type: 'FETCH_START' }
     | { type: 'FETCH_SUCCESS'; payload: { institutions: Institution[], mappings: UserToInstitution[] } }
     | { type: 'FETCH_ERROR'; payload: Error }
-    | { type: 'ADD_INSTITUTION'; payload: Institution }
-    | { type: 'UPDATE_INSTITUTION'; payload: Partial<Institution> & { id: string } }
-    | { type: 'DELETE_INSTITUTION'; payload: string }
     | { type: 'RESET' };
 
 const initialState: InstitutionState = {
@@ -49,12 +46,6 @@ const institutionReducer = (state: InstitutionState, action: InstitutionAction):
             return { ...state, loading: false, allInstitutions: action.payload.institutions, allUserMappings: action.payload.mappings };
         case 'FETCH_ERROR':
             return { ...state, loading: false, error: action.payload };
-        case 'ADD_INSTITUTION':
-            return { ...state, allInstitutions: [...state.allInstitutions, action.payload] };
-        case 'UPDATE_INSTITUTION':
-            return { ...state, allInstitutions: state.allInstitutions.map(i => i.id === action.payload.id ? { ...i, ...action.payload } : i) };
-        case 'DELETE_INSTITUTION':
-            return { ...state, allInstitutions: state.allInstitutions.filter(i => i.id !== action.payload) };
         case 'RESET':
             return initialState;
         default:
@@ -78,18 +69,25 @@ const InstitutionContext = createContext<InstitutionContextType | undefined>(und
 export function InstitutionProvider({ children }: { children: ReactNode }) {
     const { user, loading: authLoading } = useAuth();
     const [state, dispatch] = useReducer(institutionReducer, initialState);
-    const [currentInstitutionId, setCurrentInstitutionId] = useState<string | null>(() => {
-        if (typeof window === 'undefined') return null;
-        return localStorage.getItem(LOCAL_STORAGE_KEY);
-    });
+    const [currentInstitutionId, setCurrentInstitutionId] = useState<string | null>(null);
+    
+    // Effect to safely access localStorage only on the client side
+    useEffect(() => {
+        setCurrentInstitutionId(localStorage.getItem(LOCAL_STORAGE_KEY));
+    }, []);
 
     useEffect(() => {
+        // This effect runs when auth state changes.
+        // It's the central point for fetching data *after* login.
         const fetchData = async () => {
-            if (authLoading) return; // Wait for auth to settle
-            if (!user) {
-                dispatch({ type: 'RESET' });
+            if (authLoading || !user) {
+                // If auth is loading, or there's no user, do nothing.
+                if (!user) {
+                    dispatch({ type: 'RESET' }); // Clear data on logout
+                }
                 return;
             }
+
             if (!db) {
                 dispatch({ type: 'FETCH_ERROR', payload: new Error("Database not configured.") });
                 return;
@@ -97,12 +95,10 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
 
             dispatch({ type: 'FETCH_START' });
             try {
-                const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
-                const mappingsRef = ref(db, USER_MAP_COLLECTION);
-                
+                // Fetch both collections at the same time
                 const [institutionsSnapshot, mappingsSnapshot] = await Promise.all([
-                    get(institutionsRef),
-                    get(mappingsRef)
+                    get(ref(db, INSTITUTIONS_COLLECTION)),
+                    get(ref(db, USER_MAP_COLLECTION))
                 ]);
 
                 const institutionsArray: Institution[] = [];
@@ -126,7 +122,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         };
 
         fetchData();
-    }, [user, authLoading]);
+    }, [user, authLoading]); // Dependency array ensures this runs only when auth state settles.
 
     const userInstitutions = useMemo(() => {
         if (!user || state.loading) return [];
@@ -165,7 +161,8 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         const dataWithOwner = { ...institution, ownerId: user.uid, timestamp: serverTimestamp() };
         await set(newDocRef, dataWithOwner);
         const newInstitution = { ...dataWithOwner, id: newId, timestamp: Date.now() } as Institution;
-        dispatch({ type: 'ADD_INSTITUTION', payload: newInstitution });
+        
+        // No need to dispatch here, onValue listener will pick up the change
         return newInstitution;
     }, [user]);
 
@@ -173,17 +170,17 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         if (!db) return;
         const docRef = ref(db, `${INSTITUTIONS_COLLECTION}/${id}`);
         await update(docRef, data);
-        dispatch({ type: 'UPDATE_INSTITUTION', payload: { id, ...data } });
+        // onValue listener will update state
     }, []);
 
     const deleteInstitution = useCallback(async (id: string) => {
         if (!db) return;
         const docRef = ref(db, `${INSTITUTIONS_COLLECTION}/${id}`);
         await remove(docRef);
-        dispatch({ type: 'DELETE_INSTITUTION', payload: id });
         if (currentInstitutionId === id) {
             clearCurrentInstitutionCB();
         }
+        // onValue listener will update state
     }, [currentInstitutionId, clearCurrentInstitutionCB]);
 
     const value: InstitutionContextType = useMemo(() => ({

@@ -60,7 +60,7 @@ interface RolesContextType {
 const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
 export function RolesProvider({ children }: { children: ReactNode }) {
-    const { user, loading: authLoading } = useAuth();
+    const { user } = useAuth();
     const { currentInstitution, institutionLoading } = useInstitution();
     
     const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, currentInstitution?.id || null);
@@ -70,9 +70,12 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
+        // This hook now depends ONLY on the currentInstitution.
+        // It will only run when an institution is selected.
         if (!db || !currentInstitution) {
             setUserMappings([]);
             setUserMappingsLoading(false);
+            setIsReady(!!currentInstitution);
             return;
         }
 
@@ -93,36 +96,40 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         
         return () => unsubscribe();
     }, [currentInstitution]);
+    
+    // Effect to initialize default roles
+    useEffect(() => {
+        if (rolesLoading || !currentInstitution) return;
+
+        const checkAndInitDefaults = async () => {
+            if (!roles) return;
+            const adminRoleExists = roles.some(r => r.id === 'admin');
+            const attendantRoleExists = roles.some(r => r.id === 'attendant');
+
+            if (!adminRoleExists) {
+                await addRoleDoc({ name: 'Admin', permissions: [...PERMISSIONS] }, 'admin');
+            }
+            if (!attendantRoleExists) {
+                await addRoleDoc({ name: 'Attendant', permissions: ['view_dashboard', 'view_all_transactions', 'view_customers', 'view_inventory', 'view_purchases', 'view_expenses', 'view_other_incomes'] }, 'attendant');
+            }
+        };
+
+        checkAndInitDefaults();
+    }, [rolesLoading, roles, currentInstitution, addRoleDoc]);
+
+    // Effect to determine final readiness
+    useEffect(() => {
+        if (!institutionLoading && !rolesLoading && !userMappingsLoading && currentInstitution) {
+            setIsReady(true);
+        } else {
+            setIsReady(false);
+        }
+    }, [institutionLoading, rolesLoading, userMappingsLoading, currentInstitution]);
 
     const isSuperAdmin = useMemo(() => {
         if (!user || !currentInstitution) return false;
         return user.uid === currentInstitution.ownerId;
     }, [user, currentInstitution]);
-
-    const initializeDefaultRoles = useCallback(async () => {
-        if (!roles) return;
-
-        const adminRoleExists = roles.some(r => r.id === 'admin');
-        const attendantRoleExists = roles.some(r => r.id === 'attendant');
-
-        if (!adminRoleExists) {
-            await addRoleDoc({ name: 'Admin', permissions: [...PERMISSIONS] }, 'admin');
-        }
-        if (!attendantRoleExists) {
-            await addRoleDoc({ name: 'Attendant', permissions: ['view_dashboard', 'view_all_transactions', 'view_customers', 'view_inventory', 'view_purchases', 'view_expenses', 'view_other_incomes'] }, 'attendant');
-        }
-    }, [roles, addRoleDoc]);
-
-    useEffect(() => {
-        const checkAndInit = async () => {
-            if (currentInstitution && !rolesLoading) {
-                await initializeDefaultRoles();
-                setIsReady(true);
-            }
-        };
-
-        checkAndInit();
-    }, [currentInstitution, rolesLoading, initializeDefaultRoles]);
 
     const currentUserRole = useMemo(() => {
         if (!user || !currentInstitution || userMappingsLoading) return null;
@@ -137,7 +144,6 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         const newMapping = { userId, roleId, institutionId };
         const mappingRef = ref(db, `${USER_MAP_COLLECTION}/${docId}`);
         await set(mappingRef, newMapping);
-        setUserMappings(prev => [...prev.filter(m => m.id !== docId), { ...newMapping, id: docId }]);
     }, []);
     
     const addRole = useCallback((role: Omit<Role, 'id'>) => {
@@ -167,7 +173,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         userRole: currentUserRole,
         isSuperAdmin,
         userMappings,
-        loading: authLoading || institutionLoading || rolesLoading || userMappingsLoading,
+        loading: institutionLoading || rolesLoading || userMappingsLoading,
         isReady,
         addRole,
         updateRole,
