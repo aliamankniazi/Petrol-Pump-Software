@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { UserPlus, Terminal } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth.tsx';
 import { useRouter } from 'next/navigation';
-import { db } from '@/lib/firebase-client';
+import { db, isFirebaseConfigured } from '@/lib/firebase-client';
 import { ref, set, get, push, serverTimestamp } from 'firebase/database';
 import Link from 'next/link';
 import { PERMISSIONS } from '@/lib/types';
@@ -31,10 +31,37 @@ export default function UsersPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [checkingSetup, setCheckingSetup] = useState(true);
   
   const { register, handleSubmit, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
   });
+
+  useEffect(() => {
+    // This check runs ONLY on the client-side after the component mounts.
+    // This is the key to preventing the race condition and deadlock.
+    if (!isFirebaseConfigured() || !db) {
+        setCheckingSetup(false);
+        return;
+    }
+
+    const checkSetupStatus = async () => {
+        try {
+            const setupSnapshot = await get(ref(db, 'app_settings/isSuperAdminRegistered'));
+            if (setupSnapshot.exists() && setupSnapshot.val() === true) {
+                router.replace('/login');
+            } else {
+                setCheckingSetup(false);
+            }
+        } catch (error) {
+            console.error("Error checking setup status:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not verify app setup status.' });
+            setCheckingSetup(false);
+        }
+    };
+    
+    checkSetupStatus();
+  }, [router, toast]);
 
   const onAddUserSubmit: SubmitHandler<NewUserFormValues> = useCallback(async (data) => {
     setLoading(true);
@@ -45,14 +72,6 @@ export default function UsersPage() {
     }
 
     try {
-      const setupSnapshot = await get(ref(db, 'app_settings/isSuperAdminRegistered'));
-      if (setupSnapshot.exists() && setupSnapshot.val() === true) {
-        toast({ variant: 'destructive', title: 'Setup Already Completed', description: 'A super admin has already been registered. Please log in.' });
-        router.replace('/login');
-        setLoading(false);
-        return;
-      }
-
       const userCredential = await signUp({ email: data.email, password: data.password });
 
       const newInstitutionRef = push(ref(db, 'institutions'));
@@ -88,7 +107,6 @@ export default function UsersPage() {
       toast({ title: 'Super Admin Created!', description: 'Logging you in...' });
       
       await signIn({ email: data.email, password: data.password });
-      // The main layout will handle the redirect after sign-in.
       router.replace('/');
 
     } catch (error: any) {
@@ -102,6 +120,22 @@ export default function UsersPage() {
     }
   }, [signUp, signIn, toast, router]);
   
+  if (checkingSetup) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-background p-4">
+            <Card className="w-full max-w-md">
+                <CardHeader>
+                    <CardTitle>Verifying Setup Status</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col items-center justify-center gap-4 text-center">
+                    <p>Please wait while we check the application setup...</p>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mt-4"></div>
+                </CardContent>
+            </Card>
+        </div>
+      )
+  }
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <div className="w-full max-w-md">

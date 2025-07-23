@@ -87,7 +87,7 @@ function AuthenticatedApp({ children }: { children: React.ReactNode }) {
 }
 
 function UnauthenticatedApp() {
-  const { pathname } = usePathname();
+  const pathname = usePathname();
   // We explicitly show UsersPage for setup, otherwise default to login.
   if (pathname === '/users') {
     return <UsersPage />;
