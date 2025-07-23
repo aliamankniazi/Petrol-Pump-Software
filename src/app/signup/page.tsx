@@ -12,40 +12,40 @@ import { db } from '@/lib/firebase-client';
 export default function SignupPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [isFirstUser, setIsFirstUser] = useState<boolean | null>(null);
+  const [isFirstSetup, setIsFirstSetup] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const checkFirstUser = async () => {
+    const checkFirstSetup = async () => {
       if (db) {
-        // This check is to see if any user mappings exist. If not, it must be the first user.
-        const userMappingsRef = ref(db, 'userMappings');
-        const snapshot = await get(userMappingsRef);
-        setIsFirstUser(!snapshot.exists());
+        // If no institutions exist, it's the first time setup.
+        const institutionsRef = ref(db, 'institutions');
+        const snapshot = await get(institutionsRef);
+        setIsFirstSetup(!snapshot.exists());
       } else {
         // If Firebase isn't configured, we can't proceed.
         // The layout will show a config error message.
-        setIsFirstUser(false);
+        setIsFirstSetup(false);
       }
     };
 
     if (!authLoading && !user) {
-        checkFirstUser();
+        checkFirstSetup();
     } else if (!authLoading && user) {
         // A user is already logged in, so this can't be the first user setup.
-        setIsFirstUser(false);
+        setIsFirstSetup(false);
     }
   }, [authLoading, user]);
 
   useEffect(() => {
     // Wait for all checks to complete
-    if (authLoading || isFirstUser === null) {
+    if (authLoading || isFirstSetup === null) {
       return; 
     }
 
     if (user) {
       // If user is already logged in, they should not be here.
       router.replace('/dashboard');
-    } else if (isFirstUser) {
+    } else if (isFirstSetup) {
       // This is the first ever user. They need to create the initial super-admin account.
       // Redirect them to the user management page where they can do this.
       router.replace('/users');
@@ -54,7 +54,7 @@ export default function SignupPage() {
       // They must be invited by an admin. Redirect to login.
       router.replace('/login');
     }
-  }, [user, authLoading, isFirstUser, router]);
+  }, [user, authLoading, isFirstSetup, router]);
   
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">

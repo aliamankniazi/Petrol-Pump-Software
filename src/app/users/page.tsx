@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
@@ -12,28 +11,31 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { UserCog, UserPlus, List } from 'lucide-react';
+import { UserCog, UserPlus, List, Building } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth.tsx';
 import { useRoles } from '@/hooks/use-roles.tsx';
 import type { RoleId } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const newUserSchema = z.object({
   email: z.string().email('A valid email is required.'),
   password: z.string().min(6, 'Password must be at least 6 characters.'),
   roleId: z.string().min(1, 'Please select a role for the user.'),
+  institutionName: z.string().optional(),
 });
 
 type NewUserFormValues = z.infer<typeof newUserSchema>;
 
 export default function UserManagementPage() {
   const { signUp } = useAuth();
-  const { roles, assignRoleToUser, userMappings, isReady, currentInstitution } = useRoles();
+  const { roles, assignRoleToUser, userMappings, isReady, currentInstitution, addInstitution, userInstitutions } = useRoles();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [isFirstUserSetup, setIsFirstUserSetup] = useState(false);
   
-  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<NewUserFormValues>({
+  const { register, handleSubmit, reset, control, watch, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
   });
 
@@ -41,23 +43,47 @@ export default function UserManagementPage() {
     if (!currentInstitution || !userMappings) return [];
     return userMappings.filter(m => m.institutionId === currentInstitution.id);
   }, [currentInstitution, userMappings]);
-
+  
+  useEffect(() => {
+      // This determines if we are in the initial setup flow.
+      if (isReady && userInstitutions.length === 0) {
+          setIsFirstUserSetup(true);
+      }
+  }, [isReady, userInstitutions]);
 
   const onAddUserSubmit: SubmitHandler<NewUserFormValues> = useCallback(async (data) => {
-    if (!currentInstitution) {
-        toast({ variant: 'destructive', title: 'No Institution Selected', description: 'Please select an institution before adding users.' });
-        return;
-    }
     setLoading(true);
+    let targetInstitution = currentInstitution;
+    
     try {
+        if (isFirstUserSetup) {
+            if (!data.institutionName) {
+                toast({ variant: 'destructive', title: 'Institution Required', description: 'Please provide a name for your first institution.' });
+                setLoading(false);
+                return;
+            }
+            targetInstitution = await addInstitution({ name: data.institutionName });
+            if (!targetInstitution) throw new Error("Failed to create the first institution.");
+        }
+
+        if (!targetInstitution) {
+            toast({ variant: 'destructive', title: 'No Institution Selected', description: 'Please select an institution before adding users.' });
+            setLoading(false);
+            return;
+        }
+
       const userCredential = await signUp({ email: data.email, password: data.password });
-      await assignRoleToUser(userCredential.user.uid, data.roleId as RoleId, currentInstitution.id);
+      await assignRoleToUser(userCredential.user.uid, data.roleId as RoleId, targetInstitution.id);
       
       toast({
         title: 'User Created',
-        description: `Account for ${data.email} created with the ${data.roleId} role for ${currentInstitution.name}.`,
+        description: `Account for ${data.email} created with the ${data.roleId} role for ${targetInstitution.name}.`,
       });
-      reset({ email: '', password: '', roleId: '' });
+      reset({ email: '', password: '', roleId: '', institutionName: '' });
+      if(isFirstUserSetup) {
+          // reload to go through the normal auth flow after setup
+          window.location.href = '/dashboard';
+      }
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -67,11 +93,26 @@ export default function UserManagementPage() {
     } finally {
       setLoading(false);
     }
-  }, [signUp, assignRoleToUser, toast, reset, currentInstitution]);
+  }, [signUp, assignRoleToUser, toast, reset, currentInstitution, isFirstUserSetup, addInstitution]);
   
-  const availableRoles = useMemo(() => roles.filter(role => role.id !== 'super-admin'), [roles]);
+  const availableRoles = useMemo(() => {
+      if (isFirstUserSetup) {
+          return [{ id: 'admin', name: 'Super Admin' }];
+      }
+      return roles.filter(role => role.id !== 'super-admin');
+  }, [roles, isFirstUserSetup]);
+  
+  const selectedRoleId = watch('roleId');
 
-  if (!currentInstitution) {
+  if (!isReady) {
+     return (
+        <div className="p-4 md:p-8">
+             <Skeleton className="h-96 w-full" />
+        </div>
+     )
+  }
+
+  if (!currentInstitution && !isFirstUserSetup) {
     return (
         <div className="p-4 md:p-8">
             <Card>
@@ -90,14 +131,25 @@ export default function UserManagementPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <UserPlus /> Create New User
+              <UserPlus /> {isFirstUserSetup ? 'Create Super Admin' : 'Create New User'}
             </CardTitle>
             <CardDescription>
-                Add a new user to the '{currentInstitution.name}' institution and assign them a role.
+                {isFirstUserSetup 
+                    ? 'Create the first Super Admin account and your primary institution.'
+                    : `Add a new user to the '${currentInstitution?.name}' institution and assign them a role.`
+                }
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onAddUserSubmit)} className="space-y-4">
+              {isFirstUserSetup && (
+                <div className="space-y-2">
+                    <Label htmlFor="institutionName">Institution Name</Label>
+                    <Input id="institutionName" {...register('institutionName')} placeholder="e.g., Mianwali Petroleum" />
+                    {errors.institutionName && <p className="text-sm text-destructive">{errors.institutionName.message}</p>}
+                </div>
+              )}
+              
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" {...register('email')} placeholder="user@example.com" />
@@ -116,7 +168,7 @@ export default function UserManagementPage() {
                     name="roleId"
                     control={control}
                     render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                        <Select onValueChange={field.onChange} value={field.value} defaultValue={isFirstUserSetup ? 'admin' : ''} disabled={isFirstUserSetup}>
                             <SelectTrigger>
                             <SelectValue placeholder="Select a role" />
                             </SelectTrigger>
@@ -140,6 +192,15 @@ export default function UserManagementPage() {
       </div>
 
       <div className="lg:col-span-2">
+       {isFirstUserSetup ? (
+         <Alert>
+            <Building className="h-4 w-4" />
+            <AlertTitle>Welcome!</AlertTitle>
+            <AlertDescription>
+                You are about to set up the first account for this system. This account will have Super Admin privileges, allowing you to manage everything. Please create your account and your first institution using the form.
+            </AlertDescription>
+         </Alert>
+       ) : (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -185,6 +246,7 @@ export default function UserManagementPage() {
             )}
           </CardContent>
         </Card>
+       )}
       </div>
     </div>
   );
