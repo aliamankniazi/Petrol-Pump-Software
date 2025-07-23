@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { UserPlus, Terminal } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth.tsx';
 import { useRouter } from 'next/navigation';
-import { db, isFirebaseConfigured } from '@/lib/firebase-client';
+import { db } from '@/lib/firebase-client';
 import { ref, set, get, push, serverTimestamp } from 'firebase/database';
 import Link from 'next/link';
 import { PERMISSIONS } from '@/lib/types';
@@ -31,42 +31,10 @@ export default function UsersPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [checkingSetup, setCheckingSetup] = useState(true);
   
   const { register, handleSubmit, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
   });
-
-  useEffect(() => {
-    // This check now correctly handles the case where `db` might not be ready on the first render.
-    // It will re-run if `db`'s status changes, ensuring the check always executes.
-    if (!isFirebaseConfigured() || !db) {
-        // Firebase is not configured or the db object is not yet available.
-        // We will stop checking for now. The effect will re-run if db becomes available.
-        // If it's not configured at all, we show the form.
-        if (!isFirebaseConfigured()) {
-            setCheckingSetup(false);
-        }
-        return;
-    }
-
-    const checkSetupStatus = async () => {
-        try {
-            const setupSnapshot = await get(ref(db, 'app_settings/isSuperAdminRegistered'));
-            if (setupSnapshot.exists() && setupSnapshot.val() === true) {
-                router.replace('/login');
-            } else {
-                setCheckingSetup(false);
-            }
-        } catch (error) {
-            console.error("Error checking setup status:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not verify app setup status. Please try again.' });
-            setCheckingSetup(false); // Ensure we don't get stuck on error
-        }
-    };
-    
-    checkSetupStatus();
-  }, [router, toast, db]); // Adding `db` to the dependency array is the key fix.
 
   const onAddUserSubmit: SubmitHandler<NewUserFormValues> = useCallback(async (data) => {
     setLoading(true);
@@ -134,22 +102,6 @@ export default function UsersPage() {
         setLoading(false);
     }
   }, [signUp, signIn, toast, router]);
-  
-  if (checkingSetup) {
-      return (
-        <div className="flex min-h-screen items-center justify-center bg-background p-4">
-            <Card className="w-full max-w-md">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Terminal/> Verifying Setup Status</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col items-center justify-center gap-4 text-center">
-                    <p>Please wait while we check the application setup...</p>
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mt-4"></div>
-                </CardContent>
-            </Card>
-        </div>
-      )
-  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
