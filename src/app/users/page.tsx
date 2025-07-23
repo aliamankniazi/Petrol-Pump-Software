@@ -31,59 +31,36 @@ const newUserSchema = z.object({
 
 type NewUserFormValues = z.infer<typeof newUserSchema>;
 
-const LoadingSpinner = () => (
-    <div className="flex justify-center items-center gap-2">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <p className="text-center">Loading...</p>
-    </div>
-);
 
-export default function UserManagementPage() {
+export default function UsersPage() {
   const { signUp, signIn, user, loading: authLoading } = useAuth();
   const { roles, assignRoleToUser, userMappings, isReady, currentInstitution, addInstitution } = useRoles();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [isFirstUserSetup, setIsFirstUserSetup] = useState(false);
-  const [isCheckingSetup, setIsCheckingSetup] = useState(true);
-  const router = useRouter();
   
   const { register, handleSubmit, reset, control, setValue, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
   });
   
   useEffect(() => {
+    // This effect runs only once for the page to determine its mode.
     const checkSetup = async () => {
-        if (!db) {
-            console.error("Firebase DB not initialized.");
-            setIsCheckingSetup(false);
-            return;
-        }
-        
+        if (!db) return;
         try {
             const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
             const snapshot = await get(setupRef);
-            
-            if (!snapshot.exists() || snapshot.val() === false) {
-                // This is the first setup, stay on this page
-                setIsFirstUserSetup(true);
+            const isSetupComplete = snapshot.exists() && snapshot.val() === true;
+            setIsFirstUserSetup(!isSetupComplete);
+            if (!isSetupComplete) {
                 setValue('roleId', 'admin');
-            } else {
-                // Setup is complete. If a user is not logged in, redirect them to login.
-                // If they are logged in but don't have perms, the roles hook will handle it.
-                if (!user && !authLoading) {
-                    router.replace('/login');
-                }
-                setIsFirstUserSetup(false);
             }
         } catch (error) {
-            console.error("Firebase check failed:", error);
-            toast({ variant: 'destructive', title: 'Network Error', description: 'Could not check application setup status.'});
-        } finally {
-            setIsCheckingSetup(false);
+             console.error("Firebase check failed:", error);
         }
     };
     checkSetup();
-  }, [user, authLoading, router, setValue, toast]);
+  }, [setValue]);
 
   const institutionUsers = useMemo(() => {
     if (!currentInstitution || !userMappings) return [];
@@ -117,9 +94,8 @@ export default function UserManagementPage() {
       if (isFirstUserSetup) {
           await set(ref(db, 'app_settings/isSuperAdminRegistered'), true);
           toast({ title: 'Super Admin Created!', description: 'Logging you in...' });
-          // Now sign in the new user and redirect
-          await signIn(data);
-          router.replace('/dashboard');
+          await signIn(data); // Sign in the new user
+          // The layout will now handle redirecting the signed-in user
       } else {
         toast({ title: 'User Created', description: `Account for ${data.email} created successfully.` });
         reset({ email: '', password: '', roleId: '', institutionName: '' });
@@ -133,7 +109,7 @@ export default function UserManagementPage() {
     } finally {
         setLoading(false);
     }
-  }, [signUp, signIn, router, assignRoleToUser, toast, reset, currentInstitution, isFirstUserSetup, addInstitution]);
+  }, [signUp, signIn, assignRoleToUser, toast, reset, currentInstitution, isFirstUserSetup, addInstitution]);
   
   const availableRoles = useMemo(() => {
       if (isFirstUserSetup) {
@@ -142,22 +118,6 @@ export default function UserManagementPage() {
       return roles.filter(role => role.id !== 'super-admin'); // 'super-admin' isn't a real role
   }, [roles, isFirstUserSetup]);
   
-  if (isCheckingSetup) {
-    return (
-        <div className="flex min-h-screen items-center justify-center bg-background p-4">
-            <Card className="w-full max-w-md">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-2xl">
-                        <UserCog /> Initializing Setup
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <LoadingSpinner />
-                </CardContent>
-            </Card>
-        </div>
-     )
-  }
 
   if (!isFirstUserSetup && !currentInstitution && !authLoading) {
     return (

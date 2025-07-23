@@ -14,6 +14,8 @@ import { InstitutionSelector } from '@/components/institution-selector';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Terminal } from 'lucide-react';
 import { ref, get } from 'firebase/database';
+import LoginPage from './login/page';
+import UsersPage from './users/page';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -46,7 +48,6 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
    </div>
 );
 
-// This component now contains the providers that depend on a logged-in user.
 const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
   const { isReady, userInstitutions, currentInstitution } = useRoles();
   const router = useRouter();
@@ -87,8 +88,43 @@ const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
   return <AppLayout>{children}</AppLayout>;
 }
 
+const UnauthenticatedApp = () => {
+    const [isSetupComplete, setIsSetupComplete] = React.useState<boolean | null>(null);
+
+    React.useEffect(() => {
+        const checkSetup = async () => {
+            if (!db) return;
+            try {
+                const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
+                const snapshot = await get(setupRef);
+                setIsSetupComplete(snapshot.exists() && snapshot.val() === true);
+            } catch (error) {
+                console.error("Setup check failed:", error);
+                setIsSetupComplete(true); // Default to login on error
+            }
+        };
+        checkSetup();
+    }, []);
+
+    if (isSetupComplete === null) {
+        return (
+            <FullscreenMessage title="Initializing..." showSpinner>
+                <p>Checking application setup.</p>
+            </FullscreenMessage>
+        );
+    }
+    
+    if (isSetupComplete) {
+        return <LoginPage />;
+    } else {
+        return <UsersPage />;
+    }
+};
+
+
 const AppContainer = ({ children }: { children: React.ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
+  const pathname = usePathname();
 
   if (!isFirebaseConfigured()) {
     return (
@@ -116,8 +152,15 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  // If not logged in, show the auth pages (login, signup)
-  return <>{children}</>;
+  // Handle specific public routes or render the unauthenticated flow
+  const isPublicAuthRoute = ['/login', '/users'].includes(pathname);
+  if (isPublicAuthRoute) {
+      return <UnauthenticatedApp />;
+  }
+
+  // Default for logged-out users, e.g. landing page, or redirect
+  // For this app, the unauthenticated app flow handles all cases.
+  return <UnauthenticatedApp />;
 }
 
 
