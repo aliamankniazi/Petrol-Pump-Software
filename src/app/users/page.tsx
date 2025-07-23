@@ -39,49 +39,51 @@ const LoadingSpinner = () => (
 );
 
 export default function UserManagementPage() {
-  const { signUp, user, loading: authLoading } = useAuth();
-  const { roles, assignRoleToUser, userMappings, isReady, currentInstitution, addInstitution, userInstitutions } = useRoles();
+  const { signUp, signIn, user, loading: authLoading } = useAuth();
+  const { roles, assignRoleToUser, userMappings, isReady, currentInstitution, addInstitution } = useRoles();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [isFirstUserSetup, setIsFirstUserSetup] = useState(false);
   const [isCheckingSetup, setIsCheckingSetup] = useState(true);
   const router = useRouter();
   
-  const { register, handleSubmit, reset, control, setValue, watch, formState: { errors } } = useForm<NewUserFormValues>({
+  const { register, handleSubmit, reset, control, setValue, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
   });
   
   useEffect(() => {
     const checkSetup = async () => {
-        if (!db || authLoading) return;
-        
-        if(user) { // If a user is already logged in, no need for this page unless they have rights
-            setIsFirstUserSetup(false);
+        if (!db) {
+            console.error("Firebase DB not initialized.");
             setIsCheckingSetup(false);
             return;
         }
-
-        const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
+        
         try {
+            const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
             const snapshot = await get(setupRef);
-
+            
             if (!snapshot.exists() || snapshot.val() === false) {
+                // This is the first setup, stay on this page
                 setIsFirstUserSetup(true);
                 setValue('roleId', 'admin');
             } else {
+                // Setup is complete. If a user is not logged in, redirect them to login.
+                // If they are logged in but don't have perms, the roles hook will handle it.
+                if (!user && !authLoading) {
+                    router.replace('/login');
+                }
                 setIsFirstUserSetup(false);
-                router.replace('/login'); // Redirect to login if setup is already complete
             }
         } catch (error) {
             console.error("Firebase check failed:", error);
-            // Allow form to render on error, but maybe show a warning.
             toast({ variant: 'destructive', title: 'Network Error', description: 'Could not check application setup status.'});
         } finally {
             setIsCheckingSetup(false);
         }
     };
     checkSetup();
-  }, [authLoading, user, router, setValue, toast]);
+  }, [user, authLoading, router, setValue, toast]);
 
   const institutionUsers = useMemo(() => {
     if (!currentInstitution || !userMappings) return [];
@@ -114,21 +116,13 @@ export default function UserManagementPage() {
       
       if (isFirstUserSetup) {
           await set(ref(db, 'app_settings/isSuperAdminRegistered'), true);
-      }
-
-      toast({
-        title: 'User Created Successfully!',
-        description: isFirstUserSetup 
-            ? `Super Admin account for ${targetInstitution.name} created. Redirecting...`
-            : `Account for ${data.email} created with the ${data.roleId} role for ${targetInstitution.name}.`,
-      });
-      
-      if(isFirstUserSetup) {
-          // Force a full reload to the dashboard. This ensures all providers re-evaluate with the new user state.
-          window.location.href = '/dashboard';
+          toast({ title: 'Super Admin Created!', description: 'Logging you in...' });
+          // Now sign in the new user and redirect
+          await signIn(data);
+          router.replace('/dashboard');
       } else {
+        toast({ title: 'User Created', description: `Account for ${data.email} created successfully.` });
         reset({ email: '', password: '', roleId: '', institutionName: '' });
-        setLoading(false);
       }
     } catch (error: any) {
       toast({
@@ -136,9 +130,10 @@ export default function UserManagementPage() {
         title: 'Failed to Create User',
         description: error.message || 'An unexpected error occurred.',
       });
-      setLoading(false);
+    } finally {
+        setLoading(false);
     }
-  }, [signUp, assignRoleToUser, toast, reset, currentInstitution, isFirstUserSetup, addInstitution]);
+  }, [signUp, signIn, router, assignRoleToUser, toast, reset, currentInstitution, isFirstUserSetup, addInstitution]);
   
   const availableRoles = useMemo(() => {
       if (isFirstUserSetup) {
@@ -164,7 +159,7 @@ export default function UserManagementPage() {
      )
   }
 
-  if (!currentInstitution && !isFirstUserSetup && !authLoading) {
+  if (!isFirstUserSetup && !currentInstitution && !authLoading) {
     return (
         <div className="p-4 md:p-8">
             <Card>
@@ -236,7 +231,7 @@ export default function UserManagementPage() {
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Creating...' : 'Create User'}
+                {loading ? 'Creating...' : isFirstUserSetup ? 'Create Super Admin & Login' : 'Create User'}
               </Button>
             </form>
           </CardContent>

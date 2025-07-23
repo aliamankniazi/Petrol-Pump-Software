@@ -15,8 +15,6 @@ import { useAuth } from '@/hooks/use-auth.tsx';
 import { useState, useEffect } from 'react';
 import type { AuthFormValues } from '@/lib/types';
 import { useRouter } from 'next/navigation';
-import { db } from '@/lib/firebase-client';
-import { ref, get } from 'firebase/database';
 
 
 const loginSchema = z.object({
@@ -24,51 +22,18 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
-const LoadingSpinner = () => (
-    <div className="flex justify-center items-center gap-2">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <p className="text-center">Checking setup...</p>
-    </div>
-);
 
 export default function LoginPage() {
   const { signIn, user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [isCheckingSetup, setIsCheckingSetup] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    if (authLoading) return; 
-
-    if(user) {
+    if (!authLoading && user) {
         router.replace('/dashboard');
-        return;
     }
-    
-    const checkSetup = async () => {
-      if (!db) {
-        console.error("Firebase DB not initialized.");
-        setIsCheckingSetup(false);
-        return;
-      }
-      try {
-        const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
-        const snapshot = await get(setupRef);
-        if (!snapshot.exists() || snapshot.val() === false) {
-          router.replace('/users'); // Redirect to Super Admin creation
-        } else {
-          setIsCheckingSetup(false); // Setup is complete, allow login
-        }
-      } catch (error) {
-          console.error("Error checking for super admin", error);
-          toast({ variant: 'destructive', title: 'Setup Error', description: 'Could not verify application setup. Please check console.'});
-          setIsCheckingSetup(false); // Stop checking on error
-      }
-    };
-
-    checkSetup();
-  }, [authLoading, user, router, toast]);
+  }, [authLoading, user, router]);
   
   const { register, handleSubmit, formState: { errors } } = useForm<AuthFormValues>({
     resolver: zodResolver(loginSchema),
@@ -94,7 +59,7 @@ export default function LoginPage() {
     }
   };
 
-  if (isCheckingSetup || authLoading) {
+  if (authLoading || user) {
       return (
         <div className="flex min-h-screen items-center justify-center bg-background p-4">
             <Card className="w-full max-w-md">
@@ -104,7 +69,10 @@ export default function LoginPage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <LoadingSpinner />
+                    <div className="flex justify-center items-center gap-2">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <p className="text-center">Loading...</p>
+                    </div>
                 </CardContent>
             </Card>
         </div>
