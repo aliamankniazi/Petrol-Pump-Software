@@ -35,11 +35,11 @@ export default function LoginPage() {
   const { signIn, user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [isSetupCheckComplete, setIsSetupCheckComplete] = useState(false);
+  const [isCheckingSetup, setIsCheckingSetup] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    if (authLoading) return; // Wait until auth state is known
+    if (authLoading) return; 
 
     if(user) {
         router.replace('/dashboard');
@@ -49,20 +49,26 @@ export default function LoginPage() {
     const checkSetup = async () => {
       if (!db) {
         console.error("Firebase DB not initialized.");
-        setIsSetupCheckComplete(true); // Allow showing the form on error
+        setIsCheckingSetup(false);
         return;
       }
-      const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
-      const snapshot = await get(setupRef);
-      if (!snapshot.exists() || snapshot.val() === false) {
-        router.replace('/users'); // Redirect to Super Admin creation
-      } else {
-        setIsSetupCheckComplete(true); // Setup is complete, show login form
+      try {
+        const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
+        const snapshot = await get(setupRef);
+        if (!snapshot.exists() || snapshot.val() === false) {
+          router.replace('/users'); // Redirect to Super Admin creation
+        } else {
+          setIsCheckingSetup(false); // Setup is complete, allow login
+        }
+      } catch (error) {
+          console.error("Error checking for super admin", error);
+          toast({ variant: 'destructive', title: 'Setup Error', description: 'Could not verify application setup. Please check console.'});
+          setIsCheckingSetup(false); // Stop checking on error
       }
     };
 
     checkSetup();
-  }, [authLoading, user, router]);
+  }, [authLoading, user, router, toast]);
   
   const { register, handleSubmit, formState: { errors } } = useForm<AuthFormValues>({
     resolver: zodResolver(loginSchema),
@@ -88,7 +94,7 @@ export default function LoginPage() {
     }
   };
 
-  if (!isSetupCheckComplete || authLoading) {
+  if (isCheckingSetup || authLoading) {
       return (
         <div className="flex min-h-screen items-center justify-center bg-background p-4">
             <Card className="w-full max-w-md">

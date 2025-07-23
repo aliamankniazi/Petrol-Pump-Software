@@ -1,8 +1,8 @@
 
 'use client';
 
-import { createContext, useState, useEffect, useContext, type ReactNode, useCallback, useMemo, useReducer } from 'react';
-import { ref, push, set, serverTimestamp, update, remove, get, onValue } from 'firebase/database';
+import { createContext, useState, useEffect, useContext, type ReactNode, useCallback, useMemo } from 'react';
+import { ref, push, set, update, remove, get, onValue } from 'firebase/database';
 import type { Institution, Role, RoleId, Permission } from '@/lib/types';
 import { useAuth } from './use-auth.tsx';
 import { db } from '@/lib/firebase-client';
@@ -66,7 +66,6 @@ interface RolesContextType {
     assignRoleToUser: (userId: string, roleId: RoleId, institutionId: string) => Promise<void>;
     
     // Loading states
-    loading: boolean;
     isReady: boolean;
 }
 
@@ -77,8 +76,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     const [institutions, setInstitutions] = useState<Institution[]>([]);
     const [userMappings, setUserMappings] = useState<UserMapping[]>([]);
     const [currentInstitutionId, setCurrentInstitutionId] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [isReady, setIsReady] = useState(false);
+    const [isDataLoaded, setIsDataLoaded] = useState(false);
 
     const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, currentInstitutionId || null);
 
@@ -89,47 +87,48 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
     // Main data fetching effect
     useEffect(() => {
-        if (!user) {
-            setLoading(false);
-            if(isReady) setIsReady(false);
+        if (!user || !db) {
+            if (!authLoading) setIsDataLoaded(true); // If not logged in and auth check is done, we are "ready"
             return;
         }
 
-        setLoading(true);
         const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
         const mappingsRef = ref(db, USER_MAP_COLLECTION);
 
-        const fetchAllData = async () => {
-            try {
-                const [instSnap, mapSnap] = await Promise.all([
-                    get(institutionsRef),
-                    get(mappingsRef)
-                ]);
-
-                const insts: Institution[] = [];
-                if (instSnap.exists()) {
-                    const data = instSnap.val();
-                    Object.keys(data).forEach(key => insts.push({ id: key, ...data[key] }));
-                }
-                setInstitutions(insts);
-
-                const maps: UserMapping[] = [];
-                if (mapSnap.exists()) {
-                    const data = mapSnap.val();
-                    Object.keys(data).forEach(key => maps.push({ id: key, ...data[key] }));
-                }
-                setUserMappings(maps);
-
-            } catch (error) {
-                console.error("Failed to fetch initial data:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+        let instUnsubscribe: () => void;
+        let mapUnsubscribe: () => void;
         
-        fetchAllData();
+        const fetchData = () => {
+          instUnsubscribe = onValue(institutionsRef, (snapshot) => {
+            const insts: Institution[] = [];
+            if (snapshot.exists()) {
+              snapshot.forEach((childSnapshot) => {
+                insts.push({ id: childSnapshot.key, ...childSnapshot.val() });
+              });
+            }
+            setInstitutions(insts);
+          });
+    
+          mapUnsubscribe = onValue(mappingsRef, (snapshot) => {
+            const maps: UserMapping[] = [];
+            if (snapshot.exists()) {
+              snapshot.forEach((childSnapshot) => {
+                maps.push({ id: childSnapshot.key, ...childSnapshot.val() });
+              });
+            }
+            setUserMappings(maps);
+            setIsDataLoaded(true); // Mark as loaded after both are fetched
+          });
+        }
+        
+        fetchData();
 
-    }, [user, isReady]);
+        return () => {
+            if (instUnsubscribe) instUnsubscribe();
+            if (mapUnsubscribe) mapUnsubscribe();
+        };
+
+    }, [user, authLoading]);
     
     // Effect to initialize default roles
     useEffect(() => {
@@ -146,13 +145,15 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         }
     }, [rolesLoading, roles, currentInstitutionId, addRoleDoc]);
 
+    const isReady = !authLoading && isDataLoaded;
+
     // Derived state
     const userInstitutions = useMemo(() => {
-        if (!user || loading) return [];
+        if (!user || !isReady) return [];
         const userMaps = userMappings.filter(m => m.userId === user.uid);
         const institutionIds = new Set(userMaps.map(m => m.institutionId));
         return institutions.filter(inst => inst.ownerId === user.uid || institutionIds.has(inst.id));
-    }, [user, institutions, userMappings, loading]);
+    }, [user, institutions, userMappings, isReady]);
 
     const currentInstitution = useMemo(() => {
         return institutions.find(inst => inst.id === currentInstitutionId) ?? null;
@@ -165,19 +166,11 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
     const userRole = useMemo(() => {
         if (isSuperAdmin) return 'admin';
-        if (!user || !currentInstitution || loading) return null;
+        if (!user || !currentInstitution || !isReady) return null;
         const mapping = userMappings.find(m => m.userId === user.uid && m.institutionId === currentInstitution.id);
         return mapping?.roleId ?? null;
-    }, [user, currentInstitution, userMappings, loading, isSuperAdmin]);
+    }, [user, currentInstitution, userMappings, isReady, isSuperAdmin]);
     
-    useEffect(() => {
-        const isAppReady = !authLoading && !loading;
-        if(isAppReady) {
-            setIsReady(true);
-        }
-    }, [authLoading, loading]);
-
-
     // Callbacks
     const setCurrentInstitution = useCallback((institutionId: string) => {
         localStorage.setItem(LOCAL_STORAGE_KEY, institutionId);
@@ -193,9 +186,9 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         if (!user) throw new Error("User must be logged in.");
         const newDocRef = push(ref(db, INSTITUTIONS_COLLECTION));
         const newId = newDocRef.key!;
-        const dataWithOwner = { ...institution, ownerId: user.uid, timestamp: serverTimestamp() };
+        const dataWithOwner = { ...institution, ownerId: user.uid, timestamp: Date.now() };
         await set(newDocRef, dataWithOwner);
-        const newInst = { ...dataWithOwner, id: newId, timestamp: Date.now() } as Institution;
+        const newInst = { ...dataWithOwner, id: newId } as Institution;
         setInstitutions(prev => [...prev, newInst]);
         return newInst;
     }, [user]);
@@ -203,7 +196,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     const updateInstitution = useCallback(async (id: string, data: Partial<Omit<Institution, 'id' | 'ownerId'>>) => {
         const docRef = ref(db, `${INSTITUTIONS_COLLECTION}/${id}`);
         await update(docRef, data);
-        setInstitutions(prev => prev.map(i => i.id === id ? { ...i, ...data } : i));
+        setInstitutions(prev => prev.map(i => i.id === id ? { ...i, ...data } as Institution : i));
     }, []);
 
     const deleteInstitution = useCallback(async (id: string) => {
@@ -260,7 +253,6 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         deleteRole,
         hasPermission,
         assignRoleToUser,
-        loading,
         isReady,
     };
     

@@ -31,6 +31,13 @@ const newUserSchema = z.object({
 
 type NewUserFormValues = z.infer<typeof newUserSchema>;
 
+const LoadingSpinner = () => (
+    <div className="flex justify-center items-center gap-2">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="text-center">Loading...</p>
+    </div>
+);
+
 export default function UserManagementPage() {
   const { signUp, user, loading: authLoading } = useAuth();
   const { roles, assignRoleToUser, userMappings, isReady, currentInstitution, addInstitution, userInstitutions } = useRoles();
@@ -48,26 +55,33 @@ export default function UserManagementPage() {
     const checkSetup = async () => {
         if (!db || authLoading) return;
         
-        if(user) { // If a user is already logged in
+        if(user) { // If a user is already logged in, no need for this page unless they have rights
             setIsFirstUserSetup(false);
             setIsCheckingSetup(false);
             return;
         }
 
         const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
-        const snapshot = await get(setupRef);
+        try {
+            const snapshot = await get(setupRef);
 
-        if (!snapshot.exists() || snapshot.val() === false) {
-            setIsFirstUserSetup(true);
-            setValue('roleId', 'admin');
-        } else {
-            setIsFirstUserSetup(false);
-            router.replace('/login'); // Redirect to login if setup is already complete
+            if (!snapshot.exists() || snapshot.val() === false) {
+                setIsFirstUserSetup(true);
+                setValue('roleId', 'admin');
+            } else {
+                setIsFirstUserSetup(false);
+                router.replace('/login'); // Redirect to login if setup is already complete
+            }
+        } catch (error) {
+            console.error("Firebase check failed:", error);
+            // Allow form to render on error, but maybe show a warning.
+            toast({ variant: 'destructive', title: 'Network Error', description: 'Could not check application setup status.'});
+        } finally {
+            setIsCheckingSetup(false);
         }
-        setIsCheckingSetup(false);
     };
     checkSetup();
-  }, [authLoading, user, router, setValue]);
+  }, [authLoading, user, router, setValue, toast]);
 
   const institutionUsers = useMemo(() => {
     if (!currentInstitution || !userMappings) return [];
@@ -99,21 +113,22 @@ export default function UserManagementPage() {
       await assignRoleToUser(userCredential.user.uid, data.roleId as RoleId, targetInstitution.id);
       
       if (isFirstUserSetup) {
-          // Set the flag to true to prevent future super admin registrations
           await set(ref(db, 'app_settings/isSuperAdminRegistered'), true);
       }
 
       toast({
-        title: 'User Created',
-        description: `Account for ${data.email} created with the ${data.roleId} role for ${targetInstitution.name}.`,
+        title: 'User Created Successfully!',
+        description: isFirstUserSetup 
+            ? `Super Admin account for ${targetInstitution.name} created. Redirecting...`
+            : `Account for ${data.email} created with the ${data.roleId} role for ${targetInstitution.name}.`,
       });
       
       if(isFirstUserSetup) {
-          // Manually sign in the user, as Firebase doesn't do this automatically on this flow sometimes
-          // The layout effect will then redirect to the dashboard
+          // Force a full reload to the dashboard. This ensures all providers re-evaluate with the new user state.
           window.location.href = '/dashboard';
       } else {
         reset({ email: '', password: '', roleId: '', institutionName: '' });
+        setLoading(false);
       }
     } catch (error: any) {
       toast({
@@ -121,10 +136,7 @@ export default function UserManagementPage() {
         title: 'Failed to Create User',
         description: error.message || 'An unexpected error occurred.',
       });
-    } finally {
-      if (!isFirstUserSetup) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   }, [signUp, assignRoleToUser, toast, reset, currentInstitution, isFirstUserSetup, addInstitution]);
   
@@ -132,24 +144,33 @@ export default function UserManagementPage() {
       if (isFirstUserSetup) {
           return [{ id: 'admin', name: 'Super Admin' }];
       }
-      return roles.filter(role => role.id !== 'super-admin');
+      return roles.filter(role => role.id !== 'super-admin'); // 'super-admin' isn't a real role
   }, [roles, isFirstUserSetup]);
   
   if (isCheckingSetup) {
     return (
-        <div className="p-4 md:p-8 flex justify-center items-center">
-             <Skeleton className="h-96 w-full" />
+        <div className="flex min-h-screen items-center justify-center bg-background p-4">
+            <Card className="w-full max-w-md">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-2xl">
+                        <UserCog /> Initializing Setup
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <LoadingSpinner />
+                </CardContent>
+            </Card>
         </div>
      )
   }
 
-  if (!currentInstitution && !isFirstUserSetup) {
+  if (!currentInstitution && !isFirstUserSetup && !authLoading) {
     return (
         <div className="p-4 md:p-8">
             <Card>
                 <CardHeader>
                     <CardTitle>No Institution Selected</CardTitle>
-                    <CardDescription>Please select an institution from the selector to manage users.</CardDescription>
+                    <CardDescription>Please select an institution from the top left to manage users.</CardDescription>
                 </CardHeader>
             </Card>
         </div>
