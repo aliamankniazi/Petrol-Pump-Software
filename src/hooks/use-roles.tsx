@@ -2,12 +2,15 @@
 'use client';
 
 import { useMemo, useCallback, createContext, useContext, type ReactNode, useEffect, useState } from 'react';
+import { ref, set, onValue, get } from 'firebase/database';
+import { db } from '@/lib/firebase-client';
 import type { Role, RoleId, Permission } from '@/lib/types';
 import { useAuth } from './use-auth';
 import { useDatabaseCollection } from './use-database-collection';
+import { useInstitution } from './use-institution.tsx';
 
 const ROLES_COLLECTION = 'roles';
-const USER_ROLES_COLLECTION = 'user-roles';
+const USER_MAP_COLLECTION = 'userMappings';
 
 export const PERMISSIONS = [
     'view_dashboard', 'view_all_transactions', 'delete_transaction',
@@ -23,109 +26,127 @@ export const PERMISSIONS = [
     'view_other_incomes', 'add_other_income', 'delete_other_income',
     'view_ledger', 'view_summary', 'generate_ai_summary', 'view_reports',
     'manage_employees', 'manage_banks',
-    'view_settings', 'manage_roles', 'manage_users'
+    'view_settings', 'manage_roles', 'manage_users', 'manage_institutions'
 ] as const;
 
 export type { Permission };
 
 const DEFAULT_ROLES: Omit<Role, 'id'>[] = [
-    { name: 'Super Admin', permissions: [...PERMISSIONS] },
     { name: 'Admin', permissions: [...PERMISSIONS] },
     { name: 'Attendant', permissions: ['view_dashboard', 'view_all_transactions', 'view_customers', 'view_inventory', 'view_purchases', 'view_expenses', 'view_other_incomes'] }
 ];
 
-interface UserRoleDoc {
-  id: string; // Will be user.uid
+interface UserMapping {
+  id: string; // Composite key like `${userId}_${institutionId}`
+  userId: string;
+  institutionId: string;
   roleId: RoleId;
 }
 
 interface RolesContextType {
     roles: Role[];
-    userRoles: UserRoleDoc[];
     userRole: RoleId | null;
-    isFirstUser: boolean;
+    isSuperAdmin: boolean;
+    userMappings: UserMapping[];
     addRole: (role: Omit<Role, 'id'>) => void;
     updateRole: (id: RoleId, updatedRole: Partial<Omit<Role, 'id'>>) => void;
     deleteRole: (id: RoleId) => void;
     hasPermission: (permission: Permission) => boolean;
-    assignRoleToUser: (userId: string, roleId: RoleId) => void;
-    getRoleForUser: (userId: string) => RoleId | null;
+    assignRoleToUser: (userId: string, roleId: RoleId, institutionId: string) => Promise<void>;
+    getRoleForUserInInstitution: (userId: string, institutionId: string) => RoleId | null;
     isReady: boolean;
-    superAdminUid: string | null;
 }
 
 const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
 export function RolesProvider({ children }: { children: ReactNode }) {
     const { user, loading: authLoading } = useAuth();
+    const { currentInstitution, isLoaded: institutionLoaded } = useInstitution();
     
-    // We need to fetch all user roles to determine who the super admin is.
-    // For this, we must fetch from the root of the `users` collection, which is not directly supported
-    // by the current `useDatabaseCollection` hook which scopes to a user.
-    // This hook will need to be adapted or we need a new strategy.
-    // Let's assume for now that we can get this list. A more robust solution might be needed.
-    const { data: allUserRolesFromHook, loading: allUserRolesLoading } = useDatabaseCollection<UserRoleDoc>(USER_ROLES_COLLECTION, user?.uid, true);
-
-    const superAdminUid = useMemo(() => {
-        // If there are no roles defined yet, the current user will become the super-admin.
-        if (!allUserRolesFromHook || allUserRolesFromHook.length === 0) {
-            return user?.uid || null;
-        }
-        const superAdminEntry = allUserRolesFromHook.find(ur => ur.roleId === 'super-admin');
-        return superAdminEntry?.id || null;
-    }, [allUserRolesFromHook, user]);
-
-    const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, superAdminUid);
-    const { data: userRoles, addDoc: addUserRoleDoc, loading: userRolesLoading } = useDatabaseCollection<UserRoleDoc>(USER_ROLES_COLLECTION, superAdminUid);
-    const [defaultsInitialized, setDefaultsInitialized] = useState(false);
-
-    const isReady = !authLoading && !rolesLoading && !userRolesLoading && !allUserRolesLoading && defaultsInitialized;
+    const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, currentInstitution?.id || null);
     
+    const [userMappings, setUserMappings] = useState<UserMapping[]>([]);
+    const [userMappingsLoading, setUserMappingsLoading] = useState(true);
+
     useEffect(() => {
-        if (superAdminUid && !rolesLoading && !defaultsInitialized) {
-            if (roles.length === 0) {
-                Promise.all(DEFAULT_ROLES.map(role => {
-                    const id = role.name.toLowerCase().replace(' ', '-');
-                    return addRoleDoc(role, id);
-                })).then(() => {
-                    setDefaultsInitialized(true);
-                }).catch(error => {
-                    console.error("Failed to initialize default roles:", error);
-                     setDefaultsInitialized(true);
+        if (!db) {
+            setUserMappingsLoading(false);
+            return;
+        }
+        const mappingsRef = ref(db, USER_MAP_COLLECTION);
+        const unsubscribe = onValue(mappingsRef, (snapshot) => {
+            const mappingsArray: UserMapping[] = [];
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                Object.keys(data).forEach(key => mappingsArray.push({ id: key, ...data[key] }));
+            }
+            setUserMappings(mappingsArray);
+            setUserMappingsLoading(false);
+        }, (error) => {
+            console.error("Error fetching user mappings:", error);
+            setUserMappingsLoading(false);
+        });
+        
+        return () => unsubscribe();
+    }, []);
+
+    const [defaultsInitialized, setDefaultsInitialized] = useState(false);
+    
+    const isReady = !authLoading && !rolesLoading && !userMappingsLoading && institutionLoaded && defaultsInitialized;
+    
+    const isSuperAdmin = useMemo(() => {
+        if (!user || !currentInstitution) return false;
+        return user.uid === currentInstitution.ownerId;
+    }, [user, currentInstitution]);
+
+    useEffect(() => {
+        if (currentInstitution && !rolesLoading && !defaultsInitialized) {
+            // Check if default roles already exist before adding them
+            const adminRoleExists = roles.some(r => r.id === 'admin');
+            const attendantRoleExists = roles.some(r => r.id === 'attendant');
+
+            if (!adminRoleExists || !attendantRoleExists) {
+                const rolesToAdd = DEFAULT_ROLES.filter(dr => {
+                    const id = dr.name.toLowerCase().replace(/\s+/g, '-');
+                    return !roles.some(r => r.id === id);
                 });
+
+                if (rolesToAdd.length > 0) {
+                    Promise.all(rolesToAdd.map(role => {
+                        const id = role.name.toLowerCase().replace(/\s+/g, '-');
+                        return addRoleDoc(role, id);
+                    })).finally(() => {
+                        setDefaultsInitialized(true);
+                    });
+                } else {
+                     setDefaultsInitialized(true);
+                }
             } else {
                  setDefaultsInitialized(true);
             }
-        } else if (!superAdminUid && !authLoading) {
-            setDefaultsInitialized(true);
         }
-    }, [superAdminUid, roles, authLoading, rolesLoading, addRoleDoc, defaultsInitialized]);
+    }, [currentInstitution, roles, rolesLoading, addRoleDoc, defaultsInitialized]);
     
-    const currentUserRoleDoc = useMemo(() => user ? userRoles.find(ur => ur.id === user.uid) : null, [user, userRoles]);
-    const currentUserRole = useMemo(() => currentUserRoleDoc?.roleId ?? null, [currentUserRoleDoc]);
-    const isFirstUser = useMemo(() => !userRolesLoading && userRoles.length === 0, [userRoles, userRolesLoading]);
+    const currentUserRole = useMemo(() => {
+        if (!user || !currentInstitution || userMappingsLoading) return null;
+        if (isSuperAdmin) return 'admin'; 
+        const mapping = userMappings.find(m => m.userId === user.uid && m.institutionId === currentInstitution.id);
+        return mapping?.roleId ?? null;
+    }, [user, currentInstitution, userMappings, userMappingsLoading, isSuperAdmin]);
 
-    const assignRoleToUser = useCallback((userId: string, roleId: RoleId) => {
-        // When assigning a role, especially the first one, we MUST know who the superAdmin is.
-        // If there's no superAdminUid yet, it means the current user IS the super admin.
-        const rootId = superAdminUid || user?.uid;
-        if (!rootId) {
-            console.error("Cannot assign role: no root user ID found.");
-            return;
-        }
-        addUserRoleDoc({ roleId }, userId);
-    }, [addUserRoleDoc, superAdminUid, user]);
+    const assignRoleToUser = useCallback(async (userId: string, roleId: RoleId, institutionId: string) => {
+        if (!db) return;
+        const docId = `${userId}_${institutionId}`;
+        const mappingRef = ref(db, `${USER_MAP_COLLECTION}/${docId}`);
+        await set(mappingRef, { userId, roleId, institutionId });
+    }, []);
+    
+    const getRoleForUserInInstitution = useCallback((userId: string, institutionId: string): RoleId | null => {
+        if (!userMappings) return null;
+        const mapping = userMappings.find(m => m.userId === userId && m.institutionId === institutionId);
+        return mapping?.roleId || null;
+    }, [userMappings]);
 
-    const getRoleForUser = useCallback((userId: string): RoleId | null => {
-        return userRoles.find(ur => ur.id === userId)?.roleId ?? null;
-    }, [userRoles]);
-    
-    useEffect(() => {
-        if (isReady && user && isFirstUser) {
-            assignRoleToUser(user.uid, 'super-admin');
-        }
-    }, [isReady, user, isFirstUser, assignRoleToUser]);
-    
     const addRole = useCallback((role: Omit<Role, 'id'>) => {
         const id = role.name.toLowerCase().replace(/\s+/g, '-');
         addRoleDoc(role, id);
@@ -136,30 +157,30 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, [updateRoleDoc]);
 
     const deleteRole = useCallback((id: RoleId) => {
-        if (id === 'super-admin' || id === 'admin') return; 
+        if (id === 'admin') return; 
         deleteRoleDoc(id);
     }, [deleteRoleDoc]);
 
     const hasPermission = useCallback((permission: Permission): boolean => {
-        if (!user || !currentUserRole) return false;
-        if (currentUserRole === 'super-admin') return true;
-        const role = roles.find(r => r.id === currentUserRole);
+        if (!user || !currentInstitution) return false;
+        if (isSuperAdmin) return true;
+        if (!currentUserRole) return false;
+        const role = roles?.find(r => r.id === currentUserRole);
         return !!role?.permissions.includes(permission);
-    }, [user, currentUserRole, roles]);
+    }, [user, currentInstitution, currentUserRole, roles, isSuperAdmin]);
 
     const value: RolesContextType = {
-        roles,
-        userRoles: userRoles || [],
+        roles: roles || [],
         userRole: currentUserRole,
-        isFirstUser,
+        isSuperAdmin,
+        userMappings,
         addRole,
         updateRole,
         deleteRole,
         hasPermission,
         assignRoleToUser,
-        getRoleForUser,
+        getRoleForUserInInstitution,
         isReady,
-        superAdminUid,
     };
     
     return (
