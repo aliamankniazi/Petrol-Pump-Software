@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { db } from '@/lib/firebase-client';
-import { ref, set } from 'firebase/database';
+import { ref, set, get } from 'firebase/database';
 import { useRouter } from 'next/navigation';
 import { useInstitution } from '@/hooks/use-institution';
 
@@ -33,17 +33,40 @@ const newUserSchema = z.object({
 type NewUserFormValues = z.infer<typeof newUserSchema>;
 
 export default function UsersPage({ isFirstSetup = false }: { isFirstSetup?: boolean }) {
-  const { signUp, signIn } = useAuth();
+  const { signUp, signIn, user } = useAuth();
   const { roles, assignRoleToUser, userMappings, isReady: rolesReady } = useRoles();
   const { currentInstitution, addInstitution } = useInstitution();
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  
+  const [isSetupComplete, setIsSetupComplete] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    async function checkSetup() {
+      if (!db) {
+          setIsSetupComplete(true); // Assume setup is complete if DB isn't configured
+          return;
+      };
+      try {
+        const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
+        const snapshot = await get(setupRef);
+        const setupDone = snapshot.exists() && snapshot.val() === true;
+        setIsSetupComplete(setupDone);
+        if (setupDone && isFirstSetup) {
+          router.replace('/login');
+        }
+      } catch (error) {
+        console.error("Error checking for Super Admin:", error);
+        setIsSetupComplete(true);
+      }
+    }
+    checkSetup();
+  }, [isFirstSetup, router, user]);
+
   const { register, handleSubmit, reset, control, setValue, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
   });
-  
+
   useEffect(() => {
     if (isFirstSetup) {
         setValue('roleId', 'admin');
@@ -98,15 +121,15 @@ export default function UsersPage({ isFirstSetup = false }: { isFirstSetup?: boo
         setLoading(false);
     }
   }, [signUp, signIn, assignRoleToUser, toast, reset, currentInstitution, isFirstSetup, addInstitution, router]);
-  
+
   const availableRoles = useMemo(() => {
-      if (isFirstSetup) {
-          return [{ id: 'admin', name: 'Super Admin (Owner)' }];
-      }
-      return roles.filter(role => role.id !== 'admin');
+    if (isFirstSetup) {
+      return [{ id: 'admin', name: 'Super Admin (Owner)' }];
+    }
+    return roles.filter(role => role.id !== 'admin');
   }, [roles, isFirstSetup]);
 
-  if (!isFirstSetup && !currentInstitution && rolesReady) {
+  if (!isFirstSetup && !currentInstitution && rolesReady && !user) {
     return (
         <div className="p-4 md:p-8">
             <Card>
@@ -116,7 +139,19 @@ export default function UsersPage({ isFirstSetup = false }: { isFirstSetup?: boo
                 </CardHeader>
             </Card>
         </div>
-    )
+    );
+  }
+
+  // Render a loading state while checking for setup completion
+  if (isFirstSetup && isSetupComplete === null) {
+     return (
+        <div className="flex h-screen w-full items-center justify-center bg-muted">
+             <div className="flex justify-center items-center gap-2">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <p className="text-center">Checking application setup...</p>
+            </div>
+        </div>
+      );
   }
 
   return (
@@ -129,7 +164,7 @@ export default function UsersPage({ isFirstSetup = false }: { isFirstSetup?: boo
                 <UserPlus /> {isFirstSetup ? 'Create Super Admin' : 'Create New User'}
                 </CardTitle>
                 <CardDescription>
-                    {isFirstSetup 
+                    {isFirstSetup
                         ? 'Create the first Super Admin account and your primary institution.'
                         : `Add a new user to the '${currentInstitution?.name}' institution and assign them a role.`
                     }

@@ -4,7 +4,7 @@
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,12 +14,13 @@ import { useAuth } from '@/hooks/use-auth.tsx';
 import type { AuthFormValues } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Separator } from '@/components/ui/separator';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
 });
-
 
 export default function LoginPage() {
   const { signIn, user } = useAuth();
@@ -45,7 +46,6 @@ export default function LoginPage() {
         title: 'Login Successful',
         description: 'Welcome back!',
       });
-      // The useEffect hook will handle the redirection to the dashboard.
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -85,6 +85,12 @@ export default function LoginPage() {
                 </Button>
             </form>
         </CardContent>
+        <CardFooter className="flex-col items-center gap-4">
+            <Separator />
+             <p className="text-sm text-center text-muted-foreground">
+                First-time setup? <Button asChild variant="link" className="p-0"><Link href="/users">Create Super Admin Account</Link></Button>
+            </p>
+        </CardFooter>
       </Card>
     </div>
   );
