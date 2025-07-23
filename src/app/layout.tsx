@@ -31,64 +31,24 @@ function PrintStyles() {
     return null;
 }
 
-const FullscreenMessage = ({ title, children }: { title: string, children: React.ReactNode }) => (
+const FullscreenMessage = ({ title, children, showSpinner = false }: { title: string, children: React.ReactNode, showSpinner?: boolean }) => (
   <div className="flex h-screen w-full items-center justify-center bg-muted">
      <Card className="w-full max-w-md m-4">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Terminal/> {title}</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col items-center justify-center gap-4 text-center">
           {children}
+          {showSpinner && <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mt-4"></div>}
         </CardContent>
      </Card>
    </div>
 );
 
 
-function UnauthenticatedApp() {
-    const [isSetupComplete, setIsSetupComplete] = React.useState<boolean | null>(null);
-
-    React.useEffect(() => {
-        const checkSetup = async () => {
-            if (!db) {
-                console.error("Firebase DB not available for setup check.");
-                setIsSetupComplete(true); // Default to login if DB is not there
-                return;
-            }
-            const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
-            try {
-                const snapshot = await get(setupRef);
-                setIsSetupComplete(snapshot.exists() && snapshot.val() === true);
-            } catch (error) {
-                console.error("Error checking app setup:", error);
-                setIsSetupComplete(true); // Default to login on error
-            }
-        };
-
-        checkSetup();
-    }, []);
-
-    if (isSetupComplete === null) {
-        return (
-            <FullscreenMessage title="Initializing...">
-                <div className="flex flex-col items-center justify-center gap-2">
-                    <p>Checking application state. Please wait.</p>
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-            </FullscreenMessage>
-        );
-    }
-    
-    if (isSetupComplete) {
-        return <LoginPage />;
-    }
-
-    return <UsersPage isFirstSetup={true} />;
-}
-
-
 function AppContainer({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
+  const pathname = usePathname();
 
   if (!isFirebaseConfigured()) {
     return (
@@ -102,11 +62,8 @@ function AppContainer({ children }: { children: React.ReactNode }) {
 
   if (authLoading) {
       return (
-          <FullscreenMessage title="Initializing...">
-             <div className="flex flex-col items-center justify-center gap-2">
-                <p>Authenticating. Please wait.</p>
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
+          <FullscreenMessage title="Initializing..." showSpinner={true}>
+             <p>Checking application state. Please wait.</p>
           </FullscreenMessage>
       );
   }
@@ -121,7 +78,13 @@ function AppContainer({ children }: { children: React.ReactNode }) {
     );
   }
   
-  return <UnauthenticatedApp />;
+  // For unauthenticated users, render the appropriate page.
+  // The logic to decide between login/setup is now handled inside the pages themselves.
+  if (pathname === '/users') {
+      return <UsersPage />;
+  }
+  
+  return <LoginPage />;
 }
 
 

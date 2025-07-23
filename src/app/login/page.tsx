@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/use-auth.tsx';
 import type { AuthFormValues } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -84,6 +85,14 @@ export default function LoginPage() {
                 </Button>
             </form>
         </CardContent>
+        <CardFooter className="flex-col items-start text-sm">
+            <p className="text-muted-foreground">
+                First-time setup?{' '}
+                <Link href="/users" className="font-semibold text-primary underline-offset-4 hover:underline">
+                     Create Super Admin Account
+                </Link>
+            </p>
+        </CardFooter>
       </Card>
     </div>
   );
