@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useCallback, createContext, useContext, type ReactNode, useEffect, useState } from 'react';
-import { ref, set, onValue, get } from 'firebase/database';
+import { ref, set, onValue } from 'firebase/database';
 import { db } from '@/lib/firebase-client';
 import type { Role, RoleId, Permission } from '@/lib/types';
 import { useAuth } from './use-auth.tsx';
@@ -61,7 +61,7 @@ const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
 export function RolesProvider({ children }: { children: ReactNode }) {
     const { user, loading: authLoading } = useAuth();
-    const { currentInstitution } = useInstitution();
+    const { currentInstitution, isLoaded: institutionLoaded } = useInstitution();
     
     const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, currentInstitution?.id || null);
     
@@ -92,40 +92,32 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         return () => unsubscribe();
     }, [currentInstitution]);
     
-    const isReady = !authLoading && currentInstitution && !rolesLoading && !userMappingsLoading && defaultsInitialized;
+    // This effect ensures default roles are created for an institution if they don't exist.
+    useEffect(() => {
+        if (!currentInstitution || rolesLoading || defaultsInitialized || roles.length > 0) {
+            if (roles.length > 0) setDefaultsInitialized(true);
+            return;
+        };
+
+        const setupDefaultRoles = async () => {
+             for (const role of DEFAULT_ROLES) {
+                const id = role.name.toLowerCase().replace(/\s+/g, '-');
+                await addRoleDoc(role, id);
+            }
+            setDefaultsInitialized(true);
+        }
+
+        setupDefaultRoles();
+
+    }, [currentInstitution, roles, rolesLoading, addRoleDoc, defaultsInitialized]);
+    
+    const isReady = !authLoading && institutionLoaded && currentInstitution && !rolesLoading && !userMappingsLoading && defaultsInitialized;
     
     const isSuperAdmin = useMemo(() => {
         if (!user || !currentInstitution) return false;
         return user.uid === currentInstitution.ownerId;
     }, [user, currentInstitution]);
 
-    useEffect(() => {
-        if (currentInstitution && !rolesLoading && !defaultsInitialized) {
-            const adminRoleExists = roles.some(r => r.id === 'admin');
-            const attendantRoleExists = roles.some(r => r.id === 'attendant');
-
-            if (!adminRoleExists || !attendantRoleExists) {
-                const rolesToAdd = DEFAULT_ROLES.filter(dr => {
-                    const id = dr.name.toLowerCase().replace(/\s+/g, '-');
-                    return !roles.some(r => r.id === id);
-                });
-
-                if (rolesToAdd.length > 0) {
-                    Promise.all(rolesToAdd.map(role => {
-                        const id = role.name.toLowerCase().replace(/\s+/g, '-');
-                        return addRoleDoc(role, id);
-                    })).finally(() => {
-                        setDefaultsInitialized(true);
-                    });
-                } else {
-                     setDefaultsInitialized(true);
-                }
-            } else {
-                 setDefaultsInitialized(true);
-            }
-        }
-    }, [currentInstitution, roles, rolesLoading, addRoleDoc, defaultsInitialized]);
-    
     const currentUserRole = useMemo(() => {
         if (!user || !currentInstitution || userMappingsLoading) return null;
         if (isSuperAdmin) return 'admin'; 

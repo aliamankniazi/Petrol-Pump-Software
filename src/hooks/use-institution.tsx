@@ -53,12 +53,13 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         const loadData = async () => {
-            if (!isFirebaseConfigured() || !db || !user) {
-                if (!authLoading) {
-                    setLoading(false);
-                    setAllInstitutions([]);
-                    setAllUserMappings([]);
-                }
+            if (authLoading || !user) {
+                if (!authLoading) setLoading(false);
+                return;
+            }
+
+            if (!isFirebaseConfigured() || !db) {
+                setLoading(false);
                 return;
             }
 
@@ -94,6 +95,12 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
 
         loadData();
     }, [user, authLoading]);
+    
+    useEffect(() => {
+        if (!user) {
+            clearCurrentInstitutionCB();
+        }
+    }, [user]);
 
     const userInstitutions = useMemo(() => {
         if (!user) return [];
