@@ -9,7 +9,7 @@ let auth: Auth | null = null;
 let db: Database | null = null;
 
 export const isFirebaseConfigured = () => {
-    // A valid config will have a non-empty apiKey.
+    // A valid config will have a non-empty apiKey that isn't a placeholder.
     return firebaseConfig && firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("YOUR_");
 }
 
@@ -23,7 +23,7 @@ if (isFirebaseConfigured()) {
     auth = getAuth(app);
     db = getDatabase(app);
 } else {
-    console.warn("Firebase is not configured. The app will run in a limited, offline mode.");
+    console.warn("Firebase is not configured. The app will run in a limited, offline mode. Please update src/lib/firebase-config.ts with your project credentials.");
 }
 
 export { app, auth, db };
