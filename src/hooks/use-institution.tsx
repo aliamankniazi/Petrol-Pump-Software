@@ -84,14 +84,12 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     });
 
     useEffect(() => {
-        if (authLoading) return;
-
-        if (!user) {
-            dispatch({ type: 'RESET' });
-            return;
-        }
-
         const fetchData = async () => {
+            if (authLoading) return; // Wait for auth to settle
+            if (!user) {
+                dispatch({ type: 'RESET' });
+                return;
+            }
             if (!db) {
                 dispatch({ type: 'FETCH_ERROR', payload: new Error("Database not configured.") });
                 return;
@@ -233,7 +231,7 @@ export function useInstitutions() {
     } = useInstitution();
     
     return {
-        institutions: userInstitutions,
+        institutions: userInstitutions || [],
         addInstitution,
         updateInstitution,
         deleteInstitution,

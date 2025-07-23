@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useCallback, createContext, useContext, type ReactNode, useEffect, useState } from 'react';
-import { ref, set, get } from 'firebase/database';
+import { ref, set, onValue, get } from 'firebase/database';
 import { db } from '@/lib/firebase-client';
 import type { Role, RoleId, Permission } from '@/lib/types';
 import { useAuth } from './use-auth.tsx';
@@ -60,55 +60,60 @@ interface RolesContextType {
 const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
 export function RolesProvider({ children }: { children: ReactNode }) {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const { currentInstitution, institutionLoading } = useInstitution();
     
     const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, currentInstitution?.id || null);
     
     const [userMappings, setUserMappings] = useState<UserMapping[]>([]);
     const [userMappingsLoading, setUserMappingsLoading] = useState(true);
-
+    const [defaultsInitialized, setDefaultsInitialized] = useState(false);
+    
     useEffect(() => {
-        if (!db || !currentInstitution) {
+        if (!db || institutionLoading || !currentInstitution) {
             setUserMappingsLoading(false);
+            setDefaultsInitialized(false);
             return;
         }
-        setUserMappingsLoading(true);
+
         const mappingsRef = ref(db, USER_MAP_COLLECTION);
-        get(mappingsRef).then(snapshot => {
+        const unsubscribe = onValue(mappingsRef, (snapshot) => {
             const mappingsArray: UserMapping[] = [];
             if (snapshot.exists()) {
                 const data = snapshot.val();
                 Object.keys(data).forEach(key => mappingsArray.push({ id: key, ...data[key] }));
             }
             setUserMappings(mappingsArray);
-        }).catch(error => {
+            setUserMappingsLoading(false);
+        }, (error) => {
             console.error("Error fetching user mappings:", error);
-        }).finally(() => {
             setUserMappingsLoading(false);
         });
-    }, [currentInstitution]);
-    
-    // Effect to initialize default roles for the current institution if they don't exist.
-    useEffect(() => {
-        if (!currentInstitution || rolesLoading || roles.length > 0) {
-            return;
-        }
         
-        const setupDefaults = async () => {
-            try {
-                await addRoleDoc({ name: 'Admin', permissions: [...PERMISSIONS] }, 'admin');
-                await addRoleDoc({ name: 'Attendant', permissions: ['view_dashboard', 'view_all_transactions', 'view_customers', 'view_inventory', 'view_purchases', 'view_expenses', 'view_other_incomes'] }, 'attendant');
-            } catch (error) {
-                console.error("Failed to initialize default roles:", error);
-            }
-        };
+        return () => unsubscribe();
+    }, [currentInstitution, institutionLoading]);
 
-        setupDefaults();
+
+    useEffect(() => {
+        const initializeDefaults = async () => {
+            if (currentInstitution && !rolesLoading && roles.length === 0) {
+                 try {
+                    await addRoleDoc({ name: 'Admin', permissions: [...PERMISSIONS] }, 'admin');
+                    await addRoleDoc({ name: 'Attendant', permissions: ['view_dashboard', 'view_all_transactions', 'view_customers', 'view_inventory', 'view_purchases', 'view_expenses', 'view_other_incomes'] }, 'attendant');
+                } catch (error) {
+                    console.error("Failed to initialize default roles:", error);
+                } finally {
+                    setDefaultsInitialized(true);
+                }
+            } else if (currentInstitution && !rolesLoading) {
+                 setDefaultsInitialized(true);
+            }
+        }
+        initializeDefaults();
     }, [currentInstitution, roles, rolesLoading, addRoleDoc]);
     
-    const loading = rolesLoading || userMappingsLoading || institutionLoading;
-    const isReady = !loading && !!currentInstitution && roles.length > 0;
+    const loading = authLoading || institutionLoading || rolesLoading || userMappingsLoading;
+    const isReady = !loading && !!currentInstitution && defaultsInitialized;
     
     const isSuperAdmin = useMemo(() => {
         if (!user || !currentInstitution) return false;
