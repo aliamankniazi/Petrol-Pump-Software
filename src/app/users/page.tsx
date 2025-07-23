@@ -31,14 +31,12 @@ const newUserSchema = z.object({
 
 type NewUserFormValues = z.infer<typeof newUserSchema>;
 
-
 export default function UsersPage() {
   const { signUp, signIn, user } = useAuth();
   const { roles, assignRoleToUser, userMappings, isReady, currentInstitution, addInstitution } = useRoles();
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [isCheckingSetup, setIsCheckingSetup] = useState(true);
   const [isSuperAdminRegistered, setIsSuperAdminRegistered] = useState(true);
   
   const isFirstUserSetup = !isSuperAdminRegistered;
@@ -46,15 +44,15 @@ export default function UsersPage() {
   useEffect(() => {
     const checkSetup = async () => {
         if (!db) {
-            setIsCheckingSetup(false);
+            router.replace('/login');
             return;
         }
         try {
             const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
             const snapshot = await get(setupRef);
             if (snapshot.exists() && snapshot.val() === true) {
-                // If a super admin is registered and this isn't the setup flow, redirect to login.
-                if (!currentInstitution) {
+                // If a super admin is registered, only allow access if logged in.
+                if(!user) {
                     router.replace('/login');
                 }
                 setIsSuperAdminRegistered(true);
@@ -64,12 +62,10 @@ export default function UsersPage() {
         } catch (error) {
             console.error("Setup check failed on users page:", error);
             router.replace('/login'); // Fail safe
-        } finally {
-            setIsCheckingSetup(false);
         }
     };
     checkSetup();
-  }, [router, currentInstitution]);
+  }, [user, router]);
 
   const { register, handleSubmit, reset, control, setValue, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
@@ -114,7 +110,8 @@ export default function UsersPage() {
           await set(ref(db, 'app_settings/isSuperAdminRegistered'), true);
           toast({ title: 'Super Admin Created!', description: 'Logging you in...' });
           await signIn(data);
-          router.push('/dashboard');
+          // Redirection will be handled by the auth state listener in the layout.
+          router.push('/dashboard'); 
       } else {
         toast({ title: 'User Created', description: `Account for ${data.email} created successfully.` });
         reset({ email: '', password: '', roleId: '', institutionName: '' });
@@ -132,22 +129,11 @@ export default function UsersPage() {
   
   const availableRoles = useMemo(() => {
       if (isFirstUserSetup) {
-          return [{ id: 'admin', name: 'Super Admin' }];
+          return [{ id: 'admin', name: 'Super Admin (Owner)' }];
       }
       return roles.filter(role => role.id !== 'super-admin'); // 'super-admin' isn't a real role
   }, [roles, isFirstUserSetup]);
   
-  if (isCheckingSetup) {
-      return (
-           <div className="flex min-h-screen items-center justify-center bg-background p-4">
-               <div className="flex justify-center items-center gap-2">
-                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                 <p className="text-center">Checking application setup...</p>
-               </div>
-          </div>
-      )
-  }
-
   // This condition prevents the form from being shown to normal users if they navigate here directly.
   if (!isFirstUserSetup && !currentInstitution && isReady) {
     return (

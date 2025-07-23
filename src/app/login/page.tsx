@@ -24,13 +24,14 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+type SetupState = 'checking' | 'needs_setup' | 'login_ready';
+
 export default function LoginPage() {
   const { signIn, user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [isCheckingSetup, setIsCheckingSetup] = useState(true);
-  const [needsSetup, setNeedsSetup] = useState(false);
+  const [setupState, setSetupState] = useState<SetupState>('checking');
 
   useEffect(() => {
     if (user) {
@@ -42,27 +43,28 @@ export default function LoginPage() {
     const checkSetup = async () => {
         if (!db) {
             console.error("Database not initialized, cannot check setup.");
-            setIsCheckingSetup(false);
+            setSetupState('login_ready'); // Default to login if DB fails
             return;
         }
         try {
             const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
             const snapshot = await get(setupRef);
             if (snapshot.exists() && snapshot.val() === true) {
-                setNeedsSetup(false);
+                setSetupState('login_ready');
             } else {
-                setNeedsSetup(true);
+                setSetupState('needs_setup');
             }
         } catch (error) {
             console.error("Setup check failed:", error);
             // Default to login form if there's an error
-            setNeedsSetup(false);
-        } finally {
-            setIsCheckingSetup(false);
+            setSetupState('login_ready');
         }
     };
-    checkSetup();
-  }, []);
+
+    if (!user) {
+      checkSetup();
+    }
+  }, [user]);
 
   const { register, handleSubmit, formState: { errors } } = useForm<AuthFormValues>({
     resolver: zodResolver(loginSchema),
@@ -87,72 +89,68 @@ export default function LoginPage() {
     }
   };
 
-  if (isCheckingSetup) {
-      return (
-          <div className="flex min-h-screen items-center justify-center bg-background p-4">
-               <div className="flex justify-center items-center gap-2">
-                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                 <p className="text-center">Checking application setup...</p>
-               </div>
-          </div>
-      );
+  const renderContent = () => {
+      switch (setupState) {
+          case 'checking':
+              return (
+                <div className="flex flex-col items-center justify-center p-8 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+                    <p className="text-muted-foreground">Checking application setup...</p>
+                </div>
+              );
+          case 'needs_setup':
+              return (
+                  <CardContent>
+                        <Alert>
+                          <UserPlus className="h-4 w-4" />
+                          <AlertTitle>Initial Setup Required</AlertTitle>
+                          <AlertDescription>
+                            Welcome! No Super Admin account has been registered yet. Please create one to start using the application.
+                          </AlertDescription>
+                        </Alert>
+                        <Button asChild className="w-full mt-6">
+                            <Link href="/users">Create Super Admin Account</Link>
+                        </Button>
+                    </CardContent>
+              );
+          case 'login_ready':
+              return (
+                <>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-2xl">
+                      <LogIn /> Login
+                    </CardTitle>
+                    <CardDescription>Enter your credentials to access your account.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                          <div className="space-y-2">
+                          <Label htmlFor="email">Email</Label>
+                          <Input id="email" type="email" {...register('email')} placeholder="you@example.com" />
+                          {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+                          </div>
+
+                          <div className="space-y-2">
+                          <Label htmlFor="password">Password</Label>
+                          <Input id="password" type="password" {...register('password')} />
+                          {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+                          </div>
+
+                          <Button type="submit" className="w-full" disabled={loading}>
+                            {loading ? 'Logging in...' : 'Login'}
+                          </Button>
+                      </form>
+                  </CardContent>
+                  </>
+              );
+      }
   }
-  
-  if (needsSetup) {
-      return (
-           <div className="flex min-h-screen items-center justify-center bg-background p-4">
-              <Card className="w-full max-w-md">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-2xl">
-                    <UserPlus /> Initial Setup Required
-                  </CardTitle>
-                  <CardDescription>Welcome! The application needs to be set up by creating the first Super Admin account.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Alert>
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertTitle>Action Required</AlertTitle>
-                      <AlertDescription>
-                        No Super Admin account has been registered yet. Please proceed to create one to start using the application.
-                      </AlertDescription>
-                    </Alert>
-                    <Button asChild className="w-full mt-6">
-                        <Link href="/users">Create Super Admin</Link>
-                    </Button>
-                </CardContent>
-              </Card>
-           </div>
-      )
-  }
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl">
-            <LogIn /> Login
-          </CardTitle>
-          <CardDescription>Enter your credentials to access your account.</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" {...register('email')} placeholder="you@example.com" />
-                {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-                </div>
-
-                <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" {...register('password')} />
-                {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
-                </div>
-
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Logging in...' : 'Login'}
-                </Button>
-            </form>
-        </CardContent>
+      <Card className="w-full max-w-md min-h-[300px]">
+        {renderContent()}
       </Card>
     </div>
   );
