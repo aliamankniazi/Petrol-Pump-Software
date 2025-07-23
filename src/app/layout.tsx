@@ -7,7 +7,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
 import { AuthProvider, useAuth } from '@/hooks/use-auth.tsx';
 import { usePathname } from 'next/navigation';
-import { RolesProvider } from '@/hooks/use-roles';
+import { RolesProvider, useRoles } from '@/hooks/use-roles';
 import { InstitutionProvider, useInstitution } from '@/hooks/use-institution';
 import { AppLayout } from '@/components/app-layout';
 import { isFirebaseConfigured } from '@/lib/firebase-client';
