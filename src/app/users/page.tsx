@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
@@ -19,6 +18,8 @@ import type { RoleId } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { db } from '@/lib/firebase-client';
+import { ref, set, get } from 'firebase/database';
 
 const newUserSchema = z.object({
   email: z.string().email('A valid email is required.'),
@@ -46,11 +47,17 @@ export default function UserManagementPage() {
   }, [currentInstitution, userMappings]);
   
   useEffect(() => {
-      if (isReady && userInstitutions.length === 0) {
-          setIsFirstUserSetup(true);
-          setValue('roleId', 'admin');
-      }
-  }, [isReady, userInstitutions, setValue]);
+    const checkFirstSetup = async () => {
+        const snapshot = await get(ref(db, 'app_settings/isSuperAdminRegistered'));
+        if (!snapshot.exists() || snapshot.val() === false) {
+            setIsFirstUserSetup(true);
+            setValue('roleId', 'admin');
+        } else {
+            setIsFirstUserSetup(false);
+        }
+    };
+    checkFirstSetup();
+  }, [setValue]);
 
   const onAddUserSubmit: SubmitHandler<NewUserFormValues> = useCallback(async (data) => {
     setLoading(true);
@@ -76,14 +83,17 @@ export default function UserManagementPage() {
       const userCredential = await signUp({ email: data.email, password: data.password });
       await assignRoleToUser(userCredential.user.uid, data.roleId as RoleId, targetInstitution.id);
       
+      if (isFirstUserSetup) {
+          // Set the flag to true to prevent future super admin registrations
+          await set(ref(db, 'app_settings/isSuperAdminRegistered'), true);
+      }
+
       toast({
         title: 'User Created',
         description: `Account for ${data.email} created with the ${data.roleId} role for ${targetInstitution.name}.`,
       });
       
       if(isFirstUserSetup) {
-          // In first setup, we redirect manually after success.
-          // The layout will handle showing the dashboard.
           window.location.href = '/dashboard';
       } else {
         reset({ email: '', password: '', roleId: '', institutionName: '' });
@@ -108,7 +118,7 @@ export default function UserManagementPage() {
       return roles.filter(role => role.id !== 'super-admin');
   }, [roles, isFirstUserSetup]);
   
-  if (!isReady) {
+  if (!isReady && !isFirstUserSetup) {
      return (
         <div className="p-4 md:p-8">
              <Skeleton className="h-96 w-full" />

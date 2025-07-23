@@ -48,7 +48,7 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
 
 // This component now contains the providers that depend on a logged-in user.
 const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
-  const { currentInstitution, isReady, userInstitutions } = useRoles();
+  const { isReady, userInstitutions, currentInstitution } = useRoles();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -93,36 +93,27 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
 
   React.useEffect(() => {
-    if (authLoading) return; // Don't do anything while auth state is resolving
+    if (authLoading) return;
 
     const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/users';
 
     if (user) {
-        // User is logged in.
         if (isAuthPage) {
             router.replace('/dashboard');
         }
     } else {
-        // User is not logged in.
-        if (pathname === '/signup') {
-            // Logic to check for first-time setup
-            const institutionsRef = ref(db, 'institutions');
-            get(institutionsRef).then((snapshot) => {
-                if (snapshot.exists()) {
-                    // Institutions exist, so it's not the first setup. Redirect to login.
-                    router.replace('/login');
+        if (pathname === '/signup' || isAuthPage) { // Check on any non-user page too
+            const appSettingsRef = ref(db, 'app_settings/isSuperAdminRegistered');
+            get(appSettingsRef).then((snapshot) => {
+                if (snapshot.exists() && snapshot.val() === true) {
+                    if (pathname !== '/login') router.replace('/login');
                 } else {
-                    // No institutions exist. This is the first setup. Redirect to user creation.
-                    router.replace('/users');
+                    if (pathname !== '/users') router.replace('/users');
                 }
             }).catch(error => {
                 console.error("Error checking for first setup:", error);
-                // Fallback to login on error
                 router.replace('/login');
             });
-        } else if (!isAuthPage) {
-            // If on any other protected page, redirect to login
-            router.replace('/login');
         }
     }
   }, [user, authLoading, pathname, router]);
@@ -148,7 +139,6 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
   const isAuthFlowPage = pathname === '/login' || pathname === '/signup' || pathname === '/users';
   
   if (user) {
-    // User is logged in, render the full app with providers.
     return (
       <RolesProvider>
           <AuthenticatedApp>{children}</AuthenticatedApp>
@@ -157,14 +147,12 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (isAuthFlowPage) {
-    // If we are on an auth page without a user, render it directly.
     return <>{children}</>;
   }
 
-  // Fallback for non-auth pages when no user is logged in
   return (
     <FullscreenMessage title="Redirecting..." showSpinner>
-      <p className="text-center text-muted-foreground">You are not logged in. Redirecting to the login page.</p>
+      <p className="text-center text-muted-foreground">Please wait while we check the application status.</p>
     </FullscreenMessage>
   );
 }
