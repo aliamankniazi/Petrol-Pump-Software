@@ -89,8 +89,9 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
     // Main data fetching effect
     useEffect(() => {
-        if (authLoading || !user) {
-            setLoading(!authLoading);
+        if (!user) {
+            setLoading(false);
+            if(isReady) setIsReady(false);
             return;
         }
 
@@ -128,7 +129,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         
         fetchAllData();
 
-    }, [user, authLoading]);
+    }, [user, isReady]);
     
     // Effect to initialize default roles
     useEffect(() => {
@@ -170,8 +171,11 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, [user, currentInstitution, userMappings, loading, isSuperAdmin]);
     
     useEffect(() => {
-        setIsReady(!authLoading && !loading && (!currentInstitution || !rolesLoading));
-    }, [authLoading, loading, rolesLoading, currentInstitution]);
+        const isAppReady = !authLoading && !loading;
+        if(isAppReady) {
+            setIsReady(true);
+        }
+    }, [authLoading, loading]);
 
 
     // Callbacks

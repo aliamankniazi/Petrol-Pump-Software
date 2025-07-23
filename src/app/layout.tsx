@@ -47,14 +47,31 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
 
 // This component now contains the providers that depend on a logged-in user.
 const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
-  const { currentInstitution, isReady, loading } = useRoles();
+  const { currentInstitution, isReady, userInstitutions } = useRoles();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  if (loading || !isReady) {
+  if (!isReady) {
     return (
       <FullscreenMessage title="Loading Your Profile..." showSpinner>
         <p className="text-center text-muted-foreground">Please wait while we prepare your workspace.</p>
       </FullscreenMessage>
     );
+  }
+  
+  // After ready, check if user has institutions
+  if (userInstitutions.length === 0) {
+      // If user has no institutions, they can only access the institutions page to create one.
+      if (pathname !== '/institutions') {
+          router.replace('/institutions');
+          return (
+             <FullscreenMessage title="Redirecting..." showSpinner>
+                <p className="text-center text-muted-foreground">No institution found. Redirecting to setup.</p>
+             </FullscreenMessage>
+          );
+      }
+      // Render the institutions page wrapped in the AppLayout to allow creation
+      return <AppLayout>{children}</AppLayout>;
   }
 
   if (!currentInstitution) {
