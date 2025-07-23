@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
@@ -14,9 +13,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Shield, ShieldPlus, List, Edit, Trash2, AlertTriangle, KeyRound } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useRoles, PERMISSIONS, type Permission } from '@/hooks/use-roles';
+import { useRoles, PERMISSIONS } from '@/hooks/use-roles.tsx';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import type { Role } from '@/lib/types';
+import type { Role, Permission } from '@/lib/types';
 import { useInstitution } from '@/hooks/use-institution.tsx';
 import { Skeleton } from '@/components/ui/skeleton';
 

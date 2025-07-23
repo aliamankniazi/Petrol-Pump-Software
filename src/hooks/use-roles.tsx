@@ -5,7 +5,7 @@ import { useMemo, useCallback, createContext, useContext, type ReactNode, useEff
 import { ref, set, onValue, get } from 'firebase/database';
 import { db } from '@/lib/firebase-client';
 import type { Role, RoleId, Permission } from '@/lib/types';
-import { useAuth } from './use-auth';
+import { useAuth } from './use-auth.tsx';
 import { useDatabaseCollection } from './use-database-collection';
 import { useInstitution } from './use-institution.tsx';
 

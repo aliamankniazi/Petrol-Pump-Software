@@ -4,7 +4,7 @@
 import { createContext, useState, useEffect, useContext, type ReactNode, useCallback, useMemo } from 'react';
 import { ref, onValue, push, set, serverTimestamp, update, remove } from 'firebase/database';
 import type { Institution } from '@/lib/types';
-import { useAuth } from './use-auth';
+import { useAuth } from './use-auth.tsx';
 import { db, isFirebaseConfigured } from '@/lib/firebase-client';
 
 const INSTITUTIONS_COLLECTION = 'institutions';
