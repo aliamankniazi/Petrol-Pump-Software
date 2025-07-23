@@ -45,8 +45,6 @@ const FullscreenMessage = ({ title, children }: { title: string, children: React
 
 const AppContainer = ({ children }: { children: React.ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
-  const { currentInstitution, isLoaded: institutionLoaded } = useInstitution();
-  const { isReady: rolesReady, hasPermission } = useRoles();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -60,31 +58,9 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
         </FullscreenMessage>
     );
   }
-
-  // Determine the overall loading state. We are loading if auth is checking, or if a user is logged in
-  // but their associated data (institution, roles) hasn't been loaded yet.
-  const isLoading = authLoading || (!!user && (!institutionLoaded || !rolesReady));
   
-  React.useEffect(() => {
-    // Wait until the initial loading is done before running any routing logic.
-    if (isLoading) return;
-
-    const isAuthPage = pathname === '/login' || pathname === '/signup';
-    
-    // If we have a user, they shouldn't be on an auth page.
-    if (user) { 
-      if (isAuthPage) {
-        router.replace('/dashboard');
-      }
-    } else { // If we don't have a user, they MUST be on an auth page.
-      if (!isAuthPage) {
-        router.replace('/login');
-      }
-    }
-  }, [user, isLoading, pathname, router]);
-
-  // While loading, show a simplified skeleton screen to avoid layout shifts.
-  if (isLoading) {
+  // Primary loading state: We are always loading as long as auth is loading.
+  if (authLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
        <div className="space-y-4 w-1/2 max-w-md">
@@ -97,14 +73,58 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
   }
 
   const isAuthPage = pathname === '/login' || pathname === '/signup';
-  if (!user || isAuthPage) {
+
+  // Once auth is done, handle routing for unauthenticated users.
+  if (!user) {
+    if (!isAuthPage) {
+      router.replace('/login');
+      // Return loading skeleton while redirecting
+      return (
+        <div className="flex h-screen w-full items-center justify-center bg-background">
+         <p>Redirecting to login...</p>
+        </div>
+      );
+    }
     return <>{children}</>;
   }
+
+  // User is authenticated. Route away from auth pages.
+  if (isAuthPage) {
+      router.replace('/dashboard');
+      return (
+        <div className="flex h-screen w-full items-center justify-center bg-background">
+         <p>Redirecting to dashboard...</p>
+        </div>
+      );
+  }
+
+  // Render the authenticated portion of the app.
+  return <AuthenticatedApp>{children}</AuthenticatedApp>;
+}
+
+const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
+  const { currentInstitution, isLoaded: institutionLoaded } = useInstitution();
+  const { isReady: rolesReady, hasPermission } = useRoles();
   
+  const isLoading = !institutionLoaded || !rolesReady;
+  
+  if (isLoading) {
+      return (
+        <div className="flex h-screen w-full items-center justify-center bg-background">
+         <div className="space-y-4 w-1/2 max-w-md">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-8 w-3/4" />
+          <Skeleton className="h-8 w-1/2" />
+          <p className="text-center text-muted-foreground">Loading user data...</p>
+         </div>
+        </div>
+      );
+  }
+
   if (!currentInstitution) {
     return <InstitutionSelector />;
   }
-
+  
   return <AppLayout hasPermission={hasPermission}>{children}</AppLayout>;
 }
 
