@@ -103,7 +103,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
             const insts: Institution[] = [];
             if (snapshot.exists()) {
               snapshot.forEach((childSnapshot) => {
-                insts.push({ id: childSnapshot.key, ...childSnapshot.val() });
+                insts.push({ id: childSnapshot.key!, ...childSnapshot.val() });
               });
             }
             setInstitutions(insts);
@@ -113,7 +113,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
             const maps: UserMapping[] = [];
             if (snapshot.exists()) {
               snapshot.forEach((childSnapshot) => {
-                maps.push({ id: childSnapshot.key, ...childSnapshot.val() });
+                maps.push({ id: childSnapshot.key!, ...childSnapshot.val() });
               });
             }
             setUserMappings(maps);

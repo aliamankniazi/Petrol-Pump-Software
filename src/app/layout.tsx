@@ -10,7 +10,7 @@ import { usePathname } from 'next/navigation';
 import { RolesProvider } from '@/hooks/use-roles.tsx';
 import { AppLayout } from '@/components/app-layout';
 import { isFirebaseConfigured, db } from '@/lib/firebase-client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Terminal } from 'lucide-react';
 import { ref, get } from 'firebase/database';
 import LoginPage from './login/page';
@@ -56,7 +56,7 @@ const UnauthenticatedApp = () => {
         const checkSetup = async () => {
             if (!db) {
                 console.error("Database not initialized, cannot check setup.");
-                setSetupState('LOGIN_REQUIRED'); // Default to login on error
+                setSetupState('LOGIN_REQUIRED');
                 return;
             };
             try {
@@ -69,7 +69,6 @@ const UnauthenticatedApp = () => {
                 }
             } catch (error) {
                 console.error("Setup check failed:", error);
-                // This might happen due to security rules. Default to assuming setup is complete.
                 setSetupState('LOGIN_REQUIRED');
             }
         };

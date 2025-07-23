@@ -157,17 +157,22 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         await set(newDocRef, dataWithOwner);
         const newInstitution = { ...dataWithOwner, id: newId, timestamp: Date.now() } as Institution;
         
-        dispatch({ type: 'FETCH_START' }); // Manually trigger a refetch
+        // This is a hacky way to trigger a refetch. A better way would be to listen to the DB changes.
+        // For now, we manually update the state.
+        dispatch({ type: 'FETCH_SUCCESS', payload: { institutions: [...state.allInstitutions, newInstitution], mappings: state.allUserMappings } });
         
         return newInstitution;
-    }, [user]);
+    }, [user, state.allInstitutions, state.allUserMappings]);
 
     const updateInstitution = useCallback(async (id: string, data: Partial<Omit<Institution, 'id' | 'ownerId'>>) => {
         if (!db) return;
         const docRef = ref(db, `${INSTITUTIONS_COLLECTION}/${id}`);
         await update(docRef, data);
-        dispatch({ type: 'FETCH_START' }); // Manually trigger a refetch
-    }, []);
+        dispatch({ type: 'FETCH_SUCCESS', payload: { 
+            institutions: state.allInstitutions.map(i => i.id === id ? { ...i, ...data } as Institution : i),
+            mappings: state.allUserMappings
+        }});
+    }, [state.allInstitutions, state.allUserMappings]);
 
     const deleteInstitution = useCallback(async (id: string) => {
         if (!db) return;
@@ -176,8 +181,11 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         if (currentInstitutionId === id) {
             clearCurrentInstitutionCB();
         }
-        dispatch({ type: 'FETCH_START' }); // Manually trigger a refetch
-    }, [currentInstitutionId, clearCurrentInstitutionCB]);
+        dispatch({ type: 'FETCH_SUCCESS', payload: {
+            institutions: state.allInstitutions.filter(i => i.id !== id),
+            mappings: state.allUserMappings
+        }});
+    }, [currentInstitutionId, clearCurrentInstitutionCB, state.allInstitutions, state.allUserMappings]);
 
     const value: InstitutionContextType = useMemo(() => ({
         userInstitutions,
