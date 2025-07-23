@@ -34,6 +34,7 @@ export function useDatabaseCollection<T extends DbDoc>(
       return () => {};
     }
 
+    setLoading(true);
     let collectionRef: DatabaseReference;
     try {
       const path = `institutions/${institutionId}/${collectionName}`;

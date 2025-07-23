@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useInstitutions, useInstitution } from "@/hooks/use-institution.tsx";
+import { useRoles } from "@/hooks/use-roles.tsx";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,8 +11,7 @@ import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 export function InstitutionSelector() {
-    const { institutions, isLoaded } = useInstitutions();
-    const { setCurrentInstitution } = useInstitution();
+    const { userInstitutions, isReady, setCurrentInstitution } = useRoles();
     const { signOut } = useAuth();
     const router = useRouter();
 
@@ -28,10 +27,10 @@ export function InstitutionSelector() {
                     <CardDescription>Choose which institution you want to manage.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {isLoaded ? (
-                        institutions && institutions.length > 0 ? (
+                    {isReady ? (
+                        userInstitutions && userInstitutions.length > 0 ? (
                             <ul className="space-y-2">
-                                {institutions.map(inst => (
+                                {userInstitutions.map(inst => (
                                     <li key={inst.id}>
                                         <Button
                                             variant="outline"

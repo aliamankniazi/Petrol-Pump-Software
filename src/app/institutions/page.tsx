@@ -2,9 +2,6 @@
 
 'use client';
 
-import { useForm, type SubmitHandler } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,8 +14,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useState, useCallback, useEffect } from 'react';
 import type { Institution } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useInstitutions } from '@/hooks/use-institution';
+import { useRoles } from '@/hooks/use-roles';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useForm, type SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 
 
 const institutionSchema = z.object({
@@ -30,7 +30,7 @@ type InstitutionFormValues = z.infer<typeof institutionSchema>;
 
 
 export default function InstitutionsPage() {
-  const { institutions, addInstitution, updateInstitution, deleteInstitution, isLoaded } = useInstitutions();
+  const { userInstitutions, addInstitution, updateInstitution, deleteInstitution, isReady } = useRoles();
   const { toast } = useToast();
   
   const [institutionToEdit, setInstitutionToEdit] = useState<Partial<Institution> | null>(null);
@@ -93,13 +93,13 @@ export default function InstitutionsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {!isLoaded ? (
+            {!isReady ? (
               <div className="space-y-2">
                 <Skeleton className="h-16 w-full" />
                 <Skeleton className="h-16 w-full" />
                 <Skeleton className="h-16 w-full" />
               </div>
-            ) : institutions.length > 0 ? (
+            ) : userInstitutions.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -108,7 +108,7 @@ export default function InstitutionsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {institutions.map(inst => (
+                  {userInstitutions.map(inst => (
                       <TableRow key={inst.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">

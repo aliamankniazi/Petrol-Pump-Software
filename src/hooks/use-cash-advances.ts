@@ -4,12 +4,12 @@
 import { useCallback } from 'react';
 import type { CashAdvance } from '@/lib/types';
 import { useDatabaseCollection } from './use-database-collection';
-import { useInstitution } from './use-institution.tsx';
+import { useRoles } from './use-roles.tsx';
 
 const COLLECTION_NAME = 'cash-advances';
 
 export function useCashAdvances() {
-  const { currentInstitution } = useInstitution();
+  const { currentInstitution } = useRoles();
   const { data: cashAdvances, addDoc, deleteDoc, loading } = useDatabaseCollection<CashAdvance>(COLLECTION_NAME, currentInstitution?.id || null);
 
   const addCashAdvance = useCallback((advance: Omit<CashAdvance, 'id'>) => {

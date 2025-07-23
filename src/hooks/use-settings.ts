@@ -5,11 +5,11 @@ import { useCallback } from 'react';
 import { ref, remove } from 'firebase/database';
 import { useAuth } from './use-auth';
 import { db } from '@/lib/firebase-client';
-import { useInstitution } from './use-institution';
+import { useRoles } from './use-roles';
 
 export function useSettings() {
   const { user } = useAuth();
-  const { currentInstitution, clearCurrentInstitution: clearFromContext } = useInstitution();
+  const { currentInstitution, clearCurrentInstitution: clearFromContext } = useRoles();
 
   const clearAllData = useCallback(async () => {
     if (!user || !currentInstitution) {

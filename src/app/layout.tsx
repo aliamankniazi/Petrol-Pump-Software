@@ -10,7 +10,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { RolesProvider, useRoles } from '@/hooks/use-roles.tsx';
 import { AppLayout } from '@/components/app-layout';
 import { isFirebaseConfigured } from '@/lib/firebase-client';
-import { InstitutionProvider, useInstitution } from '@/hooks/use-institution.tsx';
 import { InstitutionSelector } from '@/components/institution-selector';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Terminal } from 'lucide-react';
@@ -48,27 +47,18 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
 
 // This component now contains the providers that depend on a logged-in user.
 const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
-  const { currentInstitution, institutionLoading } = useInstitution();
-  const { isReady: rolesReady, loading: rolesLoading } = useRoles();
+  const { currentInstitution, isReady, loading } = useRoles();
 
-  if (institutionLoading) {
+  if (loading || !isReady) {
     return (
-      <FullscreenMessage title="Loading Institutions..." showSpinner>
-        <p className="text-center text-muted-foreground">Fetching your assigned institutions.</p>
+      <FullscreenMessage title="Loading Your Profile..." showSpinner>
+        <p className="text-center text-muted-foreground">Please wait while we prepare your workspace.</p>
       </FullscreenMessage>
     );
   }
 
   if (!currentInstitution) {
     return <InstitutionSelector />;
-  }
-
-  if (rolesLoading || !rolesReady) {
-    return (
-      <FullscreenMessage title="Loading User Profile..." showSpinner>
-        <p className="text-center text-muted-foreground">Loading your roles and permissions for '{currentInstitution.name}'.</p>
-      </FullscreenMessage>
-    );
   }
   
   return <AppLayout>{children}</AppLayout>;
@@ -124,11 +114,9 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
 
   // User is logged in and not on an auth page, render the full app with providers.
   return (
-    <InstitutionProvider>
-        <RolesProvider>
-            <AuthenticatedApp>{children}</AuthenticatedApp>
-        </RolesProvider>
-    </InstitutionProvider>
+    <RolesProvider>
+        <AuthenticatedApp>{children}</AuthenticatedApp>
+    </RolesProvider>
   );
 }
 

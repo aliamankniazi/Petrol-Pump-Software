@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
@@ -16,7 +17,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useRoles, PERMISSIONS } from '@/hooks/use-roles.tsx';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import type { Role, Permission } from '@/lib/types';
-import { useInstitution } from '@/hooks/use-institution.tsx';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const PERMISSION_CATEGORIES: Record<string, Permission[]> = {
@@ -36,8 +36,7 @@ const roleSchema = z.object({
 type RoleFormValues = z.infer<typeof roleSchema>;
 
 export default function RolesPage() {
-  const { roles, addRole, updateRole, deleteRole, isReady } = useRoles();
-  const { currentInstitution } = useInstitution();
+  const { roles, addRole, updateRole, deleteRole, isReady, currentInstitution } = useRoles();
   const { toast } = useToast();
   
   const [roleToEdit, setRoleToEdit] = useState<Role | null>(null);

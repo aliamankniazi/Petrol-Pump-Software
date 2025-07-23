@@ -4,12 +4,12 @@
 import { useCallback } from 'react';
 import type { PurchaseReturn } from '@/lib/types';
 import { useDatabaseCollection } from './use-database-collection';
-import { useInstitution } from './use-institution.tsx';
+import { useRoles } from './use-roles.tsx';
 
 const COLLECTION_NAME = 'purchase-returns';
 
 export function usePurchaseReturns() {
-  const { currentInstitution } = useInstitution();
+  const { currentInstitution } = useRoles();
   const { data: purchaseReturns, addDoc, deleteDoc, loading } = useDatabaseCollection<PurchaseReturn>(COLLECTION_NAME, currentInstitution?.id || null);
 
   const addPurchaseReturn = useCallback((purchaseReturn: Omit<PurchaseReturn, 'id'>) => {

@@ -5,12 +5,12 @@ import { useCallback } from 'react';
 import type { BusinessPartner } from '@/lib/types';
 import { useCustomers } from './use-customers';
 import { useDatabaseCollection } from './use-database-collection';
-import { useInstitution } from './use-institution.tsx';
+import { useRoles } from './use-roles.tsx';
 
 const COLLECTION_NAME = 'business-partners';
 
 export function useBusinessPartners() {
-  const { currentInstitution } = useInstitution();
+  const { currentInstitution } = useRoles();
   const { data: businessPartners, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<BusinessPartner>(COLLECTION_NAME, currentInstitution?.id || null);
   const { customers, addCustomer, updateCustomer, isLoaded: customersLoaded } = useCustomers();
 

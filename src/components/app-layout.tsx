@@ -20,7 +20,6 @@ import { FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, User
 import { useAuth } from '@/hooks/use-auth.tsx';
 import { Button } from './ui/button';
 import { useRoles, type Permission } from '@/hooks/use-roles.tsx';
-import { useInstitution } from '@/hooks/use-institution.tsx';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
 const navItems = [
@@ -51,7 +50,7 @@ const navItems = [
 ];
 
 const AppLogo = () => {
-  const { currentInstitution } = useInstitution();
+  const { currentInstitution } = useRoles();
 
   return (
     <div className="flex items-center gap-2.5">
@@ -70,8 +69,7 @@ const AppLogo = () => {
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { signOut } = useAuth();
-  const { clearCurrentInstitution } = useInstitution();
-  const { hasPermission } = useRoles();
+  const { clearCurrentInstitution, hasPermission } = useRoles();
   const pathname = usePathname();
   
   const visibleNavItems = navItems.filter(item => hasPermission(item.permission));

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
@@ -16,7 +17,6 @@ import { useAuth } from '@/hooks/use-auth.tsx';
 import { useRoles } from '@/hooks/use-roles.tsx';
 import type { RoleId } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useInstitution } from '@/hooks/use-institution.tsx';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const newUserSchema = z.object({
@@ -29,8 +29,7 @@ type NewUserFormValues = z.infer<typeof newUserSchema>;
 
 export default function UserManagementPage() {
   const { signUp } = useAuth();
-  const { roles, assignRoleToUser, userMappings, isReady: rolesReady } = useRoles();
-  const { currentInstitution } = useInstitution();
+  const { roles, assignRoleToUser, userMappings, isReady, currentInstitution } = useRoles();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   
@@ -149,7 +148,7 @@ export default function UserManagementPage() {
             <CardDescription>A list of all registered users and their roles for this institution.</CardDescription>
           </CardHeader>
           <CardContent>
-            {rolesReady ? (
+            {isReady ? (
               institutionUsers.length > 0 ? (
                 <Table>
                   <TableHeader>
