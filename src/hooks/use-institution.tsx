@@ -47,10 +47,8 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     }, []);
     
     useEffect(() => {
-        if (authLoading || !isFirebaseConfigured() || !db) {
-            if (!authLoading) {
-                setInstitutionDataLoaded(true); // Consider loaded if no user or no config
-            }
+        if (authLoading) {
+            setInstitutionDataLoaded(false);
             return;
         }
 
@@ -59,12 +57,17 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
             setAllUserMappings([]);
             setCurrentInstitutionId(null);
             localStorage.removeItem(LOCAL_STORAGE_KEY);
-            setInstitutionDataLoaded(true); // Loaded for a logged-out user
+            setInstitutionDataLoaded(true);
             return;
         }
 
-        setInstitutionDataLoaded(false);
         const fetchData = async () => {
+            if (!db) {
+                setInstitutionDataLoaded(true);
+                return;
+            }
+
+            setInstitutionDataLoaded(false);
             try {
                 const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
                 const mappingsRef = ref(db, USER_MAP_COLLECTION);
@@ -87,12 +90,13 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
                     Object.keys(data).forEach(key => mappingsArray.push({ id: key, ...data[key] }));
                 }
                 setAllUserMappings(mappingsArray);
+
             } catch (error) {
                 console.error("Failed to fetch initial institution or mapping data:", error);
                 setAllInstitutions([]);
                 setAllUserMappings([]);
             } finally {
-                setInstitutionDataLoaded(true); // Critical: set loaded to true even if data is empty
+                setInstitutionDataLoaded(true);
             }
         };
 
@@ -100,7 +104,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     }, [user, authLoading]);
 
     const userInstitutions = useMemo(() => {
-        if (!user) return [];
+        if (!user || !institutionDataLoaded) return [];
         
         const userMappings = allUserMappings.filter(m => m.userId === user.uid);
         const institutionIdsFromMappings = userMappings.map(m => m.institutionId);
@@ -109,7 +113,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         const allReachableIds = new Set([...institutionIdsFromMappings, ...ownedInstitutions.map(i => i.id)]);
         
         return allInstitutions.filter(inst => allReachableIds.has(inst.id));
-    }, [user, allInstitutions, allUserMappings]);
+    }, [user, allInstitutions, allUserMappings, institutionDataLoaded]);
 
     const currentInstitution = useMemo(() => {
         return allInstitutions.find(inst => inst.id === currentInstitutionId) ?? null;
@@ -207,6 +211,6 @@ export function useInstitutions() {
         addInstitution,
         updateInstitution,
         deleteInstitution,
-        institutionDataLoaded,
+        isLoaded: institutionDataLoaded,
     }
 }

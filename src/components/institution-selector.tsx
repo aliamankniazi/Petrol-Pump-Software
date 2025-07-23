@@ -11,7 +11,7 @@ import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 export function InstitutionSelector() {
-    const { userInstitutions, institutionDataLoaded } = useInstitutions();
+    const { institutions, isLoaded } = useInstitutions();
     const { setCurrentInstitution } = useInstitution();
     const { signOut } = useAuth();
 
@@ -23,10 +23,10 @@ export function InstitutionSelector() {
                     <CardDescription>Choose which institution you want to manage.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {institutionDataLoaded ? (
-                        userInstitutions && userInstitutions.length > 0 ? (
+                    {isLoaded ? (
+                        institutions && institutions.length > 0 ? (
                             <ul className="space-y-2">
-                                {userInstitutions.map(inst => (
+                                {institutions.map(inst => (
                                     <li key={inst.id}>
                                         <Button
                                             variant="outline"
