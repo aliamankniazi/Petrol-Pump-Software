@@ -12,8 +12,11 @@ import { useToast } from '@/hooks/use-toast';
 import { LogIn } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth.tsx';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { AuthFormValues } from '@/lib/types';
+import { useRouter } from 'next/navigation';
+import { db } from '@/lib/firebase-client';
+import { ref, get } from 'firebase/database';
 
 
 const loginSchema = z.object({
@@ -21,10 +24,45 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+const LoadingSpinner = () => (
+    <div className="flex justify-center items-center gap-2">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p className="text-center">Checking setup...</p>
+    </div>
+);
+
 export default function LoginPage() {
-  const { signIn } = useAuth();
+  const { signIn, user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [isSetupCheckComplete, setIsSetupCheckComplete] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (authLoading) return; // Wait until auth state is known
+
+    if(user) {
+        router.replace('/dashboard');
+        return;
+    }
+    
+    const checkSetup = async () => {
+      if (!db) {
+        console.error("Firebase DB not initialized.");
+        setIsSetupCheckComplete(true); // Allow showing the form on error
+        return;
+      }
+      const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
+      const snapshot = await get(setupRef);
+      if (!snapshot.exists() || snapshot.val() === false) {
+        router.replace('/users'); // Redirect to Super Admin creation
+      } else {
+        setIsSetupCheckComplete(true); // Setup is complete, show login form
+      }
+    };
+
+    checkSetup();
+  }, [authLoading, user, router]);
   
   const { register, handleSubmit, formState: { errors } } = useForm<AuthFormValues>({
     resolver: zodResolver(loginSchema),
@@ -38,6 +76,7 @@ export default function LoginPage() {
         title: 'Login Successful',
         description: 'Welcome back!',
       });
+      // The layout effect will handle redirection to dashboard
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -48,6 +87,23 @@ export default function LoginPage() {
         setLoading(false);
     }
   };
+
+  if (!isSetupCheckComplete || authLoading) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-background p-4">
+            <Card className="w-full max-w-md">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-2xl">
+                        <LogIn /> Initializing
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <LoadingSpinner />
+                </CardContent>
+            </Card>
+        </div>
+      );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -76,12 +132,6 @@ export default function LoginPage() {
                 {loading ? 'Logging in...' : 'Login'}
                 </Button>
             </form>
-            <div className="mt-4 text-center text-sm">
-                No account?{' '}
-                <Link href="/signup" className="underline">
-                Create Super Admin Account
-                </Link>
-            </div>
         </CardContent>
       </Card>
     </div>

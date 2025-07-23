@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { db } from '@/lib/firebase-client';
 import { ref, set, get } from 'firebase/database';
+import { useRouter } from 'next/navigation';
 
 const newUserSchema = z.object({
   email: z.string().email('A valid email is required.'),
@@ -31,33 +32,47 @@ const newUserSchema = z.object({
 type NewUserFormValues = z.infer<typeof newUserSchema>;
 
 export default function UserManagementPage() {
-  const { signUp } = useAuth();
+  const { signUp, user, loading: authLoading } = useAuth();
   const { roles, assignRoleToUser, userMappings, isReady, currentInstitution, addInstitution, userInstitutions } = useRoles();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [isFirstUserSetup, setIsFirstUserSetup] = useState(false);
+  const [isCheckingSetup, setIsCheckingSetup] = useState(true);
+  const router = useRouter();
   
   const { register, handleSubmit, reset, control, setValue, watch, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
   });
-
-  const institutionUsers = useMemo(() => {
-    if (!currentInstitution || !userMappings) return [];
-    return userMappings.filter(m => m.institutionId === currentInstitution.id);
-  }, [currentInstitution, userMappings]);
   
   useEffect(() => {
-    const checkFirstSetup = async () => {
-        const snapshot = await get(ref(db, 'app_settings/isSuperAdminRegistered'));
+    const checkSetup = async () => {
+        if (!db || authLoading) return;
+        
+        if(user) { // If a user is already logged in
+            setIsFirstUserSetup(false);
+            setIsCheckingSetup(false);
+            return;
+        }
+
+        const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
+        const snapshot = await get(setupRef);
+
         if (!snapshot.exists() || snapshot.val() === false) {
             setIsFirstUserSetup(true);
             setValue('roleId', 'admin');
         } else {
             setIsFirstUserSetup(false);
+            router.replace('/login'); // Redirect to login if setup is already complete
         }
+        setIsCheckingSetup(false);
     };
-    checkFirstSetup();
-  }, [setValue]);
+    checkSetup();
+  }, [authLoading, user, router, setValue]);
+
+  const institutionUsers = useMemo(() => {
+    if (!currentInstitution || !userMappings) return [];
+    return userMappings.filter(m => m.institutionId === currentInstitution.id);
+  }, [currentInstitution, userMappings]);
 
   const onAddUserSubmit: SubmitHandler<NewUserFormValues> = useCallback(async (data) => {
     setLoading(true);
@@ -94,6 +109,8 @@ export default function UserManagementPage() {
       });
       
       if(isFirstUserSetup) {
+          // Manually sign in the user, as Firebase doesn't do this automatically on this flow sometimes
+          // The layout effect will then redirect to the dashboard
           window.location.href = '/dashboard';
       } else {
         reset({ email: '', password: '', roleId: '', institutionName: '' });
@@ -118,9 +135,9 @@ export default function UserManagementPage() {
       return roles.filter(role => role.id !== 'super-admin');
   }, [roles, isFirstUserSetup]);
   
-  if (!isReady && !isFirstUserSetup) {
-     return (
-        <div className="p-4 md:p-8">
+  if (isCheckingSetup) {
+    return (
+        <div className="p-4 md:p-8 flex justify-center items-center">
              <Skeleton className="h-96 w-full" />
         </div>
      )

@@ -89,42 +89,6 @@ const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
 
 const AppContainer = ({ children }: { children: React.ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
-  const pathname = usePathname();
-  const router = useRouter();
-
-  React.useEffect(() => {
-    if (authLoading) return; // Don't do anything until authentication state is resolved
-
-    const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/users';
-
-    if (user) {
-        // If user is logged in, but on an auth page, redirect to dashboard
-        if (isAuthPage) {
-            router.replace('/dashboard');
-        }
-    } else {
-        // If user is not logged in
-        const appSettingsRef = ref(db, 'app_settings/isSuperAdminRegistered');
-        get(appSettingsRef).then((snapshot) => {
-            const isRegistered = snapshot.exists() && snapshot.val() === true;
-            if (isRegistered) {
-                // If admin exists, all non-logged-in users should go to login page
-                if (pathname !== '/login') {
-                    router.replace('/login');
-                }
-            } else {
-                // If no admin, all non-logged-in users should go to the setup page
-                if (pathname !== '/users') {
-                    router.replace('/users');
-                }
-            }
-        }).catch(error => {
-            console.error("Error checking for first setup:", error);
-            router.replace('/login'); // Default to login on error
-        });
-    }
-}, [user, authLoading, pathname, router]);
-
 
   if (!isFirebaseConfigured()) {
     return (
@@ -152,7 +116,7 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  // If not logged in, show the child page (which will be one of the auth pages based on the useEffect logic)
+  // If not logged in, show the auth pages (login, signup)
   return <>{children}</>;
 }
 
