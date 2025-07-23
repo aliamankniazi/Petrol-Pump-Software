@@ -52,19 +52,17 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     }, []);
 
     useEffect(() => {
-        if (authLoading || !user) {
-            if (!authLoading) {
-                setLoading(false);
-            }
-            return;
-        }
-
-        if (!isFirebaseConfigured() || !db) {
-            setLoading(false);
-            return;
-        }
-
         const loadData = async () => {
+            if (authLoading || !user) {
+                if (!authLoading) setLoading(false);
+                return;
+            }
+    
+            if (!isFirebaseConfigured() || !db) {
+                setLoading(false);
+                return;
+            }
+    
             setLoading(true);
             try {
                 const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
@@ -98,11 +96,20 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         loadData();
     }, [user, authLoading]);
     
+    const clearCurrentInstitutionCB = useCallback(() => {
+        try {
+            localStorage.removeItem(LOCAL_STORAGE_KEY);
+        } catch (error) {
+            console.error("Could not remove item from localStorage:", error);
+        }
+        setCurrentInstitutionId(null);
+    }, []);
+
     useEffect(() => {
         if (!user) {
             clearCurrentInstitutionCB();
         }
-    }, [user]);
+    }, [user, clearCurrentInstitutionCB]);
 
     const userInstitutions = useMemo(() => {
         if (!user) return [];
@@ -126,15 +133,6 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
             console.error("Could not set item in localStorage:", error);
         }
         setCurrentInstitutionId(institutionId);
-    }, []);
-
-    const clearCurrentInstitutionCB = useCallback(() => {
-        try {
-            localStorage.removeItem(LOCAL_STORAGE_KEY);
-        } catch (error) {
-            console.error("Could not remove item in localStorage:", error);
-        }
-        setCurrentInstitutionId(null);
     }, []);
     
     const addInstitution = useCallback(async (institution: Omit<Institution, 'id' | 'ownerId' | 'timestamp'>): Promise<Institution> => {

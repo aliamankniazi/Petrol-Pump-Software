@@ -57,8 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Firebase is not configured.");
     }
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-      return userCredential;
+      return await createUserWithEmailAndPassword(auth, data.email, data.password);
     } catch (error) {
       if (error instanceof FirebaseError && error.code === 'auth/email-already-in-use') {
         throw new Error('This email is already in use.');
@@ -78,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     if (!isFirebaseConfigured() || !auth) return;
     await firebaseSignOut(auth);
+    // User state will be updated by onAuthStateChanged listener
   }, []);
 
   const value: AuthContextType = {
