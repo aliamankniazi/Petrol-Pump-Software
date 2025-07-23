@@ -1,14 +1,15 @@
 
 'use client';
 
-import { createContext, useState, useEffect, useContext, type ReactNode, useCallback, useMemo } from 'react';
+import { createContext, useState, useEffect, useContext, type ReactNode, useCallback, useMemo, useReducer } from 'react';
 import { ref, push, set, serverTimestamp, update, remove, get } from 'firebase/database';
 import type { Institution } from '@/lib/types';
 import { useAuth } from './use-auth.tsx';
-import { db, isFirebaseConfigured } from '@/lib/firebase-client';
+import { db } from '@/lib/firebase-client';
 
 const INSTITUTIONS_COLLECTION = 'institutions';
 const USER_MAP_COLLECTION = 'userMappings';
+const LOCAL_STORAGE_KEY = 'currentInstitutionId';
 
 interface UserToInstitution {
     id: string; // Composite key like `${userId}_${institutionId}`
@@ -17,12 +18,56 @@ interface UserToInstitution {
     roleId: string;
 }
 
+interface InstitutionState {
+    allInstitutions: Institution[];
+    allUserMappings: UserToInstitution[];
+    loading: boolean;
+    error: Error | null;
+}
+
+type InstitutionAction =
+    | { type: 'FETCH_START' }
+    | { type: 'FETCH_SUCCESS'; payload: { institutions: Institution[], mappings: UserToInstitution[] } }
+    | { type: 'FETCH_ERROR'; payload: Error }
+    | { type: 'ADD_INSTITUTION'; payload: Institution }
+    | { type: 'UPDATE_INSTITUTION'; payload: Partial<Institution> & { id: string } }
+    | { type: 'DELETE_INSTITUTION'; payload: string }
+    | { type: 'RESET' };
+
+const initialState: InstitutionState = {
+    allInstitutions: [],
+    allUserMappings: [],
+    loading: true,
+    error: null,
+};
+
+const institutionReducer = (state: InstitutionState, action: InstitutionAction): InstitutionState => {
+    switch (action.type) {
+        case 'FETCH_START':
+            return { ...state, loading: true, error: null };
+        case 'FETCH_SUCCESS':
+            return { ...state, loading: false, allInstitutions: action.payload.institutions, allUserMappings: action.payload.mappings };
+        case 'FETCH_ERROR':
+            return { ...state, loading: false, error: action.payload };
+        case 'ADD_INSTITUTION':
+            return { ...state, allInstitutions: [...state.allInstitutions, action.payload] };
+        case 'UPDATE_INSTITUTION':
+            return { ...state, allInstitutions: state.allInstitutions.map(i => i.id === action.payload.id ? { ...i, ...action.payload } : i) };
+        case 'DELETE_INSTITUTION':
+            return { ...state, allInstitutions: state.allInstitutions.filter(i => i.id !== action.payload) };
+        case 'RESET':
+            return initialState;
+        default:
+            return state;
+    }
+};
+
 interface InstitutionContextType {
     userInstitutions: Institution[];
     currentInstitution: Institution | null;
+    institutionLoading: boolean;
     setCurrentInstitution: (institutionId: string) => void;
     clearCurrentInstitution: () => void;
-    institutionDataLoaded: boolean;
     addInstitution: (institution: Omit<Institution, 'id' | 'ownerId' | 'timestamp'>) => Promise<Institution>;
     updateInstitution: (id: string, data: Partial<Omit<Institution, 'id' | 'ownerId'>>) => Promise<void>;
     deleteInstitution: (id: string) => Promise<void>;
@@ -30,44 +75,29 @@ interface InstitutionContextType {
 
 const InstitutionContext = createContext<InstitutionContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY = 'currentInstitutionId';
-
 export function InstitutionProvider({ children }: { children: ReactNode }) {
     const { user, loading: authLoading } = useAuth();
-    const [currentInstitutionId, setCurrentInstitutionId] = useState<string | null>(null);
-    const [allInstitutions, setAllInstitutions] = useState<Institution[]>([]);
-    const [allUserMappings, setAllUserMappings] = useState<UserToInstitution[]>([]);
-    const [institutionDataLoaded, setInstitutionDataLoaded] = useState(false);
+    const [state, dispatch] = useReducer(institutionReducer, initialState);
+    const [currentInstitutionId, setCurrentInstitutionId] = useState<string | null>(() => {
+        if (typeof window === 'undefined') return null;
+        return localStorage.getItem(LOCAL_STORAGE_KEY);
+    });
 
     useEffect(() => {
-        const storedId = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (storedId) {
-            setCurrentInstitutionId(storedId);
-        }
-    }, []);
-    
-    useEffect(() => {
-        if (authLoading) {
-            setInstitutionDataLoaded(false);
-            return;
-        }
+        if (authLoading) return;
 
         if (!user) {
-            setAllInstitutions([]);
-            setAllUserMappings([]);
-            setCurrentInstitutionId(null);
-            localStorage.removeItem(LOCAL_STORAGE_KEY);
-            setInstitutionDataLoaded(true);
+            dispatch({ type: 'RESET' });
             return;
         }
 
         const fetchData = async () => {
             if (!db) {
-                setInstitutionDataLoaded(true);
+                dispatch({ type: 'FETCH_ERROR', payload: new Error("Database not configured.") });
                 return;
             }
 
-            setInstitutionDataLoaded(false);
+            dispatch({ type: 'FETCH_START' });
             try {
                 const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
                 const mappingsRef = ref(db, USER_MAP_COLLECTION);
@@ -82,21 +112,18 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
                     const data = institutionsSnapshot.val();
                     Object.keys(data).forEach(key => institutionsArray.push({ id: key, ...data[key] }));
                 }
-                setAllInstitutions(institutionsArray);
-
+                
                 const mappingsArray: UserToInstitution[] = [];
                 if (mappingsSnapshot.exists()) {
                     const data = mappingsSnapshot.val();
                     Object.keys(data).forEach(key => mappingsArray.push({ id: key, ...data[key] }));
                 }
-                setAllUserMappings(mappingsArray);
+                
+                dispatch({ type: 'FETCH_SUCCESS', payload: { institutions: institutionsArray, mappings: mappingsArray } });
 
             } catch (error) {
-                console.error("Failed to fetch initial institution or mapping data:", error);
-                setAllInstitutions([]);
-                setAllUserMappings([]);
-            } finally {
-                setInstitutionDataLoaded(true);
+                console.error("Failed to fetch institution or mapping data:", error);
+                dispatch({ type: 'FETCH_ERROR', payload: error as Error });
             }
         };
 
@@ -104,20 +131,20 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     }, [user, authLoading]);
 
     const userInstitutions = useMemo(() => {
-        if (!user || !institutionDataLoaded) return [];
+        if (!user || state.loading) return [];
         
-        const userMappings = allUserMappings.filter(m => m.userId === user.uid);
+        const userMappings = state.allUserMappings.filter(m => m.userId === user.uid);
         const institutionIdsFromMappings = userMappings.map(m => m.institutionId);
         
-        const ownedInstitutions = allInstitutions.filter(inst => inst.ownerId === user.uid);
+        const ownedInstitutions = state.allInstitutions.filter(inst => inst.ownerId === user.uid);
         const allReachableIds = new Set([...institutionIdsFromMappings, ...ownedInstitutions.map(i => i.id)]);
         
-        return allInstitutions.filter(inst => allReachableIds.has(inst.id));
-    }, [user, allInstitutions, allUserMappings, institutionDataLoaded]);
+        return state.allInstitutions.filter(inst => allReachableIds.has(inst.id));
+    }, [user, state.allInstitutions, state.allUserMappings, state.loading]);
 
     const currentInstitution = useMemo(() => {
-        return allInstitutions.find(inst => inst.id === currentInstitutionId) ?? null;
-    }, [currentInstitutionId, allInstitutions]);
+        return state.allInstitutions.find(inst => inst.id === currentInstitutionId) ?? null;
+    }, [currentInstitutionId, state.allInstitutions]);
 
     const setCurrentInstitutionCB = useCallback((institutionId: string) => {
         localStorage.setItem(LOCAL_STORAGE_KEY, institutionId);
@@ -140,7 +167,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         const dataWithOwner = { ...institution, ownerId: user.uid, timestamp: serverTimestamp() };
         await set(newDocRef, dataWithOwner);
         const newInstitution = { ...dataWithOwner, id: newId, timestamp: Date.now() } as Institution;
-        setAllInstitutions(prev => [...prev, newInstitution]);
+        dispatch({ type: 'ADD_INSTITUTION', payload: newInstitution });
         return newInstitution;
     }, [user]);
 
@@ -148,14 +175,14 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         if (!db) return;
         const docRef = ref(db, `${INSTITUTIONS_COLLECTION}/${id}`);
         await update(docRef, data);
-        setAllInstitutions(prev => prev.map(inst => inst.id === id ? { ...inst, ...data } as Institution : inst));
+        dispatch({ type: 'UPDATE_INSTITUTION', payload: { id, ...data } });
     }, []);
 
     const deleteInstitution = useCallback(async (id: string) => {
         if (!db) return;
         const docRef = ref(db, `${INSTITUTIONS_COLLECTION}/${id}`);
         await remove(docRef);
-        setAllInstitutions(prev => prev.filter(inst => inst.id !== id));
+        dispatch({ type: 'DELETE_INSTITUTION', payload: id });
         if (currentInstitutionId === id) {
             clearCurrentInstitutionCB();
         }
@@ -164,18 +191,18 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     const value: InstitutionContextType = useMemo(() => ({
         userInstitutions,
         currentInstitution,
+        institutionLoading: state.loading,
         setCurrentInstitution: setCurrentInstitutionCB,
         clearCurrentInstitution: clearCurrentInstitutionCB,
-        institutionDataLoaded,
         addInstitution,
         updateInstitution,
         deleteInstitution,
     }), [
         userInstitutions, 
         currentInstitution, 
+        state.loading,
         setCurrentInstitutionCB, 
         clearCurrentInstitutionCB, 
-        institutionDataLoaded,
         addInstitution,
         updateInstitution,
         deleteInstitution
@@ -196,11 +223,10 @@ export const useInstitution = () => {
     return context;
 };
 
-// This is a convenience hook for components that only need the list of institutions
 export function useInstitutions() {
     const { 
         userInstitutions, 
-        institutionDataLoaded,
+        institutionLoading,
         addInstitution, 
         updateInstitution, 
         deleteInstitution 
@@ -211,6 +237,6 @@ export function useInstitutions() {
         addInstitution,
         updateInstitution,
         deleteInstitution,
-        isLoaded: institutionDataLoaded,
+        isLoaded: !institutionLoading,
     }
 }

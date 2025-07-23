@@ -48,31 +48,29 @@ interface RolesContextType {
     userRole: RoleId | null;
     isSuperAdmin: boolean;
     userMappings: UserMapping[];
+    loading: boolean;
+    isReady: boolean;
     addRole: (role: Omit<Role, 'id'>) => void;
     updateRole: (id: RoleId, updatedRole: Partial<Omit<Role, 'id'>>) => void;
     deleteRole: (id: RoleId) => void;
     hasPermission: (permission: Permission) => boolean;
     assignRoleToUser: (userId: string, roleId: RoleId, institutionId: string) => Promise<void>;
-    getRoleForUserInInstitution: (userId: string, institutionId: string) => RoleId | null;
-    isReady: boolean;
 }
 
 const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
 export function RolesProvider({ children }: { children: ReactNode }) {
-    const { user, loading: authLoading } = useAuth();
-    const { currentInstitution, institutionDataLoaded } = useInstitution();
+    const { user } = useAuth();
+    const { currentInstitution, institutionLoading } = useInstitution();
     
-    // This hook now correctly waits for `currentInstitution.id` to be available.
     const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, currentInstitution?.id || null);
     
     const [userMappings, setUserMappings] = useState<UserMapping[]>([]);
     const [userMappingsLoading, setUserMappingsLoading] = useState(true);
-    const [defaultsInitialized, setDefaultsInitialized] = useState(false);
 
-    // Fetch all user mappings once.
     useEffect(() => {
-        if (authLoading || !db) {
+        if (!db || !currentInstitution) {
+            setUserMappingsLoading(false);
             return;
         }
         setUserMappingsLoading(true);
@@ -89,55 +87,31 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         }).finally(() => {
             setUserMappingsLoading(false);
         });
-    }, [authLoading]);
-
+    }, [currentInstitution]);
+    
     // Effect to initialize default roles for the current institution if they don't exist.
     useEffect(() => {
-        if (!currentInstitution || rolesLoading || defaultsInitialized) {
+        if (!currentInstitution || rolesLoading || roles.length > 0) {
             return;
         }
         
-        const adminRoleExists = roles.some(r => r.id === 'admin');
-        const attendantRoleExists = roles.some(r => r.id === 'attendant');
-
-        if (adminRoleExists && attendantRoleExists) {
-            setDefaultsInitialized(true);
-            return;
-        }
-
         const setupDefaults = async () => {
             try {
-                if (!adminRoleExists) {
-                    await addRoleDoc({ name: 'Admin', permissions: [...PERMISSIONS] }, 'admin');
-                }
-                if (!attendantRoleExists) {
-                    await addRoleDoc({ name: 'Attendant', permissions: ['view_dashboard', 'view_all_transactions', 'view_customers', 'view_inventory', 'view_purchases', 'view_expenses', 'view_other_incomes'] }, 'attendant');
-                }
+                await addRoleDoc({ name: 'Admin', permissions: [...PERMISSIONS] }, 'admin');
+                await addRoleDoc({ name: 'Attendant', permissions: ['view_dashboard', 'view_all_transactions', 'view_customers', 'view_inventory', 'view_purchases', 'view_expenses', 'view_other_incomes'] }, 'attendant');
             } catch (error) {
                 console.error("Failed to initialize default roles:", error);
-            } finally {
-                // The onValue listener in useDatabaseCollection will update roles,
-                // which will cause this effect to re-run and eventually set initialized to true.
             }
         };
 
-        if (roles.length > 0) { // If some roles exist but not all defaults
-             if (!adminRoleExists || !attendantRoleExists) {
-                setupDefaults();
-             } else {
-                 setDefaultsInitialized(true);
-             }
-        } else if (roles.length === 0) { // If no roles exist at all
-            setupDefaults();
-        }
-
-    }, [currentInstitution, roles, rolesLoading, addRoleDoc, defaultsInitialized]);
+        setupDefaults();
+    }, [currentInstitution, roles, rolesLoading, addRoleDoc]);
     
-    const isReady = !authLoading && institutionDataLoaded && !!currentInstitution && !rolesLoading && !userMappingsLoading && defaultsInitialized;
+    const loading = rolesLoading || userMappingsLoading || institutionLoading;
+    const isReady = !loading && !!currentInstitution && roles.length > 0;
     
     const isSuperAdmin = useMemo(() => {
         if (!user || !currentInstitution) return false;
-        // The owner of the institution is the super admin.
         return user.uid === currentInstitution.ownerId;
     }, [user, currentInstitution]);
 
@@ -154,16 +128,9 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         const newMapping = { userId, roleId, institutionId };
         const mappingRef = ref(db, `${USER_MAP_COLLECTION}/${docId}`);
         await set(mappingRef, newMapping);
-        // Refresh local state after assigning role
         setUserMappings(prev => [...prev.filter(m => m.id !== docId), { ...newMapping, id: docId }]);
     }, []);
     
-    const getRoleForUserInInstitution = useCallback((userId: string, institutionId: string): RoleId | null => {
-        if (!userMappings) return null;
-        const mapping = userMappings.find(m => m.userId === userId && m.institutionId === institutionId);
-        return mapping?.roleId || null;
-    }, [userMappings]);
-
     const addRole = useCallback((role: Omit<Role, 'id'>) => {
         const id = role.name.toLowerCase().replace(/\s+/g, '-');
         addRoleDoc(role, id);
@@ -191,13 +158,13 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         userRole: currentUserRole,
         isSuperAdmin,
         userMappings,
+        loading,
+        isReady,
         addRole,
         updateRole,
         deleteRole,
         hasPermission,
         assignRoleToUser,
-        getRoleForUserInInstitution,
-        isReady,
     };
     
     return (

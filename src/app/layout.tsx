@@ -97,10 +97,10 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
 }
 
 const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
-  const { currentInstitution, institutionDataLoaded } = useInstitution();
-  const { isReady: rolesReady, hasPermission } = useRoles();
+  const { currentInstitution, institutionLoading } = useInstitution();
+  const { isReady: rolesReady, loading: rolesLoading } = useRoles();
   
-  if (!institutionDataLoaded) {
+  if (institutionLoading) {
       return (
          <FullscreenMessage title="Loading Institutions..." showSpinner>
           <p className="text-center text-muted-foreground">Fetching your assigned institutions.</p>
@@ -112,7 +112,7 @@ const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
      return <InstitutionSelector />;
   }
 
-  if (!rolesReady) {
+  if (rolesLoading || !rolesReady) {
     return (
         <FullscreenMessage title="Loading User Profile..." showSpinner>
           <p className="text-center text-muted-foreground">Loading your roles and permissions for '{currentInstitution.name}'.</p>
@@ -120,7 +120,7 @@ const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
     );
   }
   
-  return <AppLayout hasPermission={hasPermission}>{children}</AppLayout>;
+  return <AppLayout>{children}</AppLayout>;
 }
 
 
