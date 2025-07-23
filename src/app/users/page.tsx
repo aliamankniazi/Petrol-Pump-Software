@@ -34,6 +34,7 @@ export default function UsersPage() {
   // Redirect if user is already logged in.
   if (user) {
     router.replace('/dashboard');
+    return null; // Render nothing while redirecting
   }
 
   const { register, handleSubmit, formState: { errors } } = useForm<NewUserFormValues>({
@@ -48,47 +49,46 @@ export default function UsersPage() {
       return;
     }
 
-    // Check for existing setup *inside* the submission logic
-    const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
-    const snapshot = await get(setupRef);
-
-    if (snapshot.exists() && snapshot.val() === true) {
-      toast({
-        variant: 'destructive',
-        title: 'Setup Already Complete',
-        description: 'A Super Admin is already registered. Please log in.',
-      });
-      router.replace('/login');
-      setLoading(false);
-      return;
-    }
-    
-    // Proceed with registration if setup is not complete
     try {
-      const userCredential = await signUp({ email: data.email, password: data.password });
+        // Check for existing setup *inside* the submission logic
+        const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
+        const snapshot = await get(setupRef);
 
-      const newInstitutionRef = push(ref(db, 'institutions'));
-      const newInstitutionId = newInstitutionRef.key;
+        if (snapshot.exists() && snapshot.val() === true) {
+          toast({
+            variant: 'destructive',
+            title: 'Setup Already Complete',
+            description: 'A Super Admin is already registered. Please log in.',
+          });
+          router.replace('/login');
+          return;
+        }
+        
+        // Proceed with registration if setup is not complete
+        const userCredential = await signUp({ email: data.email, password: data.password });
 
-      if (!newInstitutionId) {
-        throw new Error("Could not create a new institution.");
-      }
-      
-      // Create the first institution
-      await set(newInstitutionRef, {
-        name: data.institutionName,
-        ownerId: userCredential.user.uid,
-        timestamp: serverTimestamp(),
-      });
-      
-      // Set the flag to prevent future registrations
-      await set(ref(db, 'app_settings/isSuperAdminRegistered'), true);
+        const newInstitutionRef = push(ref(db, 'institutions'));
+        const newInstitutionId = newInstitutionRef.key;
 
-      toast({ title: 'Super Admin Created!', description: 'Logging you in...' });
-      
-      // Log the new user in and redirect
-      await signIn({ email: data.email, password: data.password });
-      router.push('/dashboard');
+        if (!newInstitutionId) {
+          throw new Error("Could not create a new institution.");
+        }
+        
+        // Create the first institution
+        await set(newInstitutionRef, {
+          name: data.institutionName,
+          ownerId: userCredential.user.uid,
+          timestamp: serverTimestamp(),
+        });
+        
+        // Set the flag to prevent future registrations
+        await set(ref(db, 'app_settings/isSuperAdminRegistered'), true);
+
+        toast({ title: 'Super Admin Created!', description: 'Logging you in...' });
+        
+        // Log the new user in and redirect
+        await signIn({ email: data.email, password: data.password });
+        router.push('/dashboard');
 
     } catch (error: any) {
       toast({
