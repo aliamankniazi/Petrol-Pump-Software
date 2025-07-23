@@ -49,52 +49,36 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
    </div>
 );
 
-function UnauthenticatedApp() {
+function AppContainer({ children }: { children: React.ReactNode }) {
+  const { user, loading: authLoading } = useAuth();
   const [setupState, setSetupState] = React.useState<'checking' | 'needs_setup' | 'login_ready'>('checking');
 
   React.useEffect(() => {
     async function checkSetup() {
-      if (!db) {
-        // If DB isn't configured, default to login to show the config error.
-        setSetupState('login_ready');
-        return;
-      }
-      try {
-        const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
-        const snapshot = await get(setupRef);
-        if (snapshot.exists() && snapshot.val() === true) {
-          setSetupState('login_ready');
-        } else {
-          setSetupState('needs_setup');
+      if (authLoading) return; // Wait until auth state is confirmed
+
+      if (!user) { // Only check if the user is not logged in
+        if (!db) {
+          setSetupState('login_ready'); // Default to login if DB isn't configured, to show firebase config error
+          return;
         }
-      } catch (error) {
-        console.error("Error checking for Super Admin:", error);
-        // Default to login ready to avoid getting stuck on an error.
-        setSetupState('login_ready');
+        try {
+          const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
+          const snapshot = await get(setupRef);
+          if (snapshot.exists() && snapshot.val() === true) {
+            setSetupState('login_ready');
+          } else {
+            setSetupState('needs_setup');
+          }
+        } catch (error) {
+          console.error("Error checking for Super Admin:", error);
+          setSetupState('login_ready'); // Default to login on error to avoid getting stuck
+        }
       }
     }
     checkSetup();
-  }, []);
+  }, [authLoading, user]);
 
-  if (setupState === 'checking') {
-      return (
-        <FullscreenMessage title="Initializing..." showSpinner>
-          <p>Please wait while we check the application status.</p>
-        </FullscreenMessage>
-      );
-  }
-
-  if (setupState === 'needs_setup') {
-      return <UsersPage isFirstSetup={true} />;
-  }
-  
-  return <LoginPage />;
-}
-
-
-const AppContainer = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading: authLoading } = useAuth();
-  
   if (!isFirebaseConfigured()) {
     return (
         <FullscreenMessage title="Firebase Not Configured">
@@ -104,15 +88,15 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
         </FullscreenMessage>
     );
   }
-  
-  if (authLoading) {
+
+  if (authLoading || (!user && setupState === 'checking')) {
     return (
-      <FullscreenMessage title="Authenticating..." showSpinner>
-        <p className="text-center text-muted-foreground">Please wait while we verify your credentials.</p>
+      <FullscreenMessage title="Initializing..." showSpinner>
+        <p className="text-center text-muted-foreground">Please wait while we prepare the application.</p>
       </FullscreenMessage>
     );
   }
-  
+
   if (user) {
     return (
       <InstitutionProvider>
@@ -123,7 +107,21 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
     );
   }
   
-  return <UnauthenticatedApp />;
+  // Unauthenticated user flow
+  if (setupState === 'needs_setup') {
+    return <UsersPage isFirstSetup={true} />;
+  }
+
+  if (setupState === 'login_ready') {
+    return <LoginPage />;
+  }
+  
+  // Fallback, should not be reached if logic is correct
+  return (
+      <FullscreenMessage title="An Error Occurred" showSpinner>
+        <p className="text-center text-muted-foreground">Could not determine application state. Please refresh the page.</p>
+      </FullscreenMessage>
+  );
 }
 
 

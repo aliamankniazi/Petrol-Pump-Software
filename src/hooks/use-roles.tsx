@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo, useCallback, createContext, useContext, type ReactNode } from 'react';
+import { useMemo, useCallback, createContext, useContext, type ReactNode, useEffect, useState } from 'react';
 import type { Role, RoleId, Permission } from '@/lib/types';
 import { useAuth } from './use-auth.tsx';
 import { useDatabaseCollection } from './use-database-collection';
@@ -54,18 +54,34 @@ const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
 export function RolesProvider({ children }: { children: ReactNode }) {
     const { user, loading: authLoading } = useAuth();
-    const { currentInstitution } = useInstitution();
+    const { currentInstitution, institutionLoading } = useInstitution();
     
     const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, currentInstitution?.id || null);
     
     const { data: userMappings, addDoc: addUserMapping, loading: userMappingsLoading } = useDatabaseCollection<UserMapping>(USER_MAP_COLLECTION, null);
 
-    const isReady = !authLoading && !rolesLoading && !userMappingsLoading && !!currentInstitution;
+    const [defaultsInitialized, setDefaultsInitialized] = useState(false);
+    
+    const isReady = !authLoading && !rolesLoading && !userMappingsLoading && !!currentInstitution && defaultsInitialized && !institutionLoading;
     
     const isSuperAdmin = useMemo(() => {
         if (!user || !currentInstitution) return false;
         return user.uid === currentInstitution.ownerId;
     }, [user, currentInstitution]);
+
+    useEffect(() => {
+        if (currentInstitution && !rolesLoading && !defaultsInitialized) {
+            const adminRoleExists = roles.some(r => r.id === 'admin');
+
+            if (!adminRoleExists) {
+                addRoleDoc({ name: 'Admin', permissions: [...PERMISSIONS] }, 'admin').finally(() => {
+                    setDefaultsInitialized(true);
+                });
+            } else {
+                 setDefaultsInitialized(true);
+            }
+        }
+    }, [currentInstitution, roles, rolesLoading, addRoleDoc, defaultsInitialized]);
     
     const currentUserRole = useMemo(() => {
         if (!user || !currentInstitution || userMappingsLoading) return null;

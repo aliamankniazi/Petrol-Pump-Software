@@ -18,8 +18,7 @@ import type { RoleId } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/lib/firebase-client';
-import { ref, set, get } from 'firebase/database';
-import { useRouter } from 'next/navigation';
+import { ref, set } from 'firebase/database';
 import { useInstitution } from '@/hooks/use-institution';
 
 const newUserSchema = z.object({
@@ -36,29 +35,11 @@ export default function UsersPage({ isFirstSetup = false }: { isFirstSetup?: boo
   const { roles, assignRoleToUser, userMappings, isReady: rolesReady } = useRoles();
   const { currentInstitution, addInstitution, setCurrentInstitution } = useInstitution();
   const { toast } = useToast();
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const { register, handleSubmit, reset, control, setValue, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
   });
-
-  useEffect(() => {
-    // This effect ensures that if a user tries to access this page after setup, they are redirected.
-    // It's a security measure. The primary routing is handled by the layout.
-    async function checkAndRedirect() {
-      if (!isFirstSetup && db) {
-        const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
-        const snapshot = await get(setupRef);
-        if (!snapshot.exists() || snapshot.val() !== true) {
-          // If for some reason a regular user lands here and setup is not done, force them to setup.
-           window.location.href = '/';
-        }
-      }
-    }
-    checkAndRedirect();
-  }, [isFirstSetup]);
-
 
   useEffect(() => {
     if (isFirstSetup) {
@@ -101,10 +82,8 @@ export default function UsersPage({ isFirstSetup = false }: { isFirstSetup?: boo
       if (isFirstSetup) {
           await set(ref(db, 'app_settings/isSuperAdminRegistered'), true);
           toast({ title: 'Super Admin Created!', description: 'Logging you in...' });
+          // The auth state change will be picked up by the layout, which will then render the main app.
           await signIn({email: data.email, password: data.password});
-          // After successful login, the AuthProvider will redirect to the dashboard.
-          // Using window.location.href to ensure a full page reload, which helps clear all state.
-          window.location.href = '/dashboard';
       } else {
         toast({ title: 'User Created', description: `Account for ${data.email} created successfully.` });
         reset({ email: '', password: '', roleId: '', institutionName: '' });
@@ -118,7 +97,7 @@ export default function UsersPage({ isFirstSetup = false }: { isFirstSetup?: boo
     } finally {
         setLoading(false);
     }
-  }, [signUp, signIn, assignRoleToUser, toast, reset, currentInstitution, isFirstSetup, addInstitution, router, setCurrentInstitution]);
+  }, [signUp, signIn, assignRoleToUser, toast, reset, currentInstitution, isFirstSetup, addInstitution, setCurrentInstitution]);
 
   const availableRoles = useMemo(() => {
     if (isFirstSetup) {
