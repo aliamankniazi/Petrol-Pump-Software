@@ -17,9 +17,9 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import { FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, LogOut, Fuel, DollarSign, Beaker, Handshake, PiggyBank, Archive, BarChartHorizontal, Shield, AreaChart, UserCog, Building } from 'lucide-react';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/use-auth.tsx';
 import { Button } from './ui/button';
-import type { Permission } from '@/hooks/use-roles';
+import { useRoles, type Permission } from '@/hooks/use-roles.tsx';
 import { useInstitution } from '@/hooks/use-institution.tsx';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
@@ -68,9 +68,10 @@ const AppLogo = () => {
 };
 
 
-export function AppLayout({ children, hasPermission }: { children: React.ReactNode, hasPermission: (permission: Permission) => boolean }) {
+export function AppLayout({ children }: { children: React.ReactNode }) {
   const { signOut } = useAuth();
   const { clearCurrentInstitution } = useInstitution();
+  const { hasPermission } = useRoles();
   const pathname = usePathname();
   
   const visibleNavItems = navItems.filter(item => hasPermission(item.permission));
