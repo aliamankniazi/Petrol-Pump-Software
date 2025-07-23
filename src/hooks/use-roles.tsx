@@ -61,7 +61,7 @@ const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
 export function RolesProvider({ children }: { children: ReactNode }) {
     const { user, loading: authLoading } = useAuth();
-    const { currentInstitution, isLoaded: institutionLoaded } = useInstitution();
+    const { currentInstitution, institutionDataLoaded } = useInstitution();
     
     // This hook now correctly waits for `currentInstitution.id` to be available.
     const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, currentInstitution?.id || null);
@@ -96,34 +96,44 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         if (!currentInstitution || rolesLoading || defaultsInitialized) {
             return;
         }
+        
+        const adminRoleExists = roles.some(r => r.id === 'admin');
+        const attendantRoleExists = roles.some(r => r.id === 'attendant');
+
+        if (adminRoleExists && attendantRoleExists) {
+            setDefaultsInitialized(true);
+            return;
+        }
 
         const setupDefaults = async () => {
-            let createdDefaults = false;
-            for (const role of DEFAULT_ROLES) {
-                const id = role.name.toLowerCase().replace(/\s+/g, '-');
-                if (!roles.some(r => r.id === id)) {
-                    await addRoleDoc(role, id);
-                    createdDefaults = true;
+            try {
+                if (!adminRoleExists) {
+                    await addRoleDoc({ name: 'Admin', permissions: [...PERMISSIONS] }, 'admin');
                 }
-            }
-            // Only set initialized to true if we didn't have to create new roles,
-            // or after we are done. If we created roles, the `useDatabaseCollection` hook
-            // will trigger a re-render with the new roles, and we can confirm initialization then.
-            if (!createdDefaults) {
-                setDefaultsInitialized(true);
+                if (!attendantRoleExists) {
+                    await addRoleDoc({ name: 'Attendant', permissions: ['view_dashboard', 'view_all_transactions', 'view_customers', 'view_inventory', 'view_purchases', 'view_expenses', 'view_other_incomes'] }, 'attendant');
+                }
+            } catch (error) {
+                console.error("Failed to initialize default roles:", error);
+            } finally {
+                // The onValue listener in useDatabaseCollection will update roles,
+                // which will cause this effect to re-run and eventually set initialized to true.
             }
         };
 
-        const adminRoleExists = roles.some(r => r.id === 'admin');
-        if (roles.length > 0 && adminRoleExists) {
-             setDefaultsInitialized(true);
-        } else if (roles.length === 0) {
+        if (roles.length > 0) { // If some roles exist but not all defaults
+             if (!adminRoleExists || !attendantRoleExists) {
+                setupDefaults();
+             } else {
+                 setDefaultsInitialized(true);
+             }
+        } else if (roles.length === 0) { // If no roles exist at all
             setupDefaults();
         }
 
     }, [currentInstitution, roles, rolesLoading, addRoleDoc, defaultsInitialized]);
     
-    const isReady = !authLoading && institutionLoaded && !!currentInstitution && !rolesLoading && !userMappingsLoading && defaultsInitialized;
+    const isReady = !authLoading && institutionDataLoaded && !!currentInstitution && !rolesLoading && !userMappingsLoading && defaultsInitialized;
     
     const isSuperAdmin = useMemo(() => {
         if (!user || !currentInstitution) return false;
