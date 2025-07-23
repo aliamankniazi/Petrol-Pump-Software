@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -30,44 +30,11 @@ export default function UsersPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [isReadyForSetup, setIsReadyForSetup] = useState(false);
-  const [isClient, setIsClient] = useState(false);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isClient || user) {
-        if (user) router.replace('/dashboard');
-        return;
-    }
-
-    const checkSetupStatus = async () => {
-        if (!db) {
-            console.error("Firebase DB not initialized.");
-            setIsReadyForSetup(false);
-            return;
-        }
-
-        const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
-        try {
-            const snapshot = await get(setupRef);
-            if (snapshot.exists() && snapshot.val() === true) {
-                toast({ title: "Setup Already Complete", description: "Redirecting to login." });
-                router.replace('/login');
-            } else {
-                setIsReadyForSetup(true);
-            }
-        } catch (error) {
-            console.error("Error checking app setup:", error);
-            toast({ variant: 'destructive', title: 'Error', description: "Could not verify app setup status." });
-            router.replace('/login');
-        }
-    };
-    
-    checkSetupStatus();
-  }, [isClient, user, router, toast]);
+  // Redirect if user is already logged in.
+  if (user) {
+    router.replace('/dashboard');
+  }
 
   const { register, handleSubmit, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
@@ -80,7 +47,23 @@ export default function UsersPage() {
       setLoading(false);
       return;
     }
+
+    // Check for existing setup *inside* the submission logic
+    const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
+    const snapshot = await get(setupRef);
+
+    if (snapshot.exists() && snapshot.val() === true) {
+      toast({
+        variant: 'destructive',
+        title: 'Setup Already Complete',
+        description: 'A Super Admin is already registered. Please log in.',
+      });
+      router.replace('/login');
+      setLoading(false);
+      return;
+    }
     
+    // Proceed with registration if setup is not complete
     try {
       const userCredential = await signUp({ email: data.email, password: data.password });
 
@@ -91,16 +74,19 @@ export default function UsersPage() {
         throw new Error("Could not create a new institution.");
       }
       
+      // Create the first institution
       await set(newInstitutionRef, {
         name: data.institutionName,
         ownerId: userCredential.user.uid,
         timestamp: serverTimestamp(),
       });
       
+      // Set the flag to prevent future registrations
       await set(ref(db, 'app_settings/isSuperAdminRegistered'), true);
 
       toast({ title: 'Super Admin Created!', description: 'Logging you in...' });
       
+      // Log the new user in and redirect
       await signIn({ email: data.email, password: data.password });
       router.push('/dashboard');
 
@@ -114,17 +100,6 @@ export default function UsersPage() {
       setLoading(false);
     }
   }, [signUp, signIn, toast, router]);
-
-  if (!isReadyForSetup) {
-    return (
-       <div className="flex min-h-screen items-center justify-center bg-background p-4">
-           <div className="flex items-center gap-2 text-muted-foreground">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              Verifying setup status...
-           </div>
-       </div>
-    );
-  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
@@ -159,7 +134,7 @@ export default function UsersPage() {
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Creating...' : 'Create Super Admin & Login'}
+                {loading ? 'Registering...' : 'Create Super Admin & Login'}
               </Button>
             </form>
           </CardContent>
