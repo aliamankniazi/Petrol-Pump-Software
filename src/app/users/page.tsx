@@ -39,8 +39,10 @@ export default function UsersPage() {
 
   useEffect(() => {
     // This check runs ONLY on the client-side after the component mounts.
-    // This is the key to preventing the race condition and deadlock.
+    // It will not run until the `db` object is available.
     if (!isFirebaseConfigured() || !db) {
+        // If firebase is not configured at all, just show the form.
+        // This is mainly for local setup.
         setCheckingSetup(false);
         return;
     }
@@ -55,7 +57,8 @@ export default function UsersPage() {
             }
         } catch (error) {
             console.error("Error checking setup status:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not verify app setup status.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not verify app setup status. Please try again.' });
+            // Show form anyway on error
             setCheckingSetup(false);
         }
     };
@@ -73,39 +76,41 @@ export default function UsersPage() {
 
     try {
       const userCredential = await signUp({ email: data.email, password: data.password });
+      const userId = userCredential.user.uid;
 
+      // 1. Create the first institution
       const newInstitutionRef = push(ref(db, 'institutions'));
       const newInstitutionId = newInstitutionRef.key;
-
-      if (!newInstitutionId) {
-        throw new Error("Could not create a new institution ID.");
-      }
+      if (!newInstitutionId) throw new Error("Could not create a new institution ID.");
       
       const institutionData = {
         name: data.institutionName,
-        ownerId: userCredential.user.uid,
+        ownerId: userId,
         timestamp: serverTimestamp(),
       };
-      
       await set(newInstitutionRef, institutionData);
 
+      // 2. Create the default 'admin' role for this institution
       const adminRoleRef = ref(db, `institutions/${newInstitutionId}/roles/admin`);
       await set(adminRoleRef, {
         name: 'Admin',
         permissions: [...PERMISSIONS],
       });
       
-      const userMappingRef = ref(db, `userMappings/${userCredential.user.uid}_${newInstitutionId}`);
+      // 3. Create the mapping that assigns the new user the 'admin' role for the new institution
+      const userMappingRef = ref(db, `userMappings/${userId}_${newInstitutionId}`);
       await set(userMappingRef, {
-        userId: userCredential.user.uid,
+        userId: userId,
         institutionId: newInstitutionId,
         roleId: 'admin'
       });
 
+      // 4. Set the global flag to prevent this page from being used again
       await set(ref(db, 'app_settings/isSuperAdminRegistered'), true);
 
       toast({ title: 'Super Admin Created!', description: 'Logging you in...' });
       
+      // 5. Sign the user in and redirect
       await signIn({ email: data.email, password: data.password });
       router.replace('/');
 
@@ -125,7 +130,7 @@ export default function UsersPage() {
         <div className="flex min-h-screen items-center justify-center bg-background p-4">
             <Card className="w-full max-w-md">
                 <CardHeader>
-                    <CardTitle>Verifying Setup Status</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><Terminal/> Verifying Setup Status</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center justify-center gap-4 text-center">
                     <p>Please wait while we check the application setup...</p>

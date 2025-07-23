@@ -50,24 +50,18 @@ function AppContent({ children }: { children: React.ReactNode }) {
     const { currentInstitution, institutionLoading } = useInstitution();
     const { isReady: rolesReady } = useRoles();
 
-    if (institutionLoading) {
+    const isLoading = institutionLoading || (currentInstitution && !rolesReady);
+
+    if (isLoading) {
         return (
-            <FullscreenMessage title="Loading Institutions..." showSpinner={true}>
-                <p>Fetching your user profile and institutions.</p>
+            <FullscreenMessage title="Loading Application..." showSpinner={true}>
+                <p>Fetching your profile and permissions. Please wait.</p>
             </FullscreenMessage>
         );
     }
     
     if (!currentInstitution) {
         return <InstitutionSelector />;
-    }
-    
-    if (!rolesReady) {
-        return (
-            <FullscreenMessage title="Loading Roles..." showSpinner={true}>
-                <p>Loading permissions for {currentInstitution.name}.</p>
-            </FullscreenMessage>
-        );
     }
 
     return <AppLayout>{children}</AppLayout>;
