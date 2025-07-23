@@ -11,13 +11,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { UserCog, UserPlus, List, Building } from 'lucide-react';
+import { UserCog, UserPlus, List } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth.tsx';
 import { useRoles } from '@/hooks/use-roles';
 import type { RoleId } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { db } from '@/lib/firebase-client';
 import { ref, set, get } from 'firebase/database';
 import { useRouter } from 'next/navigation';
@@ -33,39 +32,33 @@ const newUserSchema = z.object({
 type NewUserFormValues = z.infer<typeof newUserSchema>;
 
 export default function UsersPage({ isFirstSetup = false }: { isFirstSetup?: boolean }) {
-  const { signUp, signIn, user } = useAuth();
+  const { signUp, signIn } = useAuth();
   const { roles, assignRoleToUser, userMappings, isReady: rolesReady } = useRoles();
-  const { currentInstitution, addInstitution } = useInstitution();
+  const { currentInstitution, addInstitution, setCurrentInstitution } = useInstitution();
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [isSetupComplete, setIsSetupComplete] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    async function checkSetup() {
-      if (!db) {
-          setIsSetupComplete(true); // Assume setup is complete if DB isn't configured
-          return;
-      };
-      try {
-        const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
-        const snapshot = await get(setupRef);
-        const setupDone = snapshot.exists() && snapshot.val() === true;
-        setIsSetupComplete(setupDone);
-        if (setupDone && isFirstSetup) {
-          router.replace('/login');
-        }
-      } catch (error) {
-        console.error("Error checking for Super Admin:", error);
-        setIsSetupComplete(true);
-      }
-    }
-    checkSetup();
-  }, [isFirstSetup, router, user]);
 
   const { register, handleSubmit, reset, control, setValue, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
   });
+
+  useEffect(() => {
+    // This effect ensures that if a user tries to access this page after setup, they are redirected.
+    // It's a security measure. The primary routing is handled by the layout.
+    async function checkAndRedirect() {
+      if (!isFirstSetup && db) {
+        const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
+        const snapshot = await get(setupRef);
+        if (!snapshot.exists() || snapshot.val() !== true) {
+          // If for some reason a regular user lands here and setup is not done, force them to setup.
+           window.location.href = '/';
+        }
+      }
+    }
+    checkAndRedirect();
+  }, [isFirstSetup]);
+
 
   useEffect(() => {
     if (isFirstSetup) {
@@ -91,6 +84,9 @@ export default function UsersPage({ isFirstSetup = false }: { isFirstSetup?: boo
             }
             targetInstitution = await addInstitution({ name: data.institutionName, logoUrl: '' });
             if (!targetInstitution) throw new Error("Failed to create the first institution.");
+            
+            // Set the current institution in context so subsequent operations work
+            setCurrentInstitution(targetInstitution.id);
         }
 
         if (!targetInstitution) {
@@ -106,6 +102,8 @@ export default function UsersPage({ isFirstSetup = false }: { isFirstSetup?: boo
           await set(ref(db, 'app_settings/isSuperAdminRegistered'), true);
           toast({ title: 'Super Admin Created!', description: 'Logging you in...' });
           await signIn({email: data.email, password: data.password});
+          // After successful login, the AuthProvider will redirect to the dashboard.
+          // Using window.location.href to ensure a full page reload, which helps clear all state.
           window.location.href = '/dashboard';
       } else {
         toast({ title: 'User Created', description: `Account for ${data.email} created successfully.` });
@@ -120,7 +118,7 @@ export default function UsersPage({ isFirstSetup = false }: { isFirstSetup?: boo
     } finally {
         setLoading(false);
     }
-  }, [signUp, signIn, assignRoleToUser, toast, reset, currentInstitution, isFirstSetup, addInstitution, router]);
+  }, [signUp, signIn, assignRoleToUser, toast, reset, currentInstitution, isFirstSetup, addInstitution, router, setCurrentInstitution]);
 
   const availableRoles = useMemo(() => {
     if (isFirstSetup) {
@@ -129,7 +127,7 @@ export default function UsersPage({ isFirstSetup = false }: { isFirstSetup?: boo
     return roles.filter(role => role.id !== 'admin');
   }, [roles, isFirstSetup]);
 
-  if (!isFirstSetup && !currentInstitution && rolesReady && !user) {
+  if (!isFirstSetup && !currentInstitution && rolesReady) {
     return (
         <div className="p-4 md:p-8">
             <Card>
@@ -142,22 +140,10 @@ export default function UsersPage({ isFirstSetup = false }: { isFirstSetup?: boo
     );
   }
 
-  // Render a loading state while checking for setup completion
-  if (isFirstSetup && isSetupComplete === null) {
-     return (
-        <div className="flex h-screen w-full items-center justify-center bg-muted">
-             <div className="flex justify-center items-center gap-2">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                <p className="text-center">Checking application setup...</p>
-            </div>
-        </div>
-      );
-  }
-
   return (
     <div className={`flex items-center justify-center min-h-screen bg-background ${isFirstSetup ? '' : 'p-4 md:p-8'}`}>
         <div className={`grid gap-8 w-full max-w-6xl ${isFirstSetup ? 'lg:grid-cols-1' : 'lg:grid-cols-3'}`}>
-        <div className={isFirstSetup ? 'lg:col-span-1' : 'lg:col-span-1'}>
+        <div className={isFirstSetup ? 'lg:col-span-1 max-w-md mx-auto' : 'lg:col-span-1'}>
             <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">

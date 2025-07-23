@@ -14,8 +14,6 @@ import { useAuth } from '@/hooks/use-auth.tsx';
 import type { AuthFormValues } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { Separator } from '@/components/ui/separator';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -46,6 +44,7 @@ export default function LoginPage() {
         title: 'Login Successful',
         description: 'Welcome back!',
       });
+      // The redirect will be handled by the useEffect hook watching the `user` state.
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -85,12 +84,6 @@ export default function LoginPage() {
                 </Button>
             </form>
         </CardContent>
-        <CardFooter className="flex-col items-center gap-4">
-            <Separator />
-             <p className="text-sm text-center text-muted-foreground">
-                First-time setup? <Button asChild variant="link" className="p-0"><Link href="/users">Create Super Admin Account</Link></Button>
-            </p>
-        </CardFooter>
       </Card>
     </div>
   );

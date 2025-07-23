@@ -10,13 +10,12 @@ import { usePathname } from 'next/navigation';
 import { RolesProvider } from '@/hooks/use-roles';
 import { InstitutionProvider } from '@/hooks/use-institution';
 import { AppLayout } from '@/components/app-layout';
-import { isFirebaseConfigured } from '@/lib/firebase-client';
+import { isFirebaseConfigured, db } from '@/lib/firebase-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Terminal } from 'lucide-react';
 import LoginPage from './login/page';
 import UsersPage from './users/page';
 import { ref, get } from 'firebase/database';
-import { db } from '@/lib/firebase-client';
 
 
 const inter = Inter({
@@ -51,26 +50,33 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
 );
 
 function UnauthenticatedApp() {
-  const { user, loading } = useAuth();
-  const [isSetupComplete, setIsSetupComplete] = React.useState<boolean | null>(null);
+  const [setupState, setSetupState] = React.useState<'checking' | 'needs_setup' | 'login_ready'>('checking');
 
   React.useEffect(() => {
     async function checkSetup() {
-      if (loading || !db) return;
+      if (!db) {
+        // If DB isn't configured, default to login to show the config error.
+        setSetupState('login_ready');
+        return;
+      }
       try {
         const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
         const snapshot = await get(setupRef);
-        setIsSetupComplete(snapshot.exists() && snapshot.val() === true);
+        if (snapshot.exists() && snapshot.val() === true) {
+          setSetupState('login_ready');
+        } else {
+          setSetupState('needs_setup');
+        }
       } catch (error) {
         console.error("Error checking for Super Admin:", error);
-        // Default to login ready to avoid getting stuck
-        setIsSetupComplete(true);
+        // Default to login ready to avoid getting stuck on an error.
+        setSetupState('login_ready');
       }
     }
     checkSetup();
-  }, [loading]);
+  }, []);
 
-  if (isSetupComplete === null) {
+  if (setupState === 'checking') {
       return (
         <FullscreenMessage title="Initializing..." showSpinner>
           <p>Please wait while we check the application status.</p>
@@ -78,13 +84,10 @@ function UnauthenticatedApp() {
       );
   }
 
-  // If setup is not complete, show the user creation page (Super Admin setup).
-  // This page will have its own logic to redirect if a user tries to access it directly when setup IS complete.
-  if (!isSetupComplete) {
+  if (setupState === 'needs_setup') {
       return <UsersPage isFirstSetup={true} />;
   }
   
-  // Default to showing the login page if setup is complete.
   return <LoginPage />;
 }
 
