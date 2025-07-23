@@ -61,30 +61,25 @@ export default function UsersPage() {
       
       const updates: { [key: string]: any } = {};
       
-      // Path for new institution
       updates[`/institutions/${newInstitutionId}`] = {
         name: data.institutionName,
         ownerId: userId,
         timestamp: serverTimestamp(),
       };
       
-      // Path for new admin role in the institution
       updates[`/institutions/${newInstitutionId}/roles/admin`] = {
         name: 'Admin',
         permissions: [...PERMISSIONS],
       };
       
-      // Path for user-to-institution mapping
       updates[`/userMappings/${userId}_${newInstitutionId}`] = {
         userId: userId,
         institutionId: newInstitutionId,
         roleId: 'admin'
       };
       
-      // Path for global setup flag
       updates['/app_settings/isSuperAdminRegistered'] = true;
       
-      // Perform all database writes atomically
       await update(ref(db), updates);
 
       toast({ title: 'Super Admin Created!', description: 'Logging you in...' });

@@ -59,8 +59,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       return await createUserWithEmailAndPassword(auth, data.email, data.password);
     } catch (error) {
-      if (error instanceof FirebaseError && error.code === 'auth/email-already-in-use') {
-        throw new Error('This email is already in use.');
+      if (error instanceof FirebaseError) {
+        if (error.code === 'auth/email-already-in-use') {
+          throw new Error('This email is already in use.');
+        }
+        if (error.code === 'auth/weak-password') {
+          throw new Error('The password is too weak.');
+        }
+        throw new Error(error.message);
       }
       throw error;
     }
@@ -77,8 +83,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     if (!isFirebaseConfigured() || !auth) return;
     await firebaseSignOut(auth);
-    // User state will be updated by onAuthStateChanged listener, which sets user to null
-    // Also, clear institution selection from local storage
     localStorage.removeItem('currentInstitutionId');
   }, []);
 
