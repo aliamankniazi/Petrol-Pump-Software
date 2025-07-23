@@ -26,7 +26,7 @@ const newUserSchema = z.object({
 
 type NewUserFormValues = z.infer<typeof newUserSchema>;
 
-const FullscreenMessage = ({ title, children, showSpinner = false }: { title: string, children: React.ReactNode, showSpinner?: boolean }) => (
+const FullscreenMessage = ({ title, children }: { title: string, children: React.ReactNode }) => (
     <div className="flex h-screen w-full items-center justify-center bg-muted">
        <Card className="w-full max-w-md m-4">
           <CardHeader>
@@ -34,7 +34,7 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center gap-4 text-center">
             {children}
-            {showSpinner && <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mt-4"></div>}
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mt-4"></div>
           </CardContent>
        </Card>
      </div>
@@ -48,7 +48,7 @@ export default function UsersPage() {
   const [checkingSetup, setCheckingSetup] = useState(true);
 
   useEffect(() => {
-    async function checkSetupStatus() {
+    const checkSetupStatus = async () => {
       if (!isFirebaseConfigured() || !db) {
         toast({ variant: 'destructive', title: 'Firebase Not Configured' });
         setCheckingSetup(false);
@@ -67,7 +67,9 @@ export default function UsersPage() {
         toast({ variant: 'destructive', title: 'Error', description: 'Could not verify application setup.' });
         setCheckingSetup(false);
       }
-    }
+    };
+    
+    // This ensures the check only runs on the client-side after mounting
     checkSetupStatus();
   }, [router, toast]);
 
@@ -84,6 +86,15 @@ export default function UsersPage() {
     }
 
     try {
+      // First, quickly check again if another user has completed setup.
+      const setupSnapshot = await get(ref(db, 'app_settings/isSuperAdminRegistered'));
+      if (setupSnapshot.exists() && setupSnapshot.val() === true) {
+        toast({ variant: 'destructive', title: 'Setup Already Completed', description: 'A super admin has already been registered. Please log in.' });
+        router.replace('/login');
+        setLoading(false);
+        return;
+      }
+
       const userCredential = await signUp({ email: data.email, password: data.password });
 
       const newInstitutionRef = push(ref(db, 'institutions'));
@@ -134,7 +145,7 @@ export default function UsersPage() {
 
   if (checkingSetup) {
     return (
-        <FullscreenMessage title="Verifying setup status..." showSpinner={true}>
+        <FullscreenMessage title="Verifying setup status...">
             <p>Please wait while we check your application's configuration.</p>
         </FullscreenMessage>
     );
