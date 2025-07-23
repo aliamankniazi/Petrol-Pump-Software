@@ -7,7 +7,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
 import { AuthProvider, useAuth } from '@/hooks/use-auth.tsx';
 import { usePathname } from 'next/navigation';
-import { RolesProvider } from '@/hooks/use-roles.tsx';
+import { RolesProvider } from '@/hooks/use-roles';
+import { InstitutionProvider, useInstitution } from '@/hooks/use-institution';
 import { AppLayout } from '@/components/app-layout';
 import { isFirebaseConfigured, db } from '@/lib/firebase-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,67 +49,70 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
    </div>
 );
 
-function AuthenticatedApp({ children }: { children: React.ReactNode }) {
-  const { currentInstitution, isReady } = useRoles();
 
-  if (!isReady) {
+function AuthenticatedApp({ children }: { children: React.ReactNode }) {
+  const { currentInstitution, institutionLoading } = useInstitution();
+
+  if (institutionLoading) {
     return (
       <FullscreenMessage title="Loading Your Data..." showSpinner>
         <p>Please wait while we prepare your institution's data.</p>
       </FullscreenMessage>
     );
   }
-
-  if (currentInstitution) {
-    return <AppLayout>{children}</AppLayout>;
+  
+  if (!currentInstitution) {
+    return <InstitutionSelector />;
   }
-
-  return <InstitutionSelector />;
+  
+  return (
+    <RolesProvider>
+      <AppLayout>{children}</AppLayout>
+    </RolesProvider>
+  );
 }
 
 function UnauthenticatedApp() {
-    const [setupState, setSetupState] = React.useState<'checking' | 'needs_setup' | 'login_ready'>('checking');
-    
-    React.useEffect(() => {
-        const checkSetup = async () => {
-            if (!db) {
-                console.error("DB not ready for setup check.");
-                setSetupState('login_ready'); // Fail safe to login
-                return;
-            }
-            try {
-                const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
-                const snapshot = await get(setupRef);
-                if (snapshot.exists() && snapshot.val() === true) {
-                    setSetupState('login_ready');
-                } else {
-                    setSetupState('needs_setup');
-                }
-            } catch (error) {
-                console.error("Error checking for Super Admin:", error);
-                setSetupState('login_ready'); // Fail safe to login
-            }
-        };
+  const [setupState, setSetupState] = React.useState<'checking' | 'needs_setup' | 'login_ready'>('checking');
+  
+  React.useEffect(() => {
+    const checkSetup = async () => {
+      if (!db) {
+        setSetupState('login_ready'); 
+        return;
+      }
+      try {
+        const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
+        const snapshot = await get(setupRef);
+        if (snapshot.exists() && snapshot.val() === true) {
+          setSetupState('login_ready');
+        } else {
+          setSetupState('needs_setup');
+        }
+      } catch (error) {
+        console.error("Error checking for Super Admin:", error);
+        setSetupState('login_ready');
+      }
+    };
 
-        checkSetup();
-    }, []);
-    
-    switch (setupState) {
-        case 'checking':
-            return (
-                <FullscreenMessage title="Initializing..." showSpinner>
-                    <p>Please wait while we check the application status.</p>
-                </FullscreenMessage>
-            );
-        case 'needs_setup':
-            return <UsersPage />;
-        case 'login_ready':
-            return <LoginPage />;
-        default:
-            return <LoginPage />;
-    }
+    checkSetup();
+  }, []);
+  
+  switch (setupState) {
+    case 'checking':
+      return (
+        <FullscreenMessage title="Initializing..." showSpinner>
+          <p>Please wait while we check the application status.</p>
+        </FullscreenMessage>
+      );
+    case 'needs_setup':
+      return <UsersPage isFirstSetup={true} />;
+    case 'login_ready':
+      return <LoginPage />;
+    default:
+      return <LoginPage />;
+  }
 }
-
 
 const AppContainer = ({ children }: { children: React.ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
@@ -133,9 +137,9 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
   
   if (user) {
     return (
-      <RolesProvider>
-          <AuthenticatedApp>{children}</AuthenticatedApp>
-      </RolesProvider>
+      <InstitutionProvider>
+        <AuthenticatedApp>{children}</AuthenticatedApp>
+      </InstitutionProvider>
     );
   }
   

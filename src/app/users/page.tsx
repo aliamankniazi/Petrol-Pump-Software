@@ -13,14 +13,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useToast } from '@/hooks/use-toast';
 import { UserCog, UserPlus, List, Building } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth.tsx';
-import { useRoles } from '@/hooks/use-roles.tsx';
+import { useRoles } from '@/hooks/use-roles';
 import type { RoleId } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { db } from '@/lib/firebase-client';
-import { ref, set, get } from 'firebase/database';
+import { ref, set } from 'firebase/database';
 import { useRouter } from 'next/navigation';
+import { useInstitution } from '@/hooks/use-institution';
 
 const newUserSchema = z.object({
   email: z.string().email('A valid email is required.'),
@@ -31,35 +32,23 @@ const newUserSchema = z.object({
 
 type NewUserFormValues = z.infer<typeof newUserSchema>;
 
-export default function UsersPage() {
-  const { signUp, signIn, user } = useAuth();
-  const { roles, assignRoleToUser, userMappings, isReady, currentInstitution, addInstitution } = useRoles();
+export default function UsersPage({ isFirstSetup = false }: { isFirstSetup?: boolean }) {
+  const { signUp, signIn } = useAuth();
+  const { roles, assignRoleToUser, userMappings, isReady: rolesReady } = useRoles();
+  const { currentInstitution, addInstitution } = useInstitution();
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [isFirstUserSetup, setIsFirstUserSetup] = useState(false);
-  
-  // This check is simple and only matters for the UI of this page.
-  // The decision to show this page is made in `layout.tsx`.
-  useEffect(() => {
-    const checkSetup = async () => {
-      if (!db) return;
-      const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
-      const snapshot = await get(setupRef);
-      setIsFirstUserSetup(!(snapshot.exists() && snapshot.val() === true));
-    };
-    checkSetup();
-  }, []);
   
   const { register, handleSubmit, reset, control, setValue, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
   });
   
   useEffect(() => {
-    if (isFirstUserSetup) {
+    if (isFirstSetup) {
         setValue('roleId', 'admin');
     }
-  }, [isFirstUserSetup, setValue]);
+  }, [isFirstSetup, setValue]);
 
   const institutionUsers = useMemo(() => {
     if (!currentInstitution || !userMappings) return [];
@@ -71,7 +60,7 @@ export default function UsersPage() {
     let targetInstitution = currentInstitution;
     
     try {
-        if (isFirstUserSetup) {
+        if (isFirstSetup) {
             if (!data.institutionName) {
                 toast({ variant: 'destructive', title: 'Institution Required', description: 'Please provide a name for your first institution.' });
                 setLoading(false);
@@ -90,11 +79,11 @@ export default function UsersPage() {
       const userCredential = await signUp({ email: data.email, password: data.password });
       await assignRoleToUser(userCredential.user.uid, data.roleId as RoleId, targetInstitution.id);
       
-      if (isFirstUserSetup) {
+      if (isFirstSetup) {
           await set(ref(db, 'app_settings/isSuperAdminRegistered'), true);
           toast({ title: 'Super Admin Created!', description: 'Logging you in...' });
-          // Sign in to establish the session, the layout will handle redirection.
           await signIn({email: data.email, password: data.password});
+          window.location.href = '/dashboard';
       } else {
         toast({ title: 'User Created', description: `Account for ${data.email} created successfully.` });
         reset({ email: '', password: '', roleId: '', institutionName: '' });
@@ -108,18 +97,16 @@ export default function UsersPage() {
     } finally {
         setLoading(false);
     }
-  }, [signUp, signIn, assignRoleToUser, toast, reset, currentInstitution, isFirstUserSetup, addInstitution, router]);
+  }, [signUp, signIn, assignRoleToUser, toast, reset, currentInstitution, isFirstSetup, addInstitution, router]);
   
   const availableRoles = useMemo(() => {
-      if (isFirstUserSetup) {
+      if (isFirstSetup) {
           return [{ id: 'admin', name: 'Super Admin (Owner)' }];
       }
       return roles.filter(role => role.id !== 'admin');
-  }, [roles, isFirstUserSetup]);
-  
-  // This page is now only rendered by the layout logic, so we don't need complex checks here.
-  // We just need to handle the display for the "add user" part for an existing institution.
-  if (!isFirstUserSetup && !currentInstitution && isReady) {
+  }, [roles, isFirstSetup]);
+
+  if (!isFirstSetup && !currentInstitution && rolesReady) {
     return (
         <div className="p-4 md:p-8">
             <Card>
@@ -133,16 +120,16 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="p-4 md:p-8 grid gap-8 lg:grid-cols-3 w-full max-w-6xl">
-        <div className="lg:col-span-1">
+    <div className={`flex items-center justify-center min-h-screen bg-background ${isFirstSetup ? '' : 'p-4 md:p-8'}`}>
+        <div className={`grid gap-8 w-full max-w-6xl ${isFirstSetup ? 'lg:grid-cols-1' : 'lg:grid-cols-3'}`}>
+        <div className={isFirstSetup ? 'lg:col-span-1' : 'lg:col-span-1'}>
             <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                <UserPlus /> {isFirstUserSetup ? 'Create Super Admin' : 'Create New User'}
+                <UserPlus /> {isFirstSetup ? 'Create Super Admin' : 'Create New User'}
                 </CardTitle>
                 <CardDescription>
-                    {isFirstUserSetup 
+                    {isFirstSetup 
                         ? 'Create the first Super Admin account and your primary institution.'
                         : `Add a new user to the '${currentInstitution?.name}' institution and assign them a role.`
                     }
@@ -150,7 +137,7 @@ export default function UsersPage() {
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit(onAddUserSubmit)} className="space-y-4">
-                {isFirstUserSetup && (
+                {isFirstSetup && (
                     <div className="space-y-2">
                         <Label htmlFor="institutionName">Institution Name</Label>
                         <Input id="institutionName" {...register('institutionName')} placeholder="e.g., Mianwali Petroleum" />
@@ -176,7 +163,7 @@ export default function UsersPage() {
                         name="roleId"
                         control={control}
                         render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value} defaultValue={isFirstUserSetup ? 'admin' : ''} disabled={isFirstUserSetup}>
+                            <Select onValueChange={field.onChange} value={field.value} defaultValue={isFirstSetup ? 'admin' : ''} disabled={isFirstSetup}>
                                 <SelectTrigger>
                                 <SelectValue placeholder="Select a role" />
                                 </SelectTrigger>
@@ -192,23 +179,15 @@ export default function UsersPage() {
                 </div>
 
                 <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Creating...' : isFirstUserSetup ? 'Create Super Admin & Login' : 'Create User'}
+                    {loading ? 'Creating...' : isFirstSetup ? 'Create Super Admin & Login' : 'Create User'}
                 </Button>
                 </form>
             </CardContent>
             </Card>
         </div>
 
-        <div className="lg:col-span-2">
-        {isFirstUserSetup ? (
-            <Alert>
-                <Building className="h-4 w-4" />
-                <AlertTitle>Welcome!</AlertTitle>
-                <AlertDescription>
-                    You are about to set up the first account for this system. This account will have Super Admin privileges, allowing you to manage everything. Please create your account and your first institution using the form.
-                </AlertDescription>
-            </Alert>
-        ) : (
+        {!isFirstSetup && (
+            <div className="lg:col-span-2">
             <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -217,7 +196,7 @@ export default function UsersPage() {
                 <CardDescription>A list of all registered users and their roles for this institution.</CardDescription>
             </CardHeader>
             <CardContent>
-                {isReady ? (
+                {rolesReady ? (
                 institutionUsers.length > 0 ? (
                     <Table>
                     <TableHeader>
@@ -254,8 +233,8 @@ export default function UsersPage() {
                 )}
             </CardContent>
             </Card>
-        )}
         </div>
+        )}
         </div>
     </div>
   );
