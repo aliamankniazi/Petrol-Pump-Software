@@ -12,65 +12,74 @@ import { db } from '@/lib/firebase-client';
 export default function SignupPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [isFirstSetup, setIsFirstSetup] = useState<boolean | null>(null);
+  const [status, setStatus] = useState<'loading' | 'redirecting' | 'error'>('loading');
 
   useEffect(() => {
-    const checkFirstSetup = async () => {
-      if (db) {
-        // If no institutions exist, it's the first time setup.
-        const institutionsRef = ref(db, 'institutions');
-        const snapshot = await get(institutionsRef);
-        setIsFirstSetup(!snapshot.exists());
-      } else {
-        // If Firebase isn't configured, we can't proceed.
-        // The layout will show a config error message.
-        setIsFirstSetup(false);
-      }
-    };
-
-    if (!authLoading && !user) {
-        checkFirstSetup();
-    } else if (!authLoading && user) {
-        // A user is already logged in, so this can't be the first user setup.
-        setIsFirstSetup(false);
-    }
-  }, [authLoading, user]);
-
-  useEffect(() => {
-    // Wait for all checks to complete
-    if (authLoading || isFirstSetup === null) {
-      return; 
+    // This effect should only run once, after the initial auth check.
+    if (authLoading) {
+      return; // Wait until auth state is known
     }
 
     if (user) {
-      // If user is already logged in, they should not be here.
+      // If a user is already logged in, they should go to the dashboard.
       router.replace('/dashboard');
-    } else if (isFirstSetup) {
-      // This is the first ever user. They need to create the initial super-admin account.
-      // Redirect them to the user management page where they can do this.
-      router.replace('/users');
-    } else {
-      // The system is already set up. New users cannot sign up directly.
-      // They must be invited by an admin. Redirect to login.
-      router.replace('/login');
+      setStatus('redirecting');
+      return;
     }
-  }, [user, authLoading, isFirstSetup, router]);
+
+    // If no user is logged in, check if it's the first setup.
+    const checkFirstSetup = async () => {
+      if (!db) {
+        // Firebase isn't configured, so we can't proceed.
+        // The layout will show a config error message.
+        console.error("Firebase is not configured.");
+        setStatus('error');
+        return;
+      }
+
+      try {
+        const institutionsRef = ref(db, 'institutions');
+        const snapshot = await get(institutionsRef);
+        
+        if (snapshot.exists()) {
+          // Institutions exist, so it's not the first setup. Redirect to login.
+          router.replace('/login');
+        } else {
+          // No institutions exist. This is the first setup. Redirect to user creation.
+          router.replace('/users');
+        }
+        setStatus('redirecting');
+      } catch (error) {
+        console.error("Error checking for first setup:", error);
+        setStatus('error');
+      }
+    };
+
+    checkFirstSetup();
+
+  }, [authLoading, user, router]);
   
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-2xl">
-            <UserPlus /> Initializing
+            <UserPlus /> {status === 'error' ? 'Error' : 'Initializing'}
           </CardTitle>
           <CardDescription>
-            Please wait while we check the application status...
+            {status === 'loading' && 'Please wait while we check the application status...'}
+            {status === 'redirecting' && 'Redirecting you to the correct page...'}
+            {status === 'error' && 'Could not connect to the database. Please check your configuration.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
            <div className="flex justify-center items-center gap-2">
-             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-             <p className="text-center">Loading...</p>
+             {status !== 'error' && <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>}
+             <p className="text-center">
+                {status === 'loading' && 'Loading...'}
+                {status === 'redirecting' && 'Please wait...'}
+                {status === 'error' && 'Setup check failed.'}
+             </p>
            </div>
         </CardContent>
       </Card>

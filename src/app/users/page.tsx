@@ -35,7 +35,7 @@ export default function UserManagementPage() {
   const [loading, setLoading] = useState(false);
   const [isFirstUserSetup, setIsFirstUserSetup] = useState(false);
   
-  const { register, handleSubmit, reset, control, watch, formState: { errors } } = useForm<NewUserFormValues>({
+  const { register, handleSubmit, reset, control, setValue, watch, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
   });
 
@@ -48,8 +48,9 @@ export default function UserManagementPage() {
       // This determines if we are in the initial setup flow.
       if (isReady && userInstitutions.length === 0) {
           setIsFirstUserSetup(true);
+          setValue('roleId', 'admin'); // Set role to admin for first setup
       }
-  }, [isReady, userInstitutions]);
+  }, [isReady, userInstitutions, setValue]);
 
   const onAddUserSubmit: SubmitHandler<NewUserFormValues> = useCallback(async (data) => {
     setLoading(true);
@@ -102,9 +103,8 @@ export default function UserManagementPage() {
       return roles.filter(role => role.id !== 'super-admin');
   }, [roles, isFirstUserSetup]);
   
-  const selectedRoleId = watch('roleId');
 
-  if (!isReady) {
+  if (!isReady && !isFirstUserSetup) {
      return (
         <div className="p-4 md:p-8">
              <Skeleton className="h-96 w-full" />
