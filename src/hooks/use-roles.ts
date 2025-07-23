@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useCallback, createContext, useContext, type ReactNode, useEffect, useState } from 'react';
-import { ref, set, push } from 'firebase/database';
+import { ref, set, onValue } from 'firebase/database';
 import { db } from '@/lib/firebase-client';
 import type { Role, RoleId, Permission } from '@/lib/types';
 import { useAuth } from './use-auth';
@@ -111,9 +111,10 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     
     const currentUserRole = useMemo(() => {
         if (!user || !currentInstitution || !userMappings) return null;
+        if (isSuperAdmin) return 'admin'; // Super admin has all permissions
         const mapping = userMappings.find(m => m.userId === user.uid && m.institutionId === currentInstitution.id);
         return mapping?.roleId ?? null;
-    }, [user, currentInstitution, userMappings]);
+    }, [user, currentInstitution, userMappings, isSuperAdmin]);
 
     const assignRoleToUser = useCallback(async (userId: string, roleId: RoleId, institutionId: string) => {
         if (!db) return;
