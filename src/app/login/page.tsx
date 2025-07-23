@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { LogIn } from 'lucide-react';
 import Link from 'next/link';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/use-auth.tsx';
 import { useState } from 'react';
 import type { AuthFormValues } from '@/lib/types';
 
@@ -22,7 +22,7 @@ const loginSchema = z.object({
 });
 
 export default function LoginPage() {
-  const { signIn, isFirstUser } = useAuth();
+  const { signIn } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   
@@ -76,14 +76,12 @@ export default function LoginPage() {
                 {loading ? 'Logging in...' : 'Login'}
                 </Button>
             </form>
-            {isFirstUser && (
-              <div className="mt-4 text-center text-sm">
-                  No account?{' '}
-                  <Link href="/signup" className="underline">
-                  Create Super Admin Account
-                  </Link>
-              </div>
-            )}
+            <div className="mt-4 text-center text-sm">
+                No account?{' '}
+                <Link href="/signup" className="underline">
+                Create Super Admin Account
+                </Link>
+            </div>
         </CardContent>
       </Card>
     </div>
