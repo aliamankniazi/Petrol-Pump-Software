@@ -44,7 +44,7 @@ const FirebaseNotConfiguredAlert = () => (
       <Terminal className="h-4 w-4" />
       <AlertTitle>Firebase Not Configured</AlertTitle>
       <AlertDescription>
-        The application is running in a limited, offline mode. To enable saving data, login, and all other features, please add your Firebase credentials to <strong>src/lib/firebase.ts</strong>.
+        The application is running in a limited, offline mode. To enable saving data, login, and all other features, please add your Firebase credentials to <strong>src/lib/firebase-config.ts</strong>.
       </AlertDescription>
     </Alert>
   </div>
