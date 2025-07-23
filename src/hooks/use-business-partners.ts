@@ -12,7 +12,7 @@ const COLLECTION_NAME = 'business-partners';
 export function useBusinessPartners() {
   const { currentInstitution } = useInstitution();
   const { data: businessPartners, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<BusinessPartner>(COLLECTION_NAME, currentInstitution?.id || null);
-  const { customers, addCustomer, updateCustomer } = useCustomers();
+  const { customers, addCustomer, updateCustomer, isLoaded: customersLoaded } = useCustomers();
 
   const addBusinessPartner = useCallback(async (partner: Omit<BusinessPartner, 'id' | 'timestamp'>): Promise<BusinessPartner> => {
     const newCustomer = await addCustomer({
@@ -46,6 +46,6 @@ export function useBusinessPartners() {
     addBusinessPartner, 
     updateBusinessPartner, 
     deleteBusinessPartner, 
-    isLoaded: !loading && customers.length > 0
+    isLoaded: !loading && customersLoaded
   };
 }

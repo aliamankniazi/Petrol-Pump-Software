@@ -32,6 +32,8 @@ import { useSuppliers } from '@/hooks/use-suppliers';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/hooks/use-auth';
+import { useInstitution } from '@/hooks/use-institution';
 
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
@@ -57,6 +59,10 @@ export default function SettingsPage() {
   const { suppliers, addSupplier, deleteSupplier, isLoaded: suppliersLoaded } = useSuppliers();
   const { toast } = useToast();
   const [supplierToDelete, setSupplierToDelete] = React.useState<Supplier | null>(null);
+  const { user } = useAuth();
+  const { currentInstitution } = useInstitution();
+  
+  const isOwner = user?.uid === currentInstitution?.ownerId;
 
   const { register, handleSubmit, control, reset, watch, formState: { errors } } = useForm<AdjustmentFormValues>({
     resolver: zodResolver(adjustmentSchema),
@@ -84,11 +90,19 @@ export default function SettingsPage() {
   }, [currentStock, adjustmentValue]);
 
   const handleClearData = React.useCallback(async () => {
-    await clearAllData();
-    toast({
-      title: "Data Cleared",
-      description: "All application data has been removed.",
-    });
+    try {
+      await clearAllData();
+      toast({
+        title: "Data Cleared",
+        description: "All application data has been removed.",
+      });
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: "Error Clearing Data",
+            description: error.message || "An unexpected error occurred."
+        })
+    }
   }, [clearAllData, toast]);
 
   const handlePriceChange = React.useCallback((fuelType: FuelType, value: string) => {
@@ -318,38 +332,40 @@ export default function SettingsPage() {
           
           <Separator />
 
-          <div className="space-y-4">
-             <h3 className="text-lg font-medium text-destructive">Danger Zone</h3>
-            <div className="flex items-center justify-between rounded-lg border border-destructive/50 p-4">
-              <div>
-                <Label htmlFor="clear-data" className="text-destructive">Clear All Data</Label>
-                <p className="text-sm text-muted-foreground">
-                  This will permanently delete all application data. This action cannot be undone.
-                </p>
-              </div>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" id="clear-data">
-                    <Trash2 className="mr-2 h-4 w-4" /> Clear Data
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete all your application data from this device.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleClearData} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
-                      Yes, delete all data
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+          {isOwner && (
+            <div className="space-y-4">
+                <h3 className="text-lg font-medium text-destructive">Danger Zone</h3>
+                <div className="flex items-center justify-between rounded-lg border border-destructive/50 p-4">
+                <div>
+                    <Label htmlFor="clear-data" className="text-destructive">Clear Institution Data</Label>
+                    <p className="text-sm text-muted-foreground">
+                    This will permanently delete this institution and all its data. This action cannot be undone.
+                    </p>
+                </div>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                    <Button variant="destructive" id="clear-data">
+                        <Trash2 className="mr-2 h-4 w-4" /> Clear Institution Data
+                    </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete the institution <strong className="font-medium text-foreground">{currentInstitution?.name}</strong> and all its associated data (sales, customers, roles, etc.).
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleClearData} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                        Yes, delete this institution
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+                </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
       

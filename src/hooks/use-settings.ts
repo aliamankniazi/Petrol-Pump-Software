@@ -16,7 +16,8 @@ export function useSettings() {
         console.error("No authenticated user or institution selected to clear data for.");
         return;
     }
-    // This is a very destructive operation. We should ensure only the owner can do this.
+    
+    // Allow owner to clear all data
     if (user.uid !== currentInstitution.ownerId) {
         console.error("Permission denied. Only the institution owner can clear all data.");
         return;
@@ -26,6 +27,7 @@ export function useSettings() {
       return;
     }
 
+    // This is a very destructive operation. It removes the entire institution node.
     const institutionRootRef = ref(db, `institutions/${currentInstitution.id}`);
     try {
       await remove(institutionRootRef);
@@ -33,6 +35,7 @@ export function useSettings() {
       console.log(`All data for institution ${currentInstitution.name} has been cleared.`);
     } catch (error) {
       console.error(`Failed to clear data for institution ${currentInstitution.id}:`, error);
+      throw error;
     }
   }, [user, currentInstitution, clearFromContext]);
 
