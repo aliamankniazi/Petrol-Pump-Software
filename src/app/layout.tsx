@@ -8,6 +8,7 @@ import { Inter } from 'next/font/google';
 import { AuthProvider, useAuth } from '@/hooks/use-auth.tsx';
 import { usePathname } from 'next/navigation';
 import { RolesProvider } from '@/hooks/use-roles';
+import { InstitutionProvider } from '@/hooks/use-institution';
 import { AppLayout } from '@/components/app-layout';
 import { isFirebaseConfigured, db } from '@/lib/firebase-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,7 +31,7 @@ function PrintStyles() {
     return null;
 }
 
-const FullscreenMessage = ({ title, children, showSpinner = false }: { title: string, children: React.ReactNode, showSpinner?: boolean }) => (
+const FullscreenMessage = ({ title, children }: { title: string, children: React.ReactNode }) => (
   <div className="flex h-screen w-full items-center justify-center bg-muted">
      <Card className="w-full max-w-md m-4">
         <CardHeader>
@@ -38,57 +39,56 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
         </CardHeader>
         <CardContent>
           {children}
-          {showSpinner && (
-            <div className="flex justify-center mt-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          )}
         </CardContent>
      </Card>
    </div>
 );
 
-type AppState = 'INITIALIZING' | 'NEEDS_SETUP' | 'LOGIN_REQUIRED' | 'AUTHENTICATED';
+
+function UnauthenticatedApp() {
+    const [isSetupComplete, setIsSetupComplete] = React.useState<boolean | null>(null);
+
+    React.useEffect(() => {
+        const checkSetup = async () => {
+            if (!db) {
+                console.error("Firebase DB not available for setup check.");
+                setIsSetupComplete(true); // Default to login if DB is not there
+                return;
+            }
+            const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
+            try {
+                const snapshot = await get(setupRef);
+                setIsSetupComplete(snapshot.exists() && snapshot.val() === true);
+            } catch (error) {
+                console.error("Error checking app setup:", error);
+                setIsSetupComplete(true); // Default to login on error
+            }
+        };
+
+        checkSetup();
+    }, []);
+
+    if (isSetupComplete === null) {
+        return (
+            <FullscreenMessage title="Initializing...">
+                <div className="flex flex-col items-center justify-center gap-2">
+                    <p>Checking application state. Please wait.</p>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+            </FullscreenMessage>
+        );
+    }
+    
+    if (isSetupComplete) {
+        return <LoginPage />;
+    }
+
+    return <UsersPage isFirstSetup={true} />;
+}
+
 
 function AppContainer({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
-  const [appState, setAppState] = React.useState<AppState>('INITIALIZING');
-  const [isClient, setIsClient] = React.useState(false);
-
-  React.useEffect(() => {
-    // This ensures that any logic depending on client-side state
-    // runs only after the component has mounted on the client.
-    setIsClient(true);
-  }, []);
-
-  React.useEffect(() => {
-    if (!isClient) {
-      // Don't run state-changing logic on the server or before client hydration.
-      return;
-    }
-
-    if (authLoading) {
-      setAppState('INITIALIZING');
-      return;
-    }
-
-    if (user) {
-      setAppState('AUTHENTICATED');
-    } else {
-      // No user, check if setup is needed
-      const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
-      get(setupRef).then((snapshot) => {
-        if (snapshot.exists() && snapshot.val() === true) {
-          setAppState('LOGIN_REQUIRED');
-        } else {
-          setAppState('NEEDS_SETUP');
-        }
-      }).catch((error) => {
-        console.error("Error checking app setup:", error);
-        setAppState('LOGIN_REQUIRED'); // Default to login on error
-      });
-    }
-  }, [user, authLoading, isClient]);
 
   if (!isFirebaseConfigured()) {
     return (
@@ -100,32 +100,28 @@ function AppContainer({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (appState === 'INITIALIZING') {
+  if (authLoading) {
       return (
-          <FullscreenMessage title="Initializing..." showSpinner>
-              <p className="text-center text-muted-foreground">Checking application state. Please wait.</p>
+          <FullscreenMessage title="Initializing...">
+             <div className="flex flex-col items-center justify-center gap-2">
+                <p>Authenticating. Please wait.</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
           </FullscreenMessage>
       );
   }
   
-  if (appState === 'AUTHENTICATED') {
-    return <RolesProvider>{children}</RolesProvider>;
+  if (user) {
+    return (
+      <InstitutionProvider>
+        <RolesProvider>
+            {children}
+        </RolesProvider>
+      </InstitutionProvider>
+    );
   }
   
-  if (appState === 'NEEDS_SETUP') {
-    return <UsersPage isFirstSetup={true} />;
-  }
-  
-  if (appState === 'LOGIN_REQUIRED') {
-    return <LoginPage />;
-  }
-
-  // Fallback for initial render before client-side logic runs
-  return (
-      <FullscreenMessage title="Initializing..." showSpinner>
-          <p className="text-center text-muted-foreground">Preparing the application.</p>
-      </FullscreenMessage>
-  );
+  return <UnauthenticatedApp />;
 }
 
 
