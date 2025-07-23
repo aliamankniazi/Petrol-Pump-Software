@@ -65,6 +65,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
                 Object.keys(data).forEach(key => institutionsArray.push({ id: key, ...data[key] }));
             }
             setAllInstitutions(institutionsArray);
+            if (!loading) setLoading(false);
         }, (error) => console.error("Error fetching institutions:", error));
 
         const onMappingsValue = onValue(mappingsRef, (snapshot) => {
@@ -74,16 +75,19 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
                 Object.keys(data).forEach(key => mappingsArray.push({ id: key, ...data[key] }));
             }
             setAllUserMappings(mappingsArray);
+             if (!loading) setLoading(false);
         }, (error) => console.error("Error fetching user mappings:", error));
 
+        // Set loading to false once initial data is fetched
         const institutionsPromise = new Promise<void>(resolve => onValue(institutionsRef, () => resolve(), { onlyOnce: true }));
         const mappingsPromise = new Promise<void>(resolve => onValue(mappingsRef, () => resolve(), { onlyOnce: true }));
 
         Promise.all([institutionsPromise, mappingsPromise]).finally(() => setLoading(false));
 
         return () => {
-           onValue(institutionsRef, null as any);
-           onValue(mappingsRef, null as any);
+            // Detach listeners
+            onValue(institutionsRef, null as any);
+            onValue(mappingsRef, null as any);
         };
     }, []);
 
@@ -141,7 +145,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         await remove(docRef);
     }, []);
 
-    const value = useMemo(() => ({
+    const value = {
         userInstitutions,
         currentInstitution,
         setCurrentInstitution: setCurrentInstitutionCB,
@@ -150,16 +154,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         addInstitution,
         updateInstitution,
         deleteInstitution,
-    }), [
-        userInstitutions,
-        currentInstitution,
-        setCurrentInstitutionCB,
-        clearCurrentInstitutionCB,
-        loading,
-        addInstitution,
-        updateInstitution,
-        deleteInstitution
-    ]);
+    };
 
     return (
         <InstitutionContext.Provider value={value}>

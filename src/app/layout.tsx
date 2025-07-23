@@ -45,7 +45,7 @@ function AppContainer({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   
   const configured = isFirebaseConfigured();
-  const isLoading = configured ? (authLoading || !institutionLoaded || (user && currentInstitution && !rolesReady)) : false;
+  const isLoading = configured ? (authLoading || !institutionLoaded || (user && !rolesReady)) : false;
 
   React.useEffect(() => {
     if (isLoading || !configured) return;
@@ -60,16 +60,16 @@ function AppContainer({ children }: { children: React.ReactNode }) {
 
   }, [user, isLoading, pathname, router, configured]);
 
+  if (!configured) {
+    return <>{children}</>;
+  }
+
   if (isLoading) {
     return <FullscreenLoader />;
   }
   
   const isAuthPage = pathname === '/login' || pathname === '/signup';
   
-  if (!configured) {
-    return <>{children}</>;
-  }
-
   if (!user || isAuthPage) {
     return <>{children}</>;
   }
