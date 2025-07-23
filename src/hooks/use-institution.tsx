@@ -2,7 +2,7 @@
 'use client';
 
 import { createContext, useState, useEffect, useContext, type ReactNode, useCallback, useMemo } from 'react';
-import { ref, onValue, push, set, serverTimestamp, update, remove } from 'firebase/database';
+import { ref, push, set, serverTimestamp, update, remove, get } from 'firebase/database';
 import type { Institution } from '@/lib/types';
 import { useAuth } from './use-auth.tsx';
 import { db, isFirebaseConfigured } from '@/lib/firebase-client';
@@ -52,50 +52,47 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     }, []);
 
     useEffect(() => {
-        if (!isFirebaseConfigured() || !db || !user) {
-            // If there's no user, we are not loading institutions.
-            if (!authLoading) {
+        const loadData = async () => {
+            if (!isFirebaseConfigured() || !db || !user) {
+                if (!authLoading) {
+                    setLoading(false);
+                    setAllInstitutions([]);
+                    setAllUserMappings([]);
+                }
+                return;
+            }
+
+            setLoading(true);
+            try {
+                const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
+                const mappingsRef = ref(db, USER_MAP_COLLECTION);
+                
+                const [institutionsSnapshot, mappingsSnapshot] = await Promise.all([
+                    get(institutionsRef),
+                    get(mappingsRef)
+                ]);
+
+                const institutionsArray: Institution[] = [];
+                if (institutionsSnapshot.exists()) {
+                    const data = institutionsSnapshot.val();
+                    Object.keys(data).forEach(key => institutionsArray.push({ id: key, ...data[key] }));
+                }
+                setAllInstitutions(institutionsArray);
+
+                const mappingsArray: UserToInstitution[] = [];
+                if (mappingsSnapshot.exists()) {
+                    const data = mappingsSnapshot.val();
+                    Object.keys(data).forEach(key => mappingsArray.push({ id: key, ...data[key] }));
+                }
+                setAllUserMappings(mappingsArray);
+            } catch (error) {
+                console.error("Failed to fetch initial data:", error);
+            } finally {
                 setLoading(false);
-                setAllInstitutions([]);
-                setAllUserMappings([]);
             }
-            return;
-        }
-
-        setLoading(true);
-
-        const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
-        const mappingsRef = ref(db, USER_MAP_COLLECTION);
-
-        const onInstitutionsValue = onValue(institutionsRef, (snapshot) => {
-            const institutionsArray: Institution[] = [];
-            if (snapshot.exists()) {
-                const data = snapshot.val();
-                Object.keys(data).forEach(key => institutionsArray.push({ id: key, ...data[key] }));
-            }
-            setAllInstitutions(institutionsArray);
-        }, (error) => console.error("Error fetching institutions:", error));
-
-        const onMappingsValue = onValue(mappingsRef, (snapshot) => {
-            const mappingsArray: UserToInstitution[] = [];
-            if (snapshot.exists()) {
-                const data = snapshot.val();
-                Object.keys(data).forEach(key => mappingsArray.push({ id: key, ...data[key] }));
-            }
-            setAllUserMappings(mappingsArray);
-        }, (error) => console.error("Error fetching user mappings:", error));
-
-        // Use a one-time fetch to determine initial loading state
-        Promise.all([
-            new Promise<void>(resolve => onValue(institutionsRef, () => resolve(), { onlyOnce: true })),
-            new Promise<void>(resolve => onValue(mappingsRef, () => resolve(), { onlyOnce: true }))
-        ]).finally(() => setLoading(false));
-
-        return () => {
-            // Detach listeners
-            onValue(institutionsRef, null as any);
-            onValue(mappingsRef, null as any);
         };
+
+        loadData();
     }, [user, authLoading]);
 
     const userInstitutions = useMemo(() => {
@@ -141,27 +138,34 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         
         const dataWithOwner = { ...institution, ownerId: user.uid, timestamp: serverTimestamp() };
         await set(newDocRef, dataWithOwner);
-        return { ...dataWithOwner, id: newId, timestamp: Date.now() } as Institution;
+        const newInstitution = { ...dataWithOwner, id: newId, timestamp: Date.now() } as Institution
+        setAllInstitutions(prev => [...prev, newInstitution]);
+        return newInstitution;
     }, [user]);
 
     const updateInstitution = useCallback(async (id: string, data: Partial<Omit<Institution, 'id' | 'ownerId'>>) => {
         if (!db) return;
         const docRef = ref(db, `${INSTITUTIONS_COLLECTION}/${id}`);
         await update(docRef, data);
+        setAllInstitutions(prev => prev.map(inst => inst.id === id ? { ...inst, ...data } : inst));
     }, []);
 
     const deleteInstitution = useCallback(async (id: string) => {
         if (!db) return;
         const docRef = ref(db, `${INSTITUTIONS_COLLECTION}/${id}`);
         await remove(docRef);
-    }, []);
+        setAllInstitutions(prev => prev.filter(inst => inst.id !== id));
+        if (currentInstitutionId === id) {
+            clearCurrentInstitutionCB();
+        }
+    }, [currentInstitutionId, clearCurrentInstitutionCB]);
 
     const value: InstitutionContextType = useMemo(() => ({
         userInstitutions,
         currentInstitution,
         setCurrentInstitution: setCurrentInstitutionCB,
         clearCurrentInstitution: clearCurrentInstitutionCB,
-        isLoaded: !loading,
+        isLoaded: !loading && !authLoading,
         addInstitution,
         updateInstitution,
         deleteInstitution,
@@ -171,6 +175,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         setCurrentInstitutionCB, 
         clearCurrentInstitutionCB, 
         loading,
+        authLoading,
         addInstitution,
         updateInstitution,
         deleteInstitution
