@@ -93,30 +93,38 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
 
   React.useEffect(() => {
-    if (authLoading) return;
+    if (authLoading) return; // Don't do anything until authentication state is resolved
 
     const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/users';
 
     if (user) {
+        // If user is logged in, but on an auth page, redirect to dashboard
         if (isAuthPage) {
             router.replace('/dashboard');
         }
     } else {
-        if (pathname === '/signup' || isAuthPage) { // Check on any non-user page too
-            const appSettingsRef = ref(db, 'app_settings/isSuperAdminRegistered');
-            get(appSettingsRef).then((snapshot) => {
-                if (snapshot.exists() && snapshot.val() === true) {
-                    if (pathname !== '/login') router.replace('/login');
-                } else {
-                    if (pathname !== '/users') router.replace('/users');
+        // If user is not logged in
+        const appSettingsRef = ref(db, 'app_settings/isSuperAdminRegistered');
+        get(appSettingsRef).then((snapshot) => {
+            const isRegistered = snapshot.exists() && snapshot.val() === true;
+            if (isRegistered) {
+                // If admin exists, all non-logged-in users should go to login page
+                if (pathname !== '/login') {
+                    router.replace('/login');
                 }
-            }).catch(error => {
-                console.error("Error checking for first setup:", error);
-                router.replace('/login');
-            });
-        }
+            } else {
+                // If no admin, all non-logged-in users should go to the setup page
+                if (pathname !== '/users') {
+                    router.replace('/users');
+                }
+            }
+        }).catch(error => {
+            console.error("Error checking for first setup:", error);
+            router.replace('/login'); // Default to login on error
+        });
     }
-  }, [user, authLoading, pathname, router]);
+}, [user, authLoading, pathname, router]);
+
 
   if (!isFirebaseConfigured()) {
     return (
@@ -135,8 +143,6 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
       </FullscreenMessage>
     );
   }
-
-  const isAuthFlowPage = pathname === '/login' || pathname === '/signup' || pathname === '/users';
   
   if (user) {
     return (
@@ -146,15 +152,8 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (isAuthFlowPage) {
-    return <>{children}</>;
-  }
-
-  return (
-    <FullscreenMessage title="Redirecting..." showSpinner>
-      <p className="text-center text-muted-foreground">Please wait while we check the application status.</p>
-    </FullscreenMessage>
-  );
+  // If not logged in, show the child page (which will be one of the auth pages based on the useEffect logic)
+  return <>{children}</>;
 }
 
 
