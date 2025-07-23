@@ -86,7 +86,7 @@ export default function LoginPage() {
         </CardContent>
          <CardFooter className="text-sm text-center block">
              <p className="text-muted-foreground">
-                Don't have an account?{' '}
+                First time setup?{' '}
                 <Link href="/users" className="font-semibold text-primary hover:underline">
                     Create Super Admin
                 </Link>

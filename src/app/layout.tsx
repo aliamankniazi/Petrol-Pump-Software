@@ -6,11 +6,10 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
 import { AuthProvider, useAuth } from '@/hooks/use-auth.tsx';
-import { usePathname, useRouter } from 'next/navigation';
-import { RolesProvider, useRoles } from '@/hooks/use-roles.tsx';
+import { usePathname } from 'next/navigation';
+import { RolesProvider } from '@/hooks/use-roles.tsx';
 import { AppLayout } from '@/components/app-layout';
 import { isFirebaseConfigured, db } from '@/lib/firebase-client';
-import { InstitutionSelector } from '@/components/institution-selector';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Terminal } from 'lucide-react';
 import { ref, get } from 'firebase/database';
@@ -48,91 +47,56 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
    </div>
 );
 
-const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
-  const { isReady, userInstitutions, currentInstitution } = useRoles();
-  const router = useRouter();
-  const pathname = usePathname();
-
-  React.useEffect(() => {
-    if (!isReady) return;
-
-    if (userInstitutions.length === 0 && pathname !== '/institutions' && pathname !== '/users') {
-      router.replace('/institutions');
-    }
-  }, [isReady, userInstitutions, pathname, router]);
-
-
-  if (!isReady) {
-    return (
-      <FullscreenMessage title="Loading Your Profile..." showSpinner>
-        <p className="text-center text-muted-foreground">Please wait while we prepare your workspace.</p>
-      </FullscreenMessage>
-    );
-  }
-  
-  if (userInstitutions.length === 0) {
-      if (pathname === '/institutions' || pathname === '/users') {
-          return <AppLayout>{children}</AppLayout>;
-      }
-      return (
-          <FullscreenMessage title="Setting Up..." showSpinner>
-            <p className="text-center text-muted-foreground">No institution found. Preparing setup page.</p>
-          </FullscreenMessage>
-      );
-  }
-
-  if (!currentInstitution) {
-    return <InstitutionSelector />;
-  }
-  
-  return <AppLayout>{children}</AppLayout>;
-}
 
 const UnauthenticatedApp = () => {
-    const [isSetupComplete, setIsSetupComplete] = React.useState<boolean | null>(null);
+    type SetupState = 'CHECKING' | 'SETUP_NEEDED' | 'LOGIN_REQUIRED';
+    const [setupState, setSetupState] = React.useState<SetupState>('CHECKING');
 
     React.useEffect(() => {
         const checkSetup = async () => {
             if (!db) {
                 console.error("Database not initialized, cannot check setup.");
-                setIsSetupComplete(true); // Default to login on error
+                setSetupState('LOGIN_REQUIRED'); // Default to login on error
                 return;
             };
             try {
                 const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
                 const snapshot = await get(setupRef);
-                setIsSetupComplete(snapshot.exists() && snapshot.val() === true);
+                if (snapshot.exists() && snapshot.val() === true) {
+                    setSetupState('LOGIN_REQUIRED');
+                } else {
+                    setSetupState('SETUP_NEEDED');
+                }
             } catch (error) {
                 console.error("Setup check failed:", error);
                 // This might happen due to security rules. Default to assuming setup is complete.
-                setIsSetupComplete(true);
+                setSetupState('LOGIN_REQUIRED');
             }
         };
+
         checkSetup();
     }, []);
 
-    if (isSetupComplete === null) {
-        return (
-            <FullscreenMessage title="Initializing..." showSpinner>
-                <p>Checking application setup.</p>
-            </FullscreenMessage>
-        );
-    }
-    
-    // Once setup check is complete, render the correct page.
-    // The individual pages will handle any necessary redirects if the state is wrong.
-    if (isSetupComplete) {
-        return <LoginPage />;
-    } else {
-        return <UsersPage />;
+    switch (setupState) {
+        case 'CHECKING':
+            return (
+                <FullscreenMessage title="Initializing..." showSpinner>
+                    <p>Checking application setup.</p>
+                </FullscreenMessage>
+            );
+        case 'SETUP_NEEDED':
+            return <UsersPage />;
+        case 'LOGIN_REQUIRED':
+            return <LoginPage />;
+        default:
+            return <LoginPage />;
     }
 };
 
 
 const AppContainer = ({ children }: { children: React.ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
-  const pathname = usePathname();
-
+  
   if (!isFirebaseConfigured()) {
     return (
         <FullscreenMessage title="Firebase Not Configured">
@@ -154,20 +118,11 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
   if (user) {
     return (
       <RolesProvider>
-          <AuthenticatedApp>{children}</AuthenticatedApp>
+          <AppLayout>{children}</AppLayout>
       </RolesProvider>
     );
   }
   
-  const isPublicAuthRoute = ['/login', '/users'].includes(pathname);
-
-  // If we are on a specific auth page, let it render.
-  // The UnauthenticatedApp component will determine which page to show.
-  if (isPublicAuthRoute) {
-      return <UnauthenticatedApp />;
-  }
-  
-  // Default for any other route when not logged in
   return <UnauthenticatedApp />;
 }
 

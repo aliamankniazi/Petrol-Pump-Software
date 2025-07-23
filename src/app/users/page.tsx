@@ -33,34 +33,25 @@ type NewUserFormValues = z.infer<typeof newUserSchema>;
 
 
 export default function UsersPage() {
-  const { signUp, signIn, user, loading: authLoading } = useAuth();
+  const { signUp, signIn, user } = useAuth();
   const { roles, assignRoleToUser, userMappings, isReady, currentInstitution, addInstitution } = useRoles();
   const { toast } = useToast();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [isFirstUserSetup, setIsFirstUserSetup] = useState(false);
   
+  // This page is now rendered conditionally by the layout.
+  // We can assume if we see this page, we're either creating the first user OR adding a new user.
+  const isFirstUserSetup = !currentInstitution;
+
   const { register, handleSubmit, reset, control, setValue, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
   });
   
   useEffect(() => {
-    // This effect runs only once for the page to determine its mode.
-    const checkSetup = async () => {
-        if (!db) return;
-        try {
-            const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
-            const snapshot = await get(setupRef);
-            const isSetupComplete = snapshot.exists() && snapshot.val() === true;
-            setIsFirstUserSetup(!isSetupComplete);
-            if (!isSetupComplete) {
-                setValue('roleId', 'admin');
-            }
-        } catch (error) {
-             console.error("Firebase check failed:", error);
-        }
-    };
-    checkSetup();
-  }, [setValue]);
+    if (isFirstUserSetup) {
+        setValue('roleId', 'admin');
+    }
+  }, [isFirstUserSetup, setValue]);
 
   const institutionUsers = useMemo(() => {
     if (!currentInstitution || !userMappings) return [];
@@ -95,7 +86,8 @@ export default function UsersPage() {
           await set(ref(db, 'app_settings/isSuperAdminRegistered'), true);
           toast({ title: 'Super Admin Created!', description: 'Logging you in...' });
           await signIn(data); // Sign in the new user
-          // The layout will now handle redirecting the signed-in user
+          // The layout's useEffect will now redirect to the dashboard.
+          router.push('/dashboard');
       } else {
         toast({ title: 'User Created', description: `Account for ${data.email} created successfully.` });
         reset({ email: '', password: '', roleId: '', institutionName: '' });
@@ -109,7 +101,7 @@ export default function UsersPage() {
     } finally {
         setLoading(false);
     }
-  }, [signUp, signIn, assignRoleToUser, toast, reset, currentInstitution, isFirstUserSetup, addInstitution]);
+  }, [signUp, signIn, assignRoleToUser, toast, reset, currentInstitution, isFirstUserSetup, addInstitution, router]);
   
   const availableRoles = useMemo(() => {
       if (isFirstUserSetup) {
@@ -118,8 +110,9 @@ export default function UsersPage() {
       return roles.filter(role => role.id !== 'super-admin'); // 'super-admin' isn't a real role
   }, [roles, isFirstUserSetup]);
   
-
-  if (!isFirstUserSetup && !currentInstitution && !authLoading) {
+  // This page is now inside a conditional renderer in layout.tsx,
+  // so this check is redundant but kept for safety.
+  if (!isFirstUserSetup && !currentInstitution && isReady) {
     return (
         <div className="p-4 md:p-8">
             <Card>
