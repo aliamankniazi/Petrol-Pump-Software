@@ -28,8 +28,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // This effect redirects logged-in users away from the login page.
-    // It should not be concerned with setup state.
     if (user) {
       router.replace('/dashboard');
     }

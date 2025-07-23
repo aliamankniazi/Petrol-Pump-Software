@@ -49,12 +49,12 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
 );
 
 function AuthenticatedApp({ children }: { children: React.ReactNode }) {
-  const { currentInstitution, institutionLoading } = useRoles();
+  const { currentInstitution, isReady } = useRoles();
 
-  if (institutionLoading) {
+  if (!isReady) {
     return (
-      <FullscreenMessage title="Loading Institutions..." showSpinner>
-        <p>Please wait while we load your institution data.</p>
+      <FullscreenMessage title="Loading Your Data..." showSpinner>
+        <p>Please wait while we prepare your institution's data.</p>
       </FullscreenMessage>
     );
   }
@@ -67,27 +67,26 @@ function AuthenticatedApp({ children }: { children: React.ReactNode }) {
 }
 
 function UnauthenticatedApp() {
-    const [setupState, setSetupState] = React.useState<'checking' | 'needs_setup' | 'login_required'>('checking');
+    const [setupState, setSetupState] = React.useState<'checking' | 'needs_setup' | 'login_ready'>('checking');
     
     React.useEffect(() => {
         const checkSetup = async () => {
             if (!db) {
                 console.error("DB not ready for setup check.");
-                // Default to login if DB is not available for some reason
-                setSetupState('login_required');
+                setSetupState('login_ready'); // Fail safe to login
                 return;
             }
             try {
                 const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
                 const snapshot = await get(setupRef);
                 if (snapshot.exists() && snapshot.val() === true) {
-                    setSetupState('login_required');
+                    setSetupState('login_ready');
                 } else {
                     setSetupState('needs_setup');
                 }
             } catch (error) {
                 console.error("Error checking for Super Admin:", error);
-                setSetupState('login_required'); // Fail safe to login
+                setSetupState('login_ready'); // Fail safe to login
             }
         };
 
@@ -103,7 +102,7 @@ function UnauthenticatedApp() {
             );
         case 'needs_setup':
             return <UsersPage />;
-        case 'login_required':
+        case 'login_ready':
             return <LoginPage />;
         default:
             return <LoginPage />;

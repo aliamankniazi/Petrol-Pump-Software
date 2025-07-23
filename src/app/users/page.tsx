@@ -37,37 +37,20 @@ export default function UsersPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [isSuperAdminRegistered, setIsSuperAdminRegistered] = useState<boolean | null>(null);
+  const [isFirstUserSetup, setIsFirstUserSetup] = useState(false);
   
-  const isFirstUserSetup = isSuperAdminRegistered === false;
-  
+  // This check is simple and only matters for the UI of this page.
+  // The decision to show this page is made in `layout.tsx`.
   useEffect(() => {
-    // This check is now only for this page.
     const checkSetup = async () => {
-        if (!db) {
-            router.replace('/login'); // Fail safe
-            return;
-        }
-        try {
-            const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
-            const snapshot = await get(setupRef);
-            const isRegistered = snapshot.exists() && snapshot.val() === true;
-            setIsSuperAdminRegistered(isRegistered);
-
-            // If a user is already logged in OR setup is complete, they shouldn't be here
-            // unless they have permissions (which is handled by the RolesProvider).
-            // A non-logged-in user should be redirected if setup is complete.
-            if (isRegistered && !user) {
-                router.replace('/login');
-            }
-        } catch (error) {
-            console.error("Setup check failed on users page:", error);
-            router.replace('/login'); // Fail safe
-        }
+      if (!db) return;
+      const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
+      const snapshot = await get(setupRef);
+      setIsFirstUserSetup(!(snapshot.exists() && snapshot.val() === true));
     };
     checkSetup();
-  }, [user, router]);
-
+  }, []);
+  
   const { register, handleSubmit, reset, control, setValue, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
   });
@@ -110,9 +93,8 @@ export default function UsersPage() {
       if (isFirstUserSetup) {
           await set(ref(db, 'app_settings/isSuperAdminRegistered'), true);
           toast({ title: 'Super Admin Created!', description: 'Logging you in...' });
+          // Sign in to establish the session, the layout will handle redirection.
           await signIn({email: data.email, password: data.password});
-          // Redirection will be handled by the auth state listener in the main layout.
-          router.push('/dashboard'); 
       } else {
         toast({ title: 'User Created', description: `Account for ${data.email} created successfully.` });
         reset({ email: '', password: '', roleId: '', institutionName: '' });
@@ -135,18 +117,8 @@ export default function UsersPage() {
       return roles.filter(role => role.id !== 'admin');
   }, [roles, isFirstUserSetup]);
   
-  if (isSuperAdminRegistered === null) {
-      return (
-        <div className="flex min-h-screen items-center justify-center bg-background p-4">
-            <div className="flex flex-col items-center justify-center p-8 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
-                <p className="text-muted-foreground">Verifying setup...</p>
-            </div>
-        </div>
-      );
-  }
-
-  // This prevents the form from being shown to normal users if they navigate here directly without permissions.
+  // This page is now only rendered by the layout logic, so we don't need complex checks here.
+  // We just need to handle the display for the "add user" part for an existing institution.
   if (!isFirstUserSetup && !currentInstitution && isReady) {
     return (
         <div className="p-4 md:p-8">
