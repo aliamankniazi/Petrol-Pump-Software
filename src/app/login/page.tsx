@@ -13,7 +13,7 @@ import { LogIn } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth.tsx';
 import type { AuthFormValues } from '@/lib/types';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 
 const loginSchema = z.object({
@@ -22,16 +22,10 @@ const loginSchema = z.object({
 });
 
 export default function LoginPage() {
-  const { signIn, user } = useAuth();
+  const { signIn } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      router.replace('/dashboard');
-    }
-  }, [user, router]);
 
   const { register, handleSubmit, formState: { errors } } = useForm<AuthFormValues>({
     resolver: zodResolver(loginSchema),
@@ -45,7 +39,8 @@ export default function LoginPage() {
         title: 'Login Successful',
         description: 'Welcome back!',
       });
-      // The redirect will be handled by the useEffect hook watching the `user` state.
+      // Redirect is handled by the main layout component now
+      router.replace('/'); 
     } catch (error: any) {
       toast({
         variant: 'destructive',

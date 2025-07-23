@@ -10,11 +10,13 @@ import { usePathname } from 'next/navigation';
 import { RolesProvider, useRoles } from '@/hooks/use-roles.tsx';
 import { InstitutionProvider, useInstitution } from '@/hooks/use-institution';
 import { AppLayout } from '@/components/app-layout';
-import { isFirebaseConfigured } from '@/lib/firebase-client';
+import { isFirebaseConfigured, db } from '@/lib/firebase-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Terminal } from 'lucide-react';
 import LoginPage from './login/page';
 import { InstitutionSelector } from '@/components/institution-selector';
+import UsersPage from './users/page';
+import { ref, get } from 'firebase/database';
 
 
 const inter = Inter({
@@ -44,38 +46,73 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
    </div>
 );
 
-function AppContent({ children }: { children: React.ReactNode }) {
-    const { currentInstitution, institutionLoading } = useInstitution();
-    const { isReady: rolesReady } = useRoles();
 
-    if (institutionLoading) {
-        return (
-            <FullscreenMessage title="Loading Institution..." showSpinner={true}>
-                <p>Preparing your workspace. Please wait.</p>
-            </FullscreenMessage>
-        );
-    }
-    
-    if (currentInstitution && rolesReady) {
-        return <AppLayout>{children}</AppLayout>;
-    }
-    
-    if (currentInstitution && !rolesReady) {
-         return (
-            <FullscreenMessage title="Loading Roles..." showSpinner={true}>
-                <p>Loading user permissions. Please wait.</p>
-            </FullscreenMessage>
-        );
-    }
+function AuthenticatedApp({ children }: { children: React.ReactNode }) {
+  const { currentInstitution, institutionLoading } = useInstitution();
+  const { isReady: rolesReady } = useRoles();
 
+  if (institutionLoading) {
+    return (
+        <FullscreenMessage title="Loading Institutions..." showSpinner={true}>
+            <p>Fetching your user profile and institutions.</p>
+        </FullscreenMessage>
+    );
+  }
+
+  if (!currentInstitution) {
     return <InstitutionSelector />;
+  }
+
+  if (!rolesReady) {
+    return (
+        <FullscreenMessage title="Loading Roles..." showSpinner={true}>
+            <p>Loading permissions for {currentInstitution.name}.</p>
+        </FullscreenMessage>
+    );
+  }
+
+  return <AppLayout>{children}</AppLayout>;
+}
+
+function UnauthenticatedApp() {
+  const [needsSetup, setNeedsSetup] = React.useState<boolean | null>(null);
+
+  React.useEffect(() => {
+    const checkSetup = async () => {
+      if (!isFirebaseConfigured() || !db) {
+        setNeedsSetup(true); // Assume setup needed if firebase fails
+        return;
+      }
+      const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
+      const snapshot = await get(setupRef);
+      if (snapshot.exists() && snapshot.val() === true) {
+        setNeedsSetup(false);
+      } else {
+        setNeedsSetup(true);
+      }
+    };
+    checkSetup();
+  }, []);
+
+  if (needsSetup === null) {
+      return (
+          <FullscreenMessage title="Initializing..." showSpinner={true}>
+             <p>Checking application setup status.</p>
+          </FullscreenMessage>
+      );
+  }
+  
+  if (needsSetup) {
+    return <UsersPage />;
+  }
+
+  return <LoginPage />;
 }
 
 
 function AppContainer({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
-  const pathname = usePathname();
-
+  
   if (!isFirebaseConfigured()) {
     return (
         <FullscreenMessage title="Firebase Not Configured">
@@ -85,7 +122,7 @@ function AppContainer({ children }: { children: React.ReactNode }) {
         </FullscreenMessage>
     );
   }
-
+  
   if (authLoading) {
       return (
           <FullscreenMessage title="Authenticating..." showSpinner={true}>
@@ -98,18 +135,13 @@ function AppContainer({ children }: { children: React.ReactNode }) {
     return (
       <InstitutionProvider>
         <RolesProvider>
-            <AppContent>{children}</AppContent>
+          <AuthenticatedApp>{children}</AuthenticatedApp>
         </RolesProvider>
       </InstitutionProvider>
     );
   }
   
-  // For unauthenticated users, render the appropriate page.
-  if (pathname === '/users') {
-      return <>{children}</>;
-  }
-  
-  return <LoginPage />;
+  return <UnauthenticatedApp />;
 }
 
 

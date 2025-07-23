@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { UserPlus, Terminal } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth.tsx';
 import { useRouter } from 'next/navigation';
-import { db, isFirebaseConfigured } from '@/lib/firebase-client';
+import { db } from '@/lib/firebase-client';
 import { ref, set, get, push, serverTimestamp } from 'firebase/database';
 import Link from 'next/link';
 import { PERMISSIONS } from '@/lib/types';
@@ -31,36 +31,7 @@ export default function UsersPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [checkingSetup, setCheckingSetup] = useState(true);
-
-  useEffect(() => {
-    // This effect runs only once on the client after the component mounts.
-    // This is the correct way to avoid server-side execution and race conditions.
-    const checkSetupStatus = async () => {
-      if (!isFirebaseConfigured() || !db) {
-        toast({ variant: 'destructive', title: 'Firebase Not Configured' });
-        setCheckingSetup(false);
-        return;
-      }
-      try {
-        const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
-        const snapshot = await get(setupRef);
-        if (snapshot.exists() && snapshot.val() === true) {
-          router.replace('/login');
-        } else {
-          // If setup is not complete, show the registration form.
-          setCheckingSetup(false);
-        }
-      } catch (error) {
-        console.error("Error checking setup status:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not verify application setup.' });
-        setCheckingSetup(false);
-      }
-    };
-    
-    checkSetupStatus();
-  }, [router, toast]);
-
+  
   const { register, handleSubmit, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
   });
@@ -117,7 +88,8 @@ export default function UsersPage() {
       toast({ title: 'Super Admin Created!', description: 'Logging you in...' });
       
       await signIn({ email: data.email, password: data.password });
-      router.replace('/dashboard');
+      // The main layout will handle the redirect after sign-in.
+      router.replace('/');
 
     } catch (error: any) {
       toast({
@@ -129,23 +101,7 @@ export default function UsersPage() {
         setLoading(false);
     }
   }, [signUp, signIn, toast, router]);
-
-  if (checkingSetup) {
-    return (
-        <div className="flex h-screen w-full items-center justify-center bg-muted">
-           <Card className="w-full max-w-md m-4">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Terminal/> Verifying Setup Status...</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center justify-center gap-4 text-center">
-                <p>Please wait while we check your application's configuration.</p>
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mt-4"></div>
-              </CardContent>
-           </Card>
-         </div>
-    );
-  }
-
+  
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <div className="w-full max-w-md">

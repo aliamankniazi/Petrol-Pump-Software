@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const signUp = useCallback(async (data: AuthFormValues) => {
+  const signUp = useCallback(async (data: AuthFormValues): Promise<UserCredential> => {
     if (!isFirebaseConfigured() || !auth) {
         throw new Error("Firebase is not configured.");
     }
@@ -77,7 +77,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     if (!isFirebaseConfigured() || !auth) return;
     await firebaseSignOut(auth);
-    // User state will be updated by onAuthStateChanged listener
+    // User state will be updated by onAuthStateChanged listener, which sets user to null
+    // Also, clear institution selection from local storage
+    localStorage.removeItem('currentInstitutionId');
   }, []);
 
   const value: AuthContextType = {
