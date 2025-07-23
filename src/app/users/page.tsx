@@ -38,12 +38,15 @@ export default function UsersPage() {
   });
 
   useEffect(() => {
-    // This check runs ONLY on the client-side after the component mounts.
-    // It will not run until the `db` object is available.
+    // This check now correctly handles the case where `db` might not be ready on the first render.
+    // It will re-run if `db`'s status changes, ensuring the check always executes.
     if (!isFirebaseConfigured() || !db) {
-        // If firebase is not configured at all, just show the form.
-        // This is mainly for local setup.
-        setCheckingSetup(false);
+        // Firebase is not configured or the db object is not yet available.
+        // We will stop checking for now. The effect will re-run if db becomes available.
+        // If it's not configured at all, we show the form.
+        if (!isFirebaseConfigured()) {
+            setCheckingSetup(false);
+        }
         return;
     }
 
@@ -58,13 +61,12 @@ export default function UsersPage() {
         } catch (error) {
             console.error("Error checking setup status:", error);
             toast({ variant: 'destructive', title: 'Error', description: 'Could not verify app setup status. Please try again.' });
-            // Show form anyway on error
-            setCheckingSetup(false);
+            setCheckingSetup(false); // Ensure we don't get stuck on error
         }
     };
     
     checkSetupStatus();
-  }, [router, toast]);
+  }, [router, toast, db]); // Adding `db` to the dependency array is the key fix.
 
   const onAddUserSubmit: SubmitHandler<NewUserFormValues> = useCallback(async (data) => {
     setLoading(true);
@@ -75,6 +77,14 @@ export default function UsersPage() {
     }
 
     try {
+      // First, ensure no other user has completed setup while this user was filling the form
+      const setupSnapshot = await get(ref(db, 'app_settings/isSuperAdminRegistered'));
+      if (setupSnapshot.exists() && setupSnapshot.val() === true) {
+        toast({ title: 'Setup Already Completed', description: 'Another user has just completed the setup. Redirecting to login.'});
+        router.replace('/login');
+        return;
+      }
+
       const userCredential = await signUp({ email: data.email, password: data.password });
       const userId = userCredential.user.uid;
 
