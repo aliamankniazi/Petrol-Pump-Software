@@ -37,7 +37,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     const [currentInstitutionId, setCurrentInstitutionId] = useState<string | null>(null);
     const [allInstitutions, setAllInstitutions] = useState<Institution[]>([]);
     const [allUserMappings, setAllUserMappings] = useState<UserToInstitution[]>([]);
-    const [isLoaded, setIsLoaded] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         let storedId: string | null = null;
@@ -54,17 +54,16 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const loadData = async () => {
             if (authLoading || !user) {
-                if (!authLoading) {
-                    setIsLoaded(true); // If not loading and no user, we are "loaded" from this hook's perspective
-                }
-                return;
-            }
-            if (!isFirebaseConfigured() || !db) {
-                setIsLoaded(true);
+                setLoading(false);
                 return;
             }
 
-            setIsLoaded(false);
+            if (!isFirebaseConfigured() || !db) {
+                setLoading(false);
+                return;
+            }
+
+            setLoading(true);
             try {
                 const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
                 const mappingsRef = ref(db, USER_MAP_COLLECTION);
@@ -90,7 +89,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
             } catch (error) {
                 console.error("Failed to fetch initial data:", error);
             } finally {
-                setIsLoaded(true);
+                setLoading(false);
             }
         };
 
@@ -177,7 +176,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         currentInstitution,
         setCurrentInstitution: setCurrentInstitutionCB,
         clearCurrentInstitution: clearCurrentInstitutionCB,
-        isLoaded,
+        isLoaded: !loading,
         addInstitution,
         updateInstitution,
         deleteInstitution,
@@ -186,7 +185,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         currentInstitution, 
         setCurrentInstitutionCB, 
         clearCurrentInstitutionCB, 
-        isLoaded,
+        loading,
         addInstitution,
         updateInstitution,
         deleteInstitution

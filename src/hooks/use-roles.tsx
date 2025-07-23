@@ -59,7 +59,7 @@ interface RolesContextType {
 
 const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
-export function RolesProvider({ children }: { children: ReactNode }) {
+export function RolesProvider({ children }: { children: React.ReactNode }) {
     const { user, loading: authLoading } = useAuth();
     const { currentInstitution, isLoaded: institutionLoaded } = useInstitution();
     
@@ -71,7 +71,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         const loadUserMappings = async () => {
-            if (!db) {
+            if (!db || !currentInstitution) {
                 setUserMappingsLoading(false);
                 return;
             }
@@ -88,7 +88,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         };
         
         loadUserMappings();
-    }, []);
+    }, [currentInstitution]);
 
     useEffect(() => {
         if (currentInstitution && !rolesLoading && !defaultsInitialized) {
@@ -99,7 +99,6 @@ export function RolesProvider({ children }: { children: ReactNode }) {
                 const setupDefaults = async () => {
                     for (const role of DEFAULT_ROLES) {
                         const id = role.name.toLowerCase().replace(/\s+/g, '-');
-                        // Check if role already exists before adding
                         if (!roles.some(r => r.id === id)) {
                             await addRoleDoc(role, id);
                         }
