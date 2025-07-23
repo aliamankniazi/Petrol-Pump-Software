@@ -4,7 +4,7 @@
     "app_settings": {
       ".read": true,
       "isSuperAdminRegistered": {
-        ".write": "auth != null"
+        ".write": "auth != null && !data.exists()"
       }
     },
     "institutions": {

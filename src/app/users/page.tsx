@@ -31,14 +31,18 @@ export default function UsersPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [isReadyForSetup, setIsReadyForSetup] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      router.replace('/dashboard');
-      return;
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient || user) {
+        if (user) router.replace('/dashboard');
+        return;
     }
 
-    // This check MUST run only on the client side.
     const checkSetupStatus = async () => {
         if (!db) {
             console.error("Firebase DB not initialized.");
@@ -53,7 +57,6 @@ export default function UsersPage() {
                 toast({ title: "Setup Already Complete", description: "Redirecting to login." });
                 router.replace('/login');
             } else {
-                // It's safe to show the form
                 setIsReadyForSetup(true);
             }
         } catch (error) {
@@ -64,7 +67,7 @@ export default function UsersPage() {
     };
     
     checkSetupStatus();
-  }, [user, router, toast]);
+  }, [isClient, user, router, toast]);
 
   const { register, handleSubmit, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
@@ -87,7 +90,7 @@ export default function UsersPage() {
       if (!newInstitutionId) {
         throw new Error("Could not create a new institution.");
       }
-
+      
       await set(newInstitutionRef, {
         name: data.institutionName,
         ownerId: userCredential.user.uid,

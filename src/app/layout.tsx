@@ -8,14 +8,13 @@ import { Inter } from 'next/font/google';
 import { AuthProvider, useAuth } from '@/hooks/use-auth.tsx';
 import { usePathname } from 'next/navigation';
 import { RolesProvider } from '@/hooks/use-roles';
-import { InstitutionProvider } from '@/hooks/use-institution';
+import { InstitutionProvider, useInstitution } from '@/hooks/use-institution';
 import { AppLayout } from '@/components/app-layout';
-import { isFirebaseConfigured, db } from '@/lib/firebase-client';
+import { isFirebaseConfigured } from '@/lib/firebase-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Terminal } from 'lucide-react';
 import LoginPage from './login/page';
-import UsersPage from './users/page';
-import { ref, get } from 'firebase/database';
+import { InstitutionSelector } from '@/components/institution-selector';
 
 
 const inter = Inter({
@@ -45,6 +44,25 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
    </div>
 );
 
+function AppContent({ children }: { children: React.ReactNode }) {
+    const { currentInstitution, institutionLoading } = useInstitution();
+    const { isReady: rolesReady } = useRoles();
+
+    if (institutionLoading || (currentInstitution && !rolesReady)) {
+        return (
+            <FullscreenMessage title="Loading Institution..." showSpinner={true}>
+                <p>Preparing your workspace. Please wait.</p>
+            </FullscreenMessage>
+        );
+    }
+    
+    if (currentInstitution && rolesReady) {
+        return <AppLayout>{children}</AppLayout>;
+    }
+
+    return <InstitutionSelector />;
+}
+
 
 function AppContainer({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
@@ -62,8 +80,8 @@ function AppContainer({ children }: { children: React.ReactNode }) {
 
   if (authLoading) {
       return (
-          <FullscreenMessage title="Initializing..." showSpinner={true}>
-             <p>Checking application state. Please wait.</p>
+          <FullscreenMessage title="Authenticating..." showSpinner={true}>
+             <p>Checking your credentials. Please wait.</p>
           </FullscreenMessage>
       );
   }
@@ -72,7 +90,7 @@ function AppContainer({ children }: { children: React.ReactNode }) {
     return (
       <InstitutionProvider>
         <RolesProvider>
-            {children}
+            <AppContent>{children}</AppContent>
         </RolesProvider>
       </InstitutionProvider>
     );
@@ -81,7 +99,7 @@ function AppContainer({ children }: { children: React.ReactNode }) {
   // For unauthenticated users, render the appropriate page.
   // The logic to decide between login/setup is now handled inside the pages themselves.
   if (pathname === '/users') {
-      return <UsersPage />;
+      return <>{children}</>;
   }
   
   return <LoginPage />;
@@ -101,7 +119,7 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <AuthProvider>
           <AppContainer>
-            <AppLayout>{children}</AppLayout>
+            {children}
           </AppContainer>
         </AuthProvider>
         <Toaster />
