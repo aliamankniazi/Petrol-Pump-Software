@@ -9,10 +9,11 @@ import { AuthProvider, useAuth } from '@/hooks/use-auth.tsx';
 import { usePathname, useRouter } from 'next/navigation';
 import { RolesProvider, useRoles } from '@/hooks/use-roles.tsx';
 import { AppLayout } from '@/components/app-layout';
-import { isFirebaseConfigured } from '@/lib/firebase-client';
+import { isFirebaseConfigured, db } from '@/lib/firebase-client';
 import { InstitutionSelector } from '@/components/institution-selector';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Terminal } from 'lucide-react';
+import { ref, get } from 'firebase/database';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -52,11 +53,9 @@ const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
 
   React.useEffect(() => {
-    // This effect runs only after the initial readiness check.
     if (!isReady) return;
 
-    // If the user has no institutions, they should be on the institutions page to create one.
-    if (userInstitutions.length === 0 && pathname !== '/institutions') {
+    if (userInstitutions.length === 0 && pathname !== '/institutions' && pathname !== '/users') {
       router.replace('/institutions');
     }
   }, [isReady, userInstitutions, pathname, router]);
@@ -71,11 +70,9 @@ const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
   }
   
   if (userInstitutions.length === 0) {
-      // Allow rendering the institutions page within the layout.
-      if (pathname === '/institutions') {
+      if (pathname === '/institutions' || pathname === '/users') {
           return <AppLayout>{children}</AppLayout>;
       }
-      // Otherwise, show a loading/redirecting message while the effect above does its work.
       return (
           <FullscreenMessage title="Setting Up..." showSpinner>
             <p className="text-center text-muted-foreground">No institution found. Preparing setup page.</p>
@@ -95,19 +92,40 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
   const router = useRouter();
 
-  // Handle redirects within a useEffect hook to prevent errors during render.
   React.useEffect(() => {
     if (authLoading) return; // Don't do anything while auth state is resolving
 
-    const isAuthPage = pathname === '/login' || pathname === '/signup';
+    const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/users';
 
-    if (!user && !isAuthPage) {
-      router.replace('/login');
-    } else if (user && isAuthPage) {
-      router.replace('/dashboard');
+    if (user) {
+        // User is logged in.
+        if (isAuthPage) {
+            router.replace('/dashboard');
+        }
+    } else {
+        // User is not logged in.
+        if (pathname === '/signup') {
+            // Logic to check for first-time setup
+            const institutionsRef = ref(db, 'institutions');
+            get(institutionsRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    // Institutions exist, so it's not the first setup. Redirect to login.
+                    router.replace('/login');
+                } else {
+                    // No institutions exist. This is the first setup. Redirect to user creation.
+                    router.replace('/users');
+                }
+            }).catch(error => {
+                console.error("Error checking for first setup:", error);
+                // Fallback to login on error
+                router.replace('/login');
+            });
+        } else if (!isAuthPage) {
+            // If on any other protected page, redirect to login
+            router.replace('/login');
+        }
     }
   }, [user, authLoading, pathname, router]);
-
 
   if (!isFirebaseConfigured()) {
     return (
@@ -119,7 +137,6 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
     );
   }
   
-  // Show a generic loading screen while auth is resolving or redirects are pending.
   if (authLoading) {
     return (
       <FullscreenMessage title="Authenticating..." showSpinner>
@@ -128,27 +145,27 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  const isAuthPage = pathname === '/login' || pathname === '/signup';
+  const isAuthFlowPage = pathname === '/login' || pathname === '/signup' || pathname === '/users';
   
-  // If we are on an auth page, render it directly.
-  if (isAuthPage) {
-    return <>{children}</>;
-  }
-
-  // If there's no user, show a redirecting message. The useEffect will handle the redirect.
-  if (!user) {
+  if (user) {
+    // User is logged in, render the full app with providers.
     return (
-      <FullscreenMessage title="Redirecting..." showSpinner>
-        <p className="text-center text-muted-foreground">You are not logged in. Redirecting to the login page.</p>
-      </FullscreenMessage>
+      <RolesProvider>
+          <AuthenticatedApp>{children}</AuthenticatedApp>
+      </RolesProvider>
     );
   }
 
-  // User is logged in and not on an auth page, render the full app with providers.
+  if (isAuthFlowPage) {
+    // If we are on an auth page without a user, render it directly.
+    return <>{children}</>;
+  }
+
+  // Fallback for non-auth pages when no user is logged in
   return (
-    <RolesProvider>
-        <AuthenticatedApp>{children}</AuthenticatedApp>
-    </RolesProvider>
+    <FullscreenMessage title="Redirecting..." showSpinner>
+      <p className="text-center text-muted-foreground">You are not logged in. Redirecting to the login page.</p>
+    </FullscreenMessage>
   );
 }
 

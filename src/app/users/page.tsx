@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
@@ -45,10 +46,9 @@ export default function UserManagementPage() {
   }, [currentInstitution, userMappings]);
   
   useEffect(() => {
-      // This determines if we are in the initial setup flow.
       if (isReady && userInstitutions.length === 0) {
           setIsFirstUserSetup(true);
-          setValue('roleId', 'admin'); // Set role to admin for first setup
+          setValue('roleId', 'admin');
       }
   }, [isReady, userInstitutions, setValue]);
 
@@ -63,7 +63,7 @@ export default function UserManagementPage() {
                 setLoading(false);
                 return;
             }
-            targetInstitution = await addInstitution({ name: data.institutionName });
+            targetInstitution = await addInstitution({ name: data.institutionName, logoUrl: '' });
             if (!targetInstitution) throw new Error("Failed to create the first institution.");
         }
 
@@ -80,10 +80,13 @@ export default function UserManagementPage() {
         title: 'User Created',
         description: `Account for ${data.email} created with the ${data.roleId} role for ${targetInstitution.name}.`,
       });
-      reset({ email: '', password: '', roleId: '', institutionName: '' });
+      
       if(isFirstUserSetup) {
-          // reload to go through the normal auth flow after setup
+          // In first setup, we redirect manually after success.
+          // The layout will handle showing the dashboard.
           window.location.href = '/dashboard';
+      } else {
+        reset({ email: '', password: '', roleId: '', institutionName: '' });
       }
     } catch (error: any) {
       toast({
@@ -92,7 +95,9 @@ export default function UserManagementPage() {
         description: error.message || 'An unexpected error occurred.',
       });
     } finally {
-      setLoading(false);
+      if (!isFirstUserSetup) {
+        setLoading(false);
+      }
     }
   }, [signUp, assignRoleToUser, toast, reset, currentInstitution, isFirstUserSetup, addInstitution]);
   
@@ -103,8 +108,7 @@ export default function UserManagementPage() {
       return roles.filter(role => role.id !== 'super-admin');
   }, [roles, isFirstUserSetup]);
   
-
-  if (!isReady && !isFirstUserSetup) {
+  if (!isReady) {
      return (
         <div className="p-4 md:p-8">
              <Skeleton className="h-96 w-full" />
