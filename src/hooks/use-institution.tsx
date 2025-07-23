@@ -22,7 +22,7 @@ interface InstitutionContextType {
     currentInstitution: Institution | null;
     setCurrentInstitution: (institutionId: string) => void;
     clearCurrentInstitution: () => void;
-    isLoaded: boolean;
+    institutionDataLoaded: boolean;
     addInstitution: (institution: Omit<Institution, 'id' | 'ownerId' | 'timestamp'>) => Promise<Institution>;
     updateInstitution: (id: string, data: Partial<Omit<Institution, 'id' | 'ownerId'>>) => Promise<void>;
     deleteInstitution: (id: string) => Promise<void>;
@@ -37,7 +37,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     const [currentInstitutionId, setCurrentInstitutionId] = useState<string | null>(null);
     const [allInstitutions, setAllInstitutions] = useState<Institution[]>([]);
     const [allUserMappings, setAllUserMappings] = useState<UserToInstitution[]>([]);
-    const [isLoaded, setIsLoaded] = useState(false);
+    const [institutionDataLoaded, setInstitutionDataLoaded] = useState(false);
 
     useEffect(() => {
         const storedId = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -48,6 +48,9 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     
     useEffect(() => {
         if (authLoading || !isFirebaseConfigured() || !db) {
+            if (!authLoading) {
+                setInstitutionDataLoaded(true); // Consider loaded if no user or no config
+            }
             return;
         }
 
@@ -56,11 +59,11 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
             setAllUserMappings([]);
             setCurrentInstitutionId(null);
             localStorage.removeItem(LOCAL_STORAGE_KEY);
-            setIsLoaded(true); // Consider it "loaded" for a logged-out user
+            setInstitutionDataLoaded(true); // Loaded for a logged-out user
             return;
         }
 
-        setIsLoaded(false);
+        setInstitutionDataLoaded(false);
         const fetchData = async () => {
             try {
                 const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
@@ -86,11 +89,10 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
                 setAllUserMappings(mappingsArray);
             } catch (error) {
                 console.error("Failed to fetch initial institution or mapping data:", error);
-                // Set empty arrays on error
                 setAllInstitutions([]);
                 setAllUserMappings([]);
             } finally {
-                setIsLoaded(true);
+                setInstitutionDataLoaded(true); // Critical: set loaded to true even if data is empty
             }
         };
 
@@ -98,7 +100,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     }, [user, authLoading]);
 
     const userInstitutions = useMemo(() => {
-        if (!user || !isLoaded) return [];
+        if (!user) return [];
         
         const userMappings = allUserMappings.filter(m => m.userId === user.uid);
         const institutionIdsFromMappings = userMappings.map(m => m.institutionId);
@@ -107,17 +109,11 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         const allReachableIds = new Set([...institutionIdsFromMappings, ...ownedInstitutions.map(i => i.id)]);
         
         return allInstitutions.filter(inst => allReachableIds.has(inst.id));
-    }, [user, allInstitutions, allUserMappings, isLoaded]);
+    }, [user, allInstitutions, allUserMappings]);
 
     const currentInstitution = useMemo(() => {
-        if (!currentInstitutionId && userInstitutions.length === 1) {
-            // Auto-select if there's only one option.
-            setCurrentInstitutionId(userInstitutions[0].id);
-            localStorage.setItem(LOCAL_STORAGE_KEY, userInstitutions[0].id);
-            return userInstitutions[0];
-        }
         return allInstitutions.find(inst => inst.id === currentInstitutionId) ?? null;
-    }, [currentInstitutionId, allInstitutions, userInstitutions]);
+    }, [currentInstitutionId, allInstitutions]);
 
     const setCurrentInstitutionCB = useCallback((institutionId: string) => {
         localStorage.setItem(LOCAL_STORAGE_KEY, institutionId);
@@ -166,7 +162,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         currentInstitution,
         setCurrentInstitution: setCurrentInstitutionCB,
         clearCurrentInstitution: clearCurrentInstitutionCB,
-        isLoaded,
+        institutionDataLoaded,
         addInstitution,
         updateInstitution,
         deleteInstitution,
@@ -175,7 +171,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         currentInstitution, 
         setCurrentInstitutionCB, 
         clearCurrentInstitutionCB, 
-        isLoaded,
+        institutionDataLoaded,
         addInstitution,
         updateInstitution,
         deleteInstitution
@@ -200,7 +196,7 @@ export const useInstitution = () => {
 export function useInstitutions() {
     const { 
         userInstitutions, 
-        isLoaded, 
+        institutionDataLoaded,
         addInstitution, 
         updateInstitution, 
         deleteInstitution 
@@ -211,6 +207,6 @@ export function useInstitutions() {
         addInstitution,
         updateInstitution,
         deleteInstitution,
-        isLoaded,
+        institutionDataLoaded,
     }
 }

@@ -97,7 +97,7 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
 }
 
 const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
-  const { currentInstitution, isLoaded: institutionDataLoaded } = useInstitution();
+  const { currentInstitution, institutionDataLoaded } = useInstitution();
   const { isReady: rolesReady, hasPermission } = useRoles();
   
   if (!institutionDataLoaded) {
