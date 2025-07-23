@@ -10,11 +10,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, Terminal } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth.tsx';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase-client';
-import { ref, set, get, push, serverTimestamp } from 'firebase/database';
+import { ref, get, push, serverTimestamp, update } from 'firebase/database';
 import Link from 'next/link';
 import { PERMISSIONS } from '@/lib/types';
 
@@ -45,10 +45,9 @@ export default function UsersPage() {
     }
 
     try {
-      // First, ensure no other user has completed setup while this user was filling the form
       const setupSnapshot = await get(ref(db, 'app_settings/isSuperAdminRegistered'));
       if (setupSnapshot.exists() && setupSnapshot.val() === true) {
-        toast({ title: 'Setup Already Completed', description: 'Another user has just completed the setup. Redirecting to login.'});
+        toast({ title: 'Setup Already Completed', description: 'Redirecting to login.'});
         router.replace('/login');
         return;
       }
@@ -56,39 +55,40 @@ export default function UsersPage() {
       const userCredential = await signUp({ email: data.email, password: data.password });
       const userId = userCredential.user.uid;
 
-      // 1. Create the first institution
       const newInstitutionRef = push(ref(db, 'institutions'));
       const newInstitutionId = newInstitutionRef.key;
       if (!newInstitutionId) throw new Error("Could not create a new institution ID.");
       
-      const institutionData = {
+      const updates: { [key: string]: any } = {};
+      
+      // Path for new institution
+      updates[`/institutions/${newInstitutionId}`] = {
         name: data.institutionName,
         ownerId: userId,
         timestamp: serverTimestamp(),
       };
-      await set(newInstitutionRef, institutionData);
-
-      // 2. Create the default 'admin' role for this institution
-      const adminRoleRef = ref(db, `institutions/${newInstitutionId}/roles/admin`);
-      await set(adminRoleRef, {
+      
+      // Path for new admin role in the institution
+      updates[`/institutions/${newInstitutionId}/roles/admin`] = {
         name: 'Admin',
         permissions: [...PERMISSIONS],
-      });
+      };
       
-      // 3. Create the mapping that assigns the new user the 'admin' role for the new institution
-      const userMappingRef = ref(db, `userMappings/${userId}_${newInstitutionId}`);
-      await set(userMappingRef, {
+      // Path for user-to-institution mapping
+      updates[`/userMappings/${userId}_${newInstitutionId}`] = {
         userId: userId,
         institutionId: newInstitutionId,
         roleId: 'admin'
-      });
-
-      // 4. Set the global flag to prevent this page from being used again
-      await set(ref(db, 'app_settings/isSuperAdminRegistered'), true);
+      };
+      
+      // Path for global setup flag
+      updates['/app_settings/isSuperAdminRegistered'] = true;
+      
+      // Perform all database writes atomically
+      await update(ref(db), updates);
 
       toast({ title: 'Super Admin Created!', description: 'Logging you in...' });
       
-      // 5. Sign the user in and redirect
       await signIn({ email: data.email, password: data.password });
       router.replace('/');
 
