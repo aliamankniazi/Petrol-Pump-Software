@@ -4,7 +4,7 @@
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +15,8 @@ import { useAuth } from '@/hooks/use-auth.tsx';
 import { useState, useEffect } from 'react';
 import type { AuthFormValues } from '@/lib/types';
 import { useRouter } from 'next/navigation';
+import { db } from '@/lib/firebase-client';
+import { ref, get } from 'firebase/database';
 
 
 const loginSchema = z.object({
@@ -26,21 +28,50 @@ const loginSchema = z.object({
 export default function LoginPage() {
   const { signIn, user, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const [isCheckingSetup, setIsCheckingSetup] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    if (!authLoading && user) {
+    if (authLoading) return;
+    if (user) {
         router.replace('/dashboard');
+        return;
     }
-  }, [authLoading, user, router]);
+
+    const checkSetup = async () => {
+        if (!db) {
+            console.error("Firebase DB not initialized.");
+            setIsCheckingSetup(false);
+            return;
+        }
+        
+        try {
+            const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
+            const snapshot = await get(setupRef);
+            
+            if (!snapshot.exists() || snapshot.val() === false) {
+                // If not set up, go to user creation page
+                router.replace('/users');
+            } else {
+                // If set up, stay here and show login form
+                setIsCheckingSetup(false);
+            }
+        } catch (error) {
+            console.error("Firebase check failed:", error);
+            toast({ variant: 'destructive', title: 'Network Error', description: 'Could not check application setup status.'});
+            setIsCheckingSetup(false);
+        }
+    };
+    
+    checkSetup();
+  }, [authLoading, user, router, toast]);
   
   const { register, handleSubmit, formState: { errors } } = useForm<AuthFormValues>({
     resolver: zodResolver(loginSchema),
   });
 
   const onSubmit: SubmitHandler<AuthFormValues> = async (data) => {
-    setLoading(true);
+    setIsCheckingSetup(true); // Effectively loading state
     try {
       await signIn(data);
       toast({
@@ -54,12 +85,11 @@ export default function LoginPage() {
         title: 'Login Failed',
         description: error.message || 'An unexpected error occurred.',
       });
-    } finally {
-        setLoading(false);
+       setIsCheckingSetup(false);
     }
   };
 
-  if (authLoading || user) {
+  if (isCheckingSetup) {
       return (
         <div className="flex min-h-screen items-center justify-center bg-background p-4">
             <Card className="w-full max-w-md">
@@ -71,7 +101,7 @@ export default function LoginPage() {
                 <CardContent>
                     <div className="flex justify-center items-center gap-2">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                        <p className="text-center">Loading...</p>
+                        <p className="text-center">Checking setup...</p>
                     </div>
                 </CardContent>
             </Card>
@@ -102,11 +132,16 @@ export default function LoginPage() {
                 {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
                 </div>
 
-                <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Logging in...' : 'Login'}
+                <Button type="submit" className="w-full" disabled={isCheckingSetup}>
+                {isCheckingSetup ? 'Logging in...' : 'Login'}
                 </Button>
             </form>
         </CardContent>
+         <CardFooter className="text-sm text-center block">
+             <p className="text-muted-foreground">
+                First time setup? The system will guide you to create a Super Admin account. If you need to add more users, please log in as an admin.
+             </p>
+        </CardFooter>
       </Card>
     </div>
   );
