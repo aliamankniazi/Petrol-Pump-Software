@@ -139,7 +139,10 @@ export default function LoginPage() {
         </CardContent>
          <CardFooter className="text-sm text-center block">
              <p className="text-muted-foreground">
-                First time setup? The system will guide you to create a Super Admin account. If you need to add more users, please log in as an admin.
+                Don't have an account?{' '}
+                <Link href="/users" className="font-semibold text-primary hover:underline">
+                    Create Super Admin
+                </Link>
              </p>
         </CardFooter>
       </Card>
