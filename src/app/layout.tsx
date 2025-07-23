@@ -12,7 +12,6 @@ import { AppLayout } from '@/components/app-layout';
 import { isFirebaseConfigured, db } from '@/lib/firebase-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Terminal } from 'lucide-react';
-import { ref, get } from 'firebase/database';
 import LoginPage from './login/page';
 import UsersPage from './users/page';
 
@@ -48,51 +47,6 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
 );
 
 
-const UnauthenticatedApp = () => {
-    type SetupState = 'CHECKING' | 'SETUP_NEEDED' | 'LOGIN_REQUIRED';
-    const [setupState, setSetupState] = React.useState<SetupState>('CHECKING');
-
-    React.useEffect(() => {
-        const checkSetup = async () => {
-            if (!db) {
-                console.error("Database not initialized, cannot check setup.");
-                setSetupState('LOGIN_REQUIRED');
-                return;
-            };
-            try {
-                const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
-                const snapshot = await get(setupRef);
-                if (snapshot.exists() && snapshot.val() === true) {
-                    setSetupState('LOGIN_REQUIRED');
-                } else {
-                    setSetupState('SETUP_NEEDED');
-                }
-            } catch (error) {
-                console.error("Setup check failed:", error);
-                setSetupState('LOGIN_REQUIRED');
-            }
-        };
-
-        checkSetup();
-    }, []);
-
-    switch (setupState) {
-        case 'CHECKING':
-            return (
-                <FullscreenMessage title="Initializing..." showSpinner>
-                    <p>Checking application setup.</p>
-                </FullscreenMessage>
-            );
-        case 'SETUP_NEEDED':
-            return <UsersPage />;
-        case 'LOGIN_REQUIRED':
-            return <LoginPage />;
-        default:
-            return <LoginPage />;
-    }
-};
-
-
 const AppContainer = ({ children }: { children: React.ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
   
@@ -122,7 +76,8 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
     );
   }
   
-  return <UnauthenticatedApp />;
+  // For unauthenticated users, render the page content directly (e.g., login or user setup)
+  return <>{children}</>;
 }
 
 

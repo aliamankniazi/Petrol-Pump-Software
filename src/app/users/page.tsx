@@ -38,10 +38,38 @@ export default function UsersPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [isCheckingSetup, setIsCheckingSetup] = useState(true);
+  const [isSuperAdminRegistered, setIsSuperAdminRegistered] = useState(true);
   
-  // This page is now rendered conditionally by the layout.
-  // We can assume if we see this page, we're either creating the first user OR adding a new user.
-  const isFirstUserSetup = !currentInstitution;
+  const isFirstUserSetup = !isSuperAdminRegistered;
+  
+  useEffect(() => {
+    const checkSetup = async () => {
+        if (!db) {
+            setIsCheckingSetup(false);
+            return;
+        }
+        try {
+            const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
+            const snapshot = await get(setupRef);
+            if (snapshot.exists() && snapshot.val() === true) {
+                // If a super admin is registered and this isn't the setup flow, redirect to login.
+                if (!currentInstitution) {
+                    router.replace('/login');
+                }
+                setIsSuperAdminRegistered(true);
+            } else {
+                setIsSuperAdminRegistered(false);
+            }
+        } catch (error) {
+            console.error("Setup check failed on users page:", error);
+            router.replace('/login'); // Fail safe
+        } finally {
+            setIsCheckingSetup(false);
+        }
+    };
+    checkSetup();
+  }, [router, currentInstitution]);
 
   const { register, handleSubmit, reset, control, setValue, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
@@ -85,8 +113,7 @@ export default function UsersPage() {
       if (isFirstUserSetup) {
           await set(ref(db, 'app_settings/isSuperAdminRegistered'), true);
           toast({ title: 'Super Admin Created!', description: 'Logging you in...' });
-          await signIn(data); // Sign in the new user
-          // The layout's useEffect will now redirect to the dashboard.
+          await signIn(data);
           router.push('/dashboard');
       } else {
         toast({ title: 'User Created', description: `Account for ${data.email} created successfully.` });
@@ -110,8 +137,18 @@ export default function UsersPage() {
       return roles.filter(role => role.id !== 'super-admin'); // 'super-admin' isn't a real role
   }, [roles, isFirstUserSetup]);
   
-  // This page is now inside a conditional renderer in layout.tsx,
-  // so this check is redundant but kept for safety.
+  if (isCheckingSetup) {
+      return (
+           <div className="flex min-h-screen items-center justify-center bg-background p-4">
+               <div className="flex justify-center items-center gap-2">
+                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                 <p className="text-center">Checking application setup...</p>
+               </div>
+          </div>
+      )
+  }
+
+  // This condition prevents the form from being shown to normal users if they navigate here directly.
   if (!isFirstUserSetup && !currentInstitution && isReady) {
     return (
         <div className="p-4 md:p-8">
