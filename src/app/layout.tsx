@@ -14,6 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Terminal } from 'lucide-react';
 import LoginPage from './login/page';
 import UsersPage from './users/page';
+import { ref, get } from 'firebase/database';
+import { InstitutionSelector } from '@/components/institution-selector';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -46,6 +48,68 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
    </div>
 );
 
+function AuthenticatedApp({ children }: { children: React.ReactNode }) {
+  const { currentInstitution, institutionLoading } = useRoles();
+
+  if (institutionLoading) {
+    return (
+      <FullscreenMessage title="Loading Institutions..." showSpinner>
+        <p>Please wait while we load your institution data.</p>
+      </FullscreenMessage>
+    );
+  }
+
+  if (currentInstitution) {
+    return <AppLayout>{children}</AppLayout>;
+  }
+
+  return <InstitutionSelector />;
+}
+
+function UnauthenticatedApp() {
+    const [setupState, setSetupState] = React.useState<'checking' | 'needs_setup' | 'login_required'>('checking');
+    
+    React.useEffect(() => {
+        const checkSetup = async () => {
+            if (!db) {
+                console.error("DB not ready for setup check.");
+                // Default to login if DB is not available for some reason
+                setSetupState('login_required');
+                return;
+            }
+            try {
+                const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
+                const snapshot = await get(setupRef);
+                if (snapshot.exists() && snapshot.val() === true) {
+                    setSetupState('login_required');
+                } else {
+                    setSetupState('needs_setup');
+                }
+            } catch (error) {
+                console.error("Error checking for Super Admin:", error);
+                setSetupState('login_required'); // Fail safe to login
+            }
+        };
+
+        checkSetup();
+    }, []);
+    
+    switch (setupState) {
+        case 'checking':
+            return (
+                <FullscreenMessage title="Initializing..." showSpinner>
+                    <p>Please wait while we check the application status.</p>
+                </FullscreenMessage>
+            );
+        case 'needs_setup':
+            return <UsersPage />;
+        case 'login_required':
+            return <LoginPage />;
+        default:
+            return <LoginPage />;
+    }
+}
+
 
 const AppContainer = ({ children }: { children: React.ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
@@ -71,13 +135,12 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
   if (user) {
     return (
       <RolesProvider>
-          <AppLayout>{children}</AppLayout>
+          <AuthenticatedApp>{children}</AuthenticatedApp>
       </RolesProvider>
     );
   }
   
-  // For unauthenticated users, render the page content directly (e.g., login or user setup)
-  return <>{children}</>;
+  return <UnauthenticatedApp />;
 }
 
 

@@ -37,27 +37,28 @@ export default function UsersPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [isSuperAdminRegistered, setIsSuperAdminRegistered] = useState(true);
+  const [isSuperAdminRegistered, setIsSuperAdminRegistered] = useState<boolean | null>(null);
   
-  const isFirstUserSetup = !isSuperAdminRegistered;
+  const isFirstUserSetup = isSuperAdminRegistered === false;
   
   useEffect(() => {
+    // This check is now only for this page.
     const checkSetup = async () => {
         if (!db) {
-            router.replace('/login');
+            router.replace('/login'); // Fail safe
             return;
         }
         try {
             const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
             const snapshot = await get(setupRef);
-            if (snapshot.exists() && snapshot.val() === true) {
-                // If a super admin is registered, only allow access if logged in.
-                if(!user) {
-                    router.replace('/login');
-                }
-                setIsSuperAdminRegistered(true);
-            } else {
-                setIsSuperAdminRegistered(false);
+            const isRegistered = snapshot.exists() && snapshot.val() === true;
+            setIsSuperAdminRegistered(isRegistered);
+
+            // If a user is already logged in OR setup is complete, they shouldn't be here
+            // unless they have permissions (which is handled by the RolesProvider).
+            // A non-logged-in user should be redirected if setup is complete.
+            if (isRegistered && !user) {
+                router.replace('/login');
             }
         } catch (error) {
             console.error("Setup check failed on users page:", error);
@@ -109,8 +110,8 @@ export default function UsersPage() {
       if (isFirstUserSetup) {
           await set(ref(db, 'app_settings/isSuperAdminRegistered'), true);
           toast({ title: 'Super Admin Created!', description: 'Logging you in...' });
-          await signIn(data);
-          // Redirection will be handled by the auth state listener in the layout.
+          await signIn({email: data.email, password: data.password});
+          // Redirection will be handled by the auth state listener in the main layout.
           router.push('/dashboard'); 
       } else {
         toast({ title: 'User Created', description: `Account for ${data.email} created successfully.` });
@@ -131,10 +132,21 @@ export default function UsersPage() {
       if (isFirstUserSetup) {
           return [{ id: 'admin', name: 'Super Admin (Owner)' }];
       }
-      return roles.filter(role => role.id !== 'super-admin'); // 'super-admin' isn't a real role
+      return roles.filter(role => role.id !== 'admin');
   }, [roles, isFirstUserSetup]);
   
-  // This condition prevents the form from being shown to normal users if they navigate here directly.
+  if (isSuperAdminRegistered === null) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-background p-4">
+            <div className="flex flex-col items-center justify-center p-8 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+                <p className="text-muted-foreground">Verifying setup...</p>
+            </div>
+        </div>
+      );
+  }
+
+  // This prevents the form from being shown to normal users if they navigate here directly without permissions.
   if (!isFirstUserSetup && !currentInstitution && isReady) {
     return (
         <div className="p-4 md:p-8">
@@ -149,128 +161,130 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 grid gap-8 lg:grid-cols-3">
-      <div className="lg:col-span-1">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserPlus /> {isFirstUserSetup ? 'Create Super Admin' : 'Create New User'}
-            </CardTitle>
-            <CardDescription>
-                {isFirstUserSetup 
-                    ? 'Create the first Super Admin account and your primary institution.'
-                    : `Add a new user to the '${currentInstitution?.name}' institution and assign them a role.`
-                }
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onAddUserSubmit)} className="space-y-4">
-              {isFirstUserSetup && (
+    <div className="flex items-center justify-center min-h-screen bg-background">
+        <div className="p-4 md:p-8 grid gap-8 lg:grid-cols-3 w-full max-w-6xl">
+        <div className="lg:col-span-1">
+            <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                <UserPlus /> {isFirstUserSetup ? 'Create Super Admin' : 'Create New User'}
+                </CardTitle>
+                <CardDescription>
+                    {isFirstUserSetup 
+                        ? 'Create the first Super Admin account and your primary institution.'
+                        : `Add a new user to the '${currentInstitution?.name}' institution and assign them a role.`
+                    }
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={handleSubmit(onAddUserSubmit)} className="space-y-4">
+                {isFirstUserSetup && (
+                    <div className="space-y-2">
+                        <Label htmlFor="institutionName">Institution Name</Label>
+                        <Input id="institutionName" {...register('institutionName')} placeholder="e.g., Mianwali Petroleum" />
+                        {errors.institutionName && <p className="text-sm text-destructive">{errors.institutionName.message}</p>}
+                    </div>
+                )}
+                
                 <div className="space-y-2">
-                    <Label htmlFor="institutionName">Institution Name</Label>
-                    <Input id="institutionName" {...register('institutionName')} placeholder="e.g., Mianwali Petroleum" />
-                    {errors.institutionName && <p className="text-sm text-destructive">{errors.institutionName.message}</p>}
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" {...register('email')} placeholder="user@example.com" />
+                    {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
                 </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" {...register('email')} placeholder="user@example.com" />
-                {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" {...register('password')} placeholder="••••••••" />
-                {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <Controller
-                    name="roleId"
-                    control={control}
-                    render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value} defaultValue={isFirstUserSetup ? 'admin' : ''} disabled={isFirstUserSetup}>
-                            <SelectTrigger>
-                            <SelectValue placeholder="Select a role" />
-                            </SelectTrigger>
-                            <SelectContent>
-                            {availableRoles.map(role => (
-                                <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
-                            ))}
-                            </SelectContent>
-                        </Select>
-                    )}
-                />
-                {errors.roleId && <p className="text-sm text-destructive">{errors.roleId.message}</p>}
-              </div>
+                <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input id="password" type="password" {...register('password')} placeholder="••••••••" />
+                    {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+                </div>
+                
+                <div className="space-y-2">
+                    <Label>Role</Label>
+                    <Controller
+                        name="roleId"
+                        control={control}
+                        render={({ field }) => (
+                            <Select onValueChange={field.onChange} value={field.value} defaultValue={isFirstUserSetup ? 'admin' : ''} disabled={isFirstUserSetup}>
+                                <SelectTrigger>
+                                <SelectValue placeholder="Select a role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                {availableRoles.map(role => (
+                                    <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
+                                ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+                    />
+                    {errors.roleId && <p className="text-sm text-destructive">{errors.roleId.message}</p>}
+                </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Creating...' : isFirstUserSetup ? 'Create Super Admin & Login' : 'Create User'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+                <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? 'Creating...' : isFirstUserSetup ? 'Create Super Admin & Login' : 'Create User'}
+                </Button>
+                </form>
+            </CardContent>
+            </Card>
+        </div>
 
-      <div className="lg:col-span-2">
-       {isFirstUserSetup ? (
-         <Alert>
-            <Building className="h-4 w-4" />
-            <AlertTitle>Welcome!</AlertTitle>
-            <AlertDescription>
-                You are about to set up the first account for this system. This account will have Super Admin privileges, allowing you to manage everything. Please create your account and your first institution using the form.
-            </AlertDescription>
-         </Alert>
-       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <List /> User List
-            </CardTitle>
-            <CardDescription>A list of all registered users and their roles for this institution.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isReady ? (
-              institutionUsers.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>User ID (UID)</TableHead>
-                      <TableHead>Role</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {institutionUsers.map(userItem => {
-                        const roleName = roles.find(r => r.id === userItem.roleId)?.name || userItem.roleId;
-                        return (
-                        <TableRow key={userItem.id}>
-                          <TableCell className="font-mono text-xs">{userItem.userId}</TableCell>
-                          <TableCell className="font-medium capitalize">{roleName}</TableCell>
+        <div className="lg:col-span-2">
+        {isFirstUserSetup ? (
+            <Alert>
+                <Building className="h-4 w-4" />
+                <AlertTitle>Welcome!</AlertTitle>
+                <AlertDescription>
+                    You are about to set up the first account for this system. This account will have Super Admin privileges, allowing you to manage everything. Please create your account and your first institution using the form.
+                </AlertDescription>
+            </Alert>
+        ) : (
+            <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                <List /> User List
+                </CardTitle>
+                <CardDescription>A list of all registered users and their roles for this institution.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {isReady ? (
+                institutionUsers.length > 0 ? (
+                    <Table>
+                    <TableHeader>
+                        <TableRow>
+                        <TableHead>User ID (UID)</TableHead>
+                        <TableHead>Role</TableHead>
                         </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
-                  <UserCog className="w-16 h-16" />
-                  <h3 className="text-xl font-semibold">No Users Found</h3>
-                  <p>Use the form to create the first user for this institution.</p>
+                    </TableHeader>
+                    <TableBody>
+                        {institutionUsers.map(userItem => {
+                            const roleName = roles.find(r => r.id === userItem.roleId)?.name || userItem.roleId;
+                            return (
+                            <TableRow key={userItem.id}>
+                            <TableCell className="font-mono text-xs">{userItem.userId}</TableCell>
+                            <TableCell className="font-medium capitalize">{roleName}</TableCell>
+                            </TableRow>
+                        )
+                        })}
+                    </TableBody>
+                    </Table>
+                ) : (
+                    <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
+                    <UserCog className="w-16 h-16" />
+                    <h3 className="text-xl font-semibold">No Users Found</h3>
+                    <p>Use the form to create the first user for this institution.</p>
+                    </div>
+                )
+                ) : (
+                <div className="space-y-2">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
                 </div>
-              )
-            ) : (
-              <div className="space-y-2">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-       )}
-      </div>
+                )}
+            </CardContent>
+            </Card>
+        )}
+        </div>
+        </div>
     </div>
   );
 }
