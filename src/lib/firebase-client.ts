@@ -6,7 +6,7 @@ import { getDatabase, type Database } from 'firebase/database';
 // IMPORTANT: Replace the placeholder values with your actual Firebase project configuration.
 // You can get this from your project's settings in the Firebase console.
 // https://console.firebase.google.com/
-export const firebaseConfig = {
+const firebaseConfig = {
   apiKey: 'YOUR_API_KEY',
   authDomain: 'YOUR_AUTH_DOMAIN',
   databaseURL: 'YOUR_DATABASE_URL',

@@ -2,12 +2,12 @@
 'use client';
 
 import { useMemo, useCallback, createContext, useContext, type ReactNode, useEffect, useState } from 'react';
-import { ref, set, onValue } from 'firebase/database';
+import { ref, set, onValue, get } from 'firebase/database';
 import { db } from '@/lib/firebase-client';
 import type { Role, RoleId, Permission } from '@/lib/types';
 import { useAuth } from './use-auth';
 import { useDatabaseCollection } from './use-database-collection';
-import { useInstitution } from './use-institution';
+import { useInstitution } from './use-institution.tsx';
 
 const ROLES_COLLECTION = 'roles';
 const USER_MAP_COLLECTION = 'userMappings';
@@ -47,11 +47,12 @@ interface RolesContextType {
     roles: Role[];
     userRole: RoleId | null;
     isSuperAdmin: boolean;
+    userMappings: UserMapping[];
     addRole: (role: Omit<Role, 'id'>) => void;
     updateRole: (id: RoleId, updatedRole: Partial<Omit<Role, 'id'>>) => void;
     deleteRole: (id: RoleId) => void;
     hasPermission: (permission: Permission) => boolean;
-    assignRoleToUser: (userId: string, roleId: RoleId, institutionId: string) => void;
+    assignRoleToUser: (userId: string, roleId: RoleId, institutionId: string) => Promise<void>;
     getRoleForUserInInstitution: (userId: string, institutionId: string) => RoleId | null;
     isReady: boolean;
 }
@@ -81,13 +82,17 @@ export function RolesProvider({ children }: { children: ReactNode }) {
             }
             setUserMappings(mappingsArray);
             setUserMappingsLoading(false);
+        }, (error) => {
+            console.error("Error fetching user mappings:", error);
+            setUserMappingsLoading(false);
         });
+        
         return () => unsubscribe();
     }, []);
 
     const [defaultsInitialized, setDefaultsInitialized] = useState(false);
-
-    const isReady = !authLoading && !rolesLoading && !userMappingsLoading && institutionLoaded && (!!currentInstitution || authLoading) && defaultsInitialized;
+    
+    const isReady = !authLoading && !rolesLoading && !userMappingsLoading && institutionLoaded && defaultsInitialized;
     
     const isSuperAdmin = useMemo(() => {
         if (!user || !currentInstitution) return false;
@@ -96,13 +101,26 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         if (currentInstitution && !rolesLoading && !defaultsInitialized) {
-            if (!roles || roles.length === 0) {
-                Promise.all(DEFAULT_ROLES.map(role => {
-                    const id = role.name.toLowerCase().replace(/\s+/g, '-');
-                    return addRoleDoc(role, id);
-                })).then(() => {
-                    setDefaultsInitialized(true);
-                }).catch(console.error);
+            // Check if default roles already exist before adding them
+            const adminRoleExists = roles.some(r => r.id === 'admin');
+            const attendantRoleExists = roles.some(r => r.id === 'attendant');
+
+            if (!adminRoleExists || !attendantRoleExists) {
+                const rolesToAdd = DEFAULT_ROLES.filter(dr => {
+                    const id = dr.name.toLowerCase().replace(/\s+/g, '-');
+                    return !roles.some(r => r.id === id);
+                });
+
+                if (rolesToAdd.length > 0) {
+                    Promise.all(rolesToAdd.map(role => {
+                        const id = role.name.toLowerCase().replace(/\s+/g, '-');
+                        return addRoleDoc(role, id);
+                    })).finally(() => {
+                        setDefaultsInitialized(true);
+                    });
+                } else {
+                     setDefaultsInitialized(true);
+                }
             } else {
                  setDefaultsInitialized(true);
             }
@@ -110,11 +128,11 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, [currentInstitution, roles, rolesLoading, addRoleDoc, defaultsInitialized]);
     
     const currentUserRole = useMemo(() => {
-        if (!user || !currentInstitution || !userMappings) return null;
-        if (isSuperAdmin) return 'admin'; // Super admin has all permissions
+        if (!user || !currentInstitution || userMappingsLoading) return null;
+        if (isSuperAdmin) return 'admin'; 
         const mapping = userMappings.find(m => m.userId === user.uid && m.institutionId === currentInstitution.id);
         return mapping?.roleId ?? null;
-    }, [user, currentInstitution, userMappings, isSuperAdmin]);
+    }, [user, currentInstitution, userMappings, userMappingsLoading, isSuperAdmin]);
 
     const assignRoleToUser = useCallback(async (userId: string, roleId: RoleId, institutionId: string) => {
         if (!db) return;
@@ -155,6 +173,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         roles: roles || [],
         userRole: currentUserRole,
         isSuperAdmin,
+        userMappings,
         addRole,
         updateRole,
         deleteRole,

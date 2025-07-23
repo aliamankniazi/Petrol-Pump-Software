@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useForm, type SubmitHandler } from 'react-hook-form';
@@ -45,8 +46,8 @@ export default function InstitutionsPage() {
             await updateInstitution(institutionToEdit.id, data);
             toast({ title: 'Institution Updated', description: `The details for ${data.name} have been updated.` });
         } else {
-            await addInstitution(data);
-            toast({ title: 'Institution Added', description: `${data.name} has been created successfully.` });
+            const newInstitution = await addInstitution(data);
+            toast({ title: 'Institution Added', description: `${newInstitution.name} has been created successfully.` });
         }
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error', description: error.message });
@@ -56,14 +57,18 @@ export default function InstitutionsPage() {
     }
   }, [institutionToEdit, addInstitution, updateInstitution, toast, reset]);
   
-  const handleDeleteInstitution = useCallback(() => {
+  const handleDeleteInstitution = useCallback(async () => {
     if (!institutionToDelete) return;
-    deleteInstitution(institutionToDelete.id);
-    toast({
-        title: 'Institution Deleted',
-        description: `${institutionToDelete.name} has been removed.`,
-    });
-    setInstitutionToDelete(null);
+    try {
+      await deleteInstitution(institutionToDelete.id);
+      toast({
+          title: 'Institution Deleted',
+          description: `${institutionToDelete.name} has been removed.`,
+      });
+      setInstitutionToDelete(null);
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message });
+    }
   }, [institutionToDelete, deleteInstitution, toast]);
 
   useEffect(() => {
@@ -90,9 +95,9 @@ export default function InstitutionsPage() {
           <CardContent>
             {!isLoaded ? (
               <div className="space-y-2">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
               </div>
             ) : institutions.length > 0 ? (
               <Table>
@@ -175,7 +180,7 @@ export default function InstitutionsPage() {
           <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
             This action cannot be undone. This will permanently delete the institution: <br />
-            <strong className="font-medium text-foreground">{institutionToDelete?.name}</strong>. All of its associated data (sales, customers, etc.) will also be deleted.
+            <strong className="font-medium text-foreground">{institutionToDelete?.name}</strong>. All of its associated data (sales, customers, roles etc.) will also be deleted.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

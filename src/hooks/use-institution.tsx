@@ -33,7 +33,7 @@ const InstitutionContext = createContext<InstitutionContextType | undefined>(und
 const LOCAL_STORAGE_KEY = 'currentInstitutionId';
 
 export function InstitutionProvider({ children }: { children: ReactNode }) {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const [currentInstitutionId, setCurrentInstitutionId] = useState<string | null>(null);
     const [allInstitutions, setAllInstitutions] = useState<Institution[]>([]);
     const [allUserMappings, setAllUserMappings] = useState<UserToInstitution[]>([]);
@@ -53,9 +53,16 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         if (!isFirebaseConfigured() || !db || !user) {
-            setLoading(false);
+            // If there's no user, we are not loading institutions.
+            if (!user && !authLoading) {
+                setLoading(false);
+                setAllInstitutions([]);
+                setAllUserMappings([]);
+            }
             return;
         }
+
+        setLoading(true);
 
         const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
         const mappingsRef = ref(db, USER_MAP_COLLECTION);
@@ -88,13 +95,16 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
             onValue(institutionsRef, null as any);
             onValue(mappingsRef, null as any);
         };
-    }, [user]);
+    }, [user, authLoading]);
 
     const userInstitutions = useMemo(() => {
         if (!user) return [];
         const userMappings = allUserMappings.filter(m => m.userId === user.uid);
         const institutionIds = userMappings.map(m => m.institutionId);
-        return allInstitutions.filter(inst => institutionIds.includes(inst.id));
+        // Include institutions they own, even if not explicitly mapped
+        const ownedInstitutions = allInstitutions.filter(inst => inst.ownerId === user.uid);
+        const allReachableIds = new Set([...institutionIds, ...ownedInstitutions.map(i => i.id)]);
+        return allInstitutions.filter(inst => allReachableIds.has(inst.id));
     }, [user, allInstitutions, allUserMappings]);
 
     const currentInstitution = useMemo(() => {
@@ -144,16 +154,26 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         await remove(docRef);
     }, []);
 
-    const value = {
+    const value: InstitutionContextType = useMemo(() => ({
         userInstitutions,
         currentInstitution,
         setCurrentInstitution: setCurrentInstitutionCB,
         clearCurrentInstitution: clearCurrentInstitutionCB,
-        isLoaded: !loading,
+        isLoaded: !loading && !authLoading,
         addInstitution,
         updateInstitution,
         deleteInstitution,
-    };
+    }), [
+        userInstitutions, 
+        currentInstitution, 
+        setCurrentInstitutionCB, 
+        clearCurrentInstitutionCB, 
+        loading, 
+        authLoading,
+        addInstitution,
+        updateInstitution,
+        deleteInstitution
+    ]);
 
     return (
         <InstitutionContext.Provider value={value}>

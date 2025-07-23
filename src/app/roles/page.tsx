@@ -18,9 +18,10 @@ import { useRoles, PERMISSIONS, type Permission } from '@/hooks/use-roles';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import type { Role } from '@/lib/types';
 import { useInstitution } from '@/hooks/use-institution.tsx';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const PERMISSION_CATEGORIES: Record<string, Permission[]> = {
-    'General': ['view_dashboard', 'view_all_transactions', 'view_summary', 'generate_ai_summary'],
+    'General': ['view_dashboard', 'view_all_transactions', 'view_summary', 'generate_ai_summary', 'view_reports'],
     'Customers & Partners': ['view_customers', 'add_customer', 'edit_customer', 'delete_customer', 'view_partner_ledger', 'view_credit_recovery'],
     'Inventory & Purchases': ['view_inventory', 'view_purchases', 'add_purchase', 'delete_purchase', 'view_purchase_returns', 'add_purchase_return', 'delete_purchase_return', 'view_tank_readings', 'add_tank_reading'],
     'Financial': ['view_ledger', 'view_expenses', 'add_expense', 'delete_expense', 'view_other_incomes', 'add_other_income', 'delete_other_income', 'view_investments', 'add_investment', 'delete_investment', 'view_cash_advances', 'add_cash_advance', 'delete_cash_advance', 'view_supplier_payments', 'add_supplier_payment', 'delete_supplier_payment'],
@@ -36,7 +37,7 @@ const roleSchema = z.object({
 type RoleFormValues = z.infer<typeof roleSchema>;
 
 export default function RolesPage() {
-  const { roles, addRole, updateRole, deleteRole } = useRoles();
+  const { roles, addRole, updateRole, deleteRole, isReady } = useRoles();
   const { currentInstitution } = useInstitution();
   const { toast } = useToast();
   
@@ -60,7 +61,7 @@ export default function RolesPage() {
 
   const onFormSubmit: SubmitHandler<RoleFormValues> = (data) => {
     if (roleToEdit) {
-      updateRole(roleToEdit.id, data as Role);
+      updateRole(roleToEdit.id, data as Partial<Role>);
       toast({ title: 'Role Updated', description: `The "${data.name}" role has been updated.` });
     } else {
       addRole(data as Omit<Role, 'id'>);
@@ -170,7 +171,8 @@ export default function RolesPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {roles.length > 0 ? (
+            {isReady ? (
+              roles.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -196,11 +198,17 @@ export default function RolesPage() {
                     ))}
                 </TableBody>
               </Table>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
+                  <Shield className="w-16 h-16" />
+                  <h3 className="text-xl font-semibold">No Roles Found</h3>
+                  <p>Use the form to create your first role for this institution.</p>
+                </div>
+              )
             ) : (
-              <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
-                <Shield className="w-16 h-16" />
-                <h3 className="text-xl font-semibold">No Roles Found</h3>
-                <p>Use the form to create your first role for this institution.</p>
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
               </div>
             )}
           </CardContent>

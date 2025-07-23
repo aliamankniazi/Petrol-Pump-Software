@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,6 +18,7 @@ import { useRoles } from '@/hooks/use-roles';
 import type { RoleId } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useInstitution } from '@/hooks/use-institution.tsx';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const newUserSchema = z.object({
   email: z.string().email('A valid email is required.'),
@@ -28,18 +30,20 @@ type NewUserFormValues = z.infer<typeof newUserSchema>;
 
 export default function UserManagementPage() {
   const { signUp } = useAuth();
-  const { roles, assignRoleToUser, getRoleForUserInInstitution } = useRoles();
+  const { roles, assignRoleToUser, getRoleForUserInInstitution, userMappings, isReady: rolesReady } = useRoles();
   const { currentInstitution } = useInstitution();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-
-  // This is a placeholder for a real user list, which would require another hook.
-  // For now, we'll just demonstrate adding users.
-  const [users, setUsers] = useState<{email: string, uid: string}[]>([]); 
-
+  
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
   });
+
+  const institutionUsers = useMemo(() => {
+    if (!currentInstitution || !userMappings) return [];
+    return userMappings.filter(m => m.institutionId === currentInstitution.id);
+  }, [currentInstitution, userMappings]);
+
 
   const onAddUserSubmit: SubmitHandler<NewUserFormValues> = useCallback(async (data) => {
     if (!currentInstitution) {
@@ -49,13 +53,12 @@ export default function UserManagementPage() {
     setLoading(true);
     try {
       const userCredential = await signUp({ email: data.email, password: data.password });
-      assignRoleToUser(userCredential.user.uid, data.roleId, currentInstitution.id);
+      await assignRoleToUser(userCredential.user.uid, data.roleId as RoleId, currentInstitution.id);
       
       toast({
         title: 'User Created',
         description: `Account for ${data.email} created with the ${data.roleId} role for ${currentInstitution.name}.`,
       });
-      setUsers(prev => [...prev, { email: userCredential.user.email!, uid: userCredential.user.uid }]);
       reset({ email: '', password: '', roleId: '' });
     } catch (error: any) {
       toast({
@@ -147,31 +150,39 @@ export default function UserManagementPage() {
             <CardDescription>A list of all registered users and their roles for this institution.</CardDescription>
           </CardHeader>
           <CardContent>
-            {users.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User Email</TableHead>
-                    <TableHead>Role</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map(userItem => {
-                      const role = getRoleForUserInInstitution(userItem.uid, currentInstitution.id);
-                      return (
-                      <TableRow key={userItem.uid}>
-                        <TableCell className="font-mono">{userItem.email}</TableCell>
-                        <TableCell className="font-medium capitalize">{role?.replace('-', ' ') || 'N/A'}</TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
+            {rolesReady ? (
+              institutionUsers.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User ID (UID)</TableHead>
+                      <TableHead>Role</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {institutionUsers.map(userItem => {
+                        const roleName = roles.find(r => r.id === userItem.roleId)?.name || userItem.roleId;
+                        return (
+                        <TableRow key={userItem.id}>
+                          <TableCell className="font-mono text-xs">{userItem.userId}</TableCell>
+                          <TableCell className="font-medium capitalize">{roleName}</TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
+                  <UserCog className="w-16 h-16" />
+                  <h3 className="text-xl font-semibold">No Users Found</h3>
+                  <p>Use the form to create the first user for this institution.</p>
+                </div>
+              )
             ) : (
-              <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
-                <UserCog className="w-16 h-16" />
-                <h3 className="text-xl font-semibold">No Users Found</h3>
-                <p>Use the form to create the first user for this institution.</p>
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
               </div>
             )}
           </CardContent>
