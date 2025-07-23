@@ -17,9 +17,9 @@ export default function SignupPage() {
   useEffect(() => {
     const checkFirstUser = async () => {
       if (db) {
-        // This check is to see if any institutions exist. If not, it must be the first user.
-        const institutionsRef = ref(db, 'institutions');
-        const snapshot = await get(institutionsRef);
+        // This check is to see if any user mappings exist. If not, it must be the first user.
+        const userMappingsRef = ref(db, 'userMappings');
+        const snapshot = await get(userMappingsRef);
         setIsFirstUser(!snapshot.exists());
       } else {
         // If Firebase isn't configured, we can't proceed.
@@ -28,8 +28,13 @@ export default function SignupPage() {
       }
     };
 
-    checkFirstUser();
-  }, []);
+    if (!authLoading && !user) {
+        checkFirstUser();
+    } else if (!authLoading && user) {
+        // A user is already logged in, so this can't be the first user setup.
+        setIsFirstUser(false);
+    }
+  }, [authLoading, user]);
 
   useEffect(() => {
     // Wait for all checks to complete

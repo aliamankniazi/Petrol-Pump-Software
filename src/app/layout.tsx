@@ -97,10 +97,10 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
 }
 
 const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
-  const { currentInstitution, isLoaded: institutionLoaded } = useInstitution();
+  const { currentInstitution, isLoaded: institutionDataLoaded } = useInstitution();
   const { isReady: rolesReady, hasPermission } = useRoles();
   
-  if (!institutionLoaded) {
+  if (!institutionDataLoaded) {
       return (
          <FullscreenMessage title="Loading Institutions..." showSpinner>
           <p className="text-center text-muted-foreground">Fetching your assigned institutions.</p>

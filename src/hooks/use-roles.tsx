@@ -72,8 +72,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
     // Fetch all user mappings once.
     useEffect(() => {
-        if (!db) {
-            setUserMappingsLoading(false);
+        if (authLoading || !db) {
             return;
         }
         setUserMappingsLoading(true);
@@ -90,29 +89,41 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         }).finally(() => {
             setUserMappingsLoading(false);
         });
-    }, []);
+    }, [authLoading]);
 
     // Effect to initialize default roles for the current institution if they don't exist.
     useEffect(() => {
-        // This should only run when we have an institution and roles are loaded.
-        if (currentInstitution && !rolesLoading) {
-            const setupDefaults = async () => {
-                for (const role of DEFAULT_ROLES) {
-                    const id = role.name.toLowerCase().replace(/\s+/g, '-');
-                    if (!roles.some(r => r.id === id)) {
-                        await addRoleDoc(role, id);
-                    }
-                }
-                setDefaultsInitialized(true);
-            };
-            setupDefaults();
-        } else if (!currentInstitution) {
-            // Reset initialized flag if institution changes/is cleared
-            setDefaultsInitialized(false);
+        if (!currentInstitution || rolesLoading || defaultsInitialized) {
+            return;
         }
-    }, [currentInstitution, roles, rolesLoading, addRoleDoc]);
+
+        const setupDefaults = async () => {
+            let createdDefaults = false;
+            for (const role of DEFAULT_ROLES) {
+                const id = role.name.toLowerCase().replace(/\s+/g, '-');
+                if (!roles.some(r => r.id === id)) {
+                    await addRoleDoc(role, id);
+                    createdDefaults = true;
+                }
+            }
+            // Only set initialized to true if we didn't have to create new roles,
+            // or after we are done. If we created roles, the `useDatabaseCollection` hook
+            // will trigger a re-render with the new roles, and we can confirm initialization then.
+            if (!createdDefaults) {
+                setDefaultsInitialized(true);
+            }
+        };
+
+        const adminRoleExists = roles.some(r => r.id === 'admin');
+        if (roles.length > 0 && adminRoleExists) {
+             setDefaultsInitialized(true);
+        } else if (roles.length === 0) {
+            setupDefaults();
+        }
+
+    }, [currentInstitution, roles, rolesLoading, addRoleDoc, defaultsInitialized]);
     
-    const isReady = !authLoading && institutionLoaded && currentInstitution !== null && !rolesLoading && !userMappingsLoading && defaultsInitialized;
+    const isReady = !authLoading && institutionLoaded && !!currentInstitution && !rolesLoading && !userMappingsLoading && defaultsInitialized;
     
     const isSuperAdmin = useMemo(() => {
         if (!user || !currentInstitution) return false;

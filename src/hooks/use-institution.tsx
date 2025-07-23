@@ -46,27 +46,20 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         }
     }, []);
     
-    // This effect is the core of the data fetching logic.
-    // It now correctly depends on `user` and `authLoading` to ensure
-    // it only runs when a user is authenticated.
     useEffect(() => {
-        // Guard Clause: Do not run if auth is loading, firebase is not configured, or there is no user.
         if (authLoading || !isFirebaseConfigured() || !db) {
-            setIsLoaded(authLoading ? false : true); // If auth is loading, we are not loaded. Otherwise, we can consider it loaded (for a non-logged-in user).
             return;
         }
 
         if (!user) {
-            // User is logged out, clear all data and mark as loaded.
             setAllInstitutions([]);
             setAllUserMappings([]);
             setCurrentInstitutionId(null);
             localStorage.removeItem(LOCAL_STORAGE_KEY);
-            setIsLoaded(true);
+            setIsLoaded(true); // Consider it "loaded" for a logged-out user
             return;
         }
 
-        // Fetch data for the logged-in user.
         setIsLoaded(false);
         const fetchData = async () => {
             try {
@@ -93,14 +86,16 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
                 setAllUserMappings(mappingsArray);
             } catch (error) {
                 console.error("Failed to fetch initial institution or mapping data:", error);
+                // Set empty arrays on error
+                setAllInstitutions([]);
+                setAllUserMappings([]);
             } finally {
-                // This is critical: mark as loaded regardless of whether data was found.
                 setIsLoaded(true);
             }
         };
 
         fetchData();
-    }, [user, authLoading]); // Dependency array ensures this runs when auth state changes.
+    }, [user, authLoading]);
 
     const userInstitutions = useMemo(() => {
         if (!user || !isLoaded) return [];
@@ -118,6 +113,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         if (!currentInstitutionId && userInstitutions.length === 1) {
             // Auto-select if there's only one option.
             setCurrentInstitutionId(userInstitutions[0].id);
+            localStorage.setItem(LOCAL_STORAGE_KEY, userInstitutions[0].id);
             return userInstitutions[0];
         }
         return allInstitutions.find(inst => inst.id === currentInstitutionId) ?? null;
