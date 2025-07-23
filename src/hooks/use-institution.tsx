@@ -77,14 +77,10 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     }, []);
 
     useEffect(() => {
-        // This effect runs when auth state changes.
-        // It's the central point for fetching data *after* login.
         const fetchData = async () => {
-            if (authLoading || !user) {
-                // If auth is loading, or there's no user, do nothing.
-                if (!user) {
-                    dispatch({ type: 'RESET' }); // Clear data on logout
-                }
+            // This now depends only on the user object.
+            if (!user) {
+                if(state.loading === false) dispatch({ type: 'RESET' }); // Clear data on logout if not already loading
                 return;
             }
 
@@ -95,7 +91,6 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
 
             dispatch({ type: 'FETCH_START' });
             try {
-                // Fetch both collections at the same time
                 const [institutionsSnapshot, mappingsSnapshot] = await Promise.all([
                     get(ref(db, INSTITUTIONS_COLLECTION)),
                     get(ref(db, USER_MAP_COLLECTION))
@@ -122,7 +117,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         };
 
         fetchData();
-    }, [user, authLoading]); // Dependency array ensures this runs only when auth state settles.
+    }, [user]); // Dependency array ensures this runs only when auth state settles.
 
     const userInstitutions = useMemo(() => {
         if (!user || state.loading) return [];
@@ -162,7 +157,8 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         await set(newDocRef, dataWithOwner);
         const newInstitution = { ...dataWithOwner, id: newId, timestamp: Date.now() } as Institution;
         
-        // No need to dispatch here, onValue listener will pick up the change
+        dispatch({ type: 'FETCH_START' }); // Manually trigger a refetch
+        
         return newInstitution;
     }, [user]);
 
@@ -170,7 +166,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         if (!db) return;
         const docRef = ref(db, `${INSTITUTIONS_COLLECTION}/${id}`);
         await update(docRef, data);
-        // onValue listener will update state
+        dispatch({ type: 'FETCH_START' }); // Manually trigger a refetch
     }, []);
 
     const deleteInstitution = useCallback(async (id: string) => {
@@ -180,7 +176,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         if (currentInstitutionId === id) {
             clearCurrentInstitutionCB();
         }
-        // onValue listener will update state
+        dispatch({ type: 'FETCH_START' }); // Manually trigger a refetch
     }, [currentInstitutionId, clearCurrentInstitutionCB]);
 
     const value: InstitutionContextType = useMemo(() => ({
@@ -228,7 +224,7 @@ export function useInstitutions() {
     } = useInstitution();
     
     return {
-        institutions: userInstitutions || [],
+        institutions: userInstitutions,
         addInstitution,
         updateInstitution,
         deleteInstitution,

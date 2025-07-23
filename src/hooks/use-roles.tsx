@@ -70,12 +70,9 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
-        // This hook now depends ONLY on the currentInstitution.
-        // It will only run when an institution is selected.
         if (!db || !currentInstitution) {
             setUserMappings([]);
             setUserMappingsLoading(false);
-            setIsReady(!!currentInstitution);
             return;
         }
 

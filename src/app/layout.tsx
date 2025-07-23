@@ -48,16 +48,6 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
 
 // This component now contains the providers that depend on a logged-in user.
 const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <InstitutionProvider>
-      <RolesProvider>
-        <AppContent>{children}</AppContent>
-      </RolesProvider>
-    </InstitutionProvider>
-  );
-};
-
-const AppContent = ({ children }: { children: React.ReactNode }) => {
   const { currentInstitution, institutionLoading } = useInstitution();
   const { isReady: rolesReady, loading: rolesLoading } = useRoles();
 
@@ -133,7 +123,13 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
   }
 
   // User is logged in and not on an auth page, render the full app with providers.
-  return <AuthenticatedApp>{children}</AuthenticatedApp>;
+  return (
+    <InstitutionProvider>
+        <RolesProvider>
+            <AuthenticatedApp>{children}</AuthenticatedApp>
+        </RolesProvider>
+    </InstitutionProvider>
+  );
 }
 
 
