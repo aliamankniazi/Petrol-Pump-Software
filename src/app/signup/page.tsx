@@ -17,11 +17,15 @@ export default function SignupPage() {
   useEffect(() => {
     const checkFirstUser = async () => {
       if (db) {
-        const usersRef = ref(db, 'userMappings'); // Check if any user mappings exist
+        // A more reliable check is to see if any user mappings exist at all.
+        // If not, this must be the first user.
+        const usersRef = ref(db, 'userMappings');
         const snapshot = await get(usersRef);
         setIsFirstUser(!snapshot.exists());
       } else {
-        setIsFirstUser(true); // Assume first user if db not ready
+        // This case might happen if firebase-client isn't configured.
+        // We assume it's the first user to allow them to proceed.
+        setIsFirstUser(true);
       }
     };
 
@@ -29,17 +33,21 @@ export default function SignupPage() {
   }, []);
 
   useEffect(() => {
+    // Wait until both auth state and first user check are complete
     if (authLoading || isFirstUser === null) {
-      return; // Wait until both auth state and first user check are complete
+      return; 
     }
 
     if (user) {
+      // If user is already logged in, send them to dashboard.
       router.replace('/dashboard');
     } else if (isFirstUser) {
-      // Allow first user to proceed to create an account which will be super-admin
+      // This is the first ever user. They need to create the initial super-admin account.
+      // Redirect them to the user management page where they can do this.
       router.replace('/users');
     } else {
-      // If not the first user, they cannot sign up here.
+      // The system is already set up. New users cannot sign up directly.
+      // They must be invited. Redirect to login.
       router.replace('/login');
     }
   }, [user, authLoading, isFirstUser, router]);

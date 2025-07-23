@@ -59,63 +59,68 @@ interface RolesContextType {
 
 const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
-export function RolesProvider({ children }: { children: React.ReactNode }) {
+export function RolesProvider({ children }: { children: ReactNode }) {
     const { user, loading: authLoading } = useAuth();
     const { currentInstitution, isLoaded: institutionLoaded } = useInstitution();
     
+    // This hook now correctly waits for `currentInstitution.id` to be available.
     const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, currentInstitution?.id || null);
     
     const [userMappings, setUserMappings] = useState<UserMapping[]>([]);
     const [userMappingsLoading, setUserMappingsLoading] = useState(true);
     const [defaultsInitialized, setDefaultsInitialized] = useState(false);
 
+    // Fetch all user mappings once.
     useEffect(() => {
-        const loadUserMappings = async () => {
-            if (!db || !currentInstitution) {
-                setUserMappingsLoading(false);
-                return;
-            }
-            setUserMappingsLoading(true);
-            const mappingsRef = ref(db, USER_MAP_COLLECTION);
-            const snapshot = await get(mappingsRef);
+        if (!db) {
+            setUserMappingsLoading(false);
+            return;
+        }
+        setUserMappingsLoading(true);
+        const mappingsRef = ref(db, USER_MAP_COLLECTION);
+        get(mappingsRef).then(snapshot => {
             const mappingsArray: UserMapping[] = [];
             if (snapshot.exists()) {
                 const data = snapshot.val();
                 Object.keys(data).forEach(key => mappingsArray.push({ id: key, ...data[key] }));
             }
             setUserMappings(mappingsArray);
+        }).catch(error => {
+            console.error("Error fetching user mappings:", error);
+        }).finally(() => {
             setUserMappingsLoading(false);
-        };
-        
-        loadUserMappings();
-    }, [currentInstitution]);
+        });
+    }, []);
 
+    // Effect to initialize default roles for the current institution if they don't exist.
     useEffect(() => {
+        // This should only run when we have an institution and roles are loaded.
         if (currentInstitution && !rolesLoading && !defaultsInitialized) {
-            const adminRoleExists = roles.some(r => r.id === 'admin');
-            const attendantRoleExists = roles.some(r => r.id === 'attendant');
-
-            if (!adminRoleExists || !attendantRoleExists) {
-                const setupDefaults = async () => {
-                    for (const role of DEFAULT_ROLES) {
-                        const id = role.name.toLowerCase().replace(/\s+/g, '-');
-                        if (!roles.some(r => r.id === id)) {
-                            await addRoleDoc(role, id);
-                        }
+            const setupDefaults = async () => {
+                let changed = false;
+                for (const role of DEFAULT_ROLES) {
+                    const id = role.name.toLowerCase().replace(/\s+/g, '-');
+                    if (!roles.some(r => r.id === id)) {
+                        await addRoleDoc(role, id);
+                        changed = true;
                     }
-                    setDefaultsInitialized(true);
-                };
-                setupDefaults();
-            } else {
-                 setDefaultsInitialized(true);
-            }
+                }
+                // Only set initialized to true *after* ensuring defaults are there.
+                setDefaultsInitialized(true);
+            };
+            setupDefaults();
+        } else if (rolesLoading) {
+            // Reset initialized flag if roles are re-loading (e.g., institution change)
+            setDefaultsInitialized(false);
         }
     }, [currentInstitution, roles, rolesLoading, addRoleDoc, defaultsInitialized]);
     
+    // The entire system is "Ready" only when all loading flags are false.
     const isReady = !authLoading && institutionLoaded && currentInstitution && !rolesLoading && !userMappingsLoading && defaultsInitialized;
     
     const isSuperAdmin = useMemo(() => {
         if (!user || !currentInstitution) return false;
+        // The owner of the institution is the super admin.
         return user.uid === currentInstitution.ownerId;
     }, [user, currentInstitution]);
 
@@ -132,6 +137,7 @@ export function RolesProvider({ children }: { children: React.ReactNode }) {
         const newMapping = { userId, roleId, institutionId };
         const mappingRef = ref(db, `${USER_MAP_COLLECTION}/${docId}`);
         await set(mappingRef, newMapping);
+        // Refresh local state after assigning role
         setUserMappings(prev => [...prev.filter(m => m.id !== docId), { ...newMapping, id: docId }]);
     }, []);
     

@@ -52,19 +52,25 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     }, []);
 
     useEffect(() => {
+        // This effect is responsible for fetching all necessary data from Firebase
+        // after the user has been authenticated.
         const loadData = async () => {
             if (authLoading || !user) {
+                // If auth is still loading or there's no user, we can't do anything yet.
+                // When auth is done and there's no user, the `AppContainer` will redirect to login.
                 if (!authLoading) setLoading(false);
                 return;
             }
 
             if (!isFirebaseConfigured() || !db) {
+                console.warn("Firebase not configured. Bypassing data fetch.");
                 setLoading(false);
                 return;
             }
 
             setLoading(true);
             try {
+                // Fetch both institutions and user mappings at the same time.
                 const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
                 const mappingsRef = ref(db, USER_MAP_COLLECTION);
                 
@@ -73,6 +79,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
                     get(mappingsRef)
                 ]);
 
+                // Process institutions data
                 const institutionsArray: Institution[] = [];
                 if (institutionsSnapshot.exists()) {
                     const data = institutionsSnapshot.val();
@@ -80,6 +87,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
                 }
                 setAllInstitutions(institutionsArray);
 
+                // Process user mappings data
                 const mappingsArray: UserToInstitution[] = [];
                 if (mappingsSnapshot.exists()) {
                     const data = mappingsSnapshot.val();
@@ -87,14 +95,16 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
                 }
                 setAllUserMappings(mappingsArray);
             } catch (error) {
-                console.error("Failed to fetch initial data:", error);
+                console.error("Failed to fetch initial institution or mapping data:", error);
             } finally {
+                // Crucially, set loading to false regardless of whether data was found or not.
+                // This breaks the infinite loading loop.
                 setLoading(false);
             }
         };
 
         loadData();
-    }, [user, authLoading]);
+    }, [user, authLoading]); // This dependency array ensures the effect runs when auth state changes.
     
     const clearCurrentInstitutionCB = useCallback(() => {
         try {
@@ -105,25 +115,30 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         setCurrentInstitutionId(null);
     }, []);
 
+    // This effect handles clearing the current institution when the user logs out.
     useEffect(() => {
-        if (!user) {
+        if (!user && !authLoading) {
             clearCurrentInstitutionCB();
+            setAllInstitutions([]);
+            setAllUserMappings([]);
         }
-    }, [user, clearCurrentInstitutionCB]);
+    }, [user, authLoading, clearCurrentInstitutionCB]);
 
     const userInstitutions = useMemo(() => {
-        if (!user) return [];
+        if (!user || loading) return [];
+        // A user has access to an institution if they own it OR if there is a mapping for them.
         const userMappings = allUserMappings.filter(m => m.userId === user.uid);
-        const institutionIds = userMappings.map(m => m.institutionId);
+        const institutionIdsFromMappings = userMappings.map(m => m.institutionId);
         
         const ownedInstitutions = allInstitutions.filter(inst => inst.ownerId === user.uid);
-        const allReachableIds = new Set([...institutionIds, ...ownedInstitutions.map(i => i.id)]);
+        const allReachableIds = new Set([...institutionIdsFromMappings, ...ownedInstitutions.map(i => i.id)]);
         
         return allInstitutions.filter(inst => allReachableIds.has(inst.id));
-    }, [user, allInstitutions, allUserMappings]);
+    }, [user, allInstitutions, allUserMappings, loading]);
 
     const currentInstitution = useMemo(() => {
         if (!currentInstitutionId && userInstitutions.length === 1) {
+            // If only one institution is available, select it automatically.
             setCurrentInstitutionId(userInstitutions[0].id);
             return userInstitutions[0];
         }
@@ -149,7 +164,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         
         const dataWithOwner = { ...institution, ownerId: user.uid, timestamp: serverTimestamp() };
         await set(newDocRef, dataWithOwner);
-        const newInstitution = { ...dataWithOwner, id: newId, timestamp: Date.now() } as Institution
+        const newInstitution = { ...dataWithOwner, id: newId, timestamp: Date.now() } as Institution;
         setAllInstitutions(prev => [...prev, newInstitution]);
         return newInstitution;
     }, [user]);
@@ -158,7 +173,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         if (!db) return;
         const docRef = ref(db, `${INSTITUTIONS_COLLECTION}/${id}`);
         await update(docRef, data);
-        setAllInstitutions(prev => prev.map(inst => inst.id === id ? { ...inst, ...data } : inst));
+        setAllInstitutions(prev => prev.map(inst => inst.id === id ? { ...inst, ...data } as Institution : inst));
     }, []);
 
     const deleteInstitution = useCallback(async (id: string) => {
@@ -217,7 +232,7 @@ export function useInstitutions() {
     } = useInstitution();
     
     return {
-        institutions: userInstitutions || [], // Ensure it's always an array
+        institutions: userInstitutions, // Now it can be undefined initially, but the component will handle it
         addInstitution,
         updateInstitution,
         deleteInstitution,
