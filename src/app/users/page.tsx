@@ -26,20 +26,6 @@ const newUserSchema = z.object({
 
 type NewUserFormValues = z.infer<typeof newUserSchema>;
 
-const FullscreenMessage = ({ title, children }: { title: string, children: React.ReactNode }) => (
-    <div className="flex h-screen w-full items-center justify-center bg-muted">
-       <Card className="w-full max-w-md m-4">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Terminal/> {title}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center gap-4 text-center">
-            {children}
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mt-4"></div>
-          </CardContent>
-       </Card>
-     </div>
-  );
-
 export default function UsersPage() {
   const { signUp, signIn } = useAuth();
   const { toast } = useToast();
@@ -48,7 +34,8 @@ export default function UsersPage() {
   const [checkingSetup, setCheckingSetup] = useState(true);
 
   useEffect(() => {
-    // This effect runs only on the client after mount
+    // This effect runs only once on the client after the component mounts.
+    // This is the correct way to avoid server-side execution and race conditions.
     const checkSetupStatus = async () => {
       if (!isFirebaseConfigured() || !db) {
         toast({ variant: 'destructive', title: 'Firebase Not Configured' });
@@ -61,6 +48,7 @@ export default function UsersPage() {
         if (snapshot.exists() && snapshot.val() === true) {
           router.replace('/login');
         } else {
+          // If setup is not complete, show the registration form.
           setCheckingSetup(false);
         }
       } catch (error) {
@@ -144,9 +132,17 @@ export default function UsersPage() {
 
   if (checkingSetup) {
     return (
-        <FullscreenMessage title="Verifying setup status...">
-            <p>Please wait while we check your application's configuration.</p>
-        </FullscreenMessage>
+        <div className="flex h-screen w-full items-center justify-center bg-muted">
+           <Card className="w-full max-w-md m-4">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Terminal/> Verifying Setup Status...</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center justify-center gap-4 text-center">
+                <p>Please wait while we check your application's configuration.</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mt-4"></div>
+              </CardContent>
+           </Card>
+         </div>
     );
   }
 
