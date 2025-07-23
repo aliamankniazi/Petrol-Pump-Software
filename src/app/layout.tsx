@@ -97,7 +97,7 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
 }
 
 const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
-  const { userInstitutions, currentInstitution, isLoaded: institutionLoaded, setCurrentInstitution } = useInstitution();
+  const { currentInstitution, isLoaded: institutionLoaded, setCurrentInstitution } = useInstitution();
   const { isReady: rolesReady, hasPermission } = useRoles();
   
   if (!institutionLoaded) {
@@ -109,14 +109,6 @@ const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
   }
   
   if (!currentInstitution) {
-     if (userInstitutions.length === 1) {
-        setCurrentInstitution(userInstitutions[0].id);
-        return (
-             <FullscreenMessage title="Setting Institution..." showSpinner>
-                <p className="text-center text-muted-foreground">Default institution found. Loading...</p>
-            </FullscreenMessage>
-        );
-     }
      return <InstitutionSelector />;
   }
 

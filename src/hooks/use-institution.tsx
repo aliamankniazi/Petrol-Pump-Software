@@ -37,7 +37,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     const [currentInstitutionId, setCurrentInstitutionId] = useState<string | null>(null);
     const [allInstitutions, setAllInstitutions] = useState<Institution[]>([]);
     const [allUserMappings, setAllUserMappings] = useState<UserToInstitution[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
         let storedId: string | null = null;
@@ -53,19 +53,18 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         const loadData = async () => {
-            if (authLoading) {
-                return; // Wait for authentication to resolve
-            }
-            if (!user) {
-                setLoading(false); // Not logged in, so nothing to load
+            if (authLoading || !user) {
+                if (!authLoading) {
+                    setIsLoaded(true); // If not loading and no user, we are "loaded" from this hook's perspective
+                }
                 return;
             }
             if (!isFirebaseConfigured() || !db) {
-                setLoading(false);
+                setIsLoaded(true);
                 return;
             }
 
-            setLoading(true);
+            setIsLoaded(false);
             try {
                 const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
                 const mappingsRef = ref(db, USER_MAP_COLLECTION);
@@ -91,7 +90,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
             } catch (error) {
                 console.error("Failed to fetch initial data:", error);
             } finally {
-                setLoading(false); // This is the crucial fix: ensure loading is always set to false
+                setIsLoaded(true);
             }
         };
 
@@ -125,8 +124,12 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     }, [user, allInstitutions, allUserMappings]);
 
     const currentInstitution = useMemo(() => {
+        if (!currentInstitutionId && userInstitutions.length === 1) {
+            setCurrentInstitutionId(userInstitutions[0].id);
+            return userInstitutions[0];
+        }
         return allInstitutions.find(inst => inst.id === currentInstitutionId) ?? null;
-    }, [currentInstitutionId, allInstitutions]);
+    }, [currentInstitutionId, allInstitutions, userInstitutions]);
 
     const setCurrentInstitutionCB = useCallback((institutionId: string) => {
         try {
@@ -174,7 +177,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         currentInstitution,
         setCurrentInstitution: setCurrentInstitutionCB,
         clearCurrentInstitution: clearCurrentInstitutionCB,
-        isLoaded: !loading && !authLoading,
+        isLoaded,
         addInstitution,
         updateInstitution,
         deleteInstitution,
@@ -183,8 +186,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         currentInstitution, 
         setCurrentInstitutionCB, 
         clearCurrentInstitutionCB, 
-        loading,
-        authLoading,
+        isLoaded,
         addInstitution,
         updateInstitution,
         deleteInstitution
