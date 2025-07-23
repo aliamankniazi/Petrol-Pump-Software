@@ -7,13 +7,13 @@ import { getDatabase, type Database } from 'firebase/database';
 // You can get this from your project's settings in the Firebase console.
 // https://console.firebase.google.com/
 const firebaseConfig = {
-  apiKey: 'YOUR_API_KEY',
-  authDomain: 'YOUR_AUTH_DOMAIN',
-  databaseURL: 'YOUR_DATABASE_URL',
-  projectId: 'YOUR_PROJECT_ID',
-  storageBucket: 'YOUR_STORAGE_BUCKET',
-  messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-  appId: 'YOUR_APP_ID',
+  "projectId": "pumppal-n1b9n",
+  "appId": "1:539336218754:web:1e90dd372f7615d3d33c9b",
+  "storageBucket": "pumppal-n1b9n.firebasestorage.app",
+  "apiKey": "AIzaSyCXEB6bHuRf7q9wzAGgYDdvLGqbkPVxpDY",
+  "authDomain": "pumppal-n1b9n.firebaseapp.com",
+  "measurementId": "G-N85T634MQ3",
+  "messagingSenderId": "539336218754"
 };
 
 let app: FirebaseApp | null = null;
