@@ -54,7 +54,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const loadData = async () => {
             if (authLoading || !user) {
-                setLoading(false);
+                if (!authLoading) setLoading(false);
                 return;
             }
 
@@ -176,7 +176,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         currentInstitution,
         setCurrentInstitution: setCurrentInstitutionCB,
         clearCurrentInstitution: clearCurrentInstitutionCB,
-        isLoaded: !loading,
+        isLoaded: !loading && !authLoading,
         addInstitution,
         updateInstitution,
         deleteInstitution,
@@ -186,6 +186,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         setCurrentInstitutionCB, 
         clearCurrentInstitutionCB, 
         loading,
+        authLoading,
         addInstitution,
         updateInstitution,
         deleteInstitution
@@ -216,7 +217,7 @@ export function useInstitutions() {
     } = useInstitution();
     
     return {
-        institutions: userInstitutions,
+        institutions: userInstitutions || [], // Ensure it's always an array
         addInstitution,
         updateInstitution,
         deleteInstitution,
