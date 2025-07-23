@@ -16,7 +16,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRoles } from '@/hooks/use-roles';
 import type { RoleId } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useInstitution } from '@/hooks/use-institution';
+import { useInstitution } from '@/hooks/use-institution.tsx';
 
 const newUserSchema = z.object({
   email: z.string().email('A valid email is required.'),

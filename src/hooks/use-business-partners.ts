@@ -5,7 +5,7 @@ import { useCallback } from 'react';
 import type { BusinessPartner } from '@/lib/types';
 import { useCustomers } from './use-customers';
 import { useDatabaseCollection } from './use-database-collection';
-import { useInstitution } from './use-institution';
+import { useInstitution } from './use-institution.tsx';
 
 const COLLECTION_NAME = 'business-partners';
 

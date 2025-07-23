@@ -5,7 +5,7 @@ import { useCallback } from 'react';
 import { ref, remove } from 'firebase/database';
 import { useAuth } from './use-auth';
 import { db } from '@/lib/firebase-client';
-import { useInstitution } from './use-institution';
+import { useInstitution } from './use-institution.tsx';
 
 export function useSettings() {
   const { user } = useAuth();

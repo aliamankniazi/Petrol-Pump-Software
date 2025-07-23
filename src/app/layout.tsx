@@ -11,7 +11,7 @@ import { RolesProvider, useRoles } from '@/hooks/use-roles';
 import { AppLayout } from '@/components/app-layout';
 import { Skeleton } from '@/components/ui/skeleton';
 import { isFirebaseConfigured } from '@/lib/firebase-client';
-import { InstitutionProvider, useInstitution } from '@/hooks/use-institution';
+import { InstitutionProvider, useInstitution } from '@/hooks/use-institution.tsx';
 import { InstitutionSelector } from '@/components/institution-selector';
 
 const inter = Inter({

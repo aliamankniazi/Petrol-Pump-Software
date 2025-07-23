@@ -4,7 +4,7 @@
 import { useCallback, useMemo } from 'react';
 import type { FuelType } from '@/lib/types';
 import { useDatabaseCollection } from './use-database-collection';
-import { useInstitution } from './use-institution';
+import { useInstitution } from './use-institution.tsx';
 
 const COLLECTION_NAME = 'settings';
 const DOC_ID = 'fuel-prices';

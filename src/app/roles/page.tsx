@@ -17,7 +17,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useRoles, PERMISSIONS, type Permission } from '@/hooks/use-roles';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import type { Role } from '@/lib/types';
-import { useInstitution } from '@/hooks/use-institution';
+import { useInstitution } from '@/hooks/use-institution.tsx';
 
 const PERMISSION_CATEGORIES: Record<string, Permission[]> = {
     'General': ['view_dashboard', 'view_all_transactions', 'view_summary', 'generate_ai_summary'],

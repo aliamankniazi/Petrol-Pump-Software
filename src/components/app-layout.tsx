@@ -20,7 +20,7 @@ import { FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, User
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from './ui/button';
 import type { Permission } from '@/hooks/use-roles';
-import { useInstitution } from '@/hooks/use-institution';
+import { useInstitution } from '@/hooks/use-institution.tsx';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
 const navItems = [
