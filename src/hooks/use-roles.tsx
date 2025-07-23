@@ -95,28 +95,24 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     // Effect to initialize default roles for the current institution if they don't exist.
     useEffect(() => {
         // This should only run when we have an institution and roles are loaded.
-        if (currentInstitution && !rolesLoading && !defaultsInitialized) {
+        if (currentInstitution && !rolesLoading) {
             const setupDefaults = async () => {
-                let changed = false;
                 for (const role of DEFAULT_ROLES) {
                     const id = role.name.toLowerCase().replace(/\s+/g, '-');
                     if (!roles.some(r => r.id === id)) {
                         await addRoleDoc(role, id);
-                        changed = true;
                     }
                 }
-                // Only set initialized to true *after* ensuring defaults are there.
                 setDefaultsInitialized(true);
             };
             setupDefaults();
-        } else if (rolesLoading) {
-            // Reset initialized flag if roles are re-loading (e.g., institution change)
+        } else if (!currentInstitution) {
+            // Reset initialized flag if institution changes/is cleared
             setDefaultsInitialized(false);
         }
-    }, [currentInstitution, roles, rolesLoading, addRoleDoc, defaultsInitialized]);
+    }, [currentInstitution, roles, rolesLoading, addRoleDoc]);
     
-    // The entire system is "Ready" only when all loading flags are false.
-    const isReady = !authLoading && institutionLoaded && currentInstitution && !rolesLoading && !userMappingsLoading && defaultsInitialized;
+    const isReady = !authLoading && institutionLoaded && currentInstitution !== null && !rolesLoading && !userMappingsLoading && defaultsInitialized;
     
     const isSuperAdmin = useMemo(() => {
         if (!user || !currentInstitution) return false;

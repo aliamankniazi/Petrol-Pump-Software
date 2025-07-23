@@ -17,15 +17,14 @@ export default function SignupPage() {
   useEffect(() => {
     const checkFirstUser = async () => {
       if (db) {
-        // A more reliable check is to see if any user mappings exist at all.
-        // If not, this must be the first user.
-        const usersRef = ref(db, 'userMappings');
-        const snapshot = await get(usersRef);
+        // This check is to see if any institutions exist. If not, it must be the first user.
+        const institutionsRef = ref(db, 'institutions');
+        const snapshot = await get(institutionsRef);
         setIsFirstUser(!snapshot.exists());
       } else {
-        // This case might happen if firebase-client isn't configured.
-        // We assume it's the first user to allow them to proceed.
-        setIsFirstUser(true);
+        // If Firebase isn't configured, we can't proceed.
+        // The layout will show a config error message.
+        setIsFirstUser(false);
       }
     };
 
@@ -33,13 +32,13 @@ export default function SignupPage() {
   }, []);
 
   useEffect(() => {
-    // Wait until both auth state and first user check are complete
+    // Wait for all checks to complete
     if (authLoading || isFirstUser === null) {
       return; 
     }
 
     if (user) {
-      // If user is already logged in, send them to dashboard.
+      // If user is already logged in, they should not be here.
       router.replace('/dashboard');
     } else if (isFirstUser) {
       // This is the first ever user. They need to create the initial super-admin account.
@@ -47,7 +46,7 @@ export default function SignupPage() {
       router.replace('/users');
     } else {
       // The system is already set up. New users cannot sign up directly.
-      // They must be invited. Redirect to login.
+      // They must be invited by an admin. Redirect to login.
       router.replace('/login');
     }
   }, [user, authLoading, isFirstUser, router]);

@@ -37,40 +37,39 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     const [currentInstitutionId, setCurrentInstitutionId] = useState<string | null>(null);
     const [allInstitutions, setAllInstitutions] = useState<Institution[]>([]);
     const [allUserMappings, setAllUserMappings] = useState<UserToInstitution[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
-        let storedId: string | null = null;
-        try {
-            storedId = localStorage.getItem(LOCAL_STORAGE_KEY);
-            if (storedId) {
-                setCurrentInstitutionId(storedId);
-            }
-        } catch (error) {
-            console.error("Could not access localStorage:", error);
+        const storedId = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (storedId) {
+            setCurrentInstitutionId(storedId);
         }
     }, []);
-
+    
+    // This effect is the core of the data fetching logic.
+    // It now correctly depends on `user` and `authLoading` to ensure
+    // it only runs when a user is authenticated.
     useEffect(() => {
-        // This effect is responsible for fetching all necessary data from Firebase
-        // after the user has been authenticated.
-        const loadData = async () => {
-            if (authLoading || !user) {
-                // If auth is still loading or there's no user, we can't do anything yet.
-                // When auth is done and there's no user, the `AppContainer` will redirect to login.
-                if (!authLoading) setLoading(false);
-                return;
-            }
+        // Guard Clause: Do not run if auth is loading, firebase is not configured, or there is no user.
+        if (authLoading || !isFirebaseConfigured() || !db) {
+            setIsLoaded(authLoading ? false : true); // If auth is loading, we are not loaded. Otherwise, we can consider it loaded (for a non-logged-in user).
+            return;
+        }
 
-            if (!isFirebaseConfigured() || !db) {
-                console.warn("Firebase not configured. Bypassing data fetch.");
-                setLoading(false);
-                return;
-            }
+        if (!user) {
+            // User is logged out, clear all data and mark as loaded.
+            setAllInstitutions([]);
+            setAllUserMappings([]);
+            setCurrentInstitutionId(null);
+            localStorage.removeItem(LOCAL_STORAGE_KEY);
+            setIsLoaded(true);
+            return;
+        }
 
-            setLoading(true);
+        // Fetch data for the logged-in user.
+        setIsLoaded(false);
+        const fetchData = async () => {
             try {
-                // Fetch both institutions and user mappings at the same time.
                 const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
                 const mappingsRef = ref(db, USER_MAP_COLLECTION);
                 
@@ -79,7 +78,6 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
                     get(mappingsRef)
                 ]);
 
-                // Process institutions data
                 const institutionsArray: Institution[] = [];
                 if (institutionsSnapshot.exists()) {
                     const data = institutionsSnapshot.val();
@@ -87,7 +85,6 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
                 }
                 setAllInstitutions(institutionsArray);
 
-                // Process user mappings data
                 const mappingsArray: UserToInstitution[] = [];
                 if (mappingsSnapshot.exists()) {
                     const data = mappingsSnapshot.val();
@@ -97,36 +94,17 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
             } catch (error) {
                 console.error("Failed to fetch initial institution or mapping data:", error);
             } finally {
-                // Crucially, set loading to false regardless of whether data was found or not.
-                // This breaks the infinite loading loop.
-                setLoading(false);
+                // This is critical: mark as loaded regardless of whether data was found.
+                setIsLoaded(true);
             }
         };
 
-        loadData();
-    }, [user, authLoading]); // This dependency array ensures the effect runs when auth state changes.
-    
-    const clearCurrentInstitutionCB = useCallback(() => {
-        try {
-            localStorage.removeItem(LOCAL_STORAGE_KEY);
-        } catch (error) {
-            console.error("Could not remove item from localStorage:", error);
-        }
-        setCurrentInstitutionId(null);
-    }, []);
-
-    // This effect handles clearing the current institution when the user logs out.
-    useEffect(() => {
-        if (!user && !authLoading) {
-            clearCurrentInstitutionCB();
-            setAllInstitutions([]);
-            setAllUserMappings([]);
-        }
-    }, [user, authLoading, clearCurrentInstitutionCB]);
+        fetchData();
+    }, [user, authLoading]); // Dependency array ensures this runs when auth state changes.
 
     const userInstitutions = useMemo(() => {
-        if (!user || loading) return [];
-        // A user has access to an institution if they own it OR if there is a mapping for them.
+        if (!user || !isLoaded) return [];
+        
         const userMappings = allUserMappings.filter(m => m.userId === user.uid);
         const institutionIdsFromMappings = userMappings.map(m => m.institutionId);
         
@@ -134,11 +112,11 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         const allReachableIds = new Set([...institutionIdsFromMappings, ...ownedInstitutions.map(i => i.id)]);
         
         return allInstitutions.filter(inst => allReachableIds.has(inst.id));
-    }, [user, allInstitutions, allUserMappings, loading]);
+    }, [user, allInstitutions, allUserMappings, isLoaded]);
 
     const currentInstitution = useMemo(() => {
         if (!currentInstitutionId && userInstitutions.length === 1) {
-            // If only one institution is available, select it automatically.
+            // Auto-select if there's only one option.
             setCurrentInstitutionId(userInstitutions[0].id);
             return userInstitutions[0];
         }
@@ -146,12 +124,13 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     }, [currentInstitutionId, allInstitutions, userInstitutions]);
 
     const setCurrentInstitutionCB = useCallback((institutionId: string) => {
-        try {
-            localStorage.setItem(LOCAL_STORAGE_KEY, institutionId);
-        } catch (error) {
-            console.error("Could not set item in localStorage:", error);
-        }
+        localStorage.setItem(LOCAL_STORAGE_KEY, institutionId);
         setCurrentInstitutionId(institutionId);
+    }, []);
+
+    const clearCurrentInstitutionCB = useCallback(() => {
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+        setCurrentInstitutionId(null);
     }, []);
     
     const addInstitution = useCallback(async (institution: Omit<Institution, 'id' | 'ownerId' | 'timestamp'>): Promise<Institution> => {
@@ -191,7 +170,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         currentInstitution,
         setCurrentInstitution: setCurrentInstitutionCB,
         clearCurrentInstitution: clearCurrentInstitutionCB,
-        isLoaded: !loading && !authLoading,
+        isLoaded,
         addInstitution,
         updateInstitution,
         deleteInstitution,
@@ -200,8 +179,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         currentInstitution, 
         setCurrentInstitutionCB, 
         clearCurrentInstitutionCB, 
-        loading,
-        authLoading,
+        isLoaded,
         addInstitution,
         updateInstitution,
         deleteInstitution
@@ -222,6 +200,7 @@ export const useInstitution = () => {
     return context;
 };
 
+// This is a convenience hook for components that only need the list of institutions
 export function useInstitutions() {
     const { 
         userInstitutions, 
@@ -232,7 +211,7 @@ export function useInstitutions() {
     } = useInstitution();
     
     return {
-        institutions: userInstitutions, // Now it can be undefined initially, but the component will handle it
+        institutions: userInstitutions,
         addInstitution,
         updateInstitution,
         deleteInstitution,
