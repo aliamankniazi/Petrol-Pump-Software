@@ -48,6 +48,7 @@ export default function UsersPage() {
   const [checkingSetup, setCheckingSetup] = useState(true);
 
   useEffect(() => {
+    // This effect runs only on the client after mount
     const checkSetupStatus = async () => {
       if (!isFirebaseConfigured() || !db) {
         toast({ variant: 'destructive', title: 'Firebase Not Configured' });
@@ -69,7 +70,6 @@ export default function UsersPage() {
       }
     };
     
-    // This ensures the check only runs on the client-side after mounting
     checkSetupStatus();
   }, [router, toast]);
 
@@ -86,7 +86,6 @@ export default function UsersPage() {
     }
 
     try {
-      // First, quickly check again if another user has completed setup.
       const setupSnapshot = await get(ref(db, 'app_settings/isSuperAdminRegistered'));
       if (setupSnapshot.exists() && setupSnapshot.val() === true) {
         toast({ variant: 'destructive', title: 'Setup Already Completed', description: 'A super admin has already been registered. Please log in.' });
