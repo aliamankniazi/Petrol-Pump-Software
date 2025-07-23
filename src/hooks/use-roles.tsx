@@ -70,18 +70,26 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, [user, currentInstitution]);
 
     useEffect(() => {
-        if (currentInstitution && !rolesLoading && !defaultsInitialized) {
+        if (currentInstitution && !rolesLoading) {
             const adminRoleExists = roles.some(r => r.id === 'admin');
-
             if (!adminRoleExists) {
-                addRoleDoc({ name: 'Admin', permissions: [...PERMISSIONS] }, 'admin').finally(() => {
+                if(isSuperAdmin){
+                    addRoleDoc({ name: 'Admin', permissions: [...PERMISSIONS] }, 'admin').finally(() => {
+                        setDefaultsInitialized(true);
+                    });
+                } else {
+                    // For non-super-admins, if the admin role isn't there, something is wrong, but we can't create it.
+                    // We just proceed.
                     setDefaultsInitialized(true);
-                });
+                }
             } else {
                  setDefaultsInitialized(true);
             }
+        } else if (!currentInstitution && !institutionLoading) {
+            // If there's no institution selected, we are 'ready' in the sense that there are no roles to load.
+            setDefaultsInitialized(true);
         }
-    }, [currentInstitution, roles, rolesLoading, addRoleDoc, defaultsInitialized]);
+    }, [currentInstitution, institutionLoading, roles, rolesLoading, addRoleDoc, isSuperAdmin]);
     
     const currentUserRole = useMemo(() => {
         if (!user || !currentInstitution || userMappingsLoading) return null;

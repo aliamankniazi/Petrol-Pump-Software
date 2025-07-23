@@ -7,7 +7,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
 import { AuthProvider, useAuth } from '@/hooks/use-auth.tsx';
 import { usePathname } from 'next/navigation';
-import { RolesProvider, useRoles } from '@/hooks/use-roles';
+import { RolesProvider, useRoles } from '@/hooks/use-roles.tsx';
 import { InstitutionProvider, useInstitution } from '@/hooks/use-institution';
 import { AppLayout } from '@/components/app-layout';
 import { isFirebaseConfigured } from '@/lib/firebase-client';
@@ -48,7 +48,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
     const { currentInstitution, institutionLoading } = useInstitution();
     const { isReady: rolesReady } = useRoles();
 
-    if (institutionLoading || (currentInstitution && !rolesReady)) {
+    if (institutionLoading) {
         return (
             <FullscreenMessage title="Loading Institution..." showSpinner={true}>
                 <p>Preparing your workspace. Please wait.</p>
@@ -58,6 +58,14 @@ function AppContent({ children }: { children: React.ReactNode }) {
     
     if (currentInstitution && rolesReady) {
         return <AppLayout>{children}</AppLayout>;
+    }
+    
+    if (currentInstitution && !rolesReady) {
+         return (
+            <FullscreenMessage title="Loading Roles..." showSpinner={true}>
+                <p>Loading user permissions. Please wait.</p>
+            </FullscreenMessage>
+        );
     }
 
     return <InstitutionSelector />;
@@ -97,7 +105,6 @@ function AppContainer({ children }: { children: React.ReactNode }) {
   }
   
   // For unauthenticated users, render the appropriate page.
-  // The logic to decide between login/setup is now handled inside the pages themselves.
   if (pathname === '/users') {
       return <>{children}</>;
   }

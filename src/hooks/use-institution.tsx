@@ -58,15 +58,27 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
         const mappingsRef = ref(db, USER_MAP_COLLECTION);
 
+        let institutionDataLoaded = false;
+        let mappingDataLoaded = false;
+
+        const checkAllLoaded = () => {
+            if (institutionDataLoaded && mappingDataLoaded) {
+                setLoading(false);
+            }
+        }
+
         const unsubInstitutions = onValue(institutionsRef, (snapshot) => {
             const insts: Institution[] = [];
             if (snapshot.exists()) {
                 snapshot.forEach(child => insts.push({ id: child.key!, ...child.val() }));
             }
             setAllInstitutions(insts);
+            institutionDataLoaded = true;
+            checkAllLoaded();
         }, (error) => {
             console.error("Error loading institutions:", error);
-            setLoading(false);
+            institutionDataLoaded = true;
+            checkAllLoaded();
         });
 
         const unsubMappings = onValue(mappingsRef, (snapshot) => {
@@ -75,10 +87,12 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
                 snapshot.forEach(child => maps.push({ id: child.key!, ...child.val() }));
             }
             setAllUserMappings(maps);
-            setLoading(false);
+            mappingDataLoaded = true;
+            checkAllLoaded();
         }, (error) => {
             console.error("Error loading user mappings:", error);
-            setLoading(false);
+            mappingDataLoaded = true;
+            checkAllLoaded();
         });
         
         return () => {
