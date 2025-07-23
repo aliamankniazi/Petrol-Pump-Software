@@ -61,18 +61,20 @@ const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
 export function RolesProvider({ children }: { children: ReactNode }) {
     const { user, loading: authLoading } = useAuth();
-    const { currentInstitution, isLoaded: institutionLoaded } = useInstitution();
+    const { currentInstitution } = useInstitution();
     
     const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, currentInstitution?.id || null);
     
     const [userMappings, setUserMappings] = useState<UserMapping[]>([]);
     const [userMappingsLoading, setUserMappingsLoading] = useState(true);
+    const [defaultsInitialized, setDefaultsInitialized] = useState(false);
 
     useEffect(() => {
-        if (!db) {
+        if (!db || !currentInstitution) {
             setUserMappingsLoading(false);
             return;
         }
+        setUserMappingsLoading(true);
         const mappingsRef = ref(db, USER_MAP_COLLECTION);
         const unsubscribe = onValue(mappingsRef, (snapshot) => {
             const mappingsArray: UserMapping[] = [];
@@ -88,11 +90,9 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         });
         
         return () => unsubscribe();
-    }, []);
-
-    const [defaultsInitialized, setDefaultsInitialized] = useState(false);
+    }, [currentInstitution]);
     
-    const isReady = !authLoading && !rolesLoading && !userMappingsLoading && institutionLoaded && defaultsInitialized;
+    const isReady = !authLoading && currentInstitution && !rolesLoading && !userMappingsLoading && defaultsInitialized;
     
     const isSuperAdmin = useMemo(() => {
         if (!user || !currentInstitution) return false;
@@ -101,7 +101,6 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         if (currentInstitution && !rolesLoading && !defaultsInitialized) {
-            // Check if default roles already exist before adding them
             const adminRoleExists = roles.some(r => r.id === 'admin');
             const attendantRoleExists = roles.some(r => r.id === 'attendant');
 

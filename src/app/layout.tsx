@@ -29,7 +29,7 @@ function PrintStyles() {
     return null;
 }
 
-const FullscreenMessage = ({ title, children }: { title: string, children: React.ReactNode }) => (
+const FullscreenMessage = ({ title, children, showSpinner = false }: { title: string, children: React.ReactNode, showSpinner?: boolean }) => (
   <div className="flex h-screen w-full items-center justify-center bg-muted">
      <Card className="w-full max-w-md m-4">
         <CardHeader>
@@ -37,6 +37,11 @@ const FullscreenMessage = ({ title, children }: { title: string, children: React
         </CardHeader>
         <CardContent>
           {children}
+          {showSpinner && (
+            <div className="flex justify-center mt-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          )}
         </CardContent>
      </Card>
    </div>
@@ -48,7 +53,6 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
   const router = useRouter();
 
-  // If Firebase isn't configured, block the entire app and show instructions.
   if (!isFirebaseConfigured()) {
     return (
         <FullscreenMessage title="Firebase Not Configured">
@@ -59,70 +63,70 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
     );
   }
   
-  // Primary loading state: We are always loading as long as auth is loading.
   if (authLoading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-       <div className="space-y-4 w-1/2 max-w-md">
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-8 w-3/4" />
-        <Skeleton className="h-8 w-1/2" />
-       </div>
-      </div>
+      <FullscreenMessage title="Authenticating..." showSpinner>
+        <p className="text-center text-muted-foreground">Please wait while we verify your credentials.</p>
+      </FullscreenMessage>
     );
   }
 
   const isAuthPage = pathname === '/login' || pathname === '/signup';
 
-  // Once auth is done, handle routing for unauthenticated users.
   if (!user) {
     if (!isAuthPage) {
       router.replace('/login');
-      // Return loading skeleton while redirecting
       return (
-        <div className="flex h-screen w-full items-center justify-center bg-background">
-         <p>Redirecting to login...</p>
-        </div>
+         <FullscreenMessage title="Redirecting..." showSpinner>
+          <p className="text-center text-muted-foreground">You are not logged in. Redirecting to the login page.</p>
+        </FullscreenMessage>
       );
     }
     return <>{children}</>;
   }
 
-  // User is authenticated. Route away from auth pages.
   if (isAuthPage) {
       router.replace('/dashboard');
       return (
-        <div className="flex h-screen w-full items-center justify-center bg-background">
-         <p>Redirecting to dashboard...</p>
-        </div>
+        <FullscreenMessage title="Redirecting..." showSpinner>
+          <p className="text-center text-muted-foreground">You are already logged in. Redirecting to the dashboard.</p>
+        </FullscreenMessage>
       );
   }
 
-  // Render the authenticated portion of the app.
   return <AuthenticatedApp>{children}</AuthenticatedApp>;
 }
 
 const AuthenticatedApp = ({ children }: { children: React.ReactNode }) => {
-  const { currentInstitution, isLoaded: institutionLoaded } = useInstitution();
+  const { userInstitutions, currentInstitution, isLoaded: institutionLoaded, setCurrentInstitution } = useInstitution();
   const { isReady: rolesReady, hasPermission } = useRoles();
   
-  const isLoading = !institutionLoaded || !rolesReady;
-  
-  if (isLoading) {
+  if (!institutionLoaded) {
       return (
-        <div className="flex h-screen w-full items-center justify-center bg-background">
-         <div className="space-y-4 w-1/2 max-w-md">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-8 w-3/4" />
-          <Skeleton className="h-8 w-1/2" />
-          <p className="text-center text-muted-foreground">Loading user data...</p>
-         </div>
-        </div>
+         <FullscreenMessage title="Loading Institutions..." showSpinner>
+          <p className="text-center text-muted-foreground">Fetching your assigned institutions.</p>
+        </FullscreenMessage>
       );
   }
-
+  
   if (!currentInstitution) {
-    return <InstitutionSelector />;
+     if (userInstitutions.length === 1) {
+        setCurrentInstitution(userInstitutions[0].id);
+        return (
+             <FullscreenMessage title="Setting Institution..." showSpinner>
+                <p className="text-center text-muted-foreground">Default institution found. Loading...</p>
+            </FullscreenMessage>
+        );
+     }
+     return <InstitutionSelector />;
+  }
+
+  if (!rolesReady) {
+    return (
+        <FullscreenMessage title="Loading User Profile..." showSpinner>
+          <p className="text-center text-muted-foreground">Loading your roles and permissions for '{currentInstitution.name}'.</p>
+        </FullscreenMessage>
+    );
   }
   
   return <AppLayout hasPermission={hasPermission}>{children}</AppLayout>;

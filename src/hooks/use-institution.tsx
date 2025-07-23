@@ -54,7 +54,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         if (!isFirebaseConfigured() || !db || !user) {
             // If there's no user, we are not loading institutions.
-            if (!user && !authLoading) {
+            if (!authLoading) {
                 setLoading(false);
                 setAllInstitutions([]);
                 setAllUserMappings([]);
@@ -85,13 +85,14 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
             setAllUserMappings(mappingsArray);
         }, (error) => console.error("Error fetching user mappings:", error));
 
-        // Set loading to false once initial data is fetched
-        const institutionsPromise = new Promise<void>(resolve => onValue(institutionsRef, () => resolve(), { onlyOnce: true }));
-        const mappingsPromise = new Promise<void>(resolve => onValue(mappingsRef, () => resolve(), { onlyOnce: true }));
-
-        Promise.all([institutionsPromise, mappingsPromise]).finally(() => setLoading(false));
+        // Use a one-time fetch to determine initial loading state
+        Promise.all([
+            new Promise<void>(resolve => onValue(institutionsRef, () => resolve(), { onlyOnce: true })),
+            new Promise<void>(resolve => onValue(mappingsRef, () => resolve(), { onlyOnce: true }))
+        ]).finally(() => setLoading(false));
 
         return () => {
+            // Detach listeners
             onValue(institutionsRef, null as any);
             onValue(mappingsRef, null as any);
         };
@@ -101,9 +102,10 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         if (!user) return [];
         const userMappings = allUserMappings.filter(m => m.userId === user.uid);
         const institutionIds = userMappings.map(m => m.institutionId);
-        // Include institutions they own, even if not explicitly mapped
+        
         const ownedInstitutions = allInstitutions.filter(inst => inst.ownerId === user.uid);
         const allReachableIds = new Set([...institutionIds, ...ownedInstitutions.map(i => i.id)]);
+        
         return allInstitutions.filter(inst => allReachableIds.has(inst.id));
     }, [user, allInstitutions, allUserMappings]);
 
@@ -159,7 +161,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         currentInstitution,
         setCurrentInstitution: setCurrentInstitutionCB,
         clearCurrentInstitution: clearCurrentInstitutionCB,
-        isLoaded: !loading && !authLoading,
+        isLoaded: !loading,
         addInstitution,
         updateInstitution,
         deleteInstitution,
@@ -168,8 +170,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
         currentInstitution, 
         setCurrentInstitutionCB, 
         clearCurrentInstitutionCB, 
-        loading, 
-        authLoading,
+        loading,
         addInstitution,
         updateInstitution,
         deleteInstitution
