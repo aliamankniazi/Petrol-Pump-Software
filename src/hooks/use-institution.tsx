@@ -53,16 +53,18 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         const loadData = async () => {
-            if (authLoading || !user) {
-                if (!authLoading) setLoading(false);
+            if (authLoading) {
+                return; // Wait for authentication to resolve
+            }
+            if (!user) {
+                setLoading(false); // Not logged in, so nothing to load
                 return;
             }
-    
             if (!isFirebaseConfigured() || !db) {
                 setLoading(false);
                 return;
             }
-    
+
             setLoading(true);
             try {
                 const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
@@ -89,7 +91,7 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
             } catch (error) {
                 console.error("Failed to fetch initial data:", error);
             } finally {
-                setLoading(false);
+                setLoading(false); // This is the crucial fix: ensure loading is always set to false
             }
         };
 
