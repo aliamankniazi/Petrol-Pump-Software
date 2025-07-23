@@ -94,15 +94,16 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     
     // This effect ensures default roles are created for an institution if they don't exist.
     useEffect(() => {
-        if (!currentInstitution || rolesLoading || defaultsInitialized || roles.length > 0) {
-            if (roles.length > 0) setDefaultsInitialized(true);
-            return;
-        };
+        if (!currentInstitution || rolesLoading || defaultsInitialized) return;
 
         const setupDefaultRoles = async () => {
-             for (const role of DEFAULT_ROLES) {
-                const id = role.name.toLowerCase().replace(/\s+/g, '-');
-                await addRoleDoc(role, id);
+            const existingRoles = await get(ref(db, `institutions/${currentInstitution.id}/${ROLES_COLLECTION}`));
+            if (!existingRoles.exists()) {
+                console.log(`No roles found for ${currentInstitution.name}. Creating defaults...`);
+                 for (const role of DEFAULT_ROLES) {
+                    const id = role.name.toLowerCase().replace(/\s+/g, '-');
+                    await addRoleDoc(role, id);
+                }
             }
             setDefaultsInitialized(true);
         }

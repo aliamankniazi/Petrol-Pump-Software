@@ -52,17 +52,19 @@ export function InstitutionProvider({ children }: { children: ReactNode }) {
     }, []);
 
     useEffect(() => {
-        const loadData = async () => {
-            if (authLoading || !user) {
-                if (!authLoading) setLoading(false);
-                return;
-            }
-
-            if (!isFirebaseConfigured() || !db) {
+        if (authLoading || !user) {
+            if (!authLoading) {
                 setLoading(false);
-                return;
             }
+            return;
+        }
 
+        if (!isFirebaseConfigured() || !db) {
+            setLoading(false);
+            return;
+        }
+
+        const loadData = async () => {
             setLoading(true);
             try {
                 const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
