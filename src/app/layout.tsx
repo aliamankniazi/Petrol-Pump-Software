@@ -93,14 +93,19 @@ const UnauthenticatedApp = () => {
 
     React.useEffect(() => {
         const checkSetup = async () => {
-            if (!db) return;
+            if (!db) {
+                console.error("Database not initialized, cannot check setup.");
+                setIsSetupComplete(true); // Default to login on error
+                return;
+            };
             try {
                 const setupRef = ref(db, 'app_settings/isSuperAdminRegistered');
                 const snapshot = await get(setupRef);
                 setIsSetupComplete(snapshot.exists() && snapshot.val() === true);
             } catch (error) {
                 console.error("Setup check failed:", error);
-                setIsSetupComplete(true); // Default to login on error
+                // This might happen due to security rules. Default to assuming setup is complete.
+                setIsSetupComplete(true);
             }
         };
         checkSetup();
@@ -114,6 +119,8 @@ const UnauthenticatedApp = () => {
         );
     }
     
+    // Once setup check is complete, render the correct page.
+    // The individual pages will handle any necessary redirects if the state is wrong.
     if (isSetupComplete) {
         return <LoginPage />;
     } else {
@@ -151,15 +158,16 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
       </RolesProvider>
     );
   }
-
-  // Handle specific public routes or render the unauthenticated flow
+  
   const isPublicAuthRoute = ['/login', '/users'].includes(pathname);
+
+  // If we are on a specific auth page, let it render.
+  // The UnauthenticatedApp component will determine which page to show.
   if (isPublicAuthRoute) {
       return <UnauthenticatedApp />;
   }
-
-  // Default for logged-out users, e.g. landing page, or redirect
-  // For this app, the unauthenticated app flow handles all cases.
+  
+  // Default for any other route when not logged in
   return <UnauthenticatedApp />;
 }
 

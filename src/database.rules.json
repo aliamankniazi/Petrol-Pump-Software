@@ -1,6 +1,12 @@
 
 {
   "rules": {
+    "app_settings": {
+      ".read": true,
+      "isSuperAdminRegistered": {
+        ".write": "auth != null"
+      }
+    },
     "institutions": {
       ".read": "auth != null",
       "$institutionId": {
