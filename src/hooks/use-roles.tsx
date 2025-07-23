@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useCallback, createContext, useContext, type ReactNode, useEffect, useState } from 'react';
-import { ref, set, onValue, get } from 'firebase/database';
+import { ref, set, onValue } from 'firebase/database';
 import { db } from '@/lib/firebase-client';
 import type { Role, RoleId, Permission } from '@/lib/types';
 import { useAuth } from './use-auth.tsx';
@@ -67,6 +67,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     
     const [userMappings, setUserMappings] = useState<UserMapping[]>([]);
     const [userMappingsLoading, setUserMappingsLoading] = useState(true);
+    const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
         if (!db || !currentInstitution) {
@@ -92,13 +93,36 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         
         return () => unsubscribe();
     }, [currentInstitution]);
-    
-    const isReady = !authLoading && !institutionLoading && !rolesLoading && !userMappingsLoading;
-    
+
     const isSuperAdmin = useMemo(() => {
         if (!user || !currentInstitution) return false;
         return user.uid === currentInstitution.ownerId;
     }, [user, currentInstitution]);
+
+    const initializeDefaultRoles = useCallback(async () => {
+        if (!roles) return;
+
+        const adminRoleExists = roles.some(r => r.id === 'admin');
+        const attendantRoleExists = roles.some(r => r.id === 'attendant');
+
+        if (!adminRoleExists) {
+            await addRoleDoc({ name: 'Admin', permissions: [...PERMISSIONS] }, 'admin');
+        }
+        if (!attendantRoleExists) {
+            await addRoleDoc({ name: 'Attendant', permissions: ['view_dashboard', 'view_all_transactions', 'view_customers', 'view_inventory', 'view_purchases', 'view_expenses', 'view_other_incomes'] }, 'attendant');
+        }
+    }, [roles, addRoleDoc]);
+
+    useEffect(() => {
+        const checkAndInit = async () => {
+            if (currentInstitution && !rolesLoading) {
+                await initializeDefaultRoles();
+                setIsReady(true);
+            }
+        };
+
+        checkAndInit();
+    }, [currentInstitution, rolesLoading, initializeDefaultRoles]);
 
     const currentUserRole = useMemo(() => {
         if (!user || !currentInstitution || userMappingsLoading) return null;
