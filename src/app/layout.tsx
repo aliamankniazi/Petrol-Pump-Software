@@ -16,7 +16,6 @@ import { Terminal } from 'lucide-react';
 import LoginPage from './login/page';
 import { InstitutionSelector } from '@/components/institution-selector';
 import UsersPage from './users/page';
-import { Skeleton } from '@/components/ui/skeleton';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -47,8 +46,9 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
 
 function AppContent({ children }: { children: React.ReactNode }) {
     const { currentInstitution, institutionLoading } = useInstitution();
+    const { isReady: rolesReady } = useRoles();
 
-    if (institutionLoading) {
+    if (institutionLoading || !rolesReady) {
         return (
             <FullscreenMessage title="Loading Application..." showSpinner={true}>
                 <p>Fetching your profile and permissions. Please wait.</p>
@@ -61,20 +61,20 @@ function AppContent({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <RolesProvider>
-            <AppLayout>
-                {children}
-            </AppLayout>
-        </RolesProvider>
+      <AppLayout>
+          {children}
+      </AppLayout>
     );
 }
 
 function AuthenticatedApp({ children }: { children: React.ReactNode }) {
   return (
     <InstitutionProvider>
+      <RolesProvider>
         <AppContent>
             {children}
         </AppContent>
+      </RolesProvider>
     </InstitutionProvider>
   )
 }

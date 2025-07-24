@@ -17,7 +17,6 @@ import { db, isFirebaseConfigured } from '@/lib/firebase-client';
 import { ref, get, push, serverTimestamp, update } from 'firebase/database';
 import Link from 'next/link';
 import { PERMISSIONS } from '@/lib/types';
-import { Skeleton } from '@/components/ui/skeleton';
 
 const newUserSchema = z.object({
   email: z.string().email('A valid email is required.'),
