@@ -42,8 +42,10 @@ export default function UsersPage() {
     if (typeof window === 'undefined') return;
 
     const checkSetup = async () => {
+      // This is a special check. We don't want to show the setup page if an admin is already there.
+      // We wait for the db object to be ready before proceeding.
       if (!isFirebaseConfigured() || !db) {
-        setTimeout(checkSetup, 100); // Retry if db not ready
+        setTimeout(checkSetup, 100); 
         return;
       }
 
@@ -51,11 +53,14 @@ export default function UsersPage() {
         const setupSnapshot = await get(ref(db, 'app_settings/isSuperAdminRegistered'));
         if (setupSnapshot.exists() && setupSnapshot.val() === true) {
           router.replace('/login');
+          // No need to setCheckingSetup(false) here because we are navigating away.
         } else {
-           setCheckingSetup(false); // This is the critical fix
+           // This is the critical fix. If no super admin exists, we must stop checking and show the form.
+           setCheckingSetup(false);
         }
       } catch (error) {
         toast({ variant: 'destructive', title: 'Error', description: 'Could not verify app setup status.' });
+        // Also ensure we stop checking on error.
         setCheckingSetup(false);
       }
     };
