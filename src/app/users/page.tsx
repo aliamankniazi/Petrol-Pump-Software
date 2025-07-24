@@ -42,8 +42,9 @@ export default function UsersPage() {
     if (typeof window === 'undefined') return;
 
     const checkSetup = async () => {
+      // The db object can be null on initial load. We must wait for it.
       if (!isFirebaseConfigured() || !db) {
-         setCheckingSetup(false);
+         setTimeout(checkSetup, 100); // Retry after a short delay
          return;
       }
       
@@ -60,9 +61,10 @@ export default function UsersPage() {
             title: 'Setup Check Failed', 
             description: 'Could not verify app setup status. Please check your Firebase rules and connection.' 
         });
-        setCheckingSetup(false);
+        setCheckingSetup(false); // Ensure we stop loading even on error
       }
     };
+    
     checkSetup();
   }, [router, toast]);
 
