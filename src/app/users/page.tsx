@@ -42,10 +42,9 @@ export default function UsersPage() {
     if (typeof window === 'undefined') return;
 
     const checkSetup = async () => {
-      // This is a special check. We don't want to show the setup page if an admin is already there.
-      // We wait for the db object to be ready before proceeding.
+      // This is the critical fix. We must wait for the db object to be ready.
       if (!isFirebaseConfigured() || !db) {
-        setTimeout(checkSetup, 100); 
+        setTimeout(checkSetup, 100); // Retry after a short delay
         return;
       }
 
