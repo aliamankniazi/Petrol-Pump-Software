@@ -40,13 +40,13 @@ export default function UsersPage() {
     }
 
     const checkSetup = async () => {
-      // This is the key fix: We must wait for `db` to be initialized.
+      // The core issue is that `db` might be null when this first runs.
       if (!db) {
           // Retry after a short delay if db is not ready yet.
           setTimeout(checkSetup, 100);
           return;
       }
-
+      
       try {
         const settingRef = ref(db, 'app_settings/isSuperAdminRegistered');
         const snapshot = await get(settingRef);
