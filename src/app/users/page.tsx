@@ -42,31 +42,24 @@ export default function UsersPage() {
     if (typeof window === 'undefined') return;
 
     const checkSetup = async () => {
-      if (!isFirebaseConfigured()) {
+      if (!isFirebaseConfigured() || !db) {
          setCheckingSetup(false);
          return;
       }
       
-      // Critical fix: Ensure db is initialized before using it.
-      // This is a race condition where this page might load and run this effect
-      // before firebase-client.ts has fully initialized `db`.
-      if (!db) {
-        setTimeout(checkSetup, 100); // Retry after a short delay
-        return;
-      }
-
       try {
         const setupSnapshot = await get(ref(db, 'app_settings/isSuperAdminRegistered'));
         if (setupSnapshot.exists() && setupSnapshot.val() === true) {
           router.replace('/login');
-          // No need to setCheckingSetup(false) here because we are navigating away.
         } else {
-           // This is the critical fix. If no super admin exists, we must stop checking and show the form.
            setCheckingSetup(false);
         }
-      } catch (error) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not verify app setup status.' });
-        // Also ensure we stop checking on error.
+      } catch (error: any) {
+        toast({ 
+            variant: 'destructive', 
+            title: 'Setup Check Failed', 
+            description: 'Could not verify app setup status. Please check your Firebase rules and connection.' 
+        });
         setCheckingSetup(false);
       }
     };
