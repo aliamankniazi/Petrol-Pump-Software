@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,10 +13,12 @@ import { useToast } from '@/hooks/use-toast';
 import { UserPlus } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth.tsx';
 import { useRouter } from 'next/navigation';
-import { db } from '@/lib/firebase-client';
+import { db, isFirebaseConfigured } from '@/lib/firebase-client';
 import { ref, get, push, serverTimestamp, update } from 'firebase/database';
 import Link from 'next/link';
 import { PERMISSIONS } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+
 
 const newUserSchema = z.object({
   email: z.string().email('A valid email is required.'),
@@ -31,10 +33,33 @@ export default function UsersPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [checkingSetup, setCheckingSetup] = useState(true);
   
   const { register, handleSubmit, formState: { errors } } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
   });
+  
+  useEffect(() => {
+    const checkSetup = async () => {
+      if (!isFirebaseConfigured() || !db) {
+        setCheckingSetup(false);
+        return;
+      }
+      try {
+        const setupSnapshot = await get(ref(db, 'app_settings/isSuperAdminRegistered'));
+        if (setupSnapshot.exists() && setupSnapshot.val() === true) {
+          router.replace('/login');
+        } else {
+           setCheckingSetup(false);
+        }
+      } catch (error) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not verify app setup status.' });
+        setCheckingSetup(false);
+      }
+    };
+    checkSetup();
+  }, [router, toast]);
+
 
   const onAddUserSubmit: SubmitHandler<NewUserFormValues> = useCallback(async (data) => {
     setLoading(true);
@@ -45,41 +70,39 @@ export default function UsersPage() {
     }
 
     try {
-      const setupSnapshot = await get(ref(db, 'app_settings/isSuperAdminRegistered'));
-      if (setupSnapshot.exists() && setupSnapshot.val() === true) {
-        toast({ title: 'Setup Already Completed', description: 'Redirecting to login.'});
-        router.replace('/login');
-        return;
-      }
-
+      // 1. Create the user account
       const userCredential = await signUp({ email: data.email, password: data.password });
       const userId = userCredential.user.uid;
 
+      // 2. Prepare all database writes
       const newInstitutionRef = push(ref(db, 'institutions'));
       const newInstitutionId = newInstitutionRef.key;
       if (!newInstitutionId) throw new Error("Could not create a new institution ID.");
       
       const updates: { [key: string]: any } = {};
       
-      updates[`/institutions/${newInstitutionId}`] = {
-        name: data.institutionName,
-        ownerId: userId,
-        timestamp: serverTimestamp(),
-      };
+      // Path for the new institution
+      updates[`/institutions/${newInstitutionId}/name`] = data.institutionName;
+      updates[`/institutions/${newInstitutionId}/ownerId`] = userId;
+      updates[`/institutions/${newInstitutionId}/timestamp`] = serverTimestamp();
       
+      // Path for the default Admin role within the new institution
       updates[`/institutions/${newInstitutionId}/roles/admin`] = {
         name: 'Admin',
         permissions: [...PERMISSIONS],
       };
       
+      // Path for the user-to-institution mapping
       updates[`/userMappings/${userId}_${newInstitutionId}`] = {
         userId: userId,
         institutionId: newInstitutionId,
         roleId: 'admin'
       };
       
+      // Path for the global setup flag
       updates['/app_settings/isSuperAdminRegistered'] = true;
       
+      // 3. Execute all writes in a single atomic operation
       await update(ref(db), updates);
 
       toast({ title: 'Super Admin Created!', description: 'Logging you in...' });
@@ -91,12 +114,36 @@ export default function UsersPage() {
       toast({
         variant: 'destructive',
         title: 'Failed to Create Super Admin',
-        description: error.message || 'An unexpected error occurred.',
+        description: error.message || 'An unexpected error occurred. Please check the console for details.',
       });
+      console.error("Super Admin Creation Error:", error);
     } finally {
         setLoading(false);
     }
   }, [signUp, signIn, toast, router]);
+
+  if (checkingSetup) {
+      return (
+        <div className="flex items-center justify-center min-h-screen bg-background p-4">
+            <Card className="w-full max-w-md">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <UserPlus /> Create Super Admin
+                    </CardTitle>
+                    <CardDescription>
+                       Verifying setup status...
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                </CardContent>
+            </Card>
+        </div>
+      )
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">

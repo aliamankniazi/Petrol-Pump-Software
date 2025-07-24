@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error('This email is already in use.');
         }
         if (error.code === 'auth/weak-password') {
-          throw new Error('The password is too weak.');
+          throw new Error('The password is too weak. It must be at least 6 characters.');
         }
         throw new Error(error.message);
       }

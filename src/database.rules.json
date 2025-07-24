@@ -11,7 +11,7 @@
         ".write": "auth != null && ( (newData.child('ownerId').val() === auth.uid && !data.exists()) || (data.child('ownerId').val() === auth.uid) )",
         ".read": "auth != null && (data.child('ownerId').val() === auth.uid || root.child('userMappings').child(auth.uid + '_' + $institutionId).exists())",
 
-        "roles": { ".read": "auth != null", ".write": "auth != null && data.parent().child('ownerId').val() === auth.uid" },
+        "roles": { ".read": "auth != null", ".write": "auth != null && (data.parent().child('ownerId').val() === auth.uid || root.child('userMappings').child(auth.uid + '_' + $institutionId).exists())" },
         "customers": { ".read": "auth != null", ".write": "auth != null" },
         "suppliers": { ".read": "auth != null", ".write": "auth != null" },
         "business-partners": { ".read": "auth != null", ".write": "auth != null" },
