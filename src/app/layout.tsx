@@ -7,7 +7,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
 import { AuthProvider, useAuth } from '@/hooks/use-auth.tsx';
 import { usePathname } from 'next/navigation';
-import { RolesProvider, useRoles } from '@/hooks/use-roles.tsx';
+import { RolesProvider } from '@/hooks/use-roles.tsx';
 import { InstitutionProvider, useInstitution } from '@/hooks/use-institution.tsx';
 import { AppLayout } from '@/components/app-layout';
 import { isFirebaseConfigured } from '@/lib/firebase-client';
@@ -48,11 +48,8 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
 
 function AppContent({ children }: { children: React.ReactNode }) {
     const { currentInstitution, institutionLoading } = useInstitution();
-    const { isReady: rolesReady } = useRoles();
 
-    const isLoading = institutionLoading || (currentInstitution && !rolesReady);
-
-    if (isLoading) {
+    if (institutionLoading) {
         return (
             <FullscreenMessage title="Loading Application..." showSpinner={true}>
                 <p>Fetching your profile and permissions. Please wait.</p>
@@ -64,18 +61,16 @@ function AppContent({ children }: { children: React.ReactNode }) {
         return <InstitutionSelector />;
     }
 
-    return <AppLayout>{children}</AppLayout>;
+    return <RolesProvider><AppLayout>{children}</AppLayout></RolesProvider>;
 }
 
 
 function AuthenticatedApp({ children }: { children: React.ReactNode }) {
   return (
     <InstitutionProvider>
-        <RolesProvider>
-            <AppContent>
-                {children}
-            </AppContent>
-        </RolesProvider>
+        <AppContent>
+            {children}
+        </AppContent>
     </InstitutionProvider>
   )
 }
