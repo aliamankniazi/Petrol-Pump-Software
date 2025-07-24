@@ -46,6 +46,7 @@ export default function UsersPage() {
         return;
       }
       
+      // Retry mechanism to wait for db to be initialized
       if (!db) {
          setTimeout(checkSetup, 100);
          return;
