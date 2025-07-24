@@ -43,7 +43,6 @@ export default function UsersPage() {
 
     const checkSetup = async () => {
       if (!isFirebaseConfigured()) {
-        // This case is handled by the root layout, but as a fallback:
         setCheckingSetup(false);
         return;
       }
