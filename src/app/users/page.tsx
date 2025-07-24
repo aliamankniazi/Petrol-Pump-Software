@@ -46,9 +46,8 @@ export default function UsersPage() {
         return;
       }
       
-      // The db object can be null on initial load. We must wait for it.
       if (!db) {
-         setTimeout(checkSetup, 100); // Retry after a short delay
+         setTimeout(checkSetup, 100);
          return;
       }
       
@@ -66,7 +65,7 @@ export default function UsersPage() {
             description: 'Could not verify app setup status. Please check your Firebase rules and connection.' 
         });
         console.error("Setup Check Error:", error);
-        setCheckingSetup(false); // Ensure we stop loading even on error
+        setCheckingSetup(false);
       }
     };
     
