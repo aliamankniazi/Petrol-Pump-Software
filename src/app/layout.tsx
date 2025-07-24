@@ -16,6 +16,7 @@ import { Terminal } from 'lucide-react';
 import LoginPage from './login/page';
 import { InstitutionSelector } from '@/components/institution-selector';
 import UsersPage from './users/page';
+import { ThemeScript } from '@/components/theme-script';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -122,21 +123,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   
-  React.useEffect(() => {
-    const storedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const theme = storedTheme ?? (prefersDark ? 'dark' : 'light');
-
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, []);
-
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <head>
+          <ThemeScript />
           <PrintStyles />
       </head>
       <body className="font-body antialiased">
