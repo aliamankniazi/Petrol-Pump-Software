@@ -35,19 +35,17 @@ export default function UsersPage() {
 
   useEffect(() => {
     if (!isFirebaseConfigured()) {
-        // If firebase is not configured, we can assume setup is needed.
-        // This avoids errors when trying to access a null `db` object.
         setSetupStatus('needs-setup');
         return;
     }
 
     const checkSetup = async () => {
-        // This is the key fix: We must wait for `db` to be initialized.
-        if (!db) {
-            // Retry after a short delay if db is not ready yet.
-            setTimeout(checkSetup, 100);
-            return;
-        }
+      // This is the key fix: We must wait for `db` to be initialized.
+      if (!db) {
+          // Retry after a short delay if db is not ready yet.
+          setTimeout(checkSetup, 100);
+          return;
+      }
 
       try {
         const settingRef = ref(db, 'app_settings/isSuperAdminRegistered');
