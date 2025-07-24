@@ -60,12 +60,28 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     
     const { data: userMappings, addDoc: addUserMapping, loading: userMappingsLoading } = useDatabaseCollection<UserMapping>(USER_MAP_COLLECTION, null);
 
-    const isReady = !authLoading && !rolesLoading && !userMappingsLoading && !institutionLoading;
+    const [defaultsInitialized, setDefaultsInitialized] = useState(false);
+    
+    const isReady = !authLoading && !rolesLoading && !userMappingsLoading && !!currentInstitution && defaultsInitialized && !institutionLoading;
     
     const isSuperAdmin = useMemo(() => {
         if (!user || !currentInstitution) return false;
         return user.uid === currentInstitution.ownerId;
     }, [user, currentInstitution]);
+
+    useEffect(() => {
+        if (currentInstitution && !rolesLoading && !defaultsInitialized) {
+            const adminRoleExists = roles.some(r => r.id === 'admin');
+
+            if (!adminRoleExists) {
+                addRoleDoc({ name: 'Admin', permissions: [...PERMISSIONS] }, 'admin').finally(() => {
+                    setDefaultsInitialized(true);
+                });
+            } else {
+                 setDefaultsInitialized(true);
+            }
+        }
+    }, [currentInstitution, roles, rolesLoading, addRoleDoc, defaultsInitialized]);
     
     const currentUserRole = useMemo(() => {
         if (!user || !currentInstitution || userMappingsLoading) return null;
