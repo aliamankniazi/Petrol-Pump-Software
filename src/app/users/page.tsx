@@ -42,8 +42,12 @@ export default function UsersPage() {
     if (typeof window === 'undefined') return;
 
     const checkSetup = async () => {
+      if (!isFirebaseConfigured()) {
+         setCheckingSetup(false);
+         return;
+      }
       // This is the critical fix. We must wait for the db object to be ready.
-      if (!isFirebaseConfigured() || !db) {
+      if (!db) {
         setTimeout(checkSetup, 100); // Retry after a short delay
         return;
       }
