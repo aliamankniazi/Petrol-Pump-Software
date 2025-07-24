@@ -46,7 +46,10 @@ export default function UsersPage() {
          setCheckingSetup(false);
          return;
       }
-      // This is the critical fix. We must wait for the db object to be ready.
+      
+      // Critical fix: Ensure db is initialized before using it.
+      // This is a race condition where this page might load and run this effect
+      // before firebase-client.ts has fully initialized `db`.
       if (!db) {
         setTimeout(checkSetup, 100); // Retry after a short delay
         return;
