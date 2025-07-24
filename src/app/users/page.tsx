@@ -38,27 +38,22 @@ export default function UsersPage() {
   const [setupStatus, setSetupStatus] = useState(SetupStatus.Verifying);
 
   useEffect(() => {
-    let intervalId: NodeJS.Timeout | null = null;
+    let isMounted = true;
+    let timeoutId: NodeJS.Timeout | null = null;
 
     const checkSetup = async () => {
       // The db object can be null on initial load. We must wait for it.
       if (!db) {
-        if (!intervalId) {
-          // If db is not ready, set an interval to check again.
-          intervalId = setInterval(checkSetup, 250);
-        }
+        // If db is not ready, set a timeout to check again.
+        timeoutId = setTimeout(checkSetup, 250);
         return;
-      }
-      
-      // If we've reached here, db is ready, so we can clear the interval.
-      if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
       }
 
       try {
         const superAdminFlagRef = ref(db, 'app_settings/isSuperAdminRegistered');
         const snapshot = await get(superAdminFlagRef);
+        if (!isMounted) return;
+
         if (snapshot.exists()) {
           setSetupStatus(SetupStatus.SuperAdminExists);
           toast({
@@ -70,6 +65,7 @@ export default function UsersPage() {
           setSetupStatus(SetupStatus.NoSuperAdmin);
         }
       } catch (error: any) {
+        if (!isMounted) return;
         console.error("Setup check failed:", error);
         setSetupStatus(SetupStatus.Error);
         toast({
@@ -82,10 +78,10 @@ export default function UsersPage() {
 
     checkSetup();
 
-    // Cleanup interval on component unmount
     return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
+      isMounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
       }
     };
   }, [router, toast]);
