@@ -39,18 +39,11 @@ export default function UsersPage() {
   });
   
   useEffect(() => {
-    // Only run this check on the client
     if (typeof window === 'undefined') return;
 
     const checkSetup = async () => {
-      // Defer the check until Firebase is configured and DB is available.
       if (!isFirebaseConfigured() || !db) {
-        // If not configured, we assume it's a first-time setup.
-        if (!isFirebaseConfigured()) setCheckingSetup(false); 
-        else {
-            // If configured but db is not ready, retry in a moment.
-            setTimeout(checkSetup, 100);
-        }
+        setTimeout(checkSetup, 100); // Retry if db not ready
         return;
       }
 
@@ -59,7 +52,7 @@ export default function UsersPage() {
         if (setupSnapshot.exists() && setupSnapshot.val() === true) {
           router.replace('/login');
         } else {
-           setCheckingSetup(false);
+           setCheckingSetup(false); // This is the critical fix
         }
       } catch (error) {
         toast({ variant: 'destructive', title: 'Error', description: 'Could not verify app setup status.' });
