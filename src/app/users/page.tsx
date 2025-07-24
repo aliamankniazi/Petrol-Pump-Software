@@ -41,14 +41,16 @@ export default function UsersPage() {
     let intervalId: NodeJS.Timeout | null = null;
 
     const checkSetup = async () => {
+      // The db object can be null on initial load. We must wait for it.
       if (!db) {
-        // If db is not ready, retry after a short delay.
         if (!intervalId) {
+          // If db is not ready, set an interval to check again.
           intervalId = setInterval(checkSetup, 250);
         }
         return;
       }
       
+      // If we've reached here, db is ready, so we can clear the interval.
       if (intervalId) {
         clearInterval(intervalId);
         intervalId = null;
@@ -59,6 +61,10 @@ export default function UsersPage() {
         const snapshot = await get(superAdminFlagRef);
         if (snapshot.exists()) {
           setSetupStatus(SetupStatus.SuperAdminExists);
+          toast({
+            title: 'Setup Complete',
+            description: 'A Super Admin already exists. Redirecting to login.',
+          });
           router.replace('/login');
         } else {
           setSetupStatus(SetupStatus.NoSuperAdmin);
@@ -76,8 +82,11 @@ export default function UsersPage() {
 
     checkSetup();
 
+    // Cleanup interval on component unmount
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
     };
   }, [router, toast]);
 
@@ -118,7 +127,7 @@ export default function UsersPage() {
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Terminal/> Verifying Setup Status...</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Terminal/> Verifying Setup Status</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center gap-4 text-center">
              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
