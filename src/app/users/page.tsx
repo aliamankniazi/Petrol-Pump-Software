@@ -42,8 +42,14 @@ export default function UsersPage() {
     if (typeof window === 'undefined') return;
 
     const checkSetup = async () => {
+      if (!isFirebaseConfigured()) {
+        // This case is handled by the root layout, but as a fallback:
+        setCheckingSetup(false);
+        return;
+      }
+      
       // The db object can be null on initial load. We must wait for it.
-      if (!isFirebaseConfigured() || !db) {
+      if (!db) {
          setTimeout(checkSetup, 100); // Retry after a short delay
          return;
       }
@@ -61,6 +67,7 @@ export default function UsersPage() {
             title: 'Setup Check Failed', 
             description: 'Could not verify app setup status. Please check your Firebase rules and connection.' 
         });
+        console.error("Setup Check Error:", error);
         setCheckingSetup(false); // Ensure we stop loading even on error
       }
     };
@@ -139,17 +146,14 @@ export default function UsersPage() {
             <Card className="w-full max-w-md">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <UserPlus /> Create Super Admin
+                      <UserPlus /> Verifying Setup Status...
                     </CardTitle>
                     <CardDescription>
-                       Verifying setup status...
+                       Please wait while we check your application's configuration.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
+                <CardContent className="flex justify-center items-center h-24">
+                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </CardContent>
             </Card>
         </div>
