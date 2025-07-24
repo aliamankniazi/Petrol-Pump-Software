@@ -7,8 +7,8 @@ import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
 import { AuthProvider, useAuth } from '@/hooks/use-auth.tsx';
 import { usePathname } from 'next/navigation';
-import { RolesProvider } from '@/hooks/use-roles.tsx';
 import { InstitutionProvider, useInstitution } from '@/hooks/use-institution.tsx';
+import { RolesProvider } from '@/hooks/use-roles.tsx';
 import { AppLayout } from '@/components/app-layout';
 import { isFirebaseConfigured } from '@/lib/firebase-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +16,7 @@ import { Terminal } from 'lucide-react';
 import LoginPage from './login/page';
 import { InstitutionSelector } from '@/components/institution-selector';
 import UsersPage from './users/page';
-
+import { Skeleton } from '@/components/ui/skeleton';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -45,7 +45,6 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
    </div>
 );
 
-
 function AppContent({ children }: { children: React.ReactNode }) {
     const { currentInstitution, institutionLoading } = useInstitution();
 
@@ -61,9 +60,14 @@ function AppContent({ children }: { children: React.ReactNode }) {
         return <InstitutionSelector />;
     }
 
-    return <RolesProvider><AppLayout>{children}</AppLayout></RolesProvider>;
+    return (
+        <RolesProvider>
+            <AppLayout>
+                {children}
+            </AppLayout>
+        </RolesProvider>
+    );
 }
-
 
 function AuthenticatedApp({ children }: { children: React.ReactNode }) {
   return (
@@ -83,7 +87,6 @@ function UnauthenticatedApp() {
   }
   return <LoginPage />;
 }
-
 
 function AppContainer({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
@@ -112,7 +115,6 @@ function AppContainer({ children }: { children: React.ReactNode }) {
   
   return <UnauthenticatedApp />;
 }
-
 
 export default function RootLayout({
   children,

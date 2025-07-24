@@ -19,7 +19,6 @@ import Link from 'next/link';
 import { PERMISSIONS } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
-
 const newUserSchema = z.object({
   email: z.string().email('A valid email is required.'),
   password: z.string().min(6, 'Password must be at least 6 characters.'),
@@ -40,11 +39,21 @@ export default function UsersPage() {
   });
   
   useEffect(() => {
+    // Only run this check on the client
+    if (typeof window === 'undefined') return;
+
     const checkSetup = async () => {
+      // Defer the check until Firebase is configured and DB is available.
       if (!isFirebaseConfigured() || !db) {
-        setCheckingSetup(false);
+        // If not configured, we assume it's a first-time setup.
+        if (!isFirebaseConfigured()) setCheckingSetup(false); 
+        else {
+            // If configured but db is not ready, retry in a moment.
+            setTimeout(checkSetup, 100);
+        }
         return;
       }
+
       try {
         const setupSnapshot = await get(ref(db, 'app_settings/isSuperAdminRegistered'));
         if (setupSnapshot.exists() && setupSnapshot.val() === true) {
@@ -106,6 +115,9 @@ export default function UsersPage() {
       await update(ref(db), updates);
 
       toast({ title: 'Super Admin Created!', description: 'Logging you in...' });
+      
+      // Set the newly created institution as the current one
+      localStorage.setItem('currentInstitutionId', newInstitutionId);
       
       await signIn({ email: data.email, password: data.password });
       router.replace('/');

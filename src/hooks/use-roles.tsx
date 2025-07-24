@@ -52,7 +52,7 @@ interface RolesContextType {
 
 const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
-export function RolesProvider({ children }: { children: ReactNode }) {
+export function RolesProvider({ children }: { children: React.ReactNode }) {
     const { user, loading: authLoading } = useAuth();
     const { currentInstitution, institutionLoading } = useInstitution();
     
