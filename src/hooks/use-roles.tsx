@@ -129,7 +129,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         return allInstitutions.find(inst => inst.id === currentInstitutionId) ?? null;
     }, [currentInstitutionId, allInstitutions]);
 
-    const isReady = !institutionLoading && !userMappingsLoading && (!currentInstitutionId || !rolesLoading);
+    const isReady = !institutionLoading && !userMappingsLoading;
 
     const isSuperAdmin = useMemo(() => {
         if (!user || !currentInstitution) return false;
