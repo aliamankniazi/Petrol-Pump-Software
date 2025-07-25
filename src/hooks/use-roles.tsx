@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useCallback, createContext, useContext, type ReactNode, useEffect, useState } from 'react';
-import { ref, push, set, serverTimestamp, update, remove, onValue } from 'firebase/database';
+import { ref, push, set, serverTimestamp, update, remove, onValue, get } from 'firebase/database';
 import type { Role, RoleId, Permission, Institution } from '@/lib/types';
 import { useAuth } from './use-auth.tsx';
 import { db } from '@/lib/firebase-client';
@@ -11,7 +11,6 @@ const ROLES_COLLECTION = 'roles';
 const USER_MAP_COLLECTION = 'userMappings';
 const INSTITUTIONS_COLLECTION = 'institutions';
 const LOCAL_STORAGE_KEY = 'currentInstitutionId';
-
 
 export const PERMISSIONS = [
     'view_dashboard', 'view_all_transactions', 'delete_transaction',
@@ -50,6 +49,9 @@ interface RolesContextType {
     roles: Role[];
     userRole: RoleId | null;
     isSuperAdmin: boolean;
+    addRole: (role: Omit<Role, 'id'>) => Promise<void>;
+    updateRole: (id: RoleId, updatedRole: Partial<Omit<Role, 'id'>>) => Promise<void>;
+    deleteRole: (id: RoleId) => Promise<void>;
     assignRoleToUser: (userId: string, roleId: RoleId, institutionId: string) => Promise<void>;
     getRoleForUserInInstitution: (userId: string, institutionId: string) => Promise<RoleId | null>;
     hasPermission: (permission: Permission) => boolean;
@@ -117,53 +119,58 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     
     // This is the main data fetching effect. It sets up listeners for all necessary data.
     useEffect(() => {
-        if (!user || !db) {
+        if (!user) {
             setDataLoading(false); // No user, so we are "ready" to show login screen
             return;
         }
 
         setDataLoading(true);
         setError(null);
+        
+        let unsubInstitutions: () => void;
+        let unsubMappings: () => void;
+        
+        const fetchData = async () => {
+            try {
+                // Ensure auth token is ready before making DB requests
+                await user.getIdToken(true);
 
-        // Listener for all institutions
-        const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
-        const unsubInstitutions = onValue(institutionsRef, 
-            (snapshot) => {
-                const insts: Institution[] = [];
-                if (snapshot.exists()) {
-                    snapshot.forEach(child => insts.push({ id: child.key!, ...child.val() }));
-                }
-                setAllInstitutions(insts);
-            }, 
-            (err) => {
-                console.error("Failed to load institutions:", err);
+                // Listener for all institutions
+                const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
+                unsubInstitutions = onValue(institutionsRef, 
+                    (snapshot) => {
+                        const insts: Institution[] = [];
+                        if (snapshot.exists()) {
+                            snapshot.forEach(child => insts.push({ id: child.key!, ...child.val() }));
+                        }
+                        setAllInstitutions(insts);
+                    }, 
+                    (err) => { throw err; }
+                );
+
+                // Listener for the current user's mappings
+                const userMappingsRef = ref(db, `${USER_MAP_COLLECTION}/${user.uid}`);
+                unsubMappings = onValue(userMappingsRef, 
+                    (snapshot) => {
+                        setUserMappings(snapshot.exists() ? snapshot.val() : {});
+                        setDataLoading(false); // Data loading is complete
+                    }, 
+                    (err) => { throw err; }
+                );
+            } catch (err: any) {
+                console.error("Data fetching error:", err);
                 setError(err);
                 setDataLoading(false);
             }
-        );
+        };
 
-        // Listener for the current user's mappings
-        const userMappingsRef = ref(db, `${USER_MAP_COLLECTION}/${user.uid}`);
-        const unsubMappings = onValue(userMappingsRef, 
-            (snapshot) => {
-                setUserMappings(snapshot.exists() ? snapshot.val() : {});
-                // Once we have both institutions and mappings, we can consider data loaded
-                if (allInstitutions.length > 0 || !snapshot.exists()) {
-                     setDataLoading(false);
-                }
-            }, 
-            (err) => {
-                console.error("Failed to load user mappings:", err);
-                setError(err);
-                setDataLoading(false);
-            }
-        );
+        fetchData();
 
         return () => {
-            unsubInstitutions();
-            unsubMappings();
+            if (unsubInstitutions) unsubInstitutions();
+            if (unsubMappings) unsubMappings();
         };
-    }, [user, allInstitutions.length]); // Re-run if user changes
+    }, [user]);
 
     const userInstitutions = useMemo(() => {
         if (!user || !userMappings) return [];
@@ -173,7 +180,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         return allInstitutions.filter(inst => allReachableIds.has(inst.id));
     }, [user, allInstitutions, userMappings]);
     
-    const isReady = useMemo(() => !dataLoading && !authLoading && !rolesLoading && !error, [dataLoading, authLoading, rolesLoading, error]);
+    const isReady = useMemo(() => !dataLoading && !authLoading && !error, [dataLoading, authLoading, error]);
 
     const currentInstitution = useMemo(() => {
         return userInstitutions.find(inst => inst.id === currentInstitutionId) ?? null;
@@ -191,7 +198,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, [user, currentInstitution, userMappings, isSuperAdmin]);
     
     useEffect(() => {
-        if (currentInstitution && !rolesLoading && !defaultsInitialized) {
+        if (currentInstitution && isSuperAdmin && !rolesLoading && !defaultsInitialized) {
             const adminRoleExists = (roles || []).some(r => r.id === 'admin');
             if (!adminRoleExists) {
                 const adminRoleRef = ref(db, `institutions/${currentInstitution.id}/${ROLES_COLLECTION}/admin`);
@@ -199,12 +206,12 @@ export function RolesProvider({ children }: { children: ReactNode }) {
                 .then(() => setDefaultsInitialized(true))
                 .catch(err => console.error("Failed to create admin role:", err));
             } else {
-                setDefaultsInitialized(true);
+                 setDefaultsInitialized(true);
             }
         } else if (!currentInstitution) {
             setDefaultsInitialized(false);
         }
-    }, [currentInstitution, roles, rolesLoading, defaultsInitialized]);
+    }, [currentInstitution, isSuperAdmin, roles, rolesLoading, defaultsInitialized]);
     
     const setCurrentInstitutionCB = useCallback((institutionId: string) => {
         localStorage.setItem(LOCAL_STORAGE_KEY, institutionId);
@@ -228,7 +235,6 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         await set(newDocRef, dataWithOwner);
         const newInstitution = { ...dataWithOwner, id: newId, timestamp: Date.now() } as Institution;
         
-        // No need to manually update state, the onValue listener will handle it.
         setCurrentInstitutionCB(newId);
         return newInstitution;
     }, [user, setCurrentInstitutionCB]);
@@ -271,7 +277,6 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         return null;
     }, []);
 
-
     const addRole = useCallback(async (role: Omit<Role, 'id'>) => {
         if (!db || !currentInstitutionId) throw new Error("Institution not selected.");
         const id = role.name.toLowerCase().replace(/\s+/g, '-');
@@ -310,6 +315,9 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         roles: roles || [],
         userRole: currentUserRole,
         isSuperAdmin,
+        addRole,
+        updateRole,
+        deleteRole,
         assignRoleToUser,
         getRoleForUserInInstitution,
         hasPermission,
