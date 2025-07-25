@@ -16,6 +16,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   type UserCredential,
+  setPersistence,
+  browserSessionPersistence,
 } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '@/lib/firebase-client';
 import type { AuthFormValues } from '@/lib/types';
@@ -57,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Firebase is not configured.");
     }
     try {
+      await setPersistence(auth, browserSessionPersistence);
       return await createUserWithEmailAndPassword(auth, data.email, data.password);
     } catch (error) {
       if (error instanceof FirebaseError) {
@@ -76,6 +79,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!isFirebaseConfigured() || !auth) {
         throw new Error("Firebase is not configured.");
     }
+    // Set persistence to session before signing in.
+    // This ensures the user is only logged in for the current browser session.
+    await setPersistence(auth, browserSessionPersistence);
     return signInWithEmailAndPassword(auth, data.email, data.password);
   }, []);
 
