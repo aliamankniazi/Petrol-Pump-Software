@@ -5,7 +5,6 @@ import { useMemo, useCallback, createContext, useContext, type ReactNode, useEff
 import { ref, push, set, serverTimestamp, update, remove, onValue } from 'firebase/database';
 import type { Role, RoleId, Permission, Institution } from '@/lib/types';
 import { useAuth } from './use-auth.tsx';
-import { useDatabaseCollection } from './use-database-collection';
 import { db } from '@/lib/firebase-client';
 
 const ROLES_COLLECTION = 'roles';
@@ -61,8 +60,62 @@ interface RolesContextType {
 
 const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
+// This custom hook centralizes fetching roles for a specific institution.
+function useRolesForInstitution(institutionId: string | null) {
+    const [roles, setRoles] = useState<Role[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!db || !institutionId) {
+            setRoles([]);
+            setLoading(false);
+            return;
+        }
+
+        setLoading(true);
+        const rolesRef = ref(db, `institutions/${institutionId}/${ROLES_COLLECTION}`);
+        const unsubscribe = onValue(rolesRef, (snapshot) => {
+            const rolesArray: Role[] = [];
+            if (snapshot.exists()) {
+                snapshot.forEach(childSnapshot => {
+                    rolesArray.push({ id: childSnapshot.key!, ...childSnapshot.val() });
+                });
+            }
+            setRoles(rolesArray);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching roles:", error);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [institutionId]);
+
+    const addRoleDoc = useCallback(async (role: Omit<Role, 'id'>, id?: RoleId) => {
+        if (!db || !institutionId) throw new Error("Institution not selected.");
+        const rolesRef = ref(db, `institutions/${institutionId}/${ROLES_COLLECTION}`);
+        const newRef = id ? ref(db, `institutions/${institutionId}/${ROLES_COLLECTION}/${id}`) : push(rolesRef);
+        await set(newRef, role);
+    }, [institutionId]);
+
+    const updateRoleDoc = useCallback(async (id: RoleId, updatedRole: Partial<Omit<Role, 'id'>>) => {
+        if (!db || !institutionId) return;
+        const roleRef = ref(db, `institutions/${institutionId}/${ROLES_COLLECTION}/${id}`);
+        await update(roleRef, updatedRole);
+    }, [institutionId]);
+
+    const deleteRoleDoc = useCallback(async (id: RoleId) => {
+        if (!db || !institutionId) return;
+        const roleRef = ref(db, `institutions/${institutionId}/${ROLES_COLLECTION}/${id}`);
+        await remove(roleRef);
+    }, [institutionId]);
+
+    return { roles, addRoleDoc, updateRoleDoc, deleteRoleDoc, loading };
+}
+
+
 export function RolesProvider({ children }: { children: ReactNode }) {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     
     const [allInstitutions, setAllInstitutions] = useState<Institution[]>([]);
     const [userMappings, setUserMappings] = useState<UserMappings | null>(null);
@@ -71,7 +124,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     const [institutionsLoading, setInstitutionsLoading] = useState(true);
     const [mappingsLoading, setMappingsLoading] = useState(true);
     
-    const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, currentInstitutionId || null);
+    const { roles, addRoleDoc, updateRoleDoc, deleteRoleDoc, loading: rolesLoading } = useRolesForInstitution(currentInstitutionId);
     const [defaultsInitialized, setDefaultsInitialized] = useState(false);
 
     useEffect(() => {
@@ -82,10 +135,8 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, []);
     
     useEffect(() => {
-        if (!db) {
-            setInstitutionsLoading(false);
-            return;
-        }
+        if (!db || authLoading) return;
+        setInstitutionsLoading(true);
         const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
         const unsub = onValue(institutionsRef, (snapshot) => {
             const insts: Institution[] = [];
@@ -99,11 +150,11 @@ export function RolesProvider({ children }: { children: ReactNode }) {
             setInstitutionsLoading(false);
         });
         return () => unsub();
-    }, []);
+    }, [authLoading]);
 
     useEffect(() => {
-        if (!user?.uid || !db) {
-            if (!user) { // If user logs out, clear mappings.
+        if (!db || authLoading || !user) {
+            if (!authLoading && !user) {
                 setUserMappings(null);
                 setMappingsLoading(false);
             }
@@ -113,11 +164,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         setMappingsLoading(true);
         const userMappingsRef = ref(db, `${USER_MAP_COLLECTION}/${user.uid}`);
         const unsub = onValue(userMappingsRef, (snapshot) => {
-            if (snapshot.exists()) {
-                setUserMappings(snapshot.val());
-            } else {
-                setUserMappings({});
-            }
+            setUserMappings(snapshot.exists() ? snapshot.val() : {});
             setMappingsLoading(false);
         }, (error) => {
             console.error("Error loading user mappings:", error);
@@ -125,7 +172,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         });
 
         return () => unsub();
-    }, [user?.uid]);
+    }, [user, authLoading]);
 
     const isReady = !institutionsLoading && !mappingsLoading;
 
@@ -159,15 +206,12 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const getRoleForUserInInstitution = useCallback((userId: string, institutionId: string): RoleId | null => {
-        // This is complex to get from other users now, will require a cloud function for security.
-        // For now, we only know the current user's roles.
         if (userId === user?.uid && userMappings && userMappings[institutionId]) {
             return userMappings[institutionId].roleId;
         }
         return null;
     }, [user?.uid, userMappings]);
     
-    // Default roles initialization
     useEffect(() => {
         if (currentInstitution && !rolesLoading && !defaultsInitialized) {
             const adminRoleExists = (roles || []).some(r => r.id === 'admin');

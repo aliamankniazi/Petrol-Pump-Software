@@ -27,8 +27,8 @@
     },
     "userMappings": {
        "$userId": {
-         ".read": "auth != null && $userId === auth.uid",
-         ".write": "auth != null"
+         ".read": "auth != null && auth.uid === $userId",
+         ".write": "auth != null && (auth.uid === $userId || root.child('institutions').child(newData.parent().key()).child('ownerId').val() === auth.uid)"
        }
     }
   }
