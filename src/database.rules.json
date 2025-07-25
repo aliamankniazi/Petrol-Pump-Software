@@ -2,8 +2,8 @@
 {
   "rules": {
     "app_settings": {
-      ".read": true,
       "isSuperAdminRegistered": {
+        ".read": true,
         ".write": "!data.exists() && auth != null"
       }
     },

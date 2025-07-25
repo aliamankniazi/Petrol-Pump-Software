@@ -40,8 +40,9 @@ export default function UsersPage() {
     }
 
     const checkSetup = async () => {
+      // This is the key change: it waits for the `db` object to be available.
       if (!db) {
-          setTimeout(checkSetup, 100);
+          setTimeout(checkSetup, 100); // Retry after 100ms
           return;
       }
       
@@ -60,7 +61,7 @@ export default function UsersPage() {
           title: "Configuration Check Failed",
           description: "Could not verify application setup. Please check your connection or Firebase configuration.",
         });
-        setSetupStatus('needs-setup');
+        setSetupStatus('needs-setup'); // Ensure we don't get stuck
       }
     };
 
