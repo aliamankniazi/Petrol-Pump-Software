@@ -131,10 +131,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, []);
     
     useEffect(() => {
-        if (!db || authLoading) {
-            setInstitutionsLoading(true);
-            return;
-        };
+        if (authLoading || !db) return;
 
         const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
         const unsub = onValue(institutionsRef, (snapshot) => {
@@ -152,10 +149,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, [authLoading]);
 
     useEffect(() => {
-        if (authLoading) {
-            setMappingsLoading(true);
-            return;
-        } 
+        if (authLoading) return;
         
         if (!user) {
             setUserMappings(null);
@@ -169,6 +163,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
             setMappingsLoading(false);
         }, (error) => {
             console.error("Error loading user mappings:", error);
+            setUserMappings({});
             setMappingsLoading(false);
         });
 
