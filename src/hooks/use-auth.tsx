@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-      // Immediately sign out after creating the account.
+      // Immediately sign out after creating the account to force a manual login.
       await firebaseSignOut(auth);
       return userCredential;
     } catch (error) {
@@ -71,8 +71,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error.code === 'auth/weak-password') {
           throw new Error('The password is too weak. It must be at least 6 characters long.');
         }
+        // Generic fallback for other Firebase auth errors
         throw new Error('Could not create account. Please check the details and try again.');
       }
+      // Fallback for non-Firebase errors
       throw error;
     }
   }, []);
@@ -90,8 +92,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (error.code === 'auth/invalid-credential') {
                 throw new Error('Invalid email or password. Please try again.');
             }
+            // Generic fallback for other Firebase auth errors during sign-in
             throw new Error('Could not sign in. Please try again later.');
         }
+        // Fallback for non-Firebase errors
         throw error;
     }
   }, []);
@@ -101,6 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!isFirebaseConfigured() || !auth) return;
     try {
         await firebaseSignOut(auth);
+        // Clear any session-related data from local storage
         localStorage.removeItem('currentInstitutionId');
     } catch (error) {
         console.error("Error signing out: ", error);
