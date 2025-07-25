@@ -53,6 +53,7 @@ interface RolesContextType {
     isSuperAdmin: boolean;
     assignRoleToUser: (userId: string, roleId: RoleId, institutionId: string) => Promise<void>;
     getRoleForUserInInstitution: (userId: string, institutionId: string) => RoleId | null;
+    hasPermission: (permission: Permission) => boolean;
 
     // Loading state
     isReady: boolean;
@@ -209,8 +210,11 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         if (userId === user?.uid && userMappings && userMappings[institutionId]) {
             return userMappings[institutionId].roleId;
         }
+        const institution = allInstitutions.find(i => i.id === institutionId);
+        if (institution?.ownerId === userId) return 'admin';
+        
         return null;
-    }, [user?.uid, userMappings]);
+    }, [user?.uid, userMappings, allInstitutions]);
     
     useEffect(() => {
         if (currentInstitution && !rolesLoading && !defaultsInitialized) {
@@ -303,6 +307,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         isSuperAdmin,
         assignRoleToUser,
         getRoleForUserInInstitution,
+        hasPermission,
         isReady,
     };
     
