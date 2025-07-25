@@ -45,9 +45,9 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
 );
 
 function AppContent({ children }: { children: React.ReactNode }) {
-    const { currentInstitution, isReady: rolesReady } = useRoles();
+    const { currentInstitution, isReady } = useRoles();
 
-    if (!rolesReady) {
+    if (!isReady) {
         return (
             <FullscreenMessage title="Loading Application..." showSpinner={true}>
                 <p>Fetching your profile and permissions. Please wait.</p>
