@@ -46,6 +46,7 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
   );
 };
 
+
 function AppContent({ children }: { children: React.ReactNode }) {
     const { currentInstitution, userInstitutions, isReady, error } = useRoles();
     
@@ -92,26 +93,9 @@ function AppContent({ children }: { children: React.ReactNode }) {
     );
 }
 
-function AuthenticatedApp({ children }: { children: React.ReactNode }) {
-  return (
-    <RolesProvider>
-      <AppContent>
-          {children}
-      </AppContent>
-    </RolesProvider>
-  )
-}
-
-function UnauthenticatedApp() {
-  const pathname = usePathname();
-  if (pathname === '/users' || pathname === '/signup') {
-    return <UsersPage />;
-  }
-  return <LoginPage />;
-}
-
 function AppContainer({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
+  const pathname = usePathname();
   
   if (!isFirebaseConfigured()) {
     return (
@@ -134,10 +118,20 @@ function AppContainer({ children }: { children: React.ReactNode }) {
   }
   
   if (user) {
-    return <AuthenticatedApp>{children}</AuthenticatedApp>;
+    return (
+        <RolesProvider>
+            <AppContent>
+                {children}
+            </AppContent>
+        </RolesProvider>
+    );
   }
   
-  return <UnauthenticatedApp />;
+  // User is not logged in
+  if (pathname === '/users' || pathname === '/signup') {
+    return <UsersPage />;
+  }
+  return <LoginPage />;
 }
 
 export default function RootLayout({

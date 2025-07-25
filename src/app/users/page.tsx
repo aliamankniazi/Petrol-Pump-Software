@@ -52,7 +52,7 @@ export default function UsersPage() {
         description: 'Your account has been successfully created. Please log in.',
       });
 
-      router.push('/login');
+      router.replace('/login');
 
     } catch (error: any) {
       toast({

@@ -35,10 +35,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await signIn(data);
-      toast({
-        title: 'Login Successful',
-        description: 'Welcome back!',
-      });
+      // No need for a toast here, the redirect is sufficient feedback
       router.replace('/dashboard'); 
     } catch (error: any) {
       toast({
