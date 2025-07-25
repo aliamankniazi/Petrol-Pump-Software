@@ -133,7 +133,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const loadInitialData = async () => {
             if (!user) {
-                setLoading(false);
+                setLoading(false); // **FIX**: Ensure loading is false when there's no user.
                 setUserInstitutions([]);
                 setUserMappings(null);
                 return;
@@ -178,7 +178,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         }
     }, [user, authLoading]);
 
-    const isReady = useMemo(() => !loading && !authLoading && !error, [loading, authLoading, error]);
+    const isReady = useMemo(() => !loading && !authLoading && !rolesLoading && !error, [loading, authLoading, rolesLoading, error]);
 
     const currentInstitution = useMemo(() => {
         return userInstitutions.find(inst => inst.id === currentInstitutionId) ?? null;
