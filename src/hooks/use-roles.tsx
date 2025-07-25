@@ -120,7 +120,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     const [institutionsLoading, setInstitutionsLoading] = useState(true);
     const [mappingsLoading, setMappingsLoading] = useState(true);
     
-    const { roles, addRoleDoc, updateRoleDoc, deleteRoleDoc } = useRolesForInstitution(currentInstitutionId);
+    const { roles, addRoleDoc, updateRoleDoc, deleteRoleDoc, loading: rolesLoading } = useRolesForInstitution(currentInstitutionId);
     const [defaultsInitialized, setDefaultsInitialized] = useState(false);
 
     useEffect(() => {
@@ -131,8 +131,11 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, []);
     
     useEffect(() => {
-        if (!db || authLoading) return;
-        setInstitutionsLoading(true);
+        if (!db || authLoading) {
+            setInstitutionsLoading(true);
+            return;
+        };
+
         const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
         const unsub = onValue(institutionsRef, (snapshot) => {
             const insts: Institution[] = [];
@@ -149,7 +152,10 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, [authLoading]);
 
     useEffect(() => {
-        if (authLoading) return; // Wait for auth to resolve
+        if (authLoading) {
+            setMappingsLoading(true);
+            return;
+        } 
         
         if (!user) {
             setUserMappings(null);
@@ -157,7 +163,6 @@ export function RolesProvider({ children }: { children: ReactNode }) {
             return;
         }
 
-        setMappingsLoading(true);
         const userMappingsRef = ref(db, `${USER_MAP_COLLECTION}/${user.uid}`);
         const unsub = onValue(userMappingsRef, (snapshot) => {
             setUserMappings(snapshot.exists() ? snapshot.val() : {});
@@ -214,7 +219,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, [user?.uid, userMappings, allInstitutions]);
     
     useEffect(() => {
-        if (currentInstitution && !defaultsInitialized) {
+        if (currentInstitution && !rolesLoading && !defaultsInitialized) {
             const adminRoleExists = (roles || []).some(r => r.id === 'admin');
             if (!adminRoleExists) {
                 addRoleDoc({ name: 'Admin', permissions: [...PERMISSIONS] }, 'admin').finally(() => {
@@ -226,7 +231,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         } else if (!currentInstitution) {
             setDefaultsInitialized(false);
         }
-    }, [currentInstitution, roles, addRoleDoc, defaultsInitialized]);
+    }, [currentInstitution, roles, rolesLoading, addRoleDoc, defaultsInitialized]);
     
     const setCurrentInstitutionCB = useCallback((institutionId: string) => {
         localStorage.setItem(LOCAL_STORAGE_KEY, institutionId);

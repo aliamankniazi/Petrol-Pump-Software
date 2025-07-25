@@ -45,7 +45,8 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
 );
 
 function AppContent({ children }: { children: React.ReactNode }) {
-    const { currentInstitution, isReady } = useRoles();
+    const { currentInstitution, userInstitutions, isReady } = useRoles();
+    const router = useRouter();
 
     if (!isReady) {
         return (
@@ -55,14 +56,39 @@ function AppContent({ children }: { children: React.ReactNode }) {
         );
     }
     
-    if (!currentInstitution) {
+    // After loading, if the user has institutions, but none is selected, show the selector.
+    if (userInstitutions.length > 0 && !currentInstitution) {
         return <InstitutionSelector />;
     }
 
+    // After loading, if the user has no institutions, redirect them to create one.
+    if (isReady && userInstitutions.length === 0) {
+        // Using useEffect to avoid rendering during a render phase.
+        React.useEffect(() => {
+            router.replace('/institutions');
+        }, [router]);
+
+        return (
+             <FullscreenMessage title="Welcome!" showSpinner={true}>
+                <p>Redirecting you to create your first institution...</p>
+            </FullscreenMessage>
+        );
+    }
+
+    // If an institution is selected, show the main app layout.
+    if (currentInstitution) {
+        return (
+            <AppLayout>
+                {children}
+            </AppLayout>
+        );
+    }
+
+    // Fallback loading state
     return (
-      <AppLayout>
-          {children}
-      </AppLayout>
+        <FullscreenMessage title="Loading Application..." showSpinner={true}>
+            <p>Initializing your session...</p>
+        </FullscreenMessage>
     );
 }
 
