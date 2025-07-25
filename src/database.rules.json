@@ -1,12 +1,6 @@
 
 {
   "rules": {
-    "app_settings": {
-      "isSuperAdminRegistered": {
-        ".read": true,
-        ".write": "!data.exists() && auth != null"
-      }
-    },
     "institutions": {
       "$institutionId": {
         ".write": "auth != null && ( (newData.child('ownerId').val() === auth.uid && !data.exists()) || (data.child('ownerId').val() === auth.uid) )",

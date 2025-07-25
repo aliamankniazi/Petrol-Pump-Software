@@ -39,8 +39,7 @@ export default function LoginPage() {
         title: 'Login Successful',
         description: 'Welcome back!',
       });
-      // Redirect is handled by the main layout component now
-      router.replace('/'); 
+      router.replace('/dashboard'); 
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -82,9 +81,9 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className="flex-col items-start text-sm">
             <p className="text-muted-foreground">
-                First-time setup?{' '}
+                Need to create an account?{' '}
                 <Link href="/users" className="font-semibold text-primary underline-offset-4 hover:underline">
-                     Create Super Admin Account
+                     Create Admin Account
                 </Link>
             </p>
         </CardFooter>
