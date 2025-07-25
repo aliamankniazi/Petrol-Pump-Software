@@ -78,7 +78,8 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
     // Roles and Mappings state
     const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, currentInstitutionId || null);
-    const { data: userMappings, addDoc: addUserMapping, loading: userMappingsLoading } = useDatabaseCollection<UserMapping>(USER_MAP_COLLECTION, null);
+    const [userMappings, setUserMappings] = useState<UserMapping[]>([]);
+    const [mappingsLoading, setMappingsLoading] = useState(true);
 
     const [defaultsInitialized, setDefaultsInitialized] = useState(false);
 
@@ -89,16 +90,16 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         }
     }, []);
     
-    // Fetch all institutions and user mappings once
     useEffect(() => {
         if (!user || !db) {
             setInstitutionLoading(false);
+            setMappingsLoading(false);
             setAllInstitutions([]);
+            setUserMappings([]);
             return;
         }
 
         setInstitutionLoading(true);
-
         const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
         const unsubInstitutions = onValue(institutionsRef, (snapshot) => {
             const insts: Institution[] = [];
@@ -111,25 +112,46 @@ export function RolesProvider({ children }: { children: ReactNode }) {
             console.error("Error loading institutions:", error);
             setInstitutionLoading(false);
         });
+
+        setMappingsLoading(true);
+        const mappingsRef = ref(db, USER_MAP_COLLECTION);
+        const unsubMappings = onValue(mappingsRef, (snapshot) => {
+            const maps: UserMapping[] = [];
+            if(snapshot.exists()){
+                snapshot.forEach(child => {
+                    if (child.val().userId === user.uid) {
+                        maps.push({ id: child.key!, ...child.val() });
+                    }
+                });
+            }
+            setUserMappings(maps);
+            setMappingsLoading(false);
+        }, (error) => {
+            console.error("Error loading user mappings:", error);
+            setMappingsLoading(false);
+        });
         
-        return () => unsubInstitutions();
+        return () => {
+          unsubInstitutions();
+          unsubMappings();
+        }
     }, [user]);
     
     const userInstitutions = useMemo(() => {
-        if (!user || institutionLoading) return [];
+        if (!user || institutionLoading || mappingsLoading) return [];
         
-        const userMappedInstitutions = (userMappings || []).filter(m => m.userId === user.uid).map(m => m.institutionId);
-        const ownedInstitutions = allInstitutions.filter(inst => inst.ownerId === user.uid).map(i => i.id);
-        const allReachableIds = new Set([...userMappedInstitutions, ...ownedInstitutions]);
+        const userMappedInstitutionIds = userMappings.map(m => m.institutionId);
+        const ownedInstitutionIds = allInstitutions.filter(inst => inst.ownerId === user.uid).map(i => i.id);
+        const allReachableIds = new Set([...userMappedInstitutionIds, ...ownedInstitutionIds]);
         
         return allInstitutions.filter(inst => allReachableIds.has(inst.id));
-    }, [user, allInstitutions, userMappings, institutionLoading]);
+    }, [user, allInstitutions, userMappings, institutionLoading, mappingsLoading]);
 
     const currentInstitution = useMemo(() => {
         return allInstitutions.find(inst => inst.id === currentInstitutionId) ?? null;
     }, [currentInstitutionId, allInstitutions]);
 
-    const isReady = !institutionLoading && !userMappingsLoading;
+    const isReady = !institutionLoading && !mappingsLoading;
 
     const isSuperAdmin = useMemo(() => {
         if (!user || !currentInstitution) return false;
@@ -195,20 +217,26 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
     // Role Callbacks
     const currentUserRole = useMemo(() => {
-        if (!user || !currentInstitution || userMappingsLoading) return null;
+        if (!user || !currentInstitution || mappingsLoading) return null;
         if (isSuperAdmin) return 'admin'; 
-        const mapping = (userMappings || []).find(m => m.userId === user.uid && m.institutionId === currentInstitution.id);
+        const mapping = userMappings.find(m => m.userId === user.uid && m.institutionId === currentInstitution.id);
         return mapping?.roleId ?? null;
-    }, [user, currentInstitution, userMappings, userMappingsLoading, isSuperAdmin]);
+    }, [user, currentInstitution, userMappings, mappingsLoading, isSuperAdmin]);
+    
+    const addMapping = useCallback(async (data: Omit<UserMapping, 'id'>, docId: string) => {
+        if (!db) throw new Error("DB not initialized");
+        const docRef = ref(db, `${USER_MAP_COLLECTION}/${docId}`);
+        await set(docRef, data);
+        return { id: docId, ...data } as UserMapping;
+    }, []);
 
     const assignRoleToUser = useCallback(async (userId: string, roleId: RoleId, institutionId: string) => {
         const docId = `${userId}_${institutionId}`;
         const newMapping = { userId, roleId, institutionId };
-        await addUserMapping(newMapping, docId);
-    }, [addUserMapping]);
+        await addMapping(newMapping, docId);
+    }, [addMapping]);
     
     const getRoleForUserInInstitution = useCallback((userId: string, institutionId: string): RoleId | null => {
-        if (!userMappings) return null;
         const mapping = userMappings.find(m => m.userId === userId && m.institutionId === institutionId);
         return mapping?.roleId || null;
     }, [userMappings]);
