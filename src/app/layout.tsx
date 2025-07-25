@@ -86,8 +86,8 @@ function AppContent({ children }: { children: React.ReactNode }) {
 
     // Fallback loading state
     return (
-        <FullscreenMessage title="Loading Application..." showSpinner={true}>
-            <p>Initializing your session...</p>
+        <FullscreenMessage title="Initializing..." showSpinner={true}>
+            <p>Please wait a moment.</p>
         </FullscreenMessage>
     );
 }
