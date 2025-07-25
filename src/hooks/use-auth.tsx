@@ -64,10 +64,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       if (error instanceof FirebaseError) {
         if (error.code === 'auth/email-already-in-use') {
-          throw new Error('This email is already in use.');
+          throw new Error('This email is already in use by another account.');
         }
         if (error.code === 'auth/weak-password') {
-          throw new Error('The password is too weak. It must be at least 6 characters.');
+          throw new Error('The password is too weak. It must be at least 6 characters long.');
         }
         throw new Error(error.message);
       }
@@ -79,8 +79,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!isFirebaseConfigured() || !auth) {
         throw new Error("Firebase is not configured.");
     }
-    await setPersistence(auth, browserSessionPersistence);
-    return signInWithEmailAndPassword(auth, data.email, data.password);
+    try {
+        await setPersistence(auth, browserSessionPersistence);
+        return await signInWithEmailAndPassword(auth, data.email, data.password);
+    } catch (error) {
+        if (error instanceof FirebaseError) {
+            if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                throw new Error('Invalid email or password. Please try again.');
+            }
+            throw new Error(error.message);
+        }
+        throw error;
+    }
   }, []);
 
 
