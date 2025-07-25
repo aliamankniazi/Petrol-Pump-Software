@@ -69,7 +69,7 @@ interface RolesContextType {
 const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
 export function RolesProvider({ children }: { children: ReactNode }) {
-    const { user, loading: authLoading } = useAuth();
+    const { user } = useAuth();
     
     // Institution state
     const [allInstitutions, setAllInstitutions] = useState<Institution[]>([]);
@@ -129,7 +129,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         return allInstitutions.find(inst => inst.id === currentInstitutionId) ?? null;
     }, [currentInstitutionId, allInstitutions]);
 
-    const isReady = !authLoading && !institutionLoading && !userMappingsLoading && (!currentInstitution || !rolesLoading) && (!currentInstitution || defaultsInitialized);
+    const isReady = !institutionLoading && !userMappingsLoading && (!currentInstitutionId || !rolesLoading);
 
     const isSuperAdmin = useMemo(() => {
         if (!user || !currentInstitution) return false;
