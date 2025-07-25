@@ -19,9 +19,8 @@
     "userMappings": {
        "$userId": {
          // A user can only read/write their own mapping data.
-         // Admins (institution owners) can also write to create new mappings.
          ".read": "auth != null && auth.uid === $userId",
-         ".write": "auth != null && (auth.uid === $userId || root.child('institutions').child(newData.val().anyChild().institutionId).child('ownerId').val() === auth.uid)"
+         ".write": "auth != null && auth.uid === $userId"
        }
     }
   }
