@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useCallback, createContext, useContext, type ReactNode, useEffect, useState } from 'react';
-import { ref, push, set, serverTimestamp, update, remove, onValue, get, child } from 'firebase/database';
+import { ref, push, set, serverTimestamp, update, remove, get } from 'firebase/database';
 import type { Role, RoleId, Permission, Institution } from '@/lib/types';
 import { useAuth } from './use-auth.tsx';
 import { db } from '@/lib/firebase-client';
@@ -71,7 +71,8 @@ function useRolesForInstitution(institutionId: string | null) {
 
         setLoading(true);
         const rolesRef = ref(db, `institutions/${institutionId}/${ROLES_COLLECTION}`);
-        const unsubscribe = onValue(rolesRef, (snapshot) => {
+        
+        get(rolesRef).then(snapshot => {
             const rolesArray: Role[] = [];
             if (snapshot.exists()) {
                 snapshot.forEach(childSnapshot => {
@@ -79,13 +80,12 @@ function useRolesForInstitution(institutionId: string | null) {
                 });
             }
             setRoles(rolesArray);
-            setLoading(false);
-        }, (error) => {
+        }).catch(error => {
             console.error("Error fetching roles:", error);
+        }).finally(() => {
             setLoading(false);
         });
 
-        return () => unsubscribe();
     }, [institutionId]);
 
     const addRoleDoc = useCallback(async (role: Omit<Role, 'id'>, id?: RoleId) => {
@@ -140,7 +140,10 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
             setDataLoading(true);
             try {
-                // Step 1: Fetch user-specific mappings first. This is a permission-aligned query.
+                // This forces a token refresh, ensuring the session is valid on the backend.
+                await user.getIdToken(true);
+
+                // Step 1: Fetch user-specific mappings first.
                 const userMappingsRef = ref(db, `${USER_MAP_COLLECTION}/${user.uid}`);
                 const mappingsSnapshot = await get(userMappingsRef);
                 const fetchedMappings: UserMappings = mappingsSnapshot.exists() ? mappingsSnapshot.val() : {};
@@ -170,8 +173,10 @@ export function RolesProvider({ children }: { children: ReactNode }) {
             }
         };
 
-        if (!authLoading) {
+        if (!authLoading && user) {
             loadInitialData();
+        } else if (!authLoading && !user) {
+            setDataLoading(false);
         }
     }, [user, authLoading]);
 
@@ -199,7 +204,6 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const getRoleForUserInInstitution = useCallback((userId: string, institutionId: string): RoleId | null => {
-        // This function is limited now as we don't fetch all mappings, but works for the current user.
         const inst = userInstitutions.find(i => i.id === institutionId);
         if (inst?.ownerId === userId) return 'admin';
         
@@ -247,7 +251,6 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         await set(newDocRef, dataWithOwner);
         const newInstitution = { ...dataWithOwner, id: newId, timestamp: Date.now() } as Institution;
         
-        // Manually update local state to reflect the change immediately
         setUserInstitutions(prev => [...prev, newInstitution]);
         setCurrentInstitutionCB(newId);
         return newInstitution;

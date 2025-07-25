@@ -56,14 +56,11 @@ function AppContent({ children }: { children: React.ReactNode }) {
         );
     }
     
-    // After loading, if the user has institutions, but none is selected, show the selector.
     if (userInstitutions.length > 0 && !currentInstitution) {
         return <InstitutionSelector />;
     }
 
-    // After loading, if the user has no institutions, redirect them to create one.
     if (isReady && userInstitutions.length === 0) {
-        // Using useEffect to avoid rendering during a render phase.
         React.useEffect(() => {
             router.replace('/institutions');
         }, [router]);
@@ -75,7 +72,6 @@ function AppContent({ children }: { children: React.ReactNode }) {
         );
     }
 
-    // If an institution is selected, show the main app layout.
     if (currentInstitution) {
         return (
             <AppLayout>
@@ -84,7 +80,6 @@ function AppContent({ children }: { children: React.ReactNode }) {
         );
     }
 
-    // Fallback loading state
     return (
         <FullscreenMessage title="Initializing..." showSpinner={true}>
             <p>Please wait a moment.</p>
