@@ -60,7 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     try {
       await setPersistence(auth, browserSessionPersistence);
-      return await createUserWithEmailAndPassword(auth, data.email, data.password);
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      return userCredential;
     } catch (error) {
       if (error instanceof FirebaseError) {
         if (error.code === 'auth/email-already-in-use') {
@@ -69,7 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error.code === 'auth/weak-password') {
           throw new Error('The password is too weak. It must be at least 6 characters long.');
         }
-        throw new Error(error.message);
+        // Provide a more generic message for other auth errors during signup
+        throw new Error('Could not create account. Please check the details and try again.');
       }
       throw error;
     }
@@ -81,13 +83,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     try {
         await setPersistence(auth, browserSessionPersistence);
-        return await signInWithEmailAndPassword(auth, data.email, data.password);
+        const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
+        return userCredential;
     } catch (error) {
         if (error instanceof FirebaseError) {
-            if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+            // "auth/invalid-credential" is the modern error code for both user-not-found and wrong-password.
+            if (error.code === 'auth/invalid-credential') {
                 throw new Error('Invalid email or password. Please try again.');
             }
-            throw new Error(error.message);
+            // Provide a more generic message for other auth errors during sign-in
+            throw new Error('Could not sign in. Please try again later.');
         }
         throw error;
     }
@@ -96,8 +101,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     if (!isFirebaseConfigured() || !auth) return;
-    await firebaseSignOut(auth);
-    localStorage.removeItem('currentInstitutionId');
+    try {
+        await firebaseSignOut(auth);
+        localStorage.removeItem('currentInstitutionId');
+    } catch (error) {
+        console.error("Error signing out: ", error);
+    }
   }, []);
 
   const value: AuthContextType = {

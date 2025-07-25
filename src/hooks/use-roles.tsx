@@ -107,7 +107,7 @@ function useRolesForInstitution(institutionId: string | null) {
         await remove(roleRef);
     }, [institutionId]);
 
-    return { roles, addRoleDoc, updateRoleDoc, deleteRoleDoc, loading };
+    return { roles, addRoleDoc, updateRoleDoc, deleteRoleDoc, loading: loading };
 }
 
 
@@ -117,7 +117,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     const [userMappings, setUserMappings] = useState<UserMappings | null>(null);
     const [userInstitutions, setUserInstitutions] = useState<Institution[]>([]);
     const [currentInstitutionId, setCurrentInstitutionId] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [dataLoading, setDataLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
     
     const { roles, addRoleDoc, updateRoleDoc, deleteRoleDoc, loading: rolesLoading } = useRolesForInstitution(currentInstitutionId);
@@ -133,16 +133,16 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const loadInitialData = async () => {
             if (!user) {
-                setLoading(false); // **FIX**: Ensure loading is false when there's no user.
+                setDataLoading(false);
                 setUserInstitutions([]);
                 setUserMappings(null);
                 return;
             }
 
-            setLoading(true);
+            setDataLoading(true);
             setError(null);
             try {
-                // Force token refresh to ensure auth state is valid on the backend.
+                // This ensures we have a valid token before proceeding.
                 await user.getIdToken(true);
 
                 const userMappingsRef = ref(db, `${USER_MAP_COLLECTION}/${user.uid}`);
@@ -169,7 +169,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
                 setUserInstitutions([]);
                 setUserMappings(null);
             } finally {
-                setLoading(false);
+                setDataLoading(false);
             }
         };
 
@@ -178,7 +178,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         }
     }, [user, authLoading]);
 
-    const isReady = useMemo(() => !loading && !authLoading && !rolesLoading && !error, [loading, authLoading, rolesLoading, error]);
+    const isReady = useMemo(() => !dataLoading && !authLoading && !rolesLoading && !error, [dataLoading, authLoading, rolesLoading, error]);
 
     const currentInstitution = useMemo(() => {
         return userInstitutions.find(inst => inst.id === currentInstitutionId) ?? null;
