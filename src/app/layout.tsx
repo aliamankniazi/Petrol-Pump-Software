@@ -63,7 +63,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
     
     if (!isReady) {
         return (
-            <FullscreenMessage title="Loading Application..." showSpinner={true}>
+            <FullscreenMessage title="Loading Application Data..." showSpinner={true}>
                 <p>Fetching your profile and permissions. Please wait.</p>
             </FullscreenMessage>
         );
@@ -104,7 +104,7 @@ function AuthenticatedApp({ children }: { children: React.ReactNode }) {
 
 function UnauthenticatedApp() {
   const pathname = usePathname();
-  if (pathname === '/users') {
+  if (pathname === '/users' || pathname === '/signup') {
     return <UsersPage />;
   }
   return <LoginPage />;

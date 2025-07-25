@@ -60,6 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      // Immediately sign out the user after registration to force them to log in manually.
+      // This ensures a clean state and proper role initialization on first login.
       await firebaseSignOut(auth);
       return userCredential;
     } catch (error) {

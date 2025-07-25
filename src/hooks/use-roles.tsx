@@ -97,12 +97,12 @@ function useRolesForInstitution(institutionId: string | null) {
 
 
 export function RolesProvider({ children }: { children: ReactNode }) {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     
     const [userMappings, setUserMappings] = useState<UserMappings | null>(null);
     const [allInstitutions, setAllInstitutions] = useState<Institution[]>([]);
     const [currentInstitutionId, setCurrentInstitutionId] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [dataLoading, setDataLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
     
     const { roles, loading: rolesLoading } = useRolesForInstitution(currentInstitutionId);
@@ -116,12 +116,21 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, []);
     
     useEffect(() => {
-        if (!user) {
-            setLoading(false);
+        // This effect should only run when the user's auth status is definitively known.
+        if (authLoading) {
             return;
         }
 
-        setLoading(true);
+        // If there is no user, we are done loading. The user should see the login page.
+        if (!user) {
+            setDataLoading(false);
+            setAllInstitutions([]);
+            setUserMappings(null);
+            return;
+        }
+
+        // If there IS a user, start fetching their data.
+        setDataLoading(true);
         setError(null);
         
         let unsubInstitutions: () => void;
@@ -129,8 +138,11 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         
         const fetchData = async () => {
             try {
+                // Force a token refresh to ensure backend auth state is synchronized.
+                // This prevents race conditions on initial login.
                 await user.getIdToken(true);
 
+                // Fetch all institutions
                 const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
                 unsubInstitutions = onValue(institutionsRef, 
                     (snapshot) => {
@@ -143,6 +155,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
                     (err) => { throw err; }
                 );
 
+                // Fetch the current user's role mappings
                 const userMappingsRef = ref(db, `${USER_MAP_COLLECTION}/${user.uid}`);
                 unsubMappings = onValue(userMappingsRef, 
                     (snapshot) => {
@@ -154,7 +167,8 @@ export function RolesProvider({ children }: { children: ReactNode }) {
                 console.error("Data fetching error:", err);
                 setError(err);
             } finally {
-                setLoading(false);
+                // This will now correctly be set even if fetching fails.
+                setDataLoading(false);
             }
         };
 
@@ -164,7 +178,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
             if (unsubInstitutions) unsubInstitutions();
             if (unsubMappings) unsubMappings();
         };
-    }, [user]);
+    }, [user, authLoading]);
 
     const userInstitutions = useMemo(() => {
         if (!user || !userMappings) return [];
@@ -174,7 +188,8 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         return allInstitutions.filter(inst => allReachableIds.has(inst.id));
     }, [user, allInstitutions, userMappings]);
     
-    const isReady = useMemo(() => !loading && !error, [loading, error]);
+    // The application is "ready" when both authentication and data loading are complete, and there's no error.
+    const isReady = useMemo(() => !authLoading && !dataLoading && !error, [authLoading, dataLoading, error]);
 
     const currentInstitution = useMemo(() => {
         return userInstitutions.find(inst => inst.id === currentInstitutionId) ?? null;

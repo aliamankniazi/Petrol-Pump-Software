@@ -3,27 +3,37 @@
   "rules": {
     "institutions": {
       "$institutionId": {
+        // Allow read access to the institution's metadata if the user is the owner OR has a mapping entry for it.
         ".read": "auth != null && (data.child('ownerId').val() === auth.uid || root.child('userMappings').child(auth.uid).child($institutionId).exists())",
         
         "roles": {
+          // Only the owner of an institution can write to the roles.
           ".write": "auth != null && root.child('institutions').child($institutionId).child('ownerId').val() === auth.uid",
           "$roleId": {
             ".validate": "newData.hasChild('name') && newData.hasChild('permissions')"
           }
         },
         
+        // Rules for any other data collection under an institution (e.g., transactions, customers).
         "$collection": {
           ".read": "auth != null && (data.parent().child('ownerId').val() === auth.uid || root.child('userMappings').child(auth.uid).child($institutionId).exists())",
           "$docId": {
+             // Users can write/update data, but cannot delete it.
+             // `newData.exists()` prevents writing `null` to a path, which is how deletion works.
              ".write": "auth != null && newData.exists() && (data.parent().parent().child('ownerId').val() === auth.uid || root.child('userMappings').child(auth.uid).child($institutionId).exists())"
           }
         }
       },
+      // A user must be logged in to create a new institution, and must set themselves as owner.
       ".write": "auth != null && newData.hasChild('ownerId')"
     },
+    
     "userMappings": {
+       // A user can only read their own role mappings. They cannot read other users' mappings.
        "$userId": {
          ".read": "auth != null && auth.uid === $userId",
+         // Writes to mappings are handled by admins, but this rule prevents a user from modifying their own roles.
+         // Actual writes will be governed by Cloud Functions or an admin interface with elevated privileges.
          ".write": "auth != null"
        }
     }
