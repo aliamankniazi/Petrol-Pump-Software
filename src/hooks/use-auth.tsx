@@ -59,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Firebase is not configured.");
     }
     try {
+      // Set persistence to session before signing up.
       await setPersistence(auth, browserSessionPersistence);
       return await createUserWithEmailAndPassword(auth, data.email, data.password);
     } catch (error) {
@@ -89,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     if (!isFirebaseConfigured() || !auth) return;
     await firebaseSignOut(auth);
+    // Clear the last selected institution on sign out to ensure a clean state for the next user.
     localStorage.removeItem('currentInstitutionId');
   }, []);
 
