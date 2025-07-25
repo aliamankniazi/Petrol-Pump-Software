@@ -3,24 +3,28 @@
   "rules": {
     "institutions": {
       "$institutionId": {
-        // A user must be the owner or have a role in the institution to read.
         ".read": "auth != null && (data.child('ownerId').val() === auth.uid || root.child('userMappings').child(auth.uid).child($institutionId).exists())",
-
-        // For writing data (add, update):
-        // 1. User must be authenticated.
-        // 2. The new data being written must not be null (this PREVENTS DELETION).
-        // 3. User must be the owner OR have a role mapping.
-        ".write": "auth != null && newData.exists() && (data.child('ownerId').val() === auth.uid || root.child('userMappings').child(auth.uid).child($institutionId).exists())",
         
-        // Explicitly handle creation of a new institution
-        ".validate": "newData.hasChild('ownerId') || data.hasChild('ownerId')"
-      }
+        "roles": {
+          ".write": "auth != null && root.child('institutions').child($institutionId).child('ownerId').val() === auth.uid",
+          "$roleId": {
+            ".validate": "newData.hasChild('name') && newData.hasChild('permissions')"
+          }
+        },
+        
+        "$collection": {
+          ".read": "auth != null && (data.parent().child('ownerId').val() === auth.uid || root.child('userMappings').child(auth.uid).child($institutionId).exists())",
+          "$docId": {
+             ".write": "auth != null && newData.exists() && (data.parent().parent().child('ownerId').val() === auth.uid || root.child('userMappings').child(auth.uid).child($institutionId).exists())"
+          }
+        }
+      },
+      ".write": "auth != null && newData.hasChild('ownerId')"
     },
     "userMappings": {
        "$userId": {
-         // A user can only read/write their own mapping data.
          ".read": "auth != null && auth.uid === $userId",
-         ".write": "auth != null && auth.uid === $userId"
+         ".write": "auth != null"
        }
     }
   }

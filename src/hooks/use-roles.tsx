@@ -31,7 +31,6 @@ export const PERMISSIONS = [
 
 export type { Permission };
 
-// Represents the structure under /userMappings/{userId}/{institutionId}
 interface UserMappingValue {
   roleId: RoleId;
 }
@@ -62,7 +61,6 @@ interface RolesContextType {
 
 const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
-// A smaller, focused hook to get roles for a specific institution
 function useRolesForInstitution(institutionId: string | null) {
     const [roles, setRoles] = useState<Role[]>([]);
     const [loading, setLoading] = useState(true);
@@ -99,12 +97,12 @@ function useRolesForInstitution(institutionId: string | null) {
 
 
 export function RolesProvider({ children }: { children: ReactNode }) {
-    const { user, loading: authLoading } = useAuth();
+    const { user } = useAuth();
     
     const [userMappings, setUserMappings] = useState<UserMappings | null>(null);
     const [allInstitutions, setAllInstitutions] = useState<Institution[]>([]);
     const [currentInstitutionId, setCurrentInstitutionId] = useState<string | null>(null);
-    const [dataLoading, setDataLoading] = useState(true);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
     
     const { roles, loading: rolesLoading } = useRolesForInstitution(currentInstitutionId);
@@ -117,14 +115,13 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         }
     }, []);
     
-    // This is the main data fetching effect. It sets up listeners for all necessary data.
     useEffect(() => {
         if (!user) {
-            setDataLoading(false); // No user, so we are "ready" to show login screen
+            setLoading(false);
             return;
         }
 
-        setDataLoading(true);
+        setLoading(true);
         setError(null);
         
         let unsubInstitutions: () => void;
@@ -132,10 +129,8 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         
         const fetchData = async () => {
             try {
-                // Ensure auth token is ready before making DB requests
                 await user.getIdToken(true);
 
-                // Listener for all institutions
                 const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
                 unsubInstitutions = onValue(institutionsRef, 
                     (snapshot) => {
@@ -148,19 +143,18 @@ export function RolesProvider({ children }: { children: ReactNode }) {
                     (err) => { throw err; }
                 );
 
-                // Listener for the current user's mappings
                 const userMappingsRef = ref(db, `${USER_MAP_COLLECTION}/${user.uid}`);
                 unsubMappings = onValue(userMappingsRef, 
                     (snapshot) => {
                         setUserMappings(snapshot.exists() ? snapshot.val() : {});
-                        setDataLoading(false); // Data loading is complete
                     }, 
                     (err) => { throw err; }
                 );
             } catch (err: any) {
                 console.error("Data fetching error:", err);
                 setError(err);
-                setDataLoading(false);
+            } finally {
+                setLoading(false);
             }
         };
 
@@ -180,7 +174,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         return allInstitutions.filter(inst => allReachableIds.has(inst.id));
     }, [user, allInstitutions, userMappings]);
     
-    const isReady = useMemo(() => !dataLoading && !authLoading && !error, [dataLoading, authLoading, error]);
+    const isReady = useMemo(() => !loading && !error, [loading, error]);
 
     const currentInstitution = useMemo(() => {
         return userInstitutions.find(inst => inst.id === currentInstitutionId) ?? null;

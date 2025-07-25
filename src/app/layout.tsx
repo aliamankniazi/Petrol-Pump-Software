@@ -6,7 +6,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
 import { AuthProvider, useAuth } from '@/hooks/use-auth.tsx';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { RolesProvider, useRoles } from '@/hooks/use-roles.tsx';
 import { AppLayout } from '@/components/app-layout';
 import { isFirebaseConfigured } from '@/lib/firebase-client';
@@ -30,30 +30,32 @@ function PrintStyles() {
     return null;
 }
 
-const FullscreenMessage = ({ title, children, showSpinner = false }: { title: string, children: React.ReactNode, showSpinner?: boolean }) => (
-  <div className="flex h-screen w-full items-center justify-center bg-muted">
-     <Card className="w-full max-w-md m-4">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Terminal/> {title}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center gap-4 text-center">
-          {children}
-          {showSpinner && <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mt-4"></div>}
-        </CardContent>
-     </Card>
-   </div>
-);
+const FullscreenMessage = ({ title, children, showSpinner = false }: { title: string, children: React.ReactNode, showSpinner?: boolean }) => {
+  return (
+    <div className="flex h-screen w-full items-center justify-center bg-muted">
+       <Card className="w-full max-w-md m-4">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Terminal/> {title}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center justify-center gap-4 text-center">
+            {children}
+            {showSpinner && <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mt-4"></div>}
+          </CardContent>
+       </Card>
+     </div>
+  );
+};
 
 function AppContent({ children }: { children: React.ReactNode }) {
     const { currentInstitution, userInstitutions, isReady, error } = useRoles();
-    const router = useRouter();
-
+    
     if (error) {
         return (
             <FullscreenMessage title="Application Error">
                 <div className="text-left bg-destructive/10 p-4 rounded-md border border-destructive/50">
                     <p className="font-semibold flex items-center gap-2"><AlertTriangle/> Could not load application data.</p>
                     <p className="text-xs text-muted-foreground mt-2">{error.message}</p>
+                     <p className="text-xs text-muted-foreground mt-2">Please try refreshing the page.</p>
                 </div>
             </FullscreenMessage>
         );
@@ -68,15 +70,10 @@ function AppContent({ children }: { children: React.ReactNode }) {
     }
     
     if (isReady && userInstitutions.length === 0) {
-        router.replace('/institutions');
-        return (
-             <FullscreenMessage title="Welcome!" showSpinner={true}>
-                <p>No institutions found. Redirecting to setup...</p>
-            </FullscreenMessage>
-        );
+        return <UsersPage />;
     }
     
-    if (isReady && userInstitutions.length > 0 && !currentInstitution) {
+    if (isReady && !currentInstitution) {
         return <InstitutionSelector />;
     }
 
