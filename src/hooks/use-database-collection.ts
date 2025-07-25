@@ -34,7 +34,9 @@ export function useDatabaseCollection<T extends DbDoc>(
       return () => {};
     }
     
-    if (collectionName && !institutionId && collectionName !== 'userMappings') {
+    // For institution-specific collections, require an institutionId to proceed.
+    // userMappings is an exception as it's a root-level collection.
+    if (collectionName !== 'userMappings' && !institutionId) {
       setLoading(false);
       setData([]);
       return () => {};
