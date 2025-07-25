@@ -6,7 +6,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
 import { AuthProvider, useAuth } from '@/hooks/use-auth.tsx';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { RolesProvider, useRoles } from '@/hooks/use-roles.tsx';
 import { AppLayout } from '@/components/app-layout';
 import { isFirebaseConfigured } from '@/lib/firebase-client';
@@ -46,7 +46,6 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
 
 function AppContent({ children }: { children: React.ReactNode }) {
     const { currentInstitution, userInstitutions, isReady } = useRoles();
-    const router = useRouter();
 
     if (!isReady) {
         return (
@@ -61,13 +60,9 @@ function AppContent({ children }: { children: React.ReactNode }) {
     }
 
     if (isReady && userInstitutions.length === 0) {
-        React.useEffect(() => {
-            router.replace('/institutions');
-        }, [router]);
-
         return (
-             <FullscreenMessage title="Welcome!" showSpinner={true}>
-                <p>Redirecting you to create your first institution...</p>
+             <FullscreenMessage title="Welcome!" showSpinner={false}>
+                <p>You have not been assigned to any institution. Please create one to begin.</p>
             </FullscreenMessage>
         );
     }
@@ -80,6 +75,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
         );
     }
 
+    // Fallback while waiting for institution selection or creation
     return (
         <FullscreenMessage title="Initializing..." showSpinner={true}>
             <p>Please wait a moment.</p>
@@ -99,6 +95,7 @@ function AuthenticatedApp({ children }: { children: React.ReactNode }) {
 
 function UnauthenticatedApp() {
   const pathname = usePathname();
+  // Allow access to user creation even when not logged in.
   if (pathname === '/users') {
     return <UsersPage />;
   }

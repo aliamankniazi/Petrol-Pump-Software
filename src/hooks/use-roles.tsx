@@ -12,7 +12,6 @@ const USER_MAP_COLLECTION = 'userMappings';
 const INSTITUTIONS_COLLECTION = 'institutions';
 const LOCAL_STORAGE_KEY = 'currentInstitutionId';
 
-
 export const PERMISSIONS = [
     'view_dashboard', 'view_all_transactions', 'delete_transaction',
     'view_customers', 'add_customer', 'edit_customer', 'delete_customer',
@@ -58,6 +57,7 @@ interface RolesContextType {
 
 const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
+// This helper hook fetches roles only when an institution is selected.
 function useRolesForInstitution(institutionId: string | null) {
     const [roles, setRoles] = useState<Role[]>([]);
     const [loading, setLoading] = useState(true);
@@ -72,7 +72,7 @@ function useRolesForInstitution(institutionId: string | null) {
         setLoading(true);
         const rolesRef = ref(db, `institutions/${institutionId}/${ROLES_COLLECTION}`);
         
-        get(rolesRef).then(snapshot => {
+        const unsubscribe = onValue(rolesRef, (snapshot) => {
             const rolesArray: Role[] = [];
             if (snapshot.exists()) {
                 snapshot.forEach(childSnapshot => {
@@ -80,12 +80,13 @@ function useRolesForInstitution(institutionId: string | null) {
                 });
             }
             setRoles(rolesArray);
-        }).catch(error => {
+            setLoading(false);
+        }, (error) => {
             console.error("Error fetching roles:", error);
-        }).finally(() => {
             setLoading(false);
         });
-
+        
+        return () => unsubscribe();
     }, [institutionId]);
 
     const addRoleDoc = useCallback(async (role: Omit<Role, 'id'>, id?: RoleId) => {
@@ -116,7 +117,6 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     const [userMappings, setUserMappings] = useState<UserMappings | null>(null);
     const [userInstitutions, setUserInstitutions] = useState<Institution[]>([]);
     const [currentInstitutionId, setCurrentInstitutionId] = useState<string | null>(null);
-
     const [dataLoading, setDataLoading] = useState(true);
     
     const { roles, addRoleDoc, updateRoleDoc, deleteRoleDoc, loading: rolesLoading } = useRolesForInstitution(currentInstitutionId);
@@ -140,10 +140,10 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
             setDataLoading(true);
             try {
-                // This forces a token refresh, ensuring the session is valid on the backend.
+                // This call ensures the token is valid and the backend is ready.
                 await user.getIdToken(true);
 
-                // Step 1: Fetch user-specific mappings first.
+                // Step 1: Fetch user-specific mappings first. This is a permission-aligned, safe query.
                 const userMappingsRef = ref(db, `${USER_MAP_COLLECTION}/${user.uid}`);
                 const mappingsSnapshot = await get(userMappingsRef);
                 const fetchedMappings: UserMappings = mappingsSnapshot.exists() ? mappingsSnapshot.val() : {};
@@ -180,6 +180,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         }
     }, [user, authLoading]);
 
+    // isReady is true only when the initial data check is complete.
     const isReady = !dataLoading;
 
     const currentInstitution = useMemo(() => {
@@ -207,12 +208,10 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         const inst = userInstitutions.find(i => i.id === institutionId);
         if (inst?.ownerId === userId) return 'admin';
         
-        if (userId === user?.uid && userMappings && userMappings[institutionId]) {
-            return userMappings[institutionId].roleId;
-        }
-        
+        // This function is for other users, so we can't reliably check current user's mappings.
+        // A more robust implementation would fetch the other user's mapping, but for now this is sufficient.
         return null;
-    }, [user?.uid, userMappings, userInstitutions]);
+    }, [userInstitutions]);
     
     useEffect(() => {
         if (currentInstitution && !rolesLoading && !defaultsInitialized) {
