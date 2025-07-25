@@ -1,18 +1,17 @@
 
+
 'use client';
 
 import { useMemo, useCallback, createContext, useContext, type ReactNode, useEffect, useState } from 'react';
-import { ref, push, set, serverTimestamp, update, remove, onValue } from 'firebase/database';
+import { ref, push, set, serverTimestamp, update, remove, onValue, get } from 'firebase/database';
 import type { Role, RoleId, Permission, Institution } from '@/lib/types';
 import { useAuth } from './use-auth.tsx';
-import { useDatabaseCollection } from './use-database-collection';
 import { db } from '@/lib/firebase-client';
 
 const ROLES_COLLECTION = 'roles';
 const USER_MAP_COLLECTION = 'userMappings';
 const INSTITUTIONS_COLLECTION = 'institutions';
 const LOCAL_STORAGE_KEY = 'currentInstitutionId';
-
 
 export const PERMISSIONS = [
     'view_dashboard', 'view_all_transactions', 'delete_transaction',
@@ -33,15 +32,12 @@ export const PERMISSIONS = [
 
 export type { Permission };
 
-interface UserMapping {
-  id: string; // Composite key like `${userId}_${institutionId}`
-  userId: string;
-  institutionId: string;
+interface UserMappingValue {
   roleId: RoleId;
 }
+type UserMappings = Record<string, UserMappingValue>; // institutionId -> { roleId }
 
 interface RolesContextType {
-    // Institution properties
     userInstitutions: Institution[];
     currentInstitution: Institution | null;
     addInstitution: (institution: Omit<Institution, 'id' | 'ownerId' | 'timestamp'>) => Promise<Institution>;
@@ -50,36 +46,67 @@ interface RolesContextType {
     setCurrentInstitution: (institutionId: string) => void;
     clearCurrentInstitution: () => void;
     
-    // Roles properties
     roles: Role[];
     userRole: RoleId | null;
     isSuperAdmin: boolean;
-    userMappings: UserMapping[];
-    addRole: (role: Omit<Role, 'id'>) => void;
-    updateRole: (id: RoleId, updatedRole: Partial<Omit<Role, 'id'>>) => void;
-    deleteRole: (id: RoleId) => void;
-    hasPermission: (permission: Permission) => boolean;
+    addRole: (role: Omit<Role, 'id'>) => Promise<void>;
+    updateRole: (id: RoleId, updatedRole: Partial<Omit<Role, 'id'>>) => Promise<void>;
+    deleteRole: (id: RoleId) => Promise<void>;
     assignRoleToUser: (userId: string, roleId: RoleId, institutionId: string) => Promise<void>;
-    getRoleForUserInInstitution: (userId: string, institutionId: string) => RoleId | null;
+    getRoleForUserInInstitution: (userId: string, institutionId: string) => Promise<RoleId | null>;
+    hasPermission: (permission: Permission) => boolean;
 
-    // Loading state
     isReady: boolean;
+    error: Error | null;
 }
 
 const RolesContext = createContext<RolesContextType | undefined>(undefined);
 
+function useRolesForInstitution(institutionId: string | null) {
+    const [roles, setRoles] = useState<Role[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!db || !institutionId) {
+            setRoles([]);
+            setLoading(false);
+            return;
+        }
+
+        setLoading(true);
+        const rolesRef = ref(db, `institutions/${institutionId}/${ROLES_COLLECTION}`);
+        
+        const unsubscribe = onValue(rolesRef, (snapshot) => {
+            const rolesArray: Role[] = [];
+            if (snapshot.exists()) {
+                snapshot.forEach(childSnapshot => {
+                    rolesArray.push({ id: childSnapshot.key!, ...childSnapshot.val() });
+                });
+            }
+            setRoles(rolesArray);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching roles:", error);
+            setLoading(false);
+        });
+        
+        return () => unsubscribe();
+    }, [institutionId]);
+
+    return { roles, loading };
+}
+
+
 export function RolesProvider({ children }: { children: ReactNode }) {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     
-    // Institution state
+    const [userMappings, setUserMappings] = useState<UserMappings | null>(null);
     const [allInstitutions, setAllInstitutions] = useState<Institution[]>([]);
-    const [institutionLoading, setInstitutionLoading] = useState(true);
     const [currentInstitutionId, setCurrentInstitutionId] = useState<string | null>(null);
-
-    // Roles and Mappings state
-    const { data: roles, addDoc: addRoleDoc, updateDoc: updateRoleDoc, deleteDoc: deleteRoleDoc, loading: rolesLoading } = useDatabaseCollection<Role>(ROLES_COLLECTION, currentInstitutionId || null);
-    const { data: userMappings, addDoc: addUserMapping, loading: userMappingsLoading } = useDatabaseCollection<UserMapping>(USER_MAP_COLLECTION, null);
-
+    const [dataLoading, setDataLoading] = useState(true);
+    const [error, setError] = useState<Error | null>(null);
+    
+    const { roles, loading: rolesLoading } = useRolesForInstitution(currentInstitutionId);
     const [defaultsInitialized, setDefaultsInitialized] = useState(false);
 
     useEffect(() => {
@@ -89,69 +116,113 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         }
     }, []);
     
-    // Fetch all institutions and user mappings once
     useEffect(() => {
-        if (!user || !db) {
-            setInstitutionLoading(false);
-            setAllInstitutions([]);
+        // This effect should only run when the user's auth status is definitively known.
+        if (authLoading) {
             return;
         }
 
-        setInstitutionLoading(true);
+        // If there is no user, we are done loading. The user should see the login page.
+        if (!user) {
+            setDataLoading(false);
+            setAllInstitutions([]);
+            setUserMappings(null);
+            return;
+        }
 
-        const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
-        const unsubInstitutions = onValue(institutionsRef, (snapshot) => {
-            const insts: Institution[] = [];
-            if (snapshot.exists()) {
-                snapshot.forEach(child => insts.push({ id: child.key!, ...child.val() }));
+        // If there IS a user, start fetching their data.
+        setDataLoading(true);
+        setError(null);
+        
+        let unsubInstitutions: () => void;
+        let unsubMappings: () => void;
+        
+        const fetchData = async () => {
+            try {
+                // Force a token refresh to ensure backend auth state is synchronized.
+                // This prevents race conditions on initial login.
+                await user.getIdToken(true);
+
+                // Fetch all institutions
+                const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
+                unsubInstitutions = onValue(institutionsRef, 
+                    (snapshot) => {
+                        const insts: Institution[] = [];
+                        if (snapshot.exists()) {
+                            snapshot.forEach(child => insts.push({ id: child.key!, ...child.val() }));
+                        }
+                        setAllInstitutions(insts);
+                    }, 
+                    (err) => { throw err; }
+                );
+
+                // Fetch the current user's role mappings
+                const userMappingsRef = ref(db, `${USER_MAP_COLLECTION}/${user.uid}`);
+                unsubMappings = onValue(userMappingsRef, 
+                    (snapshot) => {
+                        setUserMappings(snapshot.exists() ? snapshot.val() : {});
+                    }, 
+                    (err) => { throw err; }
+                );
+            } catch (err: any) {
+                console.error("Data fetching error:", err);
+                setError(err);
+            } finally {
+                // This will now correctly be set even if fetching fails.
+                setDataLoading(false);
             }
-            setAllInstitutions(insts);
-            setInstitutionLoading(false);
-        }, (error) => {
-            console.error("Error loading institutions:", error);
-            setInstitutionLoading(false);
-        });
-        
-        return () => unsubInstitutions();
-    }, [user]);
-    
+        };
+
+        fetchData();
+
+        return () => {
+            if (unsubInstitutions) unsubInstitutions();
+            if (unsubMappings) unsubMappings();
+        };
+    }, [user, authLoading]);
+
     const userInstitutions = useMemo(() => {
-        if (!user || institutionLoading) return [];
-        
-        const userMappedInstitutions = (userMappings || []).filter(m => m.userId === user.uid).map(m => m.institutionId);
-        const ownedInstitutions = allInstitutions.filter(inst => inst.ownerId === user.uid).map(i => i.id);
-        const allReachableIds = new Set([...userMappedInstitutions, ...ownedInstitutions]);
-        
+        if (!user || !userMappings) return [];
+        const ownedIds = allInstitutions.filter(inst => inst.ownerId === user.uid).map(i => i.id);
+        const mappedIds = Object.keys(userMappings);
+        const allReachableIds = new Set([...ownedIds, ...mappedIds]);
         return allInstitutions.filter(inst => allReachableIds.has(inst.id));
-    }, [user, allInstitutions, userMappings, institutionLoading]);
+    }, [user, allInstitutions, userMappings]);
+    
+    // The application is "ready" when both authentication and data loading are complete, and there's no error.
+    const isReady = useMemo(() => !authLoading && !dataLoading && !error, [authLoading, dataLoading, error]);
 
     const currentInstitution = useMemo(() => {
-        return allInstitutions.find(inst => inst.id === currentInstitutionId) ?? null;
-    }, [currentInstitutionId, allInstitutions]);
-
-    const isReady = !institutionLoading && !userMappingsLoading;
+        return userInstitutions.find(inst => inst.id === currentInstitutionId) ?? null;
+    }, [currentInstitutionId, userInstitutions]);
 
     const isSuperAdmin = useMemo(() => {
         if (!user || !currentInstitution) return false;
         return user.uid === currentInstitution.ownerId;
     }, [user, currentInstitution]);
 
+    const currentUserRole = useMemo(() => {
+        if (!user || !currentInstitution || !userMappings) return null;
+        if (isSuperAdmin) return 'admin';
+        return userMappings?.[currentInstitution.id]?.roleId ?? null;
+    }, [user, currentInstitution, userMappings, isSuperAdmin]);
+    
     useEffect(() => {
-        if (currentInstitution && !rolesLoading && !defaultsInitialized) {
+        if (currentInstitution && isSuperAdmin && !rolesLoading && !defaultsInitialized) {
             const adminRoleExists = (roles || []).some(r => r.id === 'admin');
             if (!adminRoleExists) {
-                addRoleDoc({ name: 'Admin', permissions: [...PERMISSIONS] }, 'admin').finally(() => {
-                    setDefaultsInitialized(true);
-                });
+                const adminRoleRef = ref(db, `institutions/${currentInstitution.id}/${ROLES_COLLECTION}/admin`);
+                set(adminRoleRef, { name: 'Admin', permissions: [...PERMISSIONS] })
+                .then(() => setDefaultsInitialized(true))
+                .catch(err => console.error("Failed to create admin role:", err));
             } else {
                  setDefaultsInitialized(true);
             }
         } else if (!currentInstitution) {
             setDefaultsInitialized(false);
         }
-    }, [currentInstitution, roles, rolesLoading, addRoleDoc, defaultsInitialized]);
+    }, [currentInstitution, isSuperAdmin, roles, rolesLoading, defaultsInitialized]);
     
-    // Institution Callbacks
     const setCurrentInstitutionCB = useCallback((institutionId: string) => {
         localStorage.setItem(LOCAL_STORAGE_KEY, institutionId);
         setCurrentInstitutionId(institutionId);
@@ -193,39 +264,47 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         }
     }, [currentInstitutionId, clearCurrentInstitutionCB]);
 
-    // Role Callbacks
-    const currentUserRole = useMemo(() => {
-        if (!user || !currentInstitution || userMappingsLoading) return null;
-        if (isSuperAdmin) return 'admin'; 
-        const mapping = (userMappings || []).find(m => m.userId === user.uid && m.institutionId === currentInstitution.id);
-        return mapping?.roleId ?? null;
-    }, [user, currentInstitution, userMappings, userMappingsLoading, isSuperAdmin]);
-
     const assignRoleToUser = useCallback(async (userId: string, roleId: RoleId, institutionId: string) => {
-        const docId = `${userId}_${institutionId}`;
-        const newMapping = { userId, roleId, institutionId };
-        await addUserMapping(newMapping, docId);
-    }, [addUserMapping]);
+        if (!db) return;
+        const roleRef = ref(db, `${USER_MAP_COLLECTION}/${userId}/${institutionId}`);
+        await set(roleRef, { roleId });
+    }, []);
     
-    const getRoleForUserInInstitution = useCallback((userId: string, institutionId: string): RoleId | null => {
-        if (!userMappings) return null;
-        const mapping = userMappings.find(m => m.userId === userId && m.institutionId === institutionId);
-        return mapping?.roleId || null;
-    }, [userMappings]);
+    const getRoleForUserInInstitution = useCallback(async (userId: string, institutionId: string): Promise<RoleId | null> => {
+        if (!db) return null;
+        
+        const institutionRef = ref(db, `${INSTITUTIONS_COLLECTION}/${institutionId}`);
+        const instSnapshot = await get(institutionRef);
+        if (instSnapshot.exists() && instSnapshot.val().ownerId === userId) {
+            return 'admin';
+        }
+        
+        const mappingRef = ref(db, `${USER_MAP_COLLECTION}/${userId}/${institutionId}`);
+        const snapshot = await get(mappingRef);
+        if (snapshot.exists()) {
+            return snapshot.val().roleId;
+        }
+        return null;
+    }, []);
 
-    const addRole = useCallback((role: Omit<Role, 'id'>) => {
+    const addRole = useCallback(async (role: Omit<Role, 'id'>) => {
+        if (!db || !currentInstitutionId) throw new Error("Institution not selected.");
         const id = role.name.toLowerCase().replace(/\s+/g, '-');
-        addRoleDoc(role, id);
-    }, [addRoleDoc]);
+        const newRoleRef = ref(db, `institutions/${currentInstitutionId}/${ROLES_COLLECTION}/${id}`);
+        await set(newRoleRef, role);
+    }, [currentInstitutionId]);
 
-    const updateRole = useCallback((id: RoleId, updatedRole: Partial<Omit<Role, 'id'>>) => {
-        updateRoleDoc(id, updatedRole);
-    }, [updateRoleDoc]);
+    const updateRole = useCallback(async (id: RoleId, updatedRole: Partial<Omit<Role, 'id'>>) => {
+        if (!db || !currentInstitutionId) return;
+        const roleRef = ref(db, `institutions/${currentInstitutionId}/${ROLES_COLLECTION}/${id}`);
+        await update(roleRef, updatedRole);
+    }, [currentInstitutionId]);
 
-    const deleteRole = useCallback((id: RoleId) => {
-        if (id === 'admin') return; 
-        deleteRoleDoc(id);
-    }, [deleteRoleDoc]);
+    const deleteRole = useCallback(async (id: RoleId) => {
+        if (id === 'admin' || !db || !currentInstitutionId) return; 
+        const roleRef = ref(db, `institutions/${currentInstitutionId}/${ROLES_COLLECTION}/${id}`);
+        await remove(roleRef);
+    }, [currentInstitutionId]);
 
     const hasPermission = useCallback((permission: Permission): boolean => {
         if (!user || !currentInstitution) return false;
@@ -246,14 +325,14 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         roles: roles || [],
         userRole: currentUserRole,
         isSuperAdmin,
-        userMappings: userMappings || [],
         addRole,
         updateRole,
         deleteRole,
-        hasPermission,
         assignRoleToUser,
         getRoleForUserInInstitution,
+        hasPermission,
         isReady,
+        error,
     };
     
     return (
