@@ -11,7 +11,7 @@ import { RolesProvider, useRoles } from '@/hooks/use-roles.tsx';
 import { AppLayout } from '@/components/app-layout';
 import { isFirebaseConfigured } from '@/lib/firebase-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Terminal } from 'lucide-react';
+import { Terminal, AlertTriangle } from 'lucide-react';
 import LoginPage from './login/page';
 import { InstitutionSelector } from '@/components/institution-selector';
 import UsersPage from './users/page';
@@ -51,8 +51,10 @@ function AppContent({ children }: { children: React.ReactNode }) {
     if (error) {
         return (
             <FullscreenMessage title="Application Error">
-                <p className="text-destructive font-semibold">Could not load application data.</p>
-                <p className="text-muted-foreground">{error.message}</p>
+                <div className="text-left bg-destructive/10 p-4 rounded-md border border-destructive/50">
+                    <p className="font-semibold flex items-center gap-2"><AlertTriangle/> Could not load application data.</p>
+                    <p className="text-xs text-muted-foreground mt-2">{error.message}</p>
+                </div>
             </FullscreenMessage>
         );
     }
@@ -66,8 +68,6 @@ function AppContent({ children }: { children: React.ReactNode }) {
     }
     
     if (isReady && userInstitutions.length === 0) {
-        // This is a new user with no institutions. Redirect them to create one.
-        // We use router.replace to avoid adding this temporary state to browser history.
         router.replace('/institutions');
         return (
              <FullscreenMessage title="Welcome!" showSpinner={true}>
@@ -77,7 +77,6 @@ function AppContent({ children }: { children: React.ReactNode }) {
     }
     
     if (isReady && userInstitutions.length > 0 && !currentInstitution) {
-        // User has institutions but hasn't selected one for this session.
         return <InstitutionSelector />;
     }
 
@@ -89,7 +88,6 @@ function AppContent({ children }: { children: React.ReactNode }) {
         );
     }
 
-    // This state should ideally not be reached if logic is correct, but serves as a fallback.
     return (
         <FullscreenMessage title="Initializing..." showSpinner={true}>
             <p>Please wait a moment.</p>
@@ -109,7 +107,6 @@ function AuthenticatedApp({ children }: { children: React.ReactNode }) {
 
 function UnauthenticatedApp() {
   const pathname = usePathname();
-  // Allow access to user creation even when not logged in.
   if (pathname === '/users') {
     return <UsersPage />;
   }
@@ -122,9 +119,11 @@ function AppContainer({ children }: { children: React.ReactNode }) {
   if (!isFirebaseConfigured()) {
     return (
         <FullscreenMessage title="Firebase Not Configured">
-            <p className="text-destructive font-semibold">Action Required: Your Firebase credentials are not set up.</p>
-            <p className="mt-2 text-muted-foreground">To use the application, you must add your Firebase project configuration to the file:</p>
-            <code className="block bg-gray-100 dark:bg-gray-800 p-2 rounded-md my-2 text-sm">src/lib/firebase-client.ts</code>
+            <div className="text-left">
+                <p className="text-destructive font-semibold">Action Required: Your Firebase credentials are not set up.</p>
+                <p className="mt-2 text-muted-foreground">To use the application, you must add your Firebase project configuration to the file:</p>
+                <code className="block bg-gray-100 dark:bg-gray-800 p-2 rounded-md my-2 text-sm text-center">src/lib/firebase-client.ts</code>
+            </div>
         </FullscreenMessage>
     );
   }
