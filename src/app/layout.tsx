@@ -6,7 +6,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
 import { AuthProvider, useAuth } from '@/hooks/use-auth.tsx';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { RolesProvider, useRoles } from '@/hooks/use-roles.tsx';
 import { AppLayout } from '@/components/app-layout';
 import { isFirebaseConfigured } from '@/lib/firebase-client';
@@ -45,8 +45,18 @@ const FullscreenMessage = ({ title, children, showSpinner = false }: { title: st
 );
 
 function AppContent({ children }: { children: React.ReactNode }) {
-    const { currentInstitution, userInstitutions, isReady } = useRoles();
+    const { currentInstitution, userInstitutions, isReady, error } = useRoles();
+    const router = useRouter();
 
+    if (error) {
+        return (
+            <FullscreenMessage title="Application Error">
+                <p className="text-destructive font-semibold">Could not load application data.</p>
+                <p className="text-muted-foreground">{error.message}</p>
+            </FullscreenMessage>
+        );
+    }
+    
     if (!isReady) {
         return (
             <FullscreenMessage title="Loading Application..." showSpinner={true}>
@@ -60,9 +70,11 @@ function AppContent({ children }: { children: React.ReactNode }) {
     }
 
     if (isReady && userInstitutions.length === 0) {
+        // Redirect to institution creation page if no institutions exist.
+        router.replace('/institutions');
         return (
-             <FullscreenMessage title="Welcome!" showSpinner={false}>
-                <p>You have not been assigned to any institution. Please create one to begin.</p>
+            <FullscreenMessage title="Welcome!" showSpinner={true}>
+                <p>You have not been assigned to any institution. Redirecting to setup...</p>
             </FullscreenMessage>
         );
     }
@@ -75,7 +87,6 @@ function AppContent({ children }: { children: React.ReactNode }) {
         );
     }
 
-    // Fallback while waiting for institution selection or creation
     return (
         <FullscreenMessage title="Initializing..." showSpinner={true}>
             <p>Please wait a moment.</p>
