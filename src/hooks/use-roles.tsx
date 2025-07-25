@@ -31,10 +31,11 @@ export const PERMISSIONS = [
 
 export type { Permission };
 
+// Represents the structure under /userMappings/{userId}
 interface UserMappingValue {
   roleId: RoleId;
 }
-type UserMappings = Record<string, UserMappingValue>;
+type UserMappings = Record<string, UserMappingValue>; // institutionId -> { roleId }
 
 interface RolesContextType {
     userInstitutions: Institution[];

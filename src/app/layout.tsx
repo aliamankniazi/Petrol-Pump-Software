@@ -65,18 +65,20 @@ function AppContent({ children }: { children: React.ReactNode }) {
         );
     }
     
-    if (userInstitutions.length > 0 && !currentInstitution) {
-        return <InstitutionSelector />;
-    }
-
     if (isReady && userInstitutions.length === 0) {
-        // Redirect to institution creation page if no institutions exist.
+        // This is a new user with no institutions. Redirect them to create one.
+        // We use router.replace to avoid adding this temporary state to browser history.
         router.replace('/institutions');
         return (
-            <FullscreenMessage title="Welcome!" showSpinner={true}>
-                <p>You have not been assigned to any institution. Redirecting to setup...</p>
+             <FullscreenMessage title="Welcome!" showSpinner={true}>
+                <p>No institutions found. Redirecting to setup...</p>
             </FullscreenMessage>
         );
+    }
+    
+    if (isReady && userInstitutions.length > 0 && !currentInstitution) {
+        // User has institutions but hasn't selected one for this session.
+        return <InstitutionSelector />;
     }
 
     if (currentInstitution) {
