@@ -8,7 +8,7 @@ import { Inter } from 'next/font/google';
 import { AuthProvider, useAuth } from '@/hooks/use-auth.tsx';
 import { usePathname } from 'next/navigation';
 import { InstitutionProvider, useInstitution } from '@/hooks/use-institution.tsx';
-import { RolesProvider } from '@/hooks/use-roles.tsx';
+import { RolesProvider, useRoles } from '@/hooks/use-roles.tsx';
 import { AppLayout } from '@/components/app-layout';
 import { isFirebaseConfigured } from '@/lib/firebase-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
