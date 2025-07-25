@@ -59,8 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Firebase is not configured.");
     }
     try {
-      await setPersistence(auth, browserSessionPersistence);
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      // Immediately sign out after creating the account.
+      await firebaseSignOut(auth);
       return userCredential;
     } catch (error) {
       if (error instanceof FirebaseError) {
@@ -70,7 +71,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error.code === 'auth/weak-password') {
           throw new Error('The password is too weak. It must be at least 6 characters long.');
         }
-        // Provide a more generic message for other auth errors during signup
         throw new Error('Could not create account. Please check the details and try again.');
       }
       throw error;
@@ -87,11 +87,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return userCredential;
     } catch (error) {
         if (error instanceof FirebaseError) {
-            // "auth/invalid-credential" is the modern error code for both user-not-found and wrong-password.
             if (error.code === 'auth/invalid-credential') {
                 throw new Error('Invalid email or password. Please try again.');
             }
-            // Provide a more generic message for other auth errors during sign-in
             throw new Error('Could not sign in. Please try again later.');
         }
         throw error;

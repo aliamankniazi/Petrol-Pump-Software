@@ -87,6 +87,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
         );
     }
 
+    // This state should ideally not be reached if logic is correct, but serves as a fallback.
     return (
         <FullscreenMessage title="Initializing..." showSpinner={true}>
             <p>Please wait a moment.</p>

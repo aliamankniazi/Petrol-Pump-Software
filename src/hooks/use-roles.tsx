@@ -132,15 +132,17 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     
     useEffect(() => {
         const loadInitialData = async () => {
+            setDataLoading(true);
+            setError(null);
+            
             if (!user) {
-                setDataLoading(false);
+                // If there's no user, there's no data to load.
                 setUserInstitutions([]);
                 setUserMappings(null);
+                setDataLoading(false);
                 return;
             }
 
-            setDataLoading(true);
-            setError(null);
             try {
                 // This ensures we have a valid token before proceeding.
                 await user.getIdToken(true);
