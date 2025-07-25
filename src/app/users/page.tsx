@@ -40,9 +40,7 @@ export default function UsersPage() {
     }
 
     const checkSetup = async () => {
-      // The core issue is that `db` might be null when this first runs.
       if (!db) {
-          // Retry after a short delay if db is not ready yet.
           setTimeout(checkSetup, 100);
           return;
       }
@@ -62,7 +60,7 @@ export default function UsersPage() {
           title: "Configuration Check Failed",
           description: "Could not verify application setup. Please check your connection or Firebase configuration.",
         });
-        setSetupStatus('needs-setup'); // Default to allowing setup if check fails
+        setSetupStatus('needs-setup');
       }
     };
 
@@ -76,10 +74,8 @@ export default function UsersPage() {
   const onSubmit: SubmitHandler<AuthFormValues> = async (data) => {
     setLoading(true);
     try {
-      // Step 1: Create the user
       await signUp(data);
       
-      // Step 2: Set the flag in the database to prevent re-setup
       const settingRef = ref(db, 'app_settings/isSuperAdminRegistered');
       await set(settingRef, true);
 
