@@ -5,19 +5,23 @@ import { getDatabase, type Database } from 'firebase/database';
 import { getAuth, type Auth } from 'firebase/auth';
 
 const firebaseConfig = {
-  // Your Firebase config object goes here.
-  // This is a placeholder and should be replaced.
-  "databaseURL": "https://pumppal-n1b9n-default-rtdb.firebaseio.com",
-  "projectId": "pumppal-n1b9n",
-  "storageBucket": "pumppal-n1b9n.appspot.com",
+  // This is a publicly visible key, safe to be included in client-side code.
+  apiKey: "YOUR_API_KEY",
+  authDomain: "pumppal-n1b9n.firebaseapp.com",
+  databaseURL: "https://pumppal-n1b9n-default-rtdb.firebaseio.com",
+  projectId: "pumppal-n1b9n",
+  storageBucket: "pumppal-n1b9n.appspot.com",
+  messagingSenderId: "589332594611",
+  appId: "1:589332594611:web:c084e72d2424b33537a775"
 };
+
 
 let app: FirebaseApp | null = null;
 let db: Database | null = null;
 let auth: Auth | null = null;
 
 export const isFirebaseConfigured = () => {
-    return firebaseConfig && firebaseConfig.projectId && !firebaseConfig.projectId.includes("YOUR_");
+    return firebaseConfig && firebaseConfig.projectId && firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("YOUR_");
 }
 
 if (isFirebaseConfigured()) {

@@ -5,7 +5,7 @@
 import { useMemo, useCallback, createContext, useContext, type ReactNode, useEffect, useState } from 'react';
 import { ref, push, set, serverTimestamp, update, remove, onValue, get } from 'firebase/database';
 import type { Role, RoleId, Permission, Institution } from '@/lib/types';
-import { useAuth } from './use-auth';
+import { useAuth } from '@/hooks/use-auth.tsx';
 import { db } from '@/lib/firebase-client';
 
 const ROLES_COLLECTION = 'roles';
