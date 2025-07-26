@@ -9,7 +9,6 @@ import {
   update,
   remove,
   set,
-  serverTimestamp,
   type DatabaseReference,
 } from 'firebase/database';
 import { db, isFirebaseConfigured } from '@/lib/firebase-client';
@@ -79,18 +78,18 @@ export function useDatabaseCollection<T extends DbDoc>(
     if (!db || !institutionId) throw new Error("DB not initialized or institution not set");
     
     const path = `institutions/${institutionId}/${collectionName}`;
-    
-    const dataWithTimestamp = { ...newData, timestamp: serverTimestamp() };
+    const timestamp = Date.now();
+    const dataWithTimestamp = { ...newData, timestamp };
 
     if (docId) {
       const docRef = ref(db, `${path}/${docId}`);
       await set(docRef, dataWithTimestamp);
-      return { id: docId, ...newData, timestamp: Date.now() } as T;
+      return { id: docId, ...dataWithTimestamp } as T;
     } else {
       const collectionRef = ref(db, path);
       const newDocRef = push(collectionRef);
       await set(newDocRef, dataWithTimestamp);
-      return { id: newDocRef.key!, ...newData, timestamp: Date.now() } as T;
+      return { id: newDocRef.key!, ...dataWithTimestamp } as T;
     }
   }, [institutionId, collectionName]);
   
