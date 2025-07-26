@@ -3,8 +3,17 @@
   "rules": {
     "institutions": {
       "$institutionId": {
-        ".read": "true",
-        ".write": "true"
+        ".read": "root.child('institutions/' + $institutionId + '/ownerId').val() === auth.uid || root.child('userMappings/' + auth.uid + '/' + $institutionId).exists()",
+        ".write": "root.child('institutions/' + $institutionId + '/ownerId').val() === auth.uid"
+      }
+    },
+    "userMappings": {
+      "$userId": {
+        ".read": "$userId === auth.uid",
+        "$institutionId": {
+           // Allow owners to assign roles
+          ".write": "root.child('institutions/' + $institutionId + '/ownerId').val() === auth.uid"
+        }
       }
     }
   }

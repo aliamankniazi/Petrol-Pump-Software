@@ -3,21 +3,17 @@
 
 import { createContext, type ReactNode } from 'react';
 
-// This context provides a single, hardcoded institution ID for the entire app.
-// It simplifies development by removing the need for multi-institution logic.
-const DEFAULT_INSTITUTION_ID = 'default-institution';
-
 interface DataContextType {
   institutionId: string | null;
 }
 
 export const DataContext = createContext<DataContextType>({
-  institutionId: DEFAULT_INSTITUTION_ID,
+  institutionId: null,
 });
 
-export function DataProvider({ children }: { children: ReactNode }) {
+export function DataProvider({ children, institutionId }: { children: ReactNode, institutionId: string | null }) {
   const value = {
-    institutionId: DEFAULT_INSTITUTION_ID,
+    institutionId,
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

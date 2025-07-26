@@ -1,33 +1,81 @@
 
 'use client';
 
-// This hook is now a stub after removing the login system.
-// It provides a default state that indicates no user is logged in
-// and loading is complete, allowing the app to render its content directly.
-
 import {
+  useState,
+  useEffect,
   createContext,
   useContext,
   type ReactNode,
+  useCallback,
 } from 'react';
+import {
+  getAuth,
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  type User,
+} from 'firebase/auth';
+import { auth as firebaseAuth, isFirebaseConfigured } from '@/lib/firebase-client';
 
 interface AuthContextType {
-  user: null;
+  user: User | null;
   loading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!isFirebaseConfigured() || !firebaseAuth) {
+      setLoading(false);
+      return;
+    }
+    
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
+      setUser(user);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const login = useCallback(async (email: string, password: string) => {
+    if (!firebaseAuth) throw new Error("Firebase not configured.");
+    await signInWithEmailAndPassword(firebaseAuth, email, password);
+  }, []);
+
+  const signUp = useCallback(async (email: string, password: string) => {
+    if (!firebaseAuth) throw new Error("Firebase not configured.");
+    await createUserWithEmailAndPassword(firebaseAuth, email, password);
+  }, []);
+
+  const signOut = useCallback(async () => {
+    if (!firebaseAuth) return;
+    await firebaseSignOut(firebaseAuth);
+    // Clearing local storage related to institution on sign out
+    localStorage.removeItem('currentInstitutionId');
+  }, []);
+
   const value: AuthContextType = {
-    user: null,
-    loading: false, // Always false as there's no auth check
+    user,
+    loading,
+    login,
+    signUp,
+    signOut,
   };
-  
+
   return (
-      <AuthContext.Provider value={value}>
-        {children}
-      </AuthContext.Provider>
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 
