@@ -6,7 +6,7 @@ import { getAuth, type Auth } from 'firebase/auth';
 
 const firebaseConfig = {
   // This is a publicly visible key, safe to be included in client-side code.
-  apiKey: "YOUR_API_KEY",
+  apiKey: "pumppal-n1b9n-firebase-adminsdk-n1b9n-c084e72d24",
   authDomain: "pumppal-n1b9n.firebaseapp.com",
   databaseURL: "https://pumppal-n1b9n-default-rtdb.firebaseio.com",
   projectId: "pumppal-n1b9n",
