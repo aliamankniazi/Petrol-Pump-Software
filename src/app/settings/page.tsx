@@ -173,6 +173,7 @@ export default function SettingsPage() {
                             <div className="space-y-2">
                                 <Label htmlFor="supplierContact">Contact (Optional)</Label>
                                 <Input id="supplierContact" {...registerSupplier('contact')} placeholder="e.g., 0300-1234567" />
+                                {supplierErrors.contact && <p className="text-sm text-destructive">{supplierErrors.contact.message}</p>}
                             </div>
                         </div>
                         <Button type="submit">Add Supplier</Button>
