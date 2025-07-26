@@ -4,13 +4,11 @@
 import { useCallback } from 'react';
 import type { TankReading } from '@/lib/types';
 import { useDatabaseCollection } from './use-database-collection';
-import { useRoles } from './use-roles.tsx';
 
 const COLLECTION_NAME = 'tank-readings';
 
 export function useTankReadings() {
-  const { currentInstitution } = useRoles();
-  const { data: tankReadings, addDoc, loading } = useDatabaseCollection<TankReading>(COLLECTION_NAME, currentInstitution?.id || null);
+  const { data: tankReadings, addDoc, loading } = useDatabaseCollection<TankReading>(COLLECTION_NAME);
 
   const addTankReading = useCallback((reading: Omit<TankReading, 'id'>) => {
     addDoc(reading);

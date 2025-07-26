@@ -5,17 +5,10 @@ import * as React from 'react';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
-import { AuthProvider, useAuth } from '@/hooks/use-auth.tsx';
-import { usePathname } from 'next/navigation';
-import { RolesProvider, useRoles } from '@/hooks/use-roles.tsx';
 import { AppLayout } from '@/components/app-layout';
-import { isFirebaseConfigured } from '@/lib/firebase-client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Terminal, AlertTriangle } from 'lucide-react';
-import LoginPage from './login/page';
-import { InstitutionSelector } from '@/components/institution-selector';
-import UsersPage from './users/page';
+import { usePathname } from 'next/navigation';
 import { ThemeScript } from '@/components/theme-script';
+import { DataProvider } from '@/hooks/use-database.tsx';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -28,110 +21,6 @@ function PrintStyles() {
         return <link rel="stylesheet" href="/print-globals.css" media="print" />;
     }
     return null;
-}
-
-const FullscreenMessage = ({ title, children, showSpinner = false }: { title: string, children: React.ReactNode, showSpinner?: boolean }) => {
-  return (
-    <div className="flex h-screen w-full items-center justify-center bg-muted">
-       <Card className="w-full max-w-md m-4">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Terminal/> {title}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center gap-4 text-center">
-            {children}
-            {showSpinner && <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mt-4"></div>}
-          </CardContent>
-       </Card>
-     </div>
-  );
-};
-
-
-function AppContent({ children }: { children: React.ReactNode }) {
-    const { currentInstitution, userInstitutions, isReady, error } = useRoles();
-    
-    if (error) {
-        return (
-            <FullscreenMessage title="Application Error">
-                <div className="text-left bg-destructive/10 p-4 rounded-md border border-destructive/50">
-                    <p className="font-semibold flex items-center gap-2"><AlertTriangle/> Could not load application data.</p>
-                    <p className="text-xs text-muted-foreground mt-2">{error.message}</p>
-                     <p className="text-xs text-muted-foreground mt-2">Please try refreshing the page.</p>
-                </div>
-            </FullscreenMessage>
-        );
-    }
-    
-    if (!isReady) {
-        return (
-            <FullscreenMessage title="Loading Application Data..." showSpinner={true}>
-                <p>Fetching your profile and permissions. Please wait.</p>
-            </FullscreenMessage>
-        );
-    }
-    
-    if (isReady && userInstitutions.length === 0) {
-        return <UsersPage />;
-    }
-    
-    if (isReady && !currentInstitution) {
-        return <InstitutionSelector />;
-    }
-
-    if (currentInstitution) {
-        return (
-            <AppLayout>
-                {children}
-            </AppLayout>
-        );
-    }
-
-    return (
-        <FullscreenMessage title="Initializing..." showSpinner={true}>
-            <p>Please wait a moment.</p>
-        </FullscreenMessage>
-    );
-}
-
-function AppContainer({ children }: { children: React.ReactNode }) {
-  const { user, loading: authLoading } = useAuth();
-  const pathname = usePathname();
-  
-  if (!isFirebaseConfigured()) {
-    return (
-        <FullscreenMessage title="Firebase Not Configured">
-            <div className="text-left">
-                <p className="text-destructive font-semibold">Action Required: Your Firebase credentials are not set up.</p>
-                <p className="mt-2 text-muted-foreground">To use the application, you must add your Firebase project configuration to the file:</p>
-                <code className="block bg-gray-100 dark:bg-gray-800 p-2 rounded-md my-2 text-sm text-center">src/lib/firebase-client.ts</code>
-            </div>
-        </FullscreenMessage>
-    );
-  }
-  
-  if (authLoading) {
-      return (
-          <FullscreenMessage title="Authenticating..." showSpinner={true}>
-             <p>Checking your credentials. Please wait.</p>
-          </FullscreenMessage>
-      );
-  }
-  
-  if (user) {
-    return (
-        <RolesProvider>
-            <AppContent>
-                {children}
-            </AppContent>
-        </RolesProvider>
-    );
-  }
-  
-  // User is not logged in
-  if (pathname === '/users' || pathname === '/signup') {
-    return <UsersPage />;
-  }
-  return <LoginPage />;
 }
 
 export default function RootLayout({
@@ -147,11 +36,11 @@ export default function RootLayout({
           <PrintStyles />
       </head>
       <body className="font-body antialiased">
-        <AuthProvider>
-          <AppContainer>
+        <DataProvider>
+          <AppLayout>
             {children}
-          </AppContainer>
-        </AuthProvider>
+          </AppLayout>
+        </DataProvider>
         <Toaster />
       </body>
     </html>

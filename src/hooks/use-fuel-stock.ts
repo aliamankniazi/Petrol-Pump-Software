@@ -4,7 +4,6 @@
 import { useCallback, useMemo } from 'react';
 import type { FuelType } from '@/lib/types';
 import { useDatabaseCollection } from './use-database-collection';
-import { useRoles } from './use-roles.tsx';
 
 const COLLECTION_NAME = 'settings';
 const DOC_ID = 'fuel-stock';
@@ -21,8 +20,7 @@ const DEFAULT_FUEL_STOCK: Record<FuelType, number> = {
 };
 
 export function useFuelStock() {
-  const { currentInstitution } = useRoles();
-  const { data, updateDoc, addDoc, loading } = useDatabaseCollection<FuelStockDoc>(COLLECTION_NAME, currentInstitution?.id);
+  const { data, updateDoc, addDoc, loading } = useDatabaseCollection<FuelStockDoc>(COLLECTION_NAME);
 
   const fuelStock = useMemo(() => {
     const doc = data.find(d => d.id === DOC_ID);

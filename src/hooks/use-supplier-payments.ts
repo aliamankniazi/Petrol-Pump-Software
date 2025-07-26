@@ -4,13 +4,11 @@
 import { useCallback } from 'react';
 import type { SupplierPayment } from '@/lib/types';
 import { useDatabaseCollection } from './use-database-collection';
-import { useRoles } from './use-roles.tsx';
 
 const COLLECTION_NAME = 'supplier-payments';
 
 export function useSupplierPayments() {
-  const { currentInstitution } = useRoles();
-  const { data: supplierPayments, addDoc, deleteDoc, loading } = useDatabaseCollection<SupplierPayment>(COLLECTION_NAME, currentInstitution?.id || null);
+  const { data: supplierPayments, addDoc, deleteDoc, loading } = useDatabaseCollection<SupplierPayment>(COLLECTION_NAME);
 
   const addSupplierPayment = useCallback((payment: Omit<SupplierPayment, 'id'>) => {
     addDoc(payment);

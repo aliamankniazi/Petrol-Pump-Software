@@ -1,40 +1,35 @@
 
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useContext } from 'react';
 import { ref, remove } from 'firebase/database';
-import { useAuth } from './use-auth';
 import { db } from '@/lib/firebase-client';
-import { useRoles } from './use-roles';
+import { DataContext } from './use-database';
+
 
 export function useSettings() {
-  const { user } = useAuth();
-  const { currentInstitution, clearCurrentInstitution: clearFromContext } = useRoles();
+  const { institutionId } = useContext(DataContext);
 
   const clearAllData = useCallback(async () => {
-    if (!user || !currentInstitution) {
-        throw new Error("No authenticated user or institution selected to clear data for.");
+    if (!institutionId) {
+        throw new Error("No institution selected to clear data for.");
     }
-    
-    // Allow owner to clear all data
-    if (user.uid !== currentInstitution.ownerId) {
-        throw new Error("Permission denied. Only the institution owner can clear all data.");
-    }
+
     if (!db) {
       throw new Error("Database not initialized.");
     }
 
-    // This is a very destructive operation. It removes the entire institution node.
-    const institutionRootRef = ref(db, `institutions/${currentInstitution.id}`);
+    const institutionRootRef = ref(db, `institutions/${institutionId}`);
     try {
       await remove(institutionRootRef);
-      clearFromContext(); // Also clear from the context to force re-selection
-      console.log(`All data for institution ${currentInstitution.name} has been cleared.`);
+      console.log(`All data for institution ${institutionId} has been cleared.`);
+      // Optionally, force a page reload to reset state
+      window.location.reload();
     } catch (error) {
-      console.error(`Failed to clear data for institution ${currentInstitution.id}:`, error);
+      console.error(`Failed to clear data for institution ${institutionId}:`, error);
       throw error;
     }
-  }, [user, currentInstitution, clearFromContext]);
+  }, [institutionId]);
 
   return {
     clearAllData,

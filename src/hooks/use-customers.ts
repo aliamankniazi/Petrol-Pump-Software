@@ -4,13 +4,11 @@
 import { useCallback } from 'react';
 import type { Customer } from '@/lib/types';
 import { useDatabaseCollection } from './use-database-collection';
-import { useRoles } from './use-roles.tsx';
 
 const COLLECTION_NAME = 'customers';
 
 export function useCustomers() {
-  const { currentInstitution } = useRoles();
-  const { data: customers, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<Customer>(COLLECTION_NAME, currentInstitution?.id || null);
+  const { data: customers, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<Customer>(COLLECTION_NAME);
 
   const addCustomer = useCallback(async (customer: Omit<Customer, 'id' | 'timestamp'>): Promise<Customer> => {
     const newDoc = await addDoc(customer);

@@ -4,13 +4,11 @@
 import { useCallback } from 'react';
 import type { OtherIncome } from '@/lib/types';
 import { useDatabaseCollection } from './use-database-collection';
-import { useRoles } from './use-roles.tsx';
 
 const COLLECTION_NAME = 'other-incomes';
 
 export function useOtherIncomes() {
-  const { currentInstitution } = useRoles();
-  const { data: otherIncomes, addDoc, deleteDoc, loading } = useDatabaseCollection<OtherIncome>(COLLECTION_NAME, currentInstitution?.id || null);
+  const { data: otherIncomes, addDoc, deleteDoc, loading } = useDatabaseCollection<OtherIncome>(COLLECTION_NAME);
 
   const addOtherIncome = useCallback((income: Omit<OtherIncome, 'id'>) => {
     addDoc(income);

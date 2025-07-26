@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import {
   ref,
   onValue,
@@ -13,6 +13,7 @@ import {
   type DatabaseReference,
 } from 'firebase/database';
 import { db, isFirebaseConfigured } from '@/lib/firebase-client';
+import { DataContext } from './use-database';
 
 interface DbDoc {
   id: string;
@@ -22,21 +23,14 @@ interface DbDoc {
 
 export function useDatabaseCollection<T extends DbDoc>(
   collectionName: string,
-  institutionId: string | null
 ) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
+  const { institutionId } = useContext(DataContext);
+
 
   useEffect(() => {
-    if (!isFirebaseConfigured() || !db ) {
-      setLoading(false);
-      setData([]);
-      return () => {};
-    }
-    
-    // For institution-specific collections, require an institutionId to proceed.
-    // userMappings is an exception as it's a root-level collection.
-    if (collectionName !== 'userMappings' && !institutionId) {
+    if (!isFirebaseConfigured() || !db || !institutionId ) {
       setLoading(false);
       setData([]);
       return () => {};
@@ -45,7 +39,7 @@ export function useDatabaseCollection<T extends DbDoc>(
     setLoading(true);
     let collectionRef: DatabaseReference;
     try {
-      const path = institutionId ? `institutions/${institutionId}/${collectionName}` : collectionName;
+      const path = `institutions/${institutionId}/${collectionName}`;
       collectionRef = ref(db, path);
     } catch (error) {
       console.error("Error creating database reference:", error);
@@ -82,16 +76,9 @@ export function useDatabaseCollection<T extends DbDoc>(
   }, [institutionId, collectionName]);
 
   const addDoc = useCallback(async (newData: Omit<T, 'id' | 'timestamp'>, docId?: string): Promise<T> => {
-    if (!db) throw new Error("DB not initialized");
+    if (!db || !institutionId) throw new Error("DB not initialized or institution not set");
     
-    let path = collectionName;
-    if (institutionId) {
-      path = `institutions/${institutionId}/${collectionName}`;
-    }
-
-    if (!institutionId && collectionName !== 'userMappings') {
-        throw new Error("Cannot add document without an institutionId for this collection.");
-    }
+    const path = `institutions/${institutionId}/${collectionName}`;
     
     const dataWithTimestamp = { ...newData, timestamp: serverTimestamp() };
 
@@ -108,26 +95,16 @@ export function useDatabaseCollection<T extends DbDoc>(
   }, [institutionId, collectionName]);
   
   const updateDoc = useCallback(async (id: string, updatedData: Partial<Omit<T, 'id'>>) => {
-     if (!db) return;
-     let path = collectionName;
-     if (institutionId) {
-       path = `institutions/${institutionId}/${collectionName}/${id}`;
-     } else {
-       path = `${collectionName}/${id}`;
-     }
+     if (!db || !institutionId) return;
+     const path = `institutions/${institutionId}/${collectionName}/${id}`;
      
     const docRef = ref(db, path);
     await update(docRef, updatedData);
   }, [institutionId, collectionName]);
 
   const deleteDoc = useCallback(async (id: string) => {
-    if (!db) return;
-    let path = collectionName;
-     if (institutionId) {
-       path = `institutions/${institutionId}/${collectionName}/${id}`;
-     } else {
-       path = `${collectionName}/${id}`;
-     }
+    if (!db || !institutionId) return;
+    const path = `institutions/${institutionId}/${collectionName}/${id}`;
     const docRef = ref(db, path);
     await remove(docRef);
   }, [institutionId, collectionName]);

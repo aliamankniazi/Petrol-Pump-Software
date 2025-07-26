@@ -4,13 +4,11 @@
 import { useCallback } from 'react';
 import type { CustomerPayment } from '@/lib/types';
 import { useDatabaseCollection } from './use-database-collection';
-import { useRoles } from './use-roles.tsx';
 
 const COLLECTION_NAME = 'customer-payments';
 
 export function useCustomerPayments() {
-  const { currentInstitution } = useRoles();
-  const { data: customerPayments, addDoc, deleteDoc, loading } = useDatabaseCollection<CustomerPayment>(COLLECTION_NAME, currentInstitution?.id || null);
+  const { data: customerPayments, addDoc, deleteDoc, loading } = useDatabaseCollection<CustomerPayment>(COLLECTION_NAME);
 
   const addCustomerPayment = useCallback((payment: Omit<CustomerPayment, 'id'>) => {
     addDoc(payment);
