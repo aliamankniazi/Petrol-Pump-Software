@@ -291,10 +291,11 @@ export default function LedgerPage() {
               <TableBody>
                 {selectedDate && (
                   <TableRow className="bg-muted/30">
-                    <TableCell colSpan={6} className="font-bold">Opening Balance</TableCell>
+                    <TableCell colSpan={5} className="font-bold text-right">Opening Balance</TableCell>
                     <TableCell className={`text-right font-semibold font-mono ${openingBalance >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                       {openingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>
+                     <TableCell/>
                   </TableRow>
                 )}
                 {entries.map(entry => (
@@ -338,8 +339,7 @@ export default function LedgerPage() {
                   <TableCell colSpan={3} className="text-right">Period Totals</TableCell>
                   <TableCell className="text-right font-mono text-destructive">{totals.debit.toFixed(2)}</TableCell>
                   <TableCell className="text-right font-mono text-green-600">{totals.credit.toFixed(2)}</TableCell>
-                  <TableCell />
-                  <TableCell />
+                  <TableCell colSpan={2} />
                 </TableRow>
               </TableFooter>
             </Table>
