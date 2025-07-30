@@ -75,28 +75,25 @@ export function useDatabaseCollection<T extends DbDoc>(
   }, [institutionId, collectionName]);
 
   const addDoc = useCallback(async (newData: Omit<T, 'id' | 'timestamp'>, docId?: string): Promise<T> => {
-    if (!db || !institutionId) throw new Error("DB not initialized or institution not set");
+    if (!db || !institutionId) {
+      console.error("Database or institution ID not available for addDoc.");
+      throw new Error("Cannot save data: No active institution selected.");
+    }
 
     const path = `institutions/${institutionId}/${collectionName}`;
     const timestamp = Date.now();
     const dataWithTimestamp = { ...newData, timestamp };
 
-    let newId = docId;
-    let docRef: DatabaseReference;
+    const docRef = docId ? ref(db, `${path}/${docId}`) : push(ref(db, path));
+    const finalId = docId || docRef.key;
 
-    if (newId) {
-        docRef = ref(db, `${path}/${newId}`);
-    } else {
-        const newDocPushRef = push(ref(db, path));
-        newId = newDocPushRef.key!;
-        docRef = newDocPushRef;
+    if (!finalId) {
+        throw new Error("Failed to generate a document ID.");
     }
     
-    if (!newId) throw new Error("Failed to create new document ID.");
-
     await set(docRef, dataWithTimestamp);
 
-    const finalDoc = { id: newId, ...dataWithTimestamp } as T;
+    const finalDoc = { id: finalId, ...dataWithTimestamp } as T;
     setData(prev => [finalDoc, ...prev].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)));
     return finalDoc;
   }, [institutionId, collectionName]);
