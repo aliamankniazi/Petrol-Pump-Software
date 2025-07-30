@@ -10,8 +10,9 @@ const COLLECTION_NAME = 'suppliers';
 export function useSuppliers() {
   const { data: suppliers, addDoc, deleteDoc, loading } = useDatabaseCollection<Supplier>(COLLECTION_NAME);
 
-  const addSupplier = useCallback((supplier: Omit<Supplier, 'id' | 'timestamp'>) => {
-    return addDoc(supplier);
+  const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id' | 'timestamp'>): Promise<Supplier> => {
+    const newDoc = await addDoc(supplier);
+    return newDoc;
   }, [addDoc]);
   
   const deleteSupplier = useCallback((id: string) => {

@@ -70,7 +70,7 @@ export default function PurchasesPage() {
     addPurchase({
       ...data,
       supplier: supplier.name, // Pass the name for display purposes
-      timestamp: data.date.toISOString(),
+      timestamp: data.date,
     });
     toast({
       title: 'Purchase Recorded',
@@ -86,13 +86,21 @@ export default function PurchasesPage() {
   
   const onSupplierSubmit: SubmitHandler<SupplierFormValues> = useCallback(async (data) => {
     const newSupplier = await addSupplier(data);
-    toast({
-      title: 'Supplier Added',
-      description: `${data.name} has been added and selected.`,
-    });
-    setValue('supplierId', newSupplier.id);
-    resetSupplier();
-    setIsAddSupplierOpen(false);
+    if (newSupplier && newSupplier.id) {
+        toast({
+            title: 'Supplier Added',
+            description: `${data.name} has been added and selected.`,
+        });
+        setValue('supplierId', newSupplier.id);
+        resetSupplier();
+        setIsAddSupplierOpen(false);
+    } else {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to add the new supplier.',
+        });
+    }
   }, [addSupplier, toast, resetSupplier, setValue]);
 
 
