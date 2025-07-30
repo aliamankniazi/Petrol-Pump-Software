@@ -8,7 +8,7 @@ const firebaseConfig = {
   // This is a publicly visible key, safe to be included in client-side code.
   apiKey: "pumppal-n1b9n-firebase-adminsdk-n1b9n-c084e72d24",
   authDomain: "pumppal-n1b9n.firebaseapp.com",
-  databaseURL: "https://pumppal-n1b9n-default-rtdb.firebaseio.com",
+  databaseURL: "https://pumppal-n1b9n-default-rtdb.asia-southeast1.firebasedatabase.app/",
   projectId: "pumppal-n1b9n",
   storageBucket: "pumppal-n1b9n.appspot.com",
   messagingSenderId: "589332594611",
