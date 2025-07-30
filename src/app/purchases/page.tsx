@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState, useCallback } from 'react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingCart, Package, Truck, Calendar as CalendarIcon } from 'lucide-react';
+import { ShoppingCart, Package, Truck, Calendar as CalendarIcon, PlusCircle } from 'lucide-react';
 import type { FuelType } from '@/lib/types';
 import { format } from 'date-fns';
 import { usePurchases } from '@/hooks/use-purchases';
@@ -19,6 +20,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useSuppliers } from '@/hooks/use-suppliers';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
@@ -32,10 +34,19 @@ const purchaseSchema = z.object({
 
 type PurchaseFormValues = z.infer<typeof purchaseSchema>;
 
+const supplierSchema = z.object({
+  name: z.string().min(1, 'Supplier name is required'),
+  contact: z.string().optional(),
+});
+type SupplierFormValues = z.infer<typeof supplierSchema>;
+
+
 export default function PurchasesPage() {
   const { purchases, addPurchase } = usePurchases();
-  const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
+  const { suppliers, addSupplier, isLoaded: suppliersLoaded } = useSuppliers();
+  const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
   const { toast } = useToast();
+  
   const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema),
     defaultValues: {
@@ -43,7 +54,16 @@ export default function PurchasesPage() {
     }
   });
 
-  const onSubmit: SubmitHandler<PurchaseFormValues> = (data) => {
+  const {
+    register: registerSupplier,
+    handleSubmit: handleSubmitSupplier,
+    reset: resetSupplier,
+    formState: { errors: supplierErrors }
+  } = useForm<SupplierFormValues>({
+    resolver: zodResolver(supplierSchema)
+  });
+
+  const onPurchaseSubmit: SubmitHandler<PurchaseFormValues> = (data) => {
     const supplier = suppliers.find(s => s.id === data.supplierId);
     if (!supplier) return;
 
@@ -63,8 +83,21 @@ export default function PurchasesPage() {
         date: new Date(),
     });
   };
+  
+  const onSupplierSubmit: SubmitHandler<SupplierFormValues> = useCallback(async (data) => {
+    const newSupplier = await addSupplier(data);
+    toast({
+      title: 'Supplier Added',
+      description: `${data.name} has been added and selected.`,
+    });
+    setValue('supplierId', newSupplier.id);
+    resetSupplier();
+    setIsAddSupplierOpen(false);
+  }, [addSupplier, toast, resetSupplier, setValue]);
+
 
   return (
+    <>
     <div className="p-4 md:p-8 grid gap-8 lg:grid-cols-3">
       <div className="lg:col-span-1">
         <Card>
@@ -75,25 +108,30 @@ export default function PurchasesPage() {
             <CardDescription>Record a new fuel delivery.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit(onPurchaseSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="supplierId">Supplier</Label>
-                <Controller
-                  name="supplierId"
-                  control={control}
-                  render={({ field }) => (
-                     <Select onValueChange={field.onChange} value={field.value} defaultValue="">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a supplier" />
-                      </SelectTrigger>
-                      <SelectContent>
-                         {suppliersLoaded ? suppliers.map(s => (
-                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                        )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
+                <div className="flex items-center gap-2">
+                    <Controller
+                      name="supplierId"
+                      control={control}
+                      render={({ field }) => (
+                         <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a supplier" />
+                          </SelectTrigger>
+                          <SelectContent>
+                             {suppliersLoaded ? suppliers.map(s => (
+                              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                            )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    <Button type="button" variant="outline" size="icon" onClick={() => setIsAddSupplierOpen(true)} title="Add new supplier">
+                        <PlusCircle className="h-4 w-4" />
+                    </Button>
+                </div>
                 {errors.supplierId && <p className="text-sm text-destructive">{errors.supplierId.message}</p>}
               </div>
 
@@ -220,5 +258,34 @@ export default function PurchasesPage() {
         </Card>
       </div>
     </div>
+    
+    <Dialog open={isAddSupplierOpen} onOpenChange={setIsAddSupplierOpen}>
+        <DialogContent>
+            <form onSubmit={handleSubmitSupplier(onSupplierSubmit)}>
+                <DialogHeader>
+                    <DialogTitle>Add New Supplier</DialogTitle>
+                    <DialogDescription>
+                        Enter the details for the new supplier.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="new-supplier-name">Supplier Name</Label>
+                        <Input id="new-supplier-name" {...registerSupplier('name')} placeholder="e.g., Shell Pakistan" />
+                        {supplierErrors.name && <p className="text-sm text-destructive">{supplierErrors.name.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="new-supplier-contact">Contact (Optional)</Label>
+                        <Input id="new-supplier-contact" {...registerSupplier('contact')} placeholder="e.g., 0300-1122333" />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsAddSupplierOpen(false)}>Cancel</Button>
+                    <Button type="submit">Save Supplier</Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }
