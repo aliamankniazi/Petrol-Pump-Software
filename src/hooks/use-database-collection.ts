@@ -76,21 +76,29 @@ export function useDatabaseCollection<T extends DbDoc>(
 
   const addDoc = useCallback(async (newData: Omit<T, 'id' | 'timestamp'>, docId?: string): Promise<T> => {
     if (!db || !institutionId) throw new Error("DB not initialized or institution not set");
-    
+
     const path = `institutions/${institutionId}/${collectionName}`;
     const timestamp = Date.now();
     const dataWithTimestamp = { ...newData, timestamp };
 
-    if (docId) {
-      const docRef = ref(db, `${path}/${docId}`);
-      await set(docRef, dataWithTimestamp);
-      return { id: docId, ...dataWithTimestamp } as T;
+    let newId = docId;
+    let docRef: DatabaseReference;
+
+    if (newId) {
+        docRef = ref(db, `${path}/${newId}`);
     } else {
-      const collectionRef = ref(db, path);
-      const newDocRef = push(collectionRef);
-      await set(newDocRef, dataWithTimestamp);
-      return { id: newDocRef.key!, ...dataWithTimestamp } as T;
+        const newDocPushRef = push(ref(db, path));
+        newId = newDocPushRef.key!;
+        docRef = newDocPushRef;
     }
+    
+    if (!newId) throw new Error("Failed to create new document ID.");
+
+    await set(docRef, dataWithTimestamp);
+
+    const finalDoc = { id: newId, ...dataWithTimestamp } as T;
+    setData(prev => [finalDoc, ...prev].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)));
+    return finalDoc;
   }, [institutionId, collectionName]);
   
   const updateDoc = useCallback(async (id: string, updatedData: Partial<Omit<T, 'id'>>) => {
