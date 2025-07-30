@@ -70,7 +70,7 @@ export default function PurchasesPage() {
     addPurchase({
       ...data,
       supplier: supplier.name, // Pass the name for display purposes
-      timestamp: data.date,
+      timestamp: data.date.toISOString(),
     });
     toast({
       title: 'Purchase Recorded',
