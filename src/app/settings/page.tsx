@@ -146,6 +146,7 @@ export default function SettingsPage() {
   }, [supplierToDelete, deleteSupplier, toast]);
 
   return (
+    <>
     <div className="p-4 md:p-8">
       <Card>
         <CardHeader>
@@ -379,5 +380,6 @@ export default function SettingsPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </>
   );
 }

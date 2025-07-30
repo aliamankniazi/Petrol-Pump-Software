@@ -18,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { useBusinessPartners } from '@/hooks/use-business-partners';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -46,10 +46,11 @@ type PartnerFormValues = z.infer<typeof partnerSchema>;
 
 
 export default function InvestmentsPage() {
-  const { investments, addInvestment, isLoaded: investmentsLoaded } = useInvestments();
+  const { investments, addInvestment, deleteInvestment, isLoaded: investmentsLoaded } = useInvestments();
   const { businessPartners, addBusinessPartner, updateBusinessPartner, deleteBusinessPartner, isLoaded: partnersLoaded } = useBusinessPartners();
   const [partnerToEdit, setPartnerToEdit] = useState<BusinessPartner | null>(null);
   const [partnerToDelete, setPartnerToDelete] = useState<BusinessPartner | null>(null);
+  const [transactionToDelete, setTransactionToDelete] = useState<Investment | null>(null);
   
   const { toast } = useToast();
   
@@ -101,12 +102,19 @@ export default function InvestmentsPage() {
     setPartnerValue('contact', partner.contact || '');
   }
 
-  const handleDeletePartner = () => {
+  const handleDeletePartner = useCallback(() => {
     if (!partnerToDelete) return;
     deleteBusinessPartner(partnerToDelete.id);
     toast({ title: 'Partner Deleted', description: `${partnerToDelete.name} has been removed.`});
     setPartnerToDelete(null);
-  }
+  }, [partnerToDelete, deleteBusinessPartner, toast]);
+  
+  const handleDeleteTransaction = useCallback(() => {
+    if (!transactionToDelete) return;
+    deleteInvestment(transactionToDelete.id);
+    toast({ title: 'Transaction Deleted', description: 'The investment/withdrawal record has been removed.'});
+    setTransactionToDelete(null);
+  }, [transactionToDelete, deleteInvestment, toast]);
   
   const partnerSummary = useMemo(() => {
     if (!isLoaded) return [];
@@ -139,6 +147,7 @@ export default function InvestmentsPage() {
   const totalSharePercentage = useMemo(() => businessPartners.reduce((sum, p) => sum + p.sharePercentage, 0), [businessPartners]);
 
   return (
+    <>
     <div className="p-4 md:p-8 space-y-8">
       
       {/* Permanent Partner Management */}
@@ -322,6 +331,7 @@ export default function InvestmentsPage() {
                         <TableHead>Type</TableHead>
                         <TableHead>Notes</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
+                        <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -337,6 +347,11 @@ export default function InvestmentsPage() {
                             <TableCell>{t.notes || 'N/A'}</TableCell>
                             <TableCell className={`text-right font-semibold ${t.type === 'Investment' ? 'text-green-600' : 'text-destructive'}`}>
                                 PKR {t.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell className="text-center">
+                                <Button variant="ghost" size="icon" title="Delete Transaction" className="text-destructive hover:text-destructive" onClick={() => setTransactionToDelete(t)}>
+                                    <Trash2 className="w-4 h-4" />
+                                </Button>
                             </TableCell>
                         </TableRow>
                         ))}
@@ -389,7 +404,7 @@ export default function InvestmentsPage() {
         </DialogContent>
       </Dialog>
       
-      {/* Dialog for Delete Confirmation */}
+      {/* Dialog for Delete Partner Confirmation */}
       <AlertDialog open={!!partnerToDelete} onOpenChange={(isOpen) => !isOpen && setPartnerToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -408,6 +423,26 @@ export default function InvestmentsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      {/* Dialog for Delete Transaction Confirmation */}
+      <AlertDialog open={!!transactionToDelete} onOpenChange={(isOpen) => !isOpen && setTransactionToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the transaction for <br />
+              <strong className="font-medium text-foreground">{transactionToDelete?.type} of PKR {transactionToDelete?.amount}</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteTransaction} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Yes, delete transaction
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+    </>
   );
 }

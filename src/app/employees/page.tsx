@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -23,7 +23,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCustomers } from '@/hooks/use-customers';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogFooter, AlertDialogHeader } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+
 
 const employeeSchema = z.object({
   name: z.string().min(1, 'Employee name is required'),
@@ -55,6 +56,7 @@ export default function EmployeesPage() {
 
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
+    defaultValues: { hireDate: new Date() }
   });
   
   const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, setValue: setEditValue, formState: { errors: editErrors } } = useForm<EmployeeFormValues>({
@@ -62,7 +64,7 @@ export default function EmployeesPage() {
   });
 
   const onAddSubmit: SubmitHandler<EmployeeFormValues> = useCallback((data) => {
-    addEmployee(data);
+    addEmployee({ ...data, hireDate: data.hireDate.toISOString() });
     toast({
       title: 'Employee Added',
       description: `${data.name} has been added to your employee records.`,
@@ -72,7 +74,7 @@ export default function EmployeesPage() {
 
   const onEditSubmit: SubmitHandler<EmployeeFormValues> = useCallback((data) => {
     if (!employeeToEdit) return;
-    updateEmployee(employeeToEdit.id, data);
+    updateEmployee(employeeToEdit.id, { ...data, hireDate: data.hireDate.toISOString() });
     toast({ title: 'Employee Updated', description: "The employee's details have been saved." });
     setEmployeeToEdit(null);
   }, [employeeToEdit, updateEmployee, toast]);
@@ -84,7 +86,7 @@ export default function EmployeesPage() {
     setEmployeeToDelete(null);
   }, [employeeToDelete, deleteEmployee, toast]);
 
-  const handlePaySalary = useCallback(() => {
+  const handlePaySalary = useCallback(async () => {
     if (!employeeToPay) return;
 
     const monthName = months.find(m => m.value === selectedMonth)?.label;
@@ -94,16 +96,17 @@ export default function EmployeesPage() {
       description: expenseDescription,
       category: 'Salaries',
       amount: employeeToPay.salary,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
     });
 
     let employeeAsCustomer = customers.find(c => c.name.toLowerCase() === employeeToPay.name.toLowerCase() && c.area === 'Employee');
     
     if (!employeeAsCustomer) {
-        employeeAsCustomer = addCustomer({
+        employeeAsCustomer = await addCustomer({
             name: employeeToPay.name,
             contact: employeeToPay.mobileNumber || '',
             area: 'Employee',
+            isPartner: false,
         });
     }
     
@@ -112,7 +115,7 @@ export default function EmployeesPage() {
         customerName: employeeAsCustomer.name,
         amount: employeeToPay.salary,
         paymentMethod: 'Salary',
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
     });
 
 
@@ -123,15 +126,16 @@ export default function EmployeesPage() {
 
     setEmployeeToPay(null);
   }, [employeeToPay, selectedMonth, addExpense, customers, addCustomer, addCustomerPayment, toast]);
-
-  const openEditDialog = useCallback((employee: Employee) => {
-    setEmployeeToEdit(employee);
-    setEditValue('name', employee.name);
-    setEditValue('mobileNumber', employee.mobileNumber);
-    setEditValue('position', employee.position);
-    setEditValue('salary', employee.salary);
-    setEditValue('hireDate', new Date(employee.hireDate));
-  }, [setEditValue]);
+  
+  useEffect(() => {
+    if (employeeToEdit) {
+      setEditValue('name', employeeToEdit.name);
+      setEditValue('mobileNumber', employeeToEdit.mobileNumber);
+      setEditValue('position', employeeToEdit.position);
+      setEditValue('salary', employeeToEdit.salary);
+      setEditValue('hireDate', new Date(employeeToEdit.hireDate));
+    }
+  }, [employeeToEdit, setEditValue]);
 
   return (
     <>
@@ -243,7 +247,7 @@ export default function EmployeesPage() {
                           <TableCell className="text-right">{e.salary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                           <TableCell className="text-center space-x-0">
                             <Button size="sm" onClick={() => setEmployeeToPay(e)}>Pay Salary</Button>
-                            <Button variant="ghost" size="icon" title="Edit" onClick={() => openEditDialog(e)}>
+                            <Button variant="ghost" size="icon" title="Edit" onClick={() => setEmployeeToEdit(e)}>
                               <Edit className="w-4 h-4" />
                             </Button>
                             <Button variant="ghost" size="icon" title="Delete" className="text-destructive hover:text-destructive" onClick={() => setEmployeeToDelete(e)}>
@@ -330,7 +334,7 @@ export default function EmployeesPage() {
                   <Label>Hire Date</Label>
                   <Controller
                     name="hireDate"
-                    control={control}
+                    control={registerEdit.control}
                     render={({ field }) => (
                       <Popover>
                         <PopoverTrigger asChild>

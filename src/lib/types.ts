@@ -18,7 +18,7 @@ export interface Transaction {
   pricePerLitre: number;
   totalAmount: number;
   paymentMethod: PaymentMethod;
-  timestamp: number;
+  timestamp: string;
   customerId?: string;
   customerName?: string;
   bankAccountId?: string;
@@ -32,7 +32,7 @@ export interface Purchase {
   fuelType: FuelType;
   volume: number;
   totalCost: number;
-  timestamp: number;
+  timestamp: string;
 }
 
 export interface PurchaseReturn {
@@ -43,7 +43,7 @@ export interface PurchaseReturn {
   volume: number;
   totalRefund: number;
   reason: string;
-  timestamp: number;
+  timestamp: string;
 }
 
 export type ExpenseCategory = 'Utilities' | 'Salaries' | 'Maintenance' | 'Other';
@@ -53,7 +53,7 @@ export interface Expense {
   description: string;
   category: ExpenseCategory;
   amount: number;
-  timestamp: number;
+  timestamp: string;
 }
 
 export type OtherIncomeCategory = 'Service Station' | 'Tire Shop' | 'Tuck Shop' | 'Other';
@@ -63,7 +63,7 @@ export interface OtherIncome {
     description: string;
     category: OtherIncomeCategory;
     amount: number;
-    timestamp: number;
+    timestamp: string;
 }
 
 export interface Customer {
@@ -107,7 +107,7 @@ export interface CustomerPayment {
   customerName: string;
   amount: number;
   paymentMethod: PaymentMethod;
-  timestamp: number;
+  timestamp: string;
 }
 
 export interface SupplierPayment {
@@ -116,7 +116,7 @@ export interface SupplierPayment {
   supplierName: string;
   amount: number;
   paymentMethod: Omit<PaymentMethod, 'Salary'>;
-  timestamp: number;
+  timestamp: string;
 }
 
 export interface CashAdvance {
@@ -125,7 +125,7 @@ export interface CashAdvance {
   customerName: string;
   amount: number;
   notes?: string;
-  timestamp: number;
+  timestamp: string;
 }
 
 export interface AuthFormValues {
@@ -137,7 +137,7 @@ export interface TankReading {
     id: string;
     fuelType: FuelType;
     volume: number;
-    timestamp: number;
+    timestamp: string;
 }
 
 export interface Investment {
@@ -147,7 +147,7 @@ export interface Investment {
   type: 'Investment' | 'Withdrawal';
   amount: number;
   notes?: string;
-  timestamp: number;
+  timestamp: string;
 }
 
 export interface BusinessPartner {
