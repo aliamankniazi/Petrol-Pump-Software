@@ -4,14 +4,23 @@
     "institutions": {
       "$institutionId": {
         ".read": "root.child('institutions/' + $institutionId + '/ownerId').val() === auth.uid || root.child('userMappings/' + auth.uid + '/' + $institutionId).exists()",
-        ".write": "root.child('institutions/' + $institutionId + '/ownerId').val() === auth.uid"
+        ".write": "root.child('institutions/' + $institutionId + '/ownerId').val() === auth.uid",
+        ".validate": "newData.hasChildren(['ownerId', 'name'])",
+        "ownerId": {
+          ".validate": "newData.val() === auth.uid"
+        },
+        "$collection": {
+          "$docId": {
+            ".read": "root.child('institutions/' + $institutionId + '/ownerId').val() === auth.uid || root.child('userMappings/' + auth.uid + '/' + $institutionId).exists()",
+            ".write": "root.child('institutions/' + $institutionId + '/ownerId').val() === auth.uid || root.child('userMappings/' + auth.uid + '/' + $institutionId).exists()"
+          }
+        }
       }
     },
     "userMappings": {
       "$userId": {
         ".read": "$userId === auth.uid",
         "$institutionId": {
-           // Allow owners to assign roles
           ".write": "root.child('institutions/' + $institutionId + '/ownerId').val() === auth.uid"
         }
       }

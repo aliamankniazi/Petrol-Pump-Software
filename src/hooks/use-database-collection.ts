@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useContext, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ref,
   onValue,
@@ -12,7 +12,7 @@ import {
   type DatabaseReference,
 } from 'firebase/database';
 import { db, isFirebaseConfigured } from '@/lib/firebase-client';
-import { DataContext } from './use-database';
+import { useRoles } from './use-roles';
 
 interface DbDoc {
   id: string;
@@ -25,15 +25,16 @@ export function useDatabaseCollection<T extends DbDoc>(
 ) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
-  const { institutionId } = useContext(DataContext);
-  const institutionIdRef = useRef(institutionId);
+  const { currentInstitution } = useRoles();
+  const institutionIdRef = useRef(currentInstitution?.id);
 
   useEffect(() => {
-    institutionIdRef.current = institutionId;
-  }, [institutionId]);
+    institutionIdRef.current = currentInstitution?.id;
+  }, [currentInstitution]);
 
 
   useEffect(() => {
+    const institutionId = institutionIdRef.current;
     if (!isFirebaseConfigured() || !db || !institutionId ) {
       setLoading(false);
       setData([]);
@@ -77,7 +78,7 @@ export function useDatabaseCollection<T extends DbDoc>(
     });
 
     return () => unsubscribe();
-  }, [institutionId, collectionName]);
+  }, [collectionName, currentInstitution]);
 
   const addDoc = useCallback(async (newData: Omit<T, 'id' | 'timestamp'>, docId?: string): Promise<T> => {
     const currentInstitutionId = institutionIdRef.current;

@@ -10,11 +10,12 @@ import {
   useCallback,
 } from 'react';
 import {
-  getAuth,
   onAuthStateChanged,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
+  setPersistence,
+  inMemoryPersistence,
   type User,
 } from 'firebase/auth';
 import { auth as firebaseAuth, isFirebaseConfigured } from '@/lib/firebase-client';
@@ -49,11 +50,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     if (!firebaseAuth) throw new Error("Firebase not configured.");
+    await setPersistence(firebaseAuth, inMemoryPersistence);
     await signInWithEmailAndPassword(firebaseAuth, email, password);
   }, []);
 
   const signUp = useCallback(async (email: string, password: string) => {
     if (!firebaseAuth) throw new Error("Firebase not configured.");
+    await setPersistence(firebaseAuth, inMemoryPersistence);
     await createUserWithEmailAndPassword(firebaseAuth, email, password);
   }, []);
 
