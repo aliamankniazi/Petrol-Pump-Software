@@ -59,7 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     if (!firebaseAuth) throw new Error("Firebase not configured.");
-    await signInWithEmailAndPassword(firebaseAuth, email, password);
+    const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
+    // Force a token refresh to ensure the backend auth state is immediately synchronized
+    await userCredential.user.getIdToken(true);
   }, []);
 
   const signUp = useCallback(async (email: string, password: string) => {

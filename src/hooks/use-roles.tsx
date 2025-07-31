@@ -128,29 +128,51 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         
         const fetchData = async () => {
             try {
-                const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
-                unsubInstitutions = onValue(institutionsRef, 
-                    (snapshot) => {
-                        const insts: Institution[] = [];
-                        if (snapshot.exists()) {
-                            snapshot.forEach(child => insts.push({ id: child.key!, ...child.val() }));
+                // This promise will resolve when both institution and mapping listeners have fired once.
+                await new Promise<void>((resolve, reject) => {
+                    let institutionsLoaded = false;
+                    let mappingsLoaded = false;
+                    
+                    const checkDone = () => {
+                        if (institutionsLoaded && mappingsLoaded) {
+                            setDataLoading(false);
+                            resolve();
                         }
-                        setAllInstitutions(insts);
-                    }, 
-                    (err) => { throw err; }
-                );
+                    };
 
-                const userMappingsRef = ref(db, `${USER_MAP_COLLECTION}/${user.uid}`);
-                unsubMappings = onValue(userMappingsRef, 
-                    (snapshot) => {
-                        setUserMappings(snapshot.exists() ? snapshot.val() : {});
-                        setDataLoading(false); // Consider data loaded after mappings are fetched
-                    }, 
-                    (err) => { throw err; }
-                );
+                    const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
+                    unsubInstitutions = onValue(institutionsRef, 
+                        (snapshot) => {
+                            const insts: Institution[] = [];
+                            if (snapshot.exists()) {
+                                snapshot.forEach(child => insts.push({ id: child.key!, ...child.val() }));
+                            }
+                            setAllInstitutions(insts);
+                            institutionsLoaded = true;
+                            checkDone();
+                        }, 
+                        (err) => { 
+                            setError(err);
+                            reject(err);
+                        }
+                    );
+
+                    const userMappingsRef = ref(db, `${USER_MAP_COLLECTION}/${user.uid}`);
+                    unsubMappings = onValue(userMappingsRef, 
+                        (snapshot) => {
+                            setUserMappings(snapshot.exists() ? snapshot.val() : {});
+                            mappingsLoaded = true;
+                            checkDone();
+                        }, 
+                        (err) => { 
+                            setError(err);
+                            reject(err);
+                        }
+                    );
+                });
             } catch (err: any) {
                 console.error("Data fetching error:", err);
-                setError(err);
+                // The error is already set by the reject handler
                 setDataLoading(false);
             }
         };
