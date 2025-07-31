@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useContext } from 'react';
+import { useState, useEffect, useCallback, useContext, useRef } from 'react';
 import {
   ref,
   onValue,
@@ -26,6 +26,11 @@ export function useDatabaseCollection<T extends DbDoc>(
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const { institutionId } = useContext(DataContext);
+  const institutionIdRef = useRef(institutionId);
+
+  useEffect(() => {
+    institutionIdRef.current = institutionId;
+  }, [institutionId]);
 
 
   useEffect(() => {
@@ -75,12 +80,13 @@ export function useDatabaseCollection<T extends DbDoc>(
   }, [institutionId, collectionName]);
 
   const addDoc = useCallback(async (newData: Omit<T, 'id' | 'timestamp'>, docId?: string): Promise<T> => {
-    if (!db || !institutionId) {
+    const currentInstitutionId = institutionIdRef.current;
+    if (!db || !currentInstitutionId) {
       console.error("Database or institution ID not available for addDoc.");
       throw new Error("Cannot save data: No active institution selected.");
     }
 
-    const path = `institutions/${institutionId}/${collectionName}`;
+    const path = `institutions/${currentInstitutionId}/${collectionName}`;
     const timestamp = Date.now();
     const dataWithTimestamp = { ...newData, timestamp };
 
@@ -96,22 +102,24 @@ export function useDatabaseCollection<T extends DbDoc>(
     const finalDoc = { id: finalId, ...dataWithTimestamp } as T;
     setData(prev => [finalDoc, ...prev].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)));
     return finalDoc;
-  }, [institutionId, collectionName]);
+  }, [collectionName]);
   
   const updateDoc = useCallback(async (id: string, updatedData: Partial<Omit<T, 'id'>>) => {
-     if (!db || !institutionId) return;
-     const path = `institutions/${institutionId}/${collectionName}/${id}`;
+     const currentInstitutionId = institutionIdRef.current;
+     if (!db || !currentInstitutionId) return;
+     const path = `institutions/${currentInstitutionId}/${collectionName}/${id}`;
      
     const docRef = ref(db, path);
     await update(docRef, updatedData);
-  }, [institutionId, collectionName]);
+  }, [collectionName]);
 
   const deleteDoc = useCallback(async (id: string) => {
-    if (!db || !institutionId) return;
-    const path = `institutions/${institutionId}/${collectionName}/${id}`;
+    const currentInstitutionId = institutionIdRef.current;
+    if (!db || !currentInstitutionId) return;
+    const path = `institutions/${currentInstitutionId}/${collectionName}/${id}`;
     const docRef = ref(db, path);
     await remove(docRef);
-  }, [institutionId, collectionName]);
+  }, [collectionName]);
 
   return { data, addDoc, updateDoc, deleteDoc, loading };
 }
