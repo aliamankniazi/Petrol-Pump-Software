@@ -16,6 +16,7 @@ import {
   signOut as firebaseSignOut,
   setPersistence,
   inMemoryPersistence,
+  type UserCredential,
   type User,
 } from 'firebase/auth';
 import { auth as firebaseAuth, isFirebaseConfigured } from '@/lib/firebase-client';
@@ -23,8 +24,8 @@ import { auth as firebaseAuth, isFirebaseConfigured } from '@/lib/firebase-clien
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<UserCredential>;
+  signUp: (email: string, password: string) => Promise<UserCredential>;
   signOut: () => Promise<void>;
 }
 
@@ -40,8 +41,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    // Set persistence to in-memory BEFORE any auth state listeners are attached.
-    // This ensures that the session is not persisted across page reloads.
     setPersistence(firebaseAuth, inMemoryPersistence)
       .then(() => {
         const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
@@ -60,19 +59,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     if (!firebaseAuth) throw new Error("Firebase not configured.");
     const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
-    // Force a token refresh to ensure the backend auth state is immediately synchronized
     await userCredential.user.getIdToken(true);
+    return userCredential;
   }, []);
 
   const signUp = useCallback(async (email: string, password: string) => {
     if (!firebaseAuth) throw new Error("Firebase not configured.");
-    await createUserWithEmailAndPassword(firebaseAuth, email, password);
+    return await createUserWithEmailAndPassword(firebaseAuth, email, password);
   }, []);
 
   const signOut = useCallback(async () => {
     if (!firebaseAuth) return;
     await firebaseSignOut(firebaseAuth);
-    // Clearing local storage related to institution on sign out
     localStorage.removeItem('currentInstitutionId');
   }, []);
 

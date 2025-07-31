@@ -52,13 +52,14 @@ export default function LoginPage() {
           switch (err.code) {
             case 'auth/user-not-found':
             case 'auth/wrong-password':
+            case 'auth/invalid-credential':
               message = 'Invalid email or password. Please try again.';
               break;
             case 'auth/email-already-in-use':
               message = 'An account with this email address already exists.';
               break;
             default:
-              message = err.message;
+              message = err.message || 'Login failed. Please check your credentials.';
           }
         }
         setError(message);
