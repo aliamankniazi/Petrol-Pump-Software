@@ -101,20 +101,15 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     
     const [userMappings, setUserMappings] = useState<UserMappings | null>(null);
     const [allInstitutions, setAllInstitutions] = useState<Institution[]>([]);
-    const [currentInstitutionId, setCurrentInstitutionId] = useState<string | null>(null);
+    const [currentInstitutionId, setCurrentInstitutionId] = useState<string | null>(() => {
+        return typeof window !== 'undefined' ? localStorage.getItem(LOCAL_STORAGE_KEY) : null;
+    });
     const [dataLoading, setDataLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
     
     const { roles, loading: rolesLoading } = useRolesForInstitution(currentInstitutionId);
     const [defaultsInitialized, setDefaultsInitialized] = useState(false);
 
-    useEffect(() => {
-        const storedId = typeof window !== 'undefined' ? localStorage.getItem(LOCAL_STORAGE_KEY) : null;
-        if (storedId) {
-            setCurrentInstitutionId(storedId);
-        }
-    }, []);
-    
     useEffect(() => {
         if (authLoading) return;
 
@@ -149,7 +144,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
                 unsubMappings = onValue(userMappingsRef, 
                     (snapshot) => {
                         setUserMappings(snapshot.exists() ? snapshot.val() : {});
-                        setDataLoading(false);
+                        setDataLoading(false); // Consider data loaded after mappings are fetched
                     }, 
                     (err) => { throw err; }
                 );
@@ -169,36 +164,21 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, [user, authLoading]);
     
     const userInstitutions = useMemo(() => {
-        if (!user || dataLoading) return [];
-        
-        const institutionMap = new Map<string, Institution>();
-        
-        // Add institutions the user owns
-        allInstitutions.forEach(inst => {
-            if (inst.ownerId === user.uid) {
-                institutionMap.set(inst.id, inst);
-            }
+        if (!user || !allInstitutions) return [];
+        const userInsts = allInstitutions.filter(inst => {
+            const isOwner = inst.ownerId === user.uid;
+            const isMember = userMappings ? Object.keys(userMappings).includes(inst.id) : false;
+            return isOwner || isMember;
         });
-        
-        // Add institutions the user is mapped to
-        if (userMappings) {
-            Object.keys(userMappings).forEach(instId => {
-                if (!institutionMap.has(instId)) {
-                    const foundInst = allInstitutions.find(i => i.id === instId);
-                    if (foundInst) {
-                        institutionMap.set(foundInst.id, foundInst);
-                    }
-                }
-            });
-        }
-        
-        return Array.from(institutionMap.values());
-    }, [user, allInstitutions, userMappings, dataLoading]);
+        return userInsts;
+    }, [user, allInstitutions, userMappings]);
     
     useEffect(() => {
+        // Automatically select the first institution if only one is available and none is selected
         if (!dataLoading && userInstitutions.length === 1 && !currentInstitutionId) {
-            setCurrentInstitutionId(userInstitutions[0].id);
-            localStorage.setItem(LOCAL_STORAGE_KEY, userInstitutions[0].id);
+            const newId = userInstitutions[0].id;
+            setCurrentInstitutionId(newId);
+            localStorage.setItem(LOCAL_STORAGE_KEY, newId);
         }
     }, [dataLoading, userInstitutions, currentInstitutionId]);
     

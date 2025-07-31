@@ -26,19 +26,13 @@ export function useDatabaseCollection<T extends DbDoc>(
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const { currentInstitution } = useRoles();
-  const institutionIdRef = useRef(currentInstitution?.id);
+  const institutionId = currentInstitution?.id;
 
   useEffect(() => {
-    institutionIdRef.current = currentInstitution?.id;
-  }, [currentInstitution]);
-
-
-  useEffect(() => {
-    const institutionId = institutionIdRef.current;
     if (!isFirebaseConfigured() || !db || !institutionId ) {
       setLoading(false);
-      setData([]);
-      return () => {};
+      setData([]); // Clear data if institution is not set
+      return;
     }
 
     setLoading(true);
@@ -49,7 +43,7 @@ export function useDatabaseCollection<T extends DbDoc>(
     } catch (error) {
       console.error("Error creating database reference:", error);
       setLoading(false);
-      return () => {};
+      return;
     }
 
     const unsubscribe = onValue(collectionRef, (snapshot) => {
@@ -78,16 +72,14 @@ export function useDatabaseCollection<T extends DbDoc>(
     });
 
     return () => unsubscribe();
-  }, [collectionName, currentInstitution]);
+  }, [collectionName, institutionId]);
 
   const addDoc = useCallback(async (newData: Omit<T, 'id' | 'timestamp'>, docId?: string): Promise<T> => {
-    const currentInstitutionId = institutionIdRef.current;
-    if (!db || !currentInstitutionId) {
-      console.error("Database or institution ID not available for addDoc.");
+    if (!db || !institutionId) {
       throw new Error("Cannot save data: No active institution selected.");
     }
 
-    const path = `institutions/${currentInstitutionId}/${collectionName}`;
+    const path = `institutions/${institutionId}/${collectionName}`;
     const timestamp = Date.now();
     const dataWithTimestamp = { ...newData, timestamp };
 
@@ -101,26 +93,27 @@ export function useDatabaseCollection<T extends DbDoc>(
     await set(docRef, dataWithTimestamp);
 
     const finalDoc = { id: finalId, ...dataWithTimestamp } as T;
+    
+    // Optimistically update local state
     setData(prev => [finalDoc, ...prev].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)));
+    
     return finalDoc;
-  }, [collectionName]);
+  }, [collectionName, institutionId]);
   
   const updateDoc = useCallback(async (id: string, updatedData: Partial<Omit<T, 'id'>>) => {
-     const currentInstitutionId = institutionIdRef.current;
-     if (!db || !currentInstitutionId) return;
-     const path = `institutions/${currentInstitutionId}/${collectionName}/${id}`;
+     if (!db || !institutionId) return;
+     const path = `institutions/${institutionId}/${collectionName}/${id}`;
      
     const docRef = ref(db, path);
     await update(docRef, updatedData);
-  }, [collectionName]);
+  }, [collectionName, institutionId]);
 
   const deleteDoc = useCallback(async (id: string) => {
-    const currentInstitutionId = institutionIdRef.current;
-    if (!db || !currentInstitutionId) return;
-    const path = `institutions/${currentInstitutionId}/${collectionName}/${id}`;
+    if (!db || !institutionId) return;
+    const path = `institutions/${institutionId}/${collectionName}/${id}`;
     const docRef = ref(db, path);
     await remove(docRef);
-  }, [collectionName]);
+  }, [collectionName, institutionId]);
 
   return { data, addDoc, updateDoc, deleteDoc, loading };
 }
