@@ -1,18 +1,20 @@
 
-
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getDatabase, type Database } from 'firebase/database';
 import { getAuth, type Auth } from 'firebase/auth';
 
+// IMPORTANT: REPLACE WITH YOUR FIREBASE PROJECT CONFIG
+// To get this, go to the Firebase Console, open your project,
+// go to Project Settings (gear icon), and under "Your apps",
+// find your Web app and copy the firebaseConfig object.
 const firebaseConfig = {
-  // This is a publicly visible key, safe to be included in client-side code.
-  apiKey: "pumppal-n1b9n-firebase-adminsdk-n1b9n-c084e72d24",
-  authDomain: "pumppal-n1b9n.firebaseapp.com",
-  databaseURL: "https://pumppal-n1b9n-default-rtdb.asia-southeast1.firebasedatabase.app/",
-  projectId: "pumppal-n1b9n",
-  storageBucket: "pumppal-n1b9n.appspot.com",
-  messagingSenderId: "589332594611",
-  appId: "1:589332594611:web:c084e72d2424b33537a775"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
 
 
@@ -20,6 +22,7 @@ let app: FirebaseApp | null = null;
 let db: Database | null = null;
 let auth: Auth | null = null;
 
+// This function checks if the placeholder values have been replaced.
 export const isFirebaseConfigured = () => {
     return firebaseConfig && firebaseConfig.projectId && firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("YOUR_");
 }

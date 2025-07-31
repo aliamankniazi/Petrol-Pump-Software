@@ -20,6 +20,7 @@ import {
   type User,
 } from 'firebase/auth';
 import { auth as firebaseAuth, isFirebaseConfigured } from '@/lib/firebase-client';
+import { useRoles } from './use-roles';
 
 interface AuthContextType {
   user: User | null;
