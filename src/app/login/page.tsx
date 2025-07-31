@@ -45,7 +45,7 @@ export default function LoginPage() {
       try {
         const authAction = isSignUp ? signUp : login;
         const userCredential = await authAction(data.email, data.password);
-        if (userCredential.user) {
+        if (userCredential?.user) {
           router.push('/dashboard');
         }
       } catch (err: any) {
@@ -59,6 +59,12 @@ export default function LoginPage() {
               break;
             case 'auth/email-already-in-use':
               message = 'An account with this email address already exists.';
+              break;
+            case 'auth/weak-password':
+              message = 'Password is too weak. It must be at least 6 characters long.';
+              break;
+            case 'auth/invalid-email':
+              message = 'Please enter a valid email address.';
               break;
             default:
               message = err.message || 'Login failed. Please check your credentials.';
