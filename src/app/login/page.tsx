@@ -44,8 +44,10 @@ export default function LoginPage() {
     startTransition(async () => {
       try {
         const authAction = isSignUp ? signUp : login;
-        await authAction(data.email, data.password);
-        router.push('/dashboard');
+        const userCredential = await authAction(data.email, data.password);
+        if (userCredential.user) {
+          router.push('/dashboard');
+        }
       } catch (err: any) {
         let message = 'An unknown error occurred.';
         if (err.code) {

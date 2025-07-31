@@ -37,41 +37,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isFirebaseConfigured() || !firebaseAuth) {
+      console.warn("Firebase not configured, auth will not work.");
       setLoading(false);
       return;
     }
     
-    // Set persistence once when the app loads
-    setPersistence(firebaseAuth, browserLocalPersistence)
-      .then(() => {
-        const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
-          setUser(user);
-          setLoading(false);
-        });
-        // Return the unsubscribe function to be called on cleanup
-        return unsubscribe;
-      })
-      .catch((error) => {
-        console.error("Error setting auth persistence:", error);
-        setLoading(false);
-      });
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
+      setUser(user);
+      setLoading(false);
+    });
 
+    return () => unsubscribe();
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     if (!firebaseAuth) throw new Error("Firebase not configured.");
+    await setPersistence(firebaseAuth, browserLocalPersistence);
     return signInWithEmailAndPassword(firebaseAuth, email, password);
   }, []);
 
   const signUp = useCallback(async (email: string, password: string) => {
     if (!firebaseAuth) throw new Error("Firebase not configured.");
+    await setPersistence(firebaseAuth, browserLocalPersistence);
     return createUserWithEmailAndPassword(firebaseAuth, email, password);
   }, []);
 
   const signOut = useCallback(async () => {
     if (!firebaseAuth) return;
     await firebaseSignOut(firebaseAuth);
-    // Ensure local storage for institution is cleared on sign out
+    // Clear institution on sign out to ensure a clean state for the next user.
     if (typeof window !== 'undefined') {
       localStorage.removeItem('currentInstitutionId');
     }

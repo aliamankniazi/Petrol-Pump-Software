@@ -6,12 +6,12 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
 import { AppLayout } from '@/components/app-layout';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { ThemeScript } from '@/components/theme-script';
 import { AuthProvider, useAuth } from '@/hooks/use-auth.tsx';
 import { RolesProvider, useRoles } from '@/hooks/use-roles.tsx';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useForm } from 'react-hook-form';
@@ -40,7 +40,7 @@ function PrintStyles() {
     return null;
 }
 
-function AppContainer({ children }: { children: React.ReactNode }) {
+function RoleGate({ children }: { children: React.ReactNode }) {
     const { isReady, currentInstitution, userInstitutions, setCurrentInstitution, addInstitution, clearCurrentInstitution, error } = useRoles();
     const { user, signOut } = useAuth();
     const { register, handleSubmit, formState: { errors } } = useForm<InstitutionFormValues>({
@@ -153,12 +153,53 @@ function AppContainer({ children }: { children: React.ReactNode }) {
 }
 
 
+function AppContainer({ children }: { children: React.ReactNode }) {
+    const { user, loading } = useAuth();
+    const pathname = usePathname();
+    const router = useRouter();
+
+    React.useEffect(() => {
+        if (!loading && !user && pathname !== '/login') {
+            router.push('/login');
+        }
+    }, [user, loading, pathname, router]);
+
+    if (loading) {
+         return (
+            <div className="flex h-screen w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
+    }
+    
+    if (!user && pathname !== '/login') {
+        return null; // or a loading spinner, since the redirect is in progress
+    }
+    
+    if (user && pathname === '/login') {
+        router.push('/dashboard');
+        return null;
+    }
+    
+    if (pathname === '/login') {
+        return <>{children}</>;
+    }
+
+    return (
+        <RolesProvider>
+            <RoleGate>
+                {children}
+            </RoleGate>
+        </RolesProvider>
+    );
+}
+
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const pathname = usePathname();
   
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
@@ -168,15 +209,9 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-            {pathname === '/login' ? (
-                children
-            ) : (
-                <RolesProvider>
-                    <AppContainer>
-                        {children}
-                    </AppContainer>
-                </RolesProvider>
-            )}
+           <AppContainer>
+              {children}
+           </AppContainer>
         </AuthProvider>
         <Toaster />
       </body>
