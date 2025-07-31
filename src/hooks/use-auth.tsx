@@ -15,7 +15,7 @@ import {
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   setPersistence,
-  inMemoryPersistence,
+  browserLocalPersistence, // Use browserLocalPersistence for standard session behavior
   type UserCredential,
   type User,
 } from 'firebase/auth';
@@ -41,12 +41,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    setPersistence(firebaseAuth, inMemoryPersistence)
+    // Set persistence once when the app loads
+    setPersistence(firebaseAuth, browserLocalPersistence)
       .then(() => {
         const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
           setUser(user);
           setLoading(false);
         });
+        // Return the unsubscribe function to be called on cleanup
         return unsubscribe;
       })
       .catch((error) => {
@@ -58,20 +60,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     if (!firebaseAuth) throw new Error("Firebase not configured.");
-    const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
-    await userCredential.user.getIdToken(true);
-    return userCredential;
+    return signInWithEmailAndPassword(firebaseAuth, email, password);
   }, []);
 
   const signUp = useCallback(async (email: string, password: string) => {
     if (!firebaseAuth) throw new Error("Firebase not configured.");
-    return await createUserWithEmailAndPassword(firebaseAuth, email, password);
+    return createUserWithEmailAndPassword(firebaseAuth, email, password);
   }, []);
 
   const signOut = useCallback(async () => {
     if (!firebaseAuth) return;
     await firebaseSignOut(firebaseAuth);
-    localStorage.removeItem('currentInstitutionId');
+    // Ensure local storage for institution is cleared on sign out
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('currentInstitutionId');
+    }
   }, []);
 
   const value: AuthContextType = {

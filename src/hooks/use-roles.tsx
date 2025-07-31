@@ -97,7 +97,7 @@ function useRolesForInstitution(institutionId: string | null) {
 
 
 export function RolesProvider({ children }: { children: ReactNode }) {
-    const { user, loading: authLoading } = useAuth();
+    const { user, loading: authLoading, signOut } = useAuth();
     
     const [userMappings, setUserMappings] = useState<UserMappings | null>(null);
     const [allInstitutions, setAllInstitutions] = useState<Institution[]>([]);
@@ -246,7 +246,8 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     const clearCurrentInstitutionCB = useCallback(() => {
         localStorage.removeItem(LOCAL_STORAGE_KEY);
         setCurrentInstitutionId(null);
-    }, []);
+        signOut();
+    }, [signOut]);
     
     const addInstitution = useCallback(async (institution: Omit<Institution, 'id' | 'ownerId' | 'timestamp'>): Promise<Institution> => {
         if (!user) throw new Error("User must be logged in to create an institution.");
