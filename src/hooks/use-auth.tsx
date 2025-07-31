@@ -40,23 +40,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
-      setUser(user);
-      setLoading(false);
-    });
+    // Set persistence to in-memory BEFORE any auth state listeners are attached.
+    // This ensures that the session is not persisted across page reloads.
+    setPersistence(firebaseAuth, inMemoryPersistence)
+      .then(() => {
+        const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
+          setUser(user);
+          setLoading(false);
+        });
+        return unsubscribe;
+      })
+      .catch((error) => {
+        console.error("Error setting auth persistence:", error);
+        setLoading(false);
+      });
 
-    return () => unsubscribe();
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     if (!firebaseAuth) throw new Error("Firebase not configured.");
-    await setPersistence(firebaseAuth, inMemoryPersistence);
     await signInWithEmailAndPassword(firebaseAuth, email, password);
   }, []);
 
   const signUp = useCallback(async (email: string, password: string) => {
     if (!firebaseAuth) throw new Error("Firebase not configured.");
-    await setPersistence(firebaseAuth, inMemoryPersistence);
     await createUserWithEmailAndPassword(firebaseAuth, email, password);
   }, []);
 

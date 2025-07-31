@@ -43,14 +43,25 @@ export default function LoginPage() {
     setError(null);
     startTransition(async () => {
       try {
-        if (isSignUp) {
-          await signUp(data.email, data.password);
-        } else {
-          await login(data.email, data.password);
-        }
+        const authAction = isSignUp ? signUp : login;
+        await authAction(data.email, data.password);
         router.push('/dashboard');
       } catch (err: any) {
-        setError(err.message || 'An unknown error occurred.');
+        let message = 'An unknown error occurred.';
+        if (err.code) {
+          switch (err.code) {
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+              message = 'Invalid email or password. Please try again.';
+              break;
+            case 'auth/email-already-in-use':
+              message = 'An account with this email address already exists.';
+              break;
+            default:
+              message = err.message;
+          }
+        }
+        setError(message);
       }
     });
   };
@@ -72,7 +83,7 @@ export default function LoginPage() {
             {error && (
                 <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Authentication Failed</AlertTitle>
+                    <AlertTitle>{isSignUp ? 'Sign Up Failed' : 'Sign In Failed'}</AlertTitle>
                     <AlertDescription>{error}</AlertDescription>
                 </Alert>
             )}
