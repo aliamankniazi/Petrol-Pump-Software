@@ -44,10 +44,8 @@ export default function LoginPage() {
     startTransition(async () => {
       try {
         const authAction = isSignUp ? signUp : login;
-        const userCredential = await authAction(data.email, data.password);
-        if (userCredential?.user) {
-          router.push('/dashboard');
-        }
+        await authAction(data.email, data.password);
+        router.push('/dashboard');
       } catch (err: any) {
         let message = 'An unknown error occurred.';
         if (err.code) {
@@ -61,13 +59,13 @@ export default function LoginPage() {
               message = 'An account with this email address already exists.';
               break;
             case 'auth/weak-password':
-              message = 'Password is too weak. It must be at least 6 characters long.';
+              message = 'The password is too weak. It must be at least 6 characters long.';
               break;
             case 'auth/invalid-email':
               message = 'Please enter a valid email address.';
               break;
             default:
-              message = err.message || 'Login failed. Please check your credentials.';
+              message = err.message || 'An unexpected error occurred. Please try again.';
           }
         }
         setError(message);

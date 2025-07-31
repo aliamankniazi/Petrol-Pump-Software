@@ -15,12 +15,11 @@ import {
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   setPersistence,
-  browserLocalPersistence, // Use browserLocalPersistence for standard session behavior
+  browserLocalPersistence,
   type UserCredential,
   type User,
 } from 'firebase/auth';
 import { auth as firebaseAuth, isFirebaseConfigured } from '@/lib/firebase-client';
-import { useRoles } from './use-roles';
 
 interface AuthContextType {
   user: User | null;
@@ -52,13 +51,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    if (!firebaseAuth) throw new Error("Firebase not configured.");
+    if (!firebaseAuth) throw new Error("Firebase auth is not configured.");
     await setPersistence(firebaseAuth, browserLocalPersistence);
     return signInWithEmailAndPassword(firebaseAuth, email, password);
   }, []);
 
   const signUp = useCallback(async (email: string, password: string) => {
-    if (!firebaseAuth) throw new Error("Firebase not configured.");
+    if (!firebaseAuth) throw new Error("Firebase auth is not configured.");
     await setPersistence(firebaseAuth, browserLocalPersistence);
     return createUserWithEmailAndPassword(firebaseAuth, email, password);
   }, []);
@@ -66,7 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     if (!firebaseAuth) return;
     await firebaseSignOut(firebaseAuth);
-    // Clear institution on sign out to ensure a clean state for the next user.
     if (typeof window !== 'undefined') {
       localStorage.removeItem('currentInstitutionId');
     }
