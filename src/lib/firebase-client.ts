@@ -15,13 +15,14 @@ import { getAuth, type Auth } from 'firebase/auth';
 // 6. Copy the entire `firebaseConfig` object and paste it here.
 // =================================================================================
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCXEB6bHuRf7q9wzAGgYDdvLGqbkPVxpDY",
+  authDomain: "pumppal-n1b9n.firebaseapp.com",
+  databaseURL: "https://pumppal-n1b9n-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "pumppal-n1b9n",
+  storageBucket: "pumppal-n1b9n.appspot.com",
+  messagingSenderId: "539336218754",
+  appId: "1:539336218754:web:1e90dd372f7615d3d33c9b",
+  measurementId: "G-N85T634MQ3"
 };
 
 
