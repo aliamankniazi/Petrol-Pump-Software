@@ -19,7 +19,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2, AlertTriangle, LogOut } from 'lucide-react';
 import type { Institution } from '@/lib/types';
-import { DataProvider } from '@/hooks/use-database';
+import { DataProvider } from '@/hooks/use-database.tsx';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -41,7 +41,7 @@ function PrintStyles() {
 }
 
 function RoleGate({ children }: { children: React.ReactNode }) {
-    const { isReady, currentInstitution, userInstitutions, setCurrentInstitution, addInstitution, clearCurrentInstitution, error } = useRoles();
+    const { isReady, currentInstitution, userInstitutions, setCurrentInstitution, addInstitution, error } = useRoles();
     const { user, signOut } = useAuth();
     const { register, handleSubmit, formState: { errors } } = useForm<InstitutionFormValues>({
         resolver: zodResolver(institutionSchema),

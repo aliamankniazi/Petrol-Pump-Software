@@ -122,12 +122,15 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
         setDataLoading(true);
         setError(null);
-
-        const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
-        const ownedQuery = query(institutionsRef, orderByChild('ownerId'), equalTo(user.uid));
         
-        const fetchUserInstitutions = async () => {
+        const mappingsRef = ref(db, `${USER_MAP_COLLECTION}/${user.uid}`);
+        
+        const unsubscribe = onValue(mappingsRef, async (snapshot) => {
             try {
+                const mappings = snapshot.exists() ? snapshot.val() : {};
+                setUserMappings(mappings);
+
+                const ownedQuery = query(ref(db, INSTITUTIONS_COLLECTION), orderByChild('ownerId'), equalTo(user.uid));
                 const ownedSnapshot = await get(ownedQuery);
                 const ownedInstitutions: Record<string, Institution> = {};
                 if (ownedSnapshot.exists()) {
@@ -135,11 +138,6 @@ export function RolesProvider({ children }: { children: ReactNode }) {
                         ownedInstitutions[child.key!] = { id: child.key!, ...child.val() };
                     });
                 }
-                
-                const mappingsRef = ref(db, `${USER_MAP_COLLECTION}/${user.uid}`);
-                const mappingsSnapshot = await get(mappingsRef);
-                const mappings = mappingsSnapshot.exists() ? mappingsSnapshot.val() : {};
-                setUserMappings(mappings);
 
                 const memberInstitutionPromises = Object.keys(mappings).map(instId => 
                     get(ref(db, `${INSTITUTIONS_COLLECTION}/${instId}`))
@@ -152,29 +150,24 @@ export function RolesProvider({ children }: { children: ReactNode }) {
                         memberInstitutions[snap.key!] = { id: snap.key!, ...snap.val() };
                     }
                 });
-
+                
                 const allUserInsts = { ...ownedInstitutions, ...memberInstitutions };
                 setUserInstitutions(Object.values(allUserInsts));
-
+                
             } catch (e: any) {
-                console.error("Error fetching user institutions:", e);
+                console.error("Error processing user institutions:", e);
                 setError(e);
             } finally {
                 setDataLoading(false);
             }
-        };
+        }, (err) => {
+            console.error("Error fetching user mappings:", err);
+            setError(err);
+            setDataLoading(false);
+        });
 
-        fetchUserInstitutions();
-
+        return () => unsubscribe();
     }, [user, authLoading]);
-    
-    useEffect(() => {
-        if (!dataLoading && userInstitutions.length === 1 && !currentInstitutionId) {
-            const newId = userInstitutions[0].id;
-            setCurrentInstitutionId(newId);
-            localStorage.setItem(LOCAL_STORAGE_KEY, newId);
-        }
-    }, [dataLoading, userInstitutions, currentInstitutionId]);
     
 
     const isReady = useMemo(() => !authLoading && !dataLoading && !error, [authLoading, dataLoading, error]);
