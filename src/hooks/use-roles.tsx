@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useCallback, createContext, useContext, type ReactNode, useEffect, useState } from 'react';
-import { ref, push, set, serverTimestamp, update, remove, onValue, get } from 'firebase/database';
+import { ref, push, set, serverTimestamp, update, remove, onValue, get, query, orderByChild, equalTo } from 'firebase/database';
 import type { Role, RoleId, Permission, Institution } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase-client';
@@ -100,7 +100,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     const { user, loading: authLoading, signOut } = useAuth();
     
     const [userMappings, setUserMappings] = useState<UserMappings | null>(null);
-    const [allInstitutions, setAllInstitutions] = useState<Institution[]>([]);
+    const [userInstitutions, setUserInstitutions] = useState<Institution[]>([]);
     const [currentInstitutionId, setCurrentInstitutionId] = useState<string | null>(() => {
         return typeof window !== 'undefined' ? localStorage.getItem(LOCAL_STORAGE_KEY) : null;
     });
@@ -115,88 +115,60 @@ export function RolesProvider({ children }: { children: ReactNode }) {
 
         if (!user) {
             setDataLoading(false);
-            setAllInstitutions([]);
+            setUserInstitutions([]);
             setUserMappings(null);
             return;
         }
 
         setDataLoading(true);
         setError(null);
+
+        const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
+        const ownedQuery = query(institutionsRef, orderByChild('ownerId'), equalTo(user.uid));
         
-        let unsubInstitutions: () => void;
-        let unsubMappings: () => void;
-        
-        const fetchData = async () => {
+        const fetchUserInstitutions = async () => {
             try {
-                // This promise will resolve when both institution and mapping listeners have fired once.
-                await new Promise<void>((resolve, reject) => {
-                    let institutionsLoaded = false;
-                    let mappingsLoaded = false;
-                    
-                    const checkDone = () => {
-                        if (institutionsLoaded && mappingsLoaded) {
-                            setDataLoading(false);
-                            resolve();
-                        }
-                    };
+                const ownedSnapshot = await get(ownedQuery);
+                const ownedInstitutions: Record<string, Institution> = {};
+                if (ownedSnapshot.exists()) {
+                    ownedSnapshot.forEach(child => {
+                        ownedInstitutions[child.key!] = { id: child.key!, ...child.val() };
+                    });
+                }
+                
+                const mappingsRef = ref(db, `${USER_MAP_COLLECTION}/${user.uid}`);
+                const mappingsSnapshot = await get(mappingsRef);
+                const mappings = mappingsSnapshot.exists() ? mappingsSnapshot.val() : {};
+                setUserMappings(mappings);
 
-                    const institutionsRef = ref(db, INSTITUTIONS_COLLECTION);
-                    unsubInstitutions = onValue(institutionsRef, 
-                        (snapshot) => {
-                            const insts: Institution[] = [];
-                            if (snapshot.exists()) {
-                                snapshot.forEach(child => insts.push({ id: child.key!, ...child.val() }));
-                            }
-                            setAllInstitutions(insts);
-                            institutionsLoaded = true;
-                            checkDone();
-                        }, 
-                        (err) => { 
-                            setError(err);
-                            reject(err);
-                        }
-                    );
+                const memberInstitutionPromises = Object.keys(mappings).map(instId => 
+                    get(ref(db, `${INSTITUTIONS_COLLECTION}/${instId}`))
+                );
 
-                    const userMappingsRef = ref(db, `${USER_MAP_COLLECTION}/${user.uid}`);
-                    unsubMappings = onValue(userMappingsRef, 
-                        (snapshot) => {
-                            setUserMappings(snapshot.exists() ? snapshot.val() : {});
-                            mappingsLoaded = true;
-                            checkDone();
-                        }, 
-                        (err) => { 
-                            setError(err);
-                            reject(err);
-                        }
-                    );
+                const memberSnapshots = await Promise.all(memberInstitutionPromises);
+                const memberInstitutions: Record<string, Institution> = {};
+                memberSnapshots.forEach(snap => {
+                    if (snap.exists()) {
+                        memberInstitutions[snap.key!] = { id: snap.key!, ...snap.val() };
+                    }
                 });
-            } catch (err: any) {
-                console.error("Data fetching error:", err);
-                // The error is already set by the reject handler
+
+                const allUserInsts = { ...ownedInstitutions, ...memberInstitutions };
+                setUserInstitutions(Object.values(allUserInsts));
+
+            } catch (e: any) {
+                console.error("Error fetching user institutions:", e);
+                setError(e);
+            } finally {
                 setDataLoading(false);
             }
         };
 
-        fetchData();
+        fetchUserInstitutions();
 
-        return () => {
-            if (unsubInstitutions) unsubInstitutions();
-            if (unsubMappings) unsubMappings();
-        };
     }, [user, authLoading]);
     
-    const userInstitutions = useMemo(() => {
-        if (!user || !allInstitutions) return [];
-        const userInsts = allInstitutions.filter(inst => {
-            const isOwner = inst.ownerId === user.uid;
-            const isMember = userMappings ? Object.keys(userMappings).includes(inst.id) : false;
-            return isOwner || isMember;
-        });
-        return userInsts;
-    }, [user, allInstitutions, userMappings]);
-    
     useEffect(() => {
-        // Automatically select the first institution if only one is available and none is selected
         if (!dataLoading && userInstitutions.length === 1 && !currentInstitutionId) {
             const newId = userInstitutions[0].id;
             setCurrentInstitutionId(newId);
@@ -261,6 +233,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         await set(newDocRef, dataWithOwner);
         const newInstitution = { ...dataWithOwner, id: newId, timestamp: Date.now() } as Institution;
         
+        setUserInstitutions(prev => [...prev, newInstitution]);
         setCurrentInstitutionCB(newId);
         return newInstitution;
     }, [user, setCurrentInstitutionCB]);

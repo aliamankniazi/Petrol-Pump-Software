@@ -1,10 +1,10 @@
 {
   "rules": {
     "institutions": {
-      ".read": "auth != null",
       ".indexOn": ["ownerId"],
       "$institutionId": {
-        ".write": "!data.exists() || root.child('institutions/' + $institutionId + '/ownerId').val() === auth.uid",
+        ".read": "data.child('ownerId').val() === auth.uid || root.child('userMappings/' + auth.uid + '/' + $institutionId).exists()",
+        ".write": "!data.exists() || data.child('ownerId').val() === auth.uid",
         ".validate": "newData.hasChildren(['ownerId', 'name'])",
         "ownerId": {
           ".validate": "newData.val() === auth.uid"
