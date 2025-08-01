@@ -142,14 +142,18 @@ function RoleGate({ children }: { children: React.ReactNode }) {
             );
         }
     }
-
-    return (
-        <DataProvider institutionId={currentInstitution?.id || null}>
-            <AppLayout>
-                {children}
-            </AppLayout>
-        </DataProvider>
-    );
+    
+    if (user && currentInstitution) {
+        return (
+            <DataProvider institutionId={currentInstitution.id}>
+                <AppLayout>
+                    {children}
+                </AppLayout>
+            </DataProvider>
+        );
+    }
+    
+    return null;
 }
 
 
@@ -161,9 +165,6 @@ function AppContainer({ children }: { children: React.ReactNode }) {
     React.useEffect(() => {
         if (!loading && !user && pathname !== '/login') {
             router.push('/login');
-        }
-        if (!loading && user && pathname === '/login') {
-            router.push('/dashboard');
         }
     }, [user, loading, pathname, router]);
 
