@@ -21,12 +21,12 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, Fuel, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-const loginSchema = z.object({
+const authSchema = z.object({
   email: z.string().email('Please enter a valid email address.'),
   password: z.string().min(6, 'Password must be at least 6 characters long.'),
 });
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+type AuthFormValues = z.infer<typeof authSchema>;
 
 export default function LoginPage() {
   const { login, signUp } = useAuth();
@@ -35,16 +35,27 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+  const {
+    register: registerLogin,
+    handleSubmit: handleSubmitLogin,
+    formState: { errors: loginErrors },
+  } = useForm<AuthFormValues>({
+    resolver: zodResolver(authSchema),
   });
 
-  const onSubmit: SubmitHandler<LoginFormValues> = (data) => {
+  const {
+    register: registerSignUp,
+    handleSubmit: handleSubmitSignUp,
+    formState: { errors: signUpErrors },
+  } = useForm<AuthFormValues>({
+    resolver: zodResolver(authSchema),
+  });
+
+  const handleAuthAction = (authPromise: Promise<any>) => {
     setError(null);
     startTransition(async () => {
       try {
-        const authAction = isSignUp ? signUp : login;
-        await authAction(data.email, data.password);
+        await authPromise;
         router.push('/dashboard');
       } catch (err: any) {
         let message = 'An unknown error occurred.';
@@ -73,6 +84,15 @@ export default function LoginPage() {
     });
   };
 
+  const handleLogin: SubmitHandler<AuthFormValues> = (data) => {
+    handleAuthAction(login(data.email, data.password));
+  };
+
+  const handleSignUp: SubmitHandler<AuthFormValues> = (data) => {
+    handleAuthAction(signUp(data.email, data.password));
+  };
+
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted p-4">
       <Card className="w-full max-w-sm">
@@ -85,42 +105,84 @@ export default function LoginPage() {
             {isSignUp ? 'Create an account to get started.' : 'Sign in to your account.'}
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <CardContent className="space-y-4">
-            {error && (
+
+        {error && (
+            <div className="px-6 pb-4">
                 <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>{isSignUp ? 'Sign Up Failed' : 'Sign In Failed'}</AlertTitle>
                     <AlertDescription>{error}</AlertDescription>
                 </Alert>
-            )}
+            </div>
+        )}
+        
+        {/* Login Form */}
+        <form onSubmit={handleSubmitLogin(handleLogin)} hidden={isSignUp}>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="login-email">Email</Label>
               <Input
-                id="email"
+                id="login-email"
                 type="email"
                 placeholder="m@example.com"
-                {...register('email')}
+                {...registerLogin('email')}
                 disabled={isPending}
               />
-              {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+              {loginErrors.email && <p className="text-sm text-destructive">{loginErrors.email.message}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="login-password">Password</Label>
               <Input
-                id="password"
+                id="login-password"
                 type="password"
-                {...register('password')}
+                {...registerLogin('password')}
                 disabled={isPending}
               />
-              {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+              {loginErrors.password && <p className="text-sm text-destructive">{loginErrors.password.message}</p>}
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button type="submit" className="w-full" disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isSignUp ? 'Sign Up' : 'Sign In'}
+              Sign In
             </Button>
+          </CardFooter>
+        </form>
+
+        {/* Signup Form */}
+        <form onSubmit={handleSubmitSignUp(handleSignUp)} hidden={!isSignUp}>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="signup-email">Email</Label>
+              <Input
+                id="signup-email"
+                type="email"
+                placeholder="m@example.com"
+                {...registerSignUp('email')}
+                disabled={isPending}
+              />
+              {signUpErrors.email && <p className="text-sm text-destructive">{signUpErrors.email.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="signup-password">Password</Label>
+              <Input
+                id="signup-password"
+                type="password"
+                {...registerSignUp('password')}
+                disabled={isPending}
+              />
+              {signUpErrors.password && <p className="text-sm text-destructive">{signUpErrors.password.message}</p>}
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col gap-4">
+            <Button type="submit" className="w-full" disabled={isPending}>
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Sign Up
+            </Button>
+          </CardFooter>
+        </form>
+        
+        <div className="p-6 pt-0 text-center">
             <Button
               type="button"
               variant="link"
@@ -133,8 +195,7 @@ export default function LoginPage() {
             >
               {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
             </Button>
-          </CardFooter>
-        </form>
+        </div>
       </Card>
     </main>
   );
