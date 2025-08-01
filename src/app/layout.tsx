@@ -162,6 +162,9 @@ function AppContainer({ children }: { children: React.ReactNode }) {
         if (!loading && !user && pathname !== '/login') {
             router.push('/login');
         }
+        if (!loading && user && pathname === '/login') {
+            router.push('/dashboard');
+        }
     }, [user, loading, pathname, router]);
 
     if (loading) {
@@ -172,26 +175,21 @@ function AppContainer({ children }: { children: React.ReactNode }) {
         );
     }
     
-    if (!user && pathname !== '/login') {
-        return null; // or a loading spinner, since the redirect is in progress
-    }
-    
-    if (user && pathname === '/login') {
-        router.push('/dashboard');
-        return null;
-    }
-    
     if (pathname === '/login') {
         return <>{children}</>;
     }
+    
+    if (user) {
+        return (
+            <RolesProvider>
+                <RoleGate>
+                    {children}
+                </RoleGate>
+            </RolesProvider>
+        );
+    }
 
-    return (
-        <RolesProvider>
-            <RoleGate>
-                {children}
-            </RoleGate>
-        </RolesProvider>
-    );
+    return null;
 }
 
 
