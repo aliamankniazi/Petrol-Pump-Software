@@ -3,10 +3,17 @@ import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getDatabase, type Database } from 'firebase/database';
 import { getAuth, type Auth } from 'firebase/auth';
 
-// IMPORTANT: REPLACE WITH YOUR FIREBASE PROJECT CONFIG
-// To get this, go to the Firebase Console, open your project,
-// go to Project Settings (gear icon), and under "Your apps",
-// find your Web app and copy the firebaseConfig object.
+// =================================================================================
+// IMPORTANT: REPLACE THIS ENTIRE OBJECT WITH YOUR FIREBASE PROJECT CONFIG
+// =================================================================================
+// To get this:
+// 1. Go to the Firebase Console: https://console.firebase.google.com/
+// 2. Select your project.
+// 3. Click the gear icon (Project settings) in the top-left corner.
+// 4. In the "Your apps" card, select your web app.
+// 5. In the "SDK setup and configuration" section, choose "Config".
+// 6. Copy the entire `firebaseConfig` object and paste it here.
+// =================================================================================
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
