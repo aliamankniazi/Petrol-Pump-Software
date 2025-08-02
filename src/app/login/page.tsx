@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -33,7 +33,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isLoading, setIsLoading] = useState(false);
 
   const {
     register: registerLogin,
@@ -51,37 +51,38 @@ export default function LoginPage() {
     resolver: zodResolver(authSchema),
   });
 
-  const handleAuthAction = (authPromise: Promise<any>) => {
+  const handleAuthAction = async (authPromise: Promise<any>) => {
     setError(null);
-    startTransition(async () => {
-      try {
-        await authPromise;
-        router.push('/dashboard');
-      } catch (err: any) {
-        let message = 'An unknown error occurred.';
-        if (err.code) {
-          switch (err.code) {
-            case 'auth/user-not-found':
-            case 'auth/wrong-password':
-            case 'auth/invalid-credential':
-              message = 'Invalid email or password. Please try again.';
-              break;
-            case 'auth/email-already-in-use':
-              message = 'An account with this email address already exists.';
-              break;
-            case 'auth/weak-password':
-              message = 'The password is too weak. It must be at least 6 characters long.';
-              break;
-            case 'auth/invalid-email':
-              message = 'Please enter a valid email address.';
-              break;
-            default:
-              message = err.message || 'An unexpected error occurred. Please try again.';
-          }
+    setIsLoading(true);
+    try {
+      await authPromise;
+      router.push('/dashboard');
+    } catch (err: any) {
+      let message = 'An unknown error occurred.';
+      if (err.code) {
+        switch (err.code) {
+          case 'auth/user-not-found':
+          case 'auth/wrong-password':
+          case 'auth/invalid-credential':
+            message = 'Invalid email or password. Please try again.';
+            break;
+          case 'auth/email-already-in-use':
+            message = 'An account with this email address already exists.';
+            break;
+          case 'auth/weak-password':
+            message = 'The password is too weak. It must be at least 6 characters long.';
+            break;
+          case 'auth/invalid-email':
+            message = 'Please enter a valid email address.';
+            break;
+          default:
+            message = err.message || 'An unexpected error occurred. Please try again.';
         }
-        setError(message);
       }
-    });
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleLogin: SubmitHandler<AuthFormValues> = (data) => {
@@ -126,7 +127,7 @@ export default function LoginPage() {
                 type="email"
                 placeholder="m@example.com"
                 {...registerLogin('email')}
-                disabled={isPending}
+                disabled={isLoading}
               />
               {loginErrors.email && <p className="text-sm text-destructive">{loginErrors.email.message}</p>}
             </div>
@@ -136,14 +137,14 @@ export default function LoginPage() {
                 id="login-password"
                 type="password"
                 {...registerLogin('password')}
-                disabled={isPending}
+                disabled={isLoading}
               />
               {loginErrors.password && <p className="text-sm text-destructive">{loginErrors.password.message}</p>}
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={isPending}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign In
             </Button>
           </CardFooter>
@@ -159,7 +160,7 @@ export default function LoginPage() {
                 type="email"
                 placeholder="m@example.com"
                 {...registerSignUp('email')}
-                disabled={isPending}
+                disabled={isLoading}
               />
               {signUpErrors.email && <p className="text-sm text-destructive">{signUpErrors.email.message}</p>}
             </div>
@@ -169,14 +170,14 @@ export default function LoginPage() {
                 id="signup-password"
                 type="password"
                 {...registerSignUp('password')}
-                disabled={isPending}
+                disabled={isLoading}
               />
               {signUpErrors.password && <p className="text-sm text-destructive">{signUpErrors.password.message}</p>}
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={isPending}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign Up
             </Button>
           </CardFooter>
@@ -191,7 +192,7 @@ export default function LoginPage() {
                 setIsSignUp(!isSignUp);
                 setError(null);
               }}
-              disabled={isPending}
+              disabled={isLoading}
             >
               {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
             </Button>
