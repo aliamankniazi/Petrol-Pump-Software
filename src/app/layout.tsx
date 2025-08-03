@@ -42,7 +42,7 @@ function PrintStyles() {
 
 function RoleGate({ children }: { children: React.ReactNode }) {
     const { isReady, currentInstitution, userInstitutions, setCurrentInstitution, addInstitution, error, clearCurrentInstitution } = useRoles();
-    const { user } = useAuth();
+    const { user, signOut } = useAuth();
     const { register, handleSubmit, formState: { errors } } = useForm<InstitutionFormValues>({
         resolver: zodResolver(institutionSchema),
     });
@@ -63,6 +63,12 @@ function RoleGate({ children }: { children: React.ReactNode }) {
     const handleSelectInstitution = (institutionId: string) => {
         setCurrentInstitution(institutionId);
     };
+    
+    const handleSignOut = () => {
+        clearCurrentInstitution();
+        signOut();
+    }
+
 
     if (!isReady) {
         return (
@@ -85,7 +91,7 @@ function RoleGate({ children }: { children: React.ReactNode }) {
                         <pre className="bg-muted p-2 rounded-md text-xs overflow-auto">{error.message}</pre>
                     </CardContent>
                      <CardFooter>
-                         <Button variant="outline" onClick={clearCurrentInstitution}><LogOut className="mr-2 h-4 w-4"/>Sign Out</Button>
+                         <Button variant="outline" onClick={handleSignOut}><LogOut className="mr-2 h-4 w-4"/>Sign Out</Button>
                      </CardFooter>
                 </Card>
             </div>
@@ -109,7 +115,7 @@ function RoleGate({ children }: { children: React.ReactNode }) {
                             ))}
                         </CardContent>
                         <CardFooter>
-                            <Button variant="ghost" onClick={clearCurrentInstitution}><LogOut className="mr-2 h-4 w-4"/>Sign Out</Button>
+                            <Button variant="ghost" onClick={handleSignOut}><LogOut className="mr-2 h-4 w-4"/>Sign Out</Button>
                         </CardFooter>
                     </Card>
                 </div>
@@ -133,7 +139,7 @@ function RoleGate({ children }: { children: React.ReactNode }) {
                                 </div>
                             </CardContent>
                             <CardFooter className="flex justify-between">
-                                <Button variant="ghost" onClick={clearCurrentInstitution}><LogOut className="mr-2 h-4 w-4"/>Sign Out</Button>
+                                <Button variant="ghost" type="button" onClick={handleSignOut}><LogOut className="mr-2 h-4 w-4"/>Sign Out</Button>
                                 <Button type="submit" disabled={isSubmitting}>
                                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Create Institution

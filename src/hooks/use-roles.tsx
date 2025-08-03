@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useMemo, useCallback, createContext, useContext, type ReactNode, useEffect, useState } from 'react';
@@ -113,65 +112,67 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     const [defaultsInitialized, setDefaultsInitialized] = useState(false);
 
     useEffect(() => {
-        if (authLoading) {
-            return;
-        }
+        if (authLoading) return;
         if (!user) {
-            setDataLoading(false);
-            setUserInstitutions([]);
-            setUserMappings(null);
-            return;
+          setDataLoading(false);
+          setUserInstitutions([]);
+          setUserMappings(null);
+          return;
         }
-
-        const loadData = async () => {
-            setDataLoading(true);
-            setError(null);
+    
+        setDataLoading(true);
+    
+        const mappingsRef = ref(db, `${USER_MAP_COLLECTION}/${user.uid}`);
+    
+        const unsubscribe = onValue(
+          mappingsRef,
+          async (snapshot) => {
             try {
-                // Ensure the auth token is fresh before making any calls
-                await user.getIdToken(true);
-
-                // Fetch institutions the user owns
-                const ownedQuery = query(ref(db, INSTITUTIONS_COLLECTION), orderByChild('ownerId'), equalTo(user.uid));
-                const ownedSnapshot = await get(ownedQuery);
-                const institutions: Record<string, Institution> = {};
-                if (ownedSnapshot.exists()) {
-                    ownedSnapshot.forEach(child => {
-                        institutions[child.key!] = { id: child.key!, ...child.val() };
-                    });
-                }
-                
-                // Fetch the user's role mappings
-                const mappingsRef = ref(db, `${USER_MAP_COLLECTION}/${user.uid}`);
-                const mappingsSnapshot = await get(mappingsRef);
-                const mappings: UserMappings = mappingsSnapshot.exists() ? mappingsSnapshot.val() : {};
-                setUserMappings(mappings);
-
-                // Fetch details for institutions where the user is a member
-                const memberInstitutionIds = Object.keys(mappings);
-                const memberFetches = memberInstitutionIds
-                    .filter(id => !institutions[id]) // Don't re-fetch owned institutions
-                    .map(id => get(ref(db, `${INSTITUTIONS_COLLECTION}/${id}`)));
-                
-                const memberSnapshots = await Promise.all(memberFetches);
-                memberSnapshots.forEach(snap => {
-                    if (snap.exists()) {
-                        institutions[snap.key!] = { id: snap.key!, ...snap.val() };
-                    }
+              const mappings: UserMappings = snapshot.exists() ? snapshot.val() : {};
+              setUserMappings(mappings);
+    
+              const ownedQuery = query(
+                ref(db, INSTITUTIONS_COLLECTION),
+                orderByChild('ownerId'),
+                equalTo(user.uid)
+              );
+              const ownedSnapshot = await get(ownedQuery);
+              const institutions: Record<string, Institution> = {};
+              if (ownedSnapshot.exists()) {
+                ownedSnapshot.forEach((child) => {
+                  institutions[child.key!] = { id: child.key!, ...child.val() };
                 });
-
-                setUserInstitutions(Object.values(institutions));
-
-            } catch (err: any) {
-                console.error("Error loading user data:", err);
-                setError(err);
+              }
+    
+              const memberInstitutionIds = Object.keys(mappings);
+              const memberFetches = memberInstitutionIds
+                .filter((id) => !institutions[id])
+                .map((id) => get(ref(db, `${INSTITUTIONS_COLLECTION}/${id}`)));
+    
+              const memberSnapshots = await Promise.all(memberFetches);
+              memberSnapshots.forEach((snap) => {
+                if (snap.exists()) {
+                  institutions[snap.key!] = { id: snap.key!, ...snap.val() };
+                }
+              });
+    
+              setUserInstitutions(Object.values(institutions));
+            } catch (e: any) {
+              console.error('Error fetching user data:', e);
+              setError(e);
             } finally {
-                setDataLoading(false);
+              setDataLoading(false);
             }
-        };
-
-        loadData();
-
-    }, [user, authLoading]);
+          },
+          (err) => {
+            console.error('Error on userMappings listener:', err);
+            setError(err);
+            setDataLoading(false);
+          }
+        );
+    
+        return () => unsubscribe();
+      }, [user, authLoading]);
     
     const isReady = useMemo(() => !authLoading && !dataLoading && !error, [authLoading, dataLoading, error]);
 
@@ -212,8 +213,9 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const clearCurrentInstitutionCB = useCallback(() => {
-        signOut();
-    }, [signOut]);
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+        setCurrentInstitutionId(null);
+    }, []);
     
     const addInstitution = useCallback(async (institution: Omit<Institution, 'id' | 'ownerId' | 'timestamp'>): Promise<Institution> => {
         if (!user) throw new Error("User must be logged in to create an institution.");
