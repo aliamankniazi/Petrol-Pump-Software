@@ -64,10 +64,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     if (!firebaseAuth) return;
-    await firebaseSignOut(firebaseAuth);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('currentInstitutionId');
-      window.location.href = '/login';
+    try {
+        await firebaseSignOut(firebaseAuth);
+        // Force a reload to clear all state and redirect to login
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('currentInstitutionId');
+            window.location.href = '/login';
+        }
+    } catch (error) {
+        console.error("Error signing out: ", error);
+        // Still attempt to redirect even if sign out fails
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('currentInstitutionId');
+            window.location.href = '/login';
+        }
     }
   }, []);
 
