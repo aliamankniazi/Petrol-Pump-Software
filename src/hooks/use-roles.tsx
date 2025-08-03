@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useMemo, useCallback, createContext, useContext, type ReactNode, useEffect, useState } from 'react';
@@ -210,9 +209,11 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const clearCurrentInstitutionCB = useCallback(() => {
-        localStorage.removeItem(LOCAL_STORAGE_KEY);
-        setCurrentInstitutionId(null);
-        signOut();
+        signOut().finally(() => {
+            localStorage.removeItem(LOCAL_STORAGE_KEY);
+            setCurrentInstitutionId(null);
+            // The signOut function in useAuth will handle the page reload.
+        });
     }, [signOut]);
     
     const addInstitution = useCallback(async (institution: Omit<Institution, 'id' | 'ownerId' | 'timestamp'>): Promise<Institution> => {

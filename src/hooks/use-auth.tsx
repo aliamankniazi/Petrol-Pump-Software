@@ -67,7 +67,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await firebaseSignOut(firebaseAuth);
     if (typeof window !== 'undefined') {
       localStorage.removeItem('currentInstitutionId');
-      // Full page reload to ensure all state is cleared
       window.location.href = '/login';
     }
   }, []);

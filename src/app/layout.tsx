@@ -84,6 +84,9 @@ function RoleGate({ children }: { children: React.ReactNode }) {
                         <p className="text-sm text-muted-foreground mb-4">Please try refreshing the page. If the problem persists, contact support.</p>
                         <pre className="bg-muted p-2 rounded-md text-xs overflow-auto">{error.message}</pre>
                     </CardContent>
+                     <CardFooter>
+                         <Button variant="outline" onClick={clearCurrentInstitution}><LogOut className="mr-2 h-4 w-4"/>Sign Out</Button>
+                     </CardFooter>
                 </Card>
             </div>
         );
