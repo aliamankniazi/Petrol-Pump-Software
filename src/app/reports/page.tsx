@@ -16,6 +16,7 @@ import {
   UserX,
   ArrowRight,
   TrendingUp,
+  FileText as ReportsIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -75,7 +76,7 @@ export default function ReportsPage() {
     <div className="p-4 md:p-8">
       <Card>
         <CardHeader>
-          <CardTitle>Reports Hub</CardTitle>
+          <CardTitle className="flex items-center gap-2"><ReportsIcon /> Reports Hub</CardTitle>
           <CardDescription>
             Select a report to view detailed analytics about your business operations.
           </CardDescription>

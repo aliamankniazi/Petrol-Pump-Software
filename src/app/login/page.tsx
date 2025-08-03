@@ -51,46 +51,55 @@ export default function LoginPage() {
     resolver: zodResolver(authSchema),
   });
 
-  const handleAuthAction = async (authPromise: Promise<any>) => {
+  const handleLogin: SubmitHandler<AuthFormValues> = async (data) => {
     setError(null);
     setIsLoading(true);
     try {
-      await authPromise;
+      await login(data.email, data.password);
       router.push('/dashboard');
     } catch (err: any) {
-      let message = 'An unknown error occurred.';
-      if (err.code) {
-        switch (err.code) {
-          case 'auth/user-not-found':
-          case 'auth/wrong-password':
-          case 'auth/invalid-credential':
-            message = 'Invalid email or password. Please try again.';
-            break;
-          case 'auth/email-already-in-use':
-            message = 'An account with this email address already exists.';
-            break;
-          case 'auth/weak-password':
-            message = 'The password is too weak. It must be at least 6 characters long.';
-            break;
-          case 'auth/invalid-email':
-            message = 'Please enter a valid email address.';
-            break;
-          default:
-            message = err.message || 'An unexpected error occurred. Please try again.';
-        }
-      }
-      setError(message);
+      handleAuthError(err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleLogin: SubmitHandler<AuthFormValues> = (data) => {
-    handleAuthAction(login(data.email, data.password));
+  const handleSignUp: SubmitHandler<AuthFormValues> = async (data) => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      await signUp(data.email, data.password);
+      router.push('/dashboard');
+    } catch (err: any) {
+      handleAuthError(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSignUp: SubmitHandler<AuthFormValues> = (data) => {
-    handleAuthAction(signUp(data.email, data.password));
+  const handleAuthError = (err: any) => {
+    let message = 'An unknown error occurred.';
+    if (err.code) {
+      switch (err.code) {
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential':
+          message = 'Invalid email or password. Please try again.';
+          break;
+        case 'auth/email-already-in-use':
+          message = 'An account with this email address already exists.';
+          break;
+        case 'auth/weak-password':
+          message = 'The password is too weak. It must be at least 6 characters long.';
+          break;
+        case 'auth/invalid-email':
+          message = 'Please enter a valid email address.';
+          break;
+        default:
+          message = err.message || 'An unexpected error occurred. Please try again.';
+      }
+    }
+    setError(message);
   };
 
 
@@ -100,7 +109,7 @@ export default function LoginPage() {
         <CardHeader className="text-center">
             <div className="flex justify-center items-center gap-2 mb-4">
                <Fuel className="w-8 h-8 text-primary" />
-               <CardTitle>Petrol Pump Manager</CardTitle>
+               <CardTitle>PumpPal</CardTitle>
             </div>
           <CardDescription>
             {isSignUp ? 'Create an account to get started.' : 'Sign in to your account.'}
@@ -117,7 +126,6 @@ export default function LoginPage() {
             </div>
         )}
         
-        {/* Login Form */}
         <form onSubmit={handleSubmitLogin(handleLogin)} hidden={isSignUp}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -150,7 +158,6 @@ export default function LoginPage() {
           </CardFooter>
         </form>
 
-        {/* Signup Form */}
         <form onSubmit={handleSubmitSignUp(handleSignUp)} hidden={!isSignUp}>
           <CardContent className="space-y-4">
             <div className="space-y-2">

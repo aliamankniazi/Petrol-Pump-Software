@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/sidebar';
 import { FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, Fuel, DollarSign, Beaker, Handshake, PiggyBank, Archive, BarChartHorizontal } from 'lucide-react';
 import { Avatar, AvatarFallback } from './ui/avatar';
+import { useRoles } from '@/hooks/use-roles';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -37,17 +38,17 @@ const navItems = [
   { href: '/employees', label: 'Employees', icon: Briefcase },
   { href: '/bank-management', label: 'Bank Management', icon: Landmark },
   { href: '/ledger', label: 'Ledger', icon: BookOpen },
-  { href: '/summary', label: 'Summary', icon: FileText },
+  { href: '/reports', label: 'Reports', icon: FileText },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
-const AppLogo = () => (
+const AppLogo = ({ institutionName }: { institutionName?: string }) => (
     <div className="flex items-center gap-2.5">
       <Avatar>
           <AvatarFallback><Fuel /></AvatarFallback>
       </Avatar>
       <div className="flex flex-col">
-        <h2 className="text-lg font-bold tracking-tighter text-primary">Petrol Pump</h2>
+        <h2 className="text-lg font-bold tracking-tighter text-primary">{institutionName || 'PumpPal'}</h2>
         <p className="text-xs text-muted-foreground -mt-1">Management Software</p>
       </div>
     </div>
@@ -56,13 +57,14 @@ const AppLogo = () => (
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { currentInstitution } = useRoles();
   const pageTitle = navItems.find(item => pathname === item.href)?.label ?? 'Dashboard';
 
   return (
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader className='p-4 border-b border-sidebar-border'>
-            <AppLogo />
+            <AppLogo institutionName={currentInstitution?.name} />
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
@@ -83,10 +85,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="fixed inset-0 flex items-center justify-center -z-10 pointer-events-none">
           <div className="flex flex-col items-center text-center -rotate-12 opacity-5 dark:opacity-[0.02]">
             <h1 className="text-8xl font-black text-foreground/50 tracking-widest leading-none">
-              Mianwali
+              {currentInstitution?.name.split(' ')[0] || 'Pump'}
             </h1>
             <h2 className="text-6xl font-bold text-foreground/50 tracking-wider">
-              Petroleum Service
+              {currentInstitution?.name.split(' ').slice(1).join(' ') || 'Pal'}
             </h2>
           </div>
         </div>
