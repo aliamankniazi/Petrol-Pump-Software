@@ -54,6 +54,7 @@ interface RolesContextType {
     deleteRole: (id: RoleId) => Promise<void>;
     assignRoleToUser: (userId: string, roleId: RoleId, institutionId: string) => Promise<void>;
     getRoleForUserInInstitution: (userId: string, institutionId: string) => Promise<RoleId | null>;
+    getUsersForInstitution: (institutionId: string) => Promise<{ uid: string, roleId: RoleId }[]>;
     hasPermission: (permission: Permission) => boolean;
 
     isReady: boolean;
@@ -128,8 +129,6 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         
         const fetchData = async () => {
             try {
-                // Force a token refresh to ensure the backend auth state is synchronized.
-                // This is the key to preventing the race condition.
                 await user.getIdToken(true);
 
                 const mappingsRef = ref(db, `${USER_MAP_COLLECTION}/${user.uid}`);
@@ -287,6 +286,22 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         }
         return null;
     }, []);
+    
+    const getUsersForInstitution = useCallback(async (institutionId: string): Promise<{ uid: string, roleId: RoleId }[]> => {
+        if (!db) return [];
+        const users: { uid: string, roleId: RoleId }[] = [];
+        const mappingsRef = ref(db, USER_MAP_COLLECTION);
+        const snapshot = await get(mappingsRef);
+        if (snapshot.exists()) {
+            snapshot.forEach(userSnapshot => {
+                const userMappings = userSnapshot.val();
+                if (userMappings[institutionId]) {
+                    users.push({ uid: userSnapshot.key!, roleId: userMappings[institutionId].roleId });
+                }
+            });
+        }
+        return users;
+    }, []);
 
     const addRole = useCallback(async (role: Omit<Role, 'id'>) => {
         if (!db || !currentInstitutionId) throw new Error("Institution not selected.");
@@ -331,6 +346,7 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         deleteRole,
         assignRoleToUser,
         getRoleForUserInInstitution,
+        getUsersForInstitution,
         hasPermission,
         isReady,
         error,
@@ -350,3 +366,4 @@ export const useRoles = () => {
     }
     return context;
 };
+
