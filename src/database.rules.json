@@ -4,9 +4,7 @@
     "institutions": {
       ".indexOn": ["ownerId"],
       "$institutionId": {
-        // A user can read an institution's top-level info if they are the owner OR if they have a mapping for it.
         ".read": "data.child('ownerId').val() === auth.uid || root.child('userMappings/' + auth.uid + '/' + $institutionId).exists()",
-        // Only the owner can write to the institution's top-level info.
         ".write": "!data.exists() || data.child('ownerId').val() === auth.uid",
         ".validate": "newData.hasChildren(['ownerId', 'name'])",
         "ownerId": {
@@ -15,10 +13,8 @@
         "name": {
           ".validate": "newData.isString() && newData.val().length > 0"
         },
-        // For any collection *within* an institution (e.g., 'transactions', 'customers')
         "$collection": {
           "$docId": {
-            // A user can read/write data within an institution if they are the owner OR if they have a mapping for it.
             ".read": "root.child('institutions/' + $institutionId + '/ownerId').val() === auth.uid || root.child('userMappings/' + auth.uid + '/' + $institutionId).exists()",
             ".write": "root.child('institutions/' + $institutionId + '/ownerId').val() === auth.uid || root.child('userMappings/' + auth.uid + '/' + $institutionId).exists()"
           }
@@ -26,14 +22,15 @@
       }
     },
     "userMappings": {
+      ".indexOn": ["roleId"],
       "$userId": {
-        // A user can only read their own mappings.
         ".read": "$userId === auth.uid",
-        // An institution owner can write a mapping for any user to their institution.
         "$institutionId": {
-          ".write": "root.child('institutions/' + $institutionId + '/ownerId').val() === auth.uid"
+          ".write": "root.child('institutions/' + $institutionId + '/ownerId').val() === auth.uid",
+           ".indexOn": ".value"
         }
       }
     }
   }
 }
+

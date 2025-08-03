@@ -275,8 +275,10 @@ export function RolesProvider({ children }: { children: ReactNode }) {
     const getUsersForInstitution = useCallback(async (institutionId: string): Promise<{ uid: string, roleId: RoleId }[]> => {
         if (!db) return [];
         const users: { uid: string, roleId: RoleId }[] = [];
-        const mappingsRef = ref(db, USER_MAP_COLLECTION);
-        const snapshot = await get(mappingsRef);
+        
+        const userMappingsQuery = query(ref(db, USER_MAP_COLLECTION), orderByChild(`${institutionId}/roleId`));
+        const snapshot = await get(userMappingsQuery);
+        
         if (snapshot.exists()) {
             snapshot.forEach(userSnapshot => {
                 const userMappings = userSnapshot.val();
