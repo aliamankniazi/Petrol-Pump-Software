@@ -276,8 +276,6 @@ export function RolesProvider({ children }: { children: ReactNode }) {
         if (!db) return [];
         const users: { uid: string, roleId: RoleId }[] = [];
         
-        // This is a secure query that finds all user mappings for a specific institution.
-        // It requires the database rules to have an index on the roleId.
         const userMappingsQuery = query(
             ref(db, USER_MAP_COLLECTION), 
             orderByChild(`${institutionId}/roleId`)
