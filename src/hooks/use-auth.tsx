@@ -66,18 +66,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!firebaseAuth) return;
     try {
         await firebaseSignOut(firebaseAuth);
-        // Force a reload to clear all state and redirect to login
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem('currentInstitutionId');
-            window.location.href = '/login';
-        }
+        // The redirect is handled by the AppContainer in layout.tsx
+        // Clearing the institution ID ensures a clean state on next login.
+        localStorage.removeItem('currentInstitutionId');
     } catch (error) {
         console.error("Error signing out: ", error);
-        // Still attempt to redirect even if sign out fails
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem('currentInstitutionId');
-            window.location.href = '/login';
-        }
     }
   }, []);
 

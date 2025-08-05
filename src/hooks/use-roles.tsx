@@ -98,7 +98,7 @@ function useRolesForInstitution(institutionId: string | null) {
 
 
 export function RolesProvider({ children }: { children: ReactNode }) {
-    const { user, loading: authLoading, signOut } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     
     const [userMappings, setUserMappings] = useState<UserMappings | null>(null);
     const [userInstitutions, setUserInstitutions] = useState<Institution[]>([]);
