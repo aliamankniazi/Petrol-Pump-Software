@@ -66,9 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!firebaseAuth) return;
     try {
         await firebaseSignOut(firebaseAuth);
-        // The redirect is handled by the AppContainer in layout.tsx
-        // Clearing the institution ID ensures a clean state on next login.
         localStorage.removeItem('currentInstitutionId');
+        // The redirect is handled by the AppContainer in layout.tsx
     } catch (error) {
         console.error("Error signing out: ", error);
     }
