@@ -72,7 +72,7 @@ export function useDatabaseCollection<T extends DbDoc>(
     return () => unsubscribe();
   }, [collectionName]);
 
-  const addDoc = useCallback(async (newData: Omit<T, 'id' | 'timestamp'>, docId?: string): Promise<T> => {
+  const addDoc = useCallback(async (newData: Omit<T, 'id'>, docId?: string): Promise<T> => {
     if (!db) {
       throw new Error("Database not configured.");
     }
@@ -89,16 +89,9 @@ export function useDatabaseCollection<T extends DbDoc>(
     
     await set(docRef, dataWithTimestamp);
 
-    const finalDoc = { id: finalId, ...dataWithTimestamp } as T;
-    
-    setData(prev => [finalDoc, ...prev].sort((a, b) => {
-        const tsA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-        const tsB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-        return tsB - tsA;
-      })
-    );
-    
-    return finalDoc;
+    // The onValue listener will handle updating the local state automatically.
+    // We return the final document so the caller can have immediate access to the ID if needed.
+    return { id: finalId, ...dataWithTimestamp } as T;
   }, [collectionName]);
   
   const updateDoc = useCallback(async (id: string, updatedData: Partial<Omit<T, 'id'>>) => {
@@ -120,7 +113,6 @@ export function useDatabaseCollection<T extends DbDoc>(
     if (!db) return;
     const collectionRef = ref(db, collectionName);
     await remove(collectionRef);
-    setData([]);
   }, [collectionName]);
 
   return { data, addDoc, updateDoc, deleteDoc, clearCollection, loading };
