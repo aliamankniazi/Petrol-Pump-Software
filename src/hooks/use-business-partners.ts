@@ -25,7 +25,7 @@ export function useBusinessPartners() {
     }
     
     // Use the newly created customer's ID for the business partner record to keep them linked.
-    const newPartnerData = { ...partner };
+    const newPartnerData = { ...partner, timestamp: new Date().toISOString() };
     const newPartner = await addDoc(newPartnerData, newCustomer.id);
     
     return newPartner;

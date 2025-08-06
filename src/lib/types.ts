@@ -10,7 +10,7 @@ export interface Transaction {
   pricePerLitre: number;
   totalAmount: number;
   paymentMethod: PaymentMethod;
-  timestamp: string;
+  timestamp: string; // Changed from number to string to match usage
   customerId?: string;
   customerName?: string;
   bankAccountId?: string;
@@ -65,14 +65,14 @@ export interface Customer {
   vehicleNumber?: string;
   area?: string;
   isPartner?: boolean;
-  timestamp: number;
+  timestamp: string; // Changed from number to string
 }
 
 export interface Supplier {
   id: string;
   name: string;
   contact?: string;
-  timestamp: number;
+  timestamp: string; // Changed from number to string
 }
 
 export interface BankAccount {
@@ -80,7 +80,7 @@ export interface BankAccount {
   bankName: string;
   accountNumber: string;
   balance: number;
-  timestamp: number;
+  timestamp: string; // Changed from number to string
 }
 
 export interface Employee {
@@ -90,7 +90,7 @@ export interface Employee {
   position: string;
   salary: number;
   hireDate: string;
-  timestamp: number;
+  timestamp: string; // Changed from number to string
 }
 
 export interface CustomerPayment {
@@ -142,15 +142,5 @@ export interface BusinessPartner {
   name: string;
   sharePercentage: number;
   contact?: string;
-  timestamp: number;
-}
-
-// RBAC types are no longer needed
-export type Permission = string;
-export type RoleId = string;
-
-export interface Role {
-    id: RoleId;
-    name: string;
-    permissions: Permission[];
+  timestamp: string; // Changed from number to string
 }

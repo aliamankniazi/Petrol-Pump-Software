@@ -11,7 +11,8 @@ export function useSuppliers() {
   const { data: suppliers, addDoc, deleteDoc, loading } = useDatabaseCollection<Supplier>(COLLECTION_NAME);
 
   const addSupplier = useCallback(async (supplier: Omit<Supplier, 'id' | 'timestamp'>): Promise<Supplier> => {
-    const newDoc = await addDoc(supplier);
+    const dataWithTimestamp = { ...supplier, timestamp: new Date().toISOString() };
+    const newDoc = await addDoc(dataWithTimestamp);
     return newDoc;
   }, [addDoc]);
   

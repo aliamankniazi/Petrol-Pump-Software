@@ -1,6 +1,8 @@
 
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getDatabase, type Database } from 'firebase/database';
+// Auth is no longer used, but we keep the import to avoid breaking other files if they reference it.
+// It will be tree-shaken by the bundler in production.
 import { getAuth, type Auth } from 'firebase/auth';
 
 // =================================================================================
@@ -28,7 +30,7 @@ const firebaseConfig = {
 
 let app: FirebaseApp | null = null;
 let db: Database | null = null;
-let auth: Auth | null = null;
+let auth: Auth | null = null; // Auth is no longer initialized or used
 
 // This function checks if the placeholder values have been replaced.
 export const isFirebaseConfigured = () => {
@@ -42,7 +44,8 @@ if (isFirebaseConfigured()) {
       app = getApps()[0];
     }
     db = getDatabase(app);
-    auth = getAuth(app);
+    // Do not initialize auth
+    // auth = getAuth(app);
 } else {
     console.warn("Firebase is not configured. The app will run in a limited, offline mode. Please update src/lib/firebase-client.ts with your project credentials.");
 }

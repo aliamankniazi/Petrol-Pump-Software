@@ -11,7 +11,8 @@ export function useEmployees() {
   const { data: employees, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<Employee>(COLLECTION_NAME);
 
   const addEmployee = useCallback((employee: Omit<Employee, 'id' | 'timestamp'>) => {
-    return addDoc(employee);
+    const dataWithTimestamp = { ...employee, timestamp: new Date().toISOString() };
+    return addDoc(dataWithTimestamp);
   }, [addDoc]);
 
   const updateEmployee = useCallback((id: string, updatedDetails: Partial<Omit<Employee, 'id' | 'timestamp'>>) => {

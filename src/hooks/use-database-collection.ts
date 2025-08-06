@@ -15,7 +15,7 @@ import { db, isFirebaseConfigured } from '@/lib/firebase-client';
 
 interface DbDoc {
   id: string;
-  timestamp?: number;
+  timestamp?: string; // Timestamps should be strings (ISO 8601)
   [key: string]: any;
 }
 
@@ -27,6 +27,7 @@ export function useDatabaseCollection<T extends DbDoc>(
 
   useEffect(() => {
     if (!isFirebaseConfigured() || !db) {
+      console.warn(`Firebase not configured, skipping fetch for ${collectionName}.`);
       setLoading(false);
       setData([]);
       return;
@@ -54,10 +55,11 @@ export function useDatabaseCollection<T extends DbDoc>(
         });
       }
       
+      // Sort by timestamp descending
       dataArray.sort((a, b) => {
-        const timestampA = a.timestamp || 0;
-        const timestampB = b.timestamp || 0;
-        return (typeof timestampB === 'number' && typeof timestampA === 'number') ? timestampB - timestampA : 0;
+        const timestampA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const timestampB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return timestampB - timestampA;
       });
 
       setData(dataArray);
@@ -74,9 +76,9 @@ export function useDatabaseCollection<T extends DbDoc>(
     if (!db) {
       throw new Error("Database not configured.");
     }
-
-    const timestamp = Date.now();
-    const dataWithTimestamp = { ...newData, timestamp };
+    
+    // Ensure timestamp is always a string
+    const dataWithTimestamp = { ...newData, timestamp: new Date().toISOString() };
 
     const docRef = docId ? ref(db, `${collectionName}/${docId}`) : push(ref(db, collectionName));
     const finalId = docId || docRef.key;
@@ -89,7 +91,12 @@ export function useDatabaseCollection<T extends DbDoc>(
 
     const finalDoc = { id: finalId, ...dataWithTimestamp } as T;
     
-    setData(prev => [finalDoc, ...prev].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)));
+    setData(prev => [finalDoc, ...prev].sort((a, b) => {
+        const tsA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const tsB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return tsB - tsA;
+      })
+    );
     
     return finalDoc;
   }, [collectionName]);

@@ -11,7 +11,8 @@ export function useBankAccounts() {
   const { data: bankAccounts, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<BankAccount>(COLLECTION_NAME);
 
   const addBankAccount = useCallback((account: Omit<BankAccount, 'id' | 'timestamp'>) => {
-    return addDoc(account);
+    const dataWithTimestamp = { ...account, timestamp: new Date().toISOString() };
+    return addDoc(dataWithTimestamp);
   }, [addDoc]);
   
   const updateBankAccount = useCallback((id: string, updatedDetails: Partial<Omit<BankAccount, 'id' | 'timestamp'>>) => {
