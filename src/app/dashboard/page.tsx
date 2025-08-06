@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowRight, BarChart2, BookOpen, DollarSign, PlusCircle, TrendingDown, TrendingUp, Users, Fuel, Droplets, Receipt, ShoppingCart } from 'lucide-react';
@@ -278,5 +278,4 @@ export default function DashboardPage() {
 
         </div>
     );
-
-    
+}
