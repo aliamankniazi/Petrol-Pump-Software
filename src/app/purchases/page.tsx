@@ -84,23 +84,21 @@ export default function PurchasesPage() {
     });
   };
   
-  const onSupplierSubmit: SubmitHandler<SupplierFormValues> = useCallback(async (data) => {
-    const newSupplier = await addSupplier(data);
-    if (newSupplier && newSupplier.id) {
+  const onSupplierSubmit: SubmitHandler<SupplierFormValues> = useCallback((data) => {
+    addSupplier(data).then(() => {
         toast({
             title: 'Supplier Added',
-            description: `${data.name} has been added and selected.`,
+            description: `${data.name} has been added. You can now select them from the list.`,
         });
-        setValue('supplierId', newSupplier.id);
         resetSupplier();
         setIsAddSupplierOpen(false);
-    } else {
+    }).catch(error => {
         toast({
             variant: 'destructive',
             title: 'Error',
             description: 'Failed to add the new supplier.',
         });
-    }
+    });
   }, [addSupplier, toast, resetSupplier, setValue]);
 
 
