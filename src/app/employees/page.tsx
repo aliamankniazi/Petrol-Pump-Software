@@ -59,7 +59,7 @@ export default function EmployeesPage() {
     defaultValues: { hireDate: new Date() }
   });
   
-  const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, setValue: setEditValue, formState: { errors: editErrors } } = useForm<EmployeeFormValues>({
+  const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, setValue: setEditValue, control: controlEdit, formState: { errors: editErrors } } = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
   });
 
@@ -334,7 +334,7 @@ export default function EmployeesPage() {
                   <Label>Hire Date</Label>
                   <Controller
                     name="hireDate"
-                    control={registerEdit.control}
+                    control={controlEdit}
                     render={({ field }) => (
                       <Popover>
                         <PopoverTrigger asChild>

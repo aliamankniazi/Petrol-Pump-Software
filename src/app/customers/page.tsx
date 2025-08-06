@@ -43,7 +43,7 @@ const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 export default function CustomersPage() {
-  const { customers, addCustomer, updateCustomer, deleteCustomer } = useCustomers();
+  const { customers, addCustomer, updateCustomer, deleteCustomer, isLoaded } = useCustomers();
   const { toast } = useToast();
   
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
@@ -155,17 +155,18 @@ export default function CustomersPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {customers.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Customer Details</TableHead>
-                    <TableHead>Barcode</TableHead>
-                    <TableHead className="text-center">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {customers.map(c => (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer Details</TableHead>
+                  <TableHead>Barcode</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoaded ? (
+                  customers.length > 0 ? (
+                    customers.map(c => (
                       <TableRow key={c.id}>
                         <TableCell>
                           <div className="font-medium flex items-center gap-2">
@@ -205,16 +206,27 @@ export default function CustomersPage() {
                            </Button>
                         </TableCell>
                       </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
-                <Users className="w-16 h-16" />
-                <h3 className="text-xl font-semibold">No Customers Recorded</h3>
-                <p>Use the form to add your first customer.</p>
-              </div>
-            )}
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={3} className="h-24 text-center">
+                        <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground">
+                            <Users className="w-16 h-16" />
+                            <h3 className="text-xl font-semibold">No Customers Recorded</h3>
+                            <p>Use the form to add your first customer.</p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                ) : (
+                  <TableRow>
+                      <TableCell colSpan={3} className="h-24 text-center">
+                          Loading customers...
+                      </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>
