@@ -85,21 +85,14 @@ export default function PurchasesPage() {
   };
   
   const onSupplierSubmit: SubmitHandler<SupplierFormValues> = useCallback((data) => {
-    addSupplier(data).then(() => {
-        toast({
-            title: 'Supplier Added',
-            description: `${data.name} has been added. You can now select them from the list.`,
-        });
-        resetSupplier();
-        setIsAddSupplierOpen(false);
-    }).catch(error => {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Failed to add the new supplier.',
-        });
+    addSupplier(data);
+    toast({
+        title: 'Supplier Added',
+        description: `${data.name} has been added. You can now select them from the list.`,
     });
-  }, [addSupplier, toast, resetSupplier, setValue]);
+    resetSupplier();
+    setIsAddSupplierOpen(false);
+  }, [addSupplier, toast, resetSupplier]);
 
 
   return (
