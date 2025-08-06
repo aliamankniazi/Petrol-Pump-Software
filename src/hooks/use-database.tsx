@@ -3,18 +3,10 @@
 
 import { createContext, type ReactNode } from 'react';
 
-interface DataContextType {
-  institutionId: string | null;
-}
+// This provider is now a simple wrapper and does not hold state.
+// It's kept for structural consistency in case global state is needed later.
+export const DataContext = createContext({});
 
-export const DataContext = createContext<DataContextType>({
-  institutionId: null,
-});
-
-export function DataProvider({ children, institutionId }: { children: ReactNode, institutionId: string | null }) {
-  const value = {
-    institutionId,
-  };
-
-  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
+export function DataProvider({ children }: { children: ReactNode }) {
+  return <DataContext.Provider value={{}}>{children}</DataContext.Provider>;
 }

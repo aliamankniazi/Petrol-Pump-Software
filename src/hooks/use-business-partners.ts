@@ -6,10 +6,8 @@ import type { BusinessPartner } from '@/lib/types';
 import { useCustomers } from './use-customers';
 import { useDatabaseCollection } from './use-database-collection';
 
-const COLLECTION_NAME = 'business-partners';
-
 export function useBusinessPartners() {
-  const { data: businessPartners, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<BusinessPartner>(COLLECTION_NAME);
+  const { data: businessPartners, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<BusinessPartner>('business-partners');
   const { customers, addCustomer, updateCustomer, isLoaded: customersLoaded } = useCustomers();
 
   const addBusinessPartner = useCallback(async (partner: Omit<BusinessPartner, 'id' | 'timestamp'>): Promise<BusinessPartner> => {

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   ref,
   onValue,
@@ -12,7 +12,6 @@ import {
   type DatabaseReference,
 } from 'firebase/database';
 import { db, isFirebaseConfigured } from '@/lib/firebase-client';
-import { useRoles } from './use-roles';
 
 interface DbDoc {
   id: string;
@@ -25,21 +24,18 @@ export function useDatabaseCollection<T extends DbDoc>(
 ) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
-  const { currentInstitution } = useRoles();
-  const institutionId = currentInstitution?.id;
 
   useEffect(() => {
-    if (!isFirebaseConfigured() || !db || !institutionId ) {
+    if (!isFirebaseConfigured() || !db) {
       setLoading(false);
-      setData([]); // Clear data if institution is not set
+      setData([]);
       return;
     }
 
     setLoading(true);
     let collectionRef: DatabaseReference;
     try {
-      const path = `institutions/${institutionId}/${collectionName}`;
-      collectionRef = ref(db, path);
+      collectionRef = ref(db, collectionName);
     } catch (error) {
       console.error("Error creating database reference:", error);
       setLoading(false);
@@ -72,18 +68,17 @@ export function useDatabaseCollection<T extends DbDoc>(
     });
 
     return () => unsubscribe();
-  }, [collectionName, institutionId]);
+  }, [collectionName]);
 
   const addDoc = useCallback(async (newData: Omit<T, 'id' | 'timestamp'>, docId?: string): Promise<T> => {
-    if (!db || !institutionId) {
-      throw new Error("Cannot save data: No active institution selected.");
+    if (!db) {
+      throw new Error("Database not configured.");
     }
 
-    const path = `institutions/${institutionId}/${collectionName}`;
     const timestamp = Date.now();
     const dataWithTimestamp = { ...newData, timestamp };
 
-    const docRef = docId ? ref(db, `${path}/${docId}`) : push(ref(db, path));
+    const docRef = docId ? ref(db, `${collectionName}/${docId}`) : push(ref(db, collectionName));
     const finalId = docId || docRef.key;
 
     if (!finalId) {
@@ -94,26 +89,32 @@ export function useDatabaseCollection<T extends DbDoc>(
 
     const finalDoc = { id: finalId, ...dataWithTimestamp } as T;
     
-    // Optimistically update local state
     setData(prev => [finalDoc, ...prev].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)));
     
     return finalDoc;
-  }, [collectionName, institutionId]);
+  }, [collectionName]);
   
   const updateDoc = useCallback(async (id: string, updatedData: Partial<Omit<T, 'id'>>) => {
-     if (!db || !institutionId) return;
-     const path = `institutions/${institutionId}/${collectionName}/${id}`;
+     if (!db) return;
+     const path = `${collectionName}/${id}`;
      
     const docRef = ref(db, path);
     await update(docRef, updatedData);
-  }, [collectionName, institutionId]);
+  }, [collectionName]);
 
   const deleteDoc = useCallback(async (id: string) => {
-    if (!db || !institutionId) return;
-    const path = `institutions/${institutionId}/${collectionName}/${id}`;
+    if (!db) return;
+    const path = `${collectionName}/${id}`;
     const docRef = ref(db, path);
     await remove(docRef);
-  }, [collectionName, institutionId]);
+  }, [collectionName]);
 
-  return { data, addDoc, updateDoc, deleteDoc, loading };
+  const clearCollection = useCallback(async () => {
+    if (!db) return;
+    const collectionRef = ref(db, collectionName);
+    await remove(collectionRef);
+    setData([]);
+  }, [collectionName]);
+
+  return { data, addDoc, updateDoc, deleteDoc, clearCollection, loading };
 }
