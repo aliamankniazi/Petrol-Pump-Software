@@ -20,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useSuppliers } from '@/hooks/use-suppliers';
+import { useState, useEffect } from 'react';
 
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
@@ -39,6 +40,12 @@ export default function PurchaseReturnsPage() {
   const { purchaseReturns, addPurchaseReturn } = usePurchaseReturns();
   const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<PurchaseReturnFormValues>({
     resolver: zodResolver(purchaseReturnSchema),
     defaultValues: {
@@ -143,7 +150,7 @@ export default function PurchaseReturnsPage() {
               
               <div className="space-y-2">
                   <Label>Date</Label>
-                  <Controller
+                  {isClient && <Controller
                     name="date"
                     control={control}
                     render={({ field }) => (
@@ -170,8 +177,7 @@ export default function PurchaseReturnsPage() {
                         </PopoverContent>
                       </Popover>
                     )}
-                  />
-                  {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
+                  />}
                 </div>
 
               <Button type="submit" className="w-full">Record Return</Button>

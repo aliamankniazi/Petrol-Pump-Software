@@ -19,6 +19,7 @@ import { useFuelStock } from '@/hooks/use-fuel-stock';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
@@ -34,6 +35,12 @@ export default function TankManagementPage() {
   const { tankReadings, addTankReading } = useTankReadings();
   const { setFuelStock } = useFuelStock();
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<TankReadingFormValues>({
     resolver: zodResolver(tankReadingSchema),
     defaultValues: {
@@ -96,7 +103,7 @@ export default function TankManagementPage() {
 
                <div className="space-y-2">
                 <Label>Date</Label>
-                <Controller
+                {isClient && <Controller
                   name="date"
                   control={control}
                   render={({ field }) => (
@@ -123,7 +130,7 @@ export default function TankManagementPage() {
                       </PopoverContent>
                     </Popover>
                   )}
-                />
+                />}
                 {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
               </div>
 

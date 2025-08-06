@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -46,6 +46,11 @@ export default function PurchasesPage() {
   const { suppliers, addSupplier, isLoaded: suppliersLoaded } = useSuppliers();
   const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   
   const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema),
@@ -170,7 +175,7 @@ export default function PurchasesPage() {
 
               <div className="space-y-2">
                   <Label>Date</Label>
-                  <Controller
+                  {isClient && <Controller
                     name="date"
                     control={control}
                     render={({ field }) => (
@@ -197,7 +202,7 @@ export default function PurchasesPage() {
                         </PopoverContent>
                       </Popover>
                     )}
-                  />
+                  />}
                   {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
                 </div>
 

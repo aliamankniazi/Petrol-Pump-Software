@@ -19,7 +19,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const INCOME_CATEGORIES: OtherIncomeCategory[] = ['Service Station', 'Tire Shop', 'Tuck Shop', 'Other'];
 
@@ -36,6 +36,11 @@ export default function OtherIncomesPage() {
   const { otherIncomes, addOtherIncome, deleteOtherIncome } = useOtherIncomes();
   const { toast } = useToast();
   const [incomeToDelete, setIncomeToDelete] = useState<OtherIncome | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<IncomeFormValues>({
     resolver: zodResolver(incomeSchema),
@@ -114,7 +119,7 @@ export default function OtherIncomesPage() {
               
               <div className="space-y-2">
                   <Label>Date</Label>
-                  <Controller
+                  {isClient && <Controller
                     name="date"
                     control={control}
                     render={({ field }) => (
@@ -141,7 +146,7 @@ export default function OtherIncomesPage() {
                         </PopoverContent>
                       </Popover>
                     )}
-                  />
+                  />}
                   {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
                 </div>
 

@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
 
 const cashAdvanceSchema = z.object({
   customerId: z.string().min(1, 'Please select a customer.'),
@@ -33,6 +34,12 @@ export default function CashAdvancesPage() {
   const { customers, isLoaded: customersLoaded } = useCustomers();
   const { cashAdvances, addCashAdvance } = useCashAdvances();
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<CashAdvanceFormValues>({
     resolver: zodResolver(cashAdvanceSchema),
     defaultValues: {
@@ -106,7 +113,7 @@ export default function CashAdvancesPage() {
               
               <div className="space-y-2">
                 <Label>Date</Label>
-                <Controller
+                {isClient && <Controller
                   name="date"
                   control={control}
                   render={({ field }) => (
@@ -133,7 +140,7 @@ export default function CashAdvancesPage() {
                       </PopoverContent>
                     </Popover>
                   )}
-                />
+                />}
                 {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
               </div>
 

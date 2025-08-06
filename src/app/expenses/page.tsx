@@ -19,7 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 
 const EXPENSE_CATEGORIES: ExpenseCategory[] = ['Utilities', 'Salaries', 'Maintenance', 'Other'];
@@ -37,6 +37,11 @@ export default function ExpensesPage() {
   const { expenses, addExpense, deleteExpense } = useExpenses();
   const { toast } = useToast();
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
@@ -115,7 +120,7 @@ export default function ExpensesPage() {
 
                <div className="space-y-2">
                   <Label>Date</Label>
-                  <Controller
+                  {isClient && <Controller
                     name="date"
                     control={control}
                     render={({ field }) => (
@@ -142,7 +147,7 @@ export default function ExpensesPage() {
                         </PopoverContent>
                       </Popover>
                     )}
-                  />
+                  />}
                   {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
                 </div>
 

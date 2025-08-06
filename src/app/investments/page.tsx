@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { useBusinessPartners } from '@/hooks/use-business-partners';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import type { BusinessPartner } from '@/lib/types';
+import type { BusinessPartner, Investment } from '@/lib/types';
 import Link from 'next/link';
 
 
@@ -51,6 +51,11 @@ export default function InvestmentsPage() {
   const [partnerToEdit, setPartnerToEdit] = useState<BusinessPartner | null>(null);
   const [partnerToDelete, setPartnerToDelete] = useState<BusinessPartner | null>(null);
   const [transactionToDelete, setTransactionToDelete] = useState<Investment | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   
   const { toast } = useToast();
   
@@ -274,7 +279,7 @@ export default function InvestmentsPage() {
               
               <div className="space-y-2">
                 <Label>Date</Label>
-                <Controller
+                {isClient && <Controller
                   name="date"
                   control={controlInvestment}
                   render={({ field }) => (
@@ -301,7 +306,7 @@ export default function InvestmentsPage() {
                       </PopoverContent>
                     </Popover>
                   )}
-                />
+                />}
                 {investmentErrors.date && <p className="text-sm text-destructive">{investmentErrors.date.message}</p>}
               </div>
 

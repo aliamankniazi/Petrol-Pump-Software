@@ -20,7 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useSuppliers } from '@/hooks/use-suppliers';
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 
 const supplierPaymentSchema = z.object({
   supplierId: z.string().min(1, 'Please select a supplier.'),
@@ -35,6 +35,11 @@ export default function SupplierPaymentsPage() {
   const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
   const { supplierPayments, addSupplierPayment } = useSupplierPayments();
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<SupplierPaymentFormValues>({
     resolver: zodResolver(supplierPaymentSchema),
@@ -131,7 +136,7 @@ export default function SupplierPaymentsPage() {
 
                <div className="space-y-2">
                 <Label>Date</Label>
-                <Controller
+                {isClient && <Controller
                   name="date"
                   control={control}
                   render={({ field }) => (
@@ -158,7 +163,7 @@ export default function SupplierPaymentsPage() {
                       </PopoverContent>
                     </Popover>
                   )}
-                />
+                />}
                 {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
               </div>
 
