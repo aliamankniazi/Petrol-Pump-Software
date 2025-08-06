@@ -1,7 +1,12 @@
-# Settings to manage and configure a Firebase App Hosting backend.
-# https://firebase.google.com/docs/app-hosting/configure
 
+# Settings for Backend (on Cloud Run).
+# See https://firebase.google.com/docs/app-hosting/configure#cloud-run
 runConfig:
-  # Increase this value if you'd like to automatically spin up
-  # more instances in response to increased traffic.
-  maxInstances: 3
+  minInstances: 0
+# Environment variables and secrets.
+# See https://firebase.google.com/docs/app-hosting/configure
+# env:
+#   - variable: MESSAGE
+#     value: Hello world!
+#   - variable: MY_SECRET
+#     secret: mySecretRef
