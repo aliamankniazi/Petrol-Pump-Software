@@ -55,7 +55,6 @@ export function useDatabaseCollection<T extends DbDoc>(
         });
       }
       
-      // Sort by timestamp descending
       dataArray.sort((a, b) => {
         const timestampA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
         const timestampB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
@@ -70,28 +69,18 @@ export function useDatabaseCollection<T extends DbDoc>(
     });
 
     return () => unsubscribe();
-  }, [collectionName]);
+  }, [collectionName, db]); // Added db to dependency array
 
-  const addDoc = useCallback(async (newData: Omit<T, 'id'>, docId?: string): Promise<T> => {
+  const addDoc = useCallback(async (newData: Omit<T, 'id'>, docId?: string) => {
     if (!db) {
       throw new Error("Database not configured.");
     }
     
-    // Ensure timestamp is always a string
-    const dataWithTimestamp = { ...newData, timestamp: new Date().toISOString() };
-
     const docRef = docId ? ref(db, `${collectionName}/${docId}`) : push(ref(db, collectionName));
-    const finalId = docId || docRef.key;
-
-    if (!finalId) {
-        throw new Error("Failed to generate a document ID.");
-    }
     
-    await set(docRef, dataWithTimestamp);
+    await set(docRef, newData);
 
-    // The onValue listener will handle updating the local state automatically.
-    // We return the final document so the caller can have immediate access to the ID if needed.
-    return { id: finalId, ...dataWithTimestamp } as T;
+    // No need to manually update state, onValue listener will handle it.
   }, [collectionName]);
   
   const updateDoc = useCallback(async (id: string, updatedData: Partial<Omit<T, 'id'>>) => {

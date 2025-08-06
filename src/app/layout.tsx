@@ -9,6 +9,7 @@ import { AppLayout } from '@/components/app-layout';
 import { usePathname } from 'next/navigation';
 import { ThemeScript } from '@/components/theme-script';
 import { DataProvider } from '@/hooks/use-database';
+import { isFirebaseConfigured } from '@/lib/firebase-client';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -36,7 +37,7 @@ export default function RootLayout({
           <PrintStyles />
       </head>
       <body className="font-body antialiased">
-        <DataProvider>
+        <DataProvider key={isFirebaseConfigured() ? 'configured' : 'not-configured'}>
             <AppLayout>
               {children}
             </AppLayout>
