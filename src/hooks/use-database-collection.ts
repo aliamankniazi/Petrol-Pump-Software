@@ -69,18 +69,26 @@ export function useDatabaseCollection<T extends DbDoc>(
     });
 
     return () => unsubscribe();
-  }, [collectionName, db]); // Added db to dependency array
+  }, [collectionName, db]);
 
-  const addDoc = useCallback(async (newData: Omit<T, 'id'>, docId?: string) => {
+  const addDoc = useCallback(async (newData: Omit<T, 'id'>, docId?: string): Promise<T> => {
     if (!db) {
       throw new Error("Database not configured.");
     }
     
-    const docRef = docId ? ref(db, `${collectionName}/${docId}`) : push(ref(db, collectionName));
+    let docRef;
+    if (docId) {
+      docRef = ref(db, `${collectionName}/${docId}`);
+    } else {
+      docRef = push(ref(db, collectionName));
+    }
+    
+    const docWithId = { ...newData, id: docRef.key! } as T;
     
     await set(docRef, newData);
 
     // No need to manually update state, onValue listener will handle it.
+    return docWithId;
   }, [collectionName]);
   
   const updateDoc = useCallback(async (id: string, updatedData: Partial<Omit<T, 'id'>>) => {
