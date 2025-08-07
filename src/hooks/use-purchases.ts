@@ -16,10 +16,12 @@ export function usePurchases() {
     // First, add the purchase record
     addDoc(purchase);
 
-    // Then, update the fuel stock
-    const currentStock = fuelStock[purchase.fuelType] || 0;
-    const newStock = currentStock + purchase.volume;
-    setFuelStock(purchase.fuelType, newStock);
+    // Then, update the fuel stock for each item
+    purchase.items.forEach(item => {
+        const currentStock = fuelStock[item.fuelType] || 0;
+        const newStock = currentStock + item.volume;
+        setFuelStock(item.fuelType, newStock);
+    });
 
   }, [addDoc, fuelStock, setFuelStock]);
 
@@ -27,10 +29,12 @@ export function usePurchases() {
     const purchaseToDelete = purchases.find(p => p.id === id);
     if (!purchaseToDelete) return;
 
-    // Subtract the volume from the stock
-    const currentStock = fuelStock[purchaseToDelete.fuelType] || 0;
-    const newStock = currentStock - purchaseToDelete.volume;
-    setFuelStock(purchaseToDelete.fuelType, newStock);
+    // Subtract the volume from the stock for each item
+    purchaseToDelete.items.forEach(item => {
+        const currentStock = fuelStock[item.fuelType] || 0;
+        const newStock = currentStock - item.volume;
+        setFuelStock(item.fuelType, newStock);
+    });
     
     // Delete the purchase record
     deleteDoc(id);

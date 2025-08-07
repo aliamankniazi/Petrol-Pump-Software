@@ -143,7 +143,7 @@ export default function UnifiedLedgerPage() {
             entityName: p.supplier,
             entityType: 'Supplier',
             type: 'Purchase',
-            description: `${p.volume.toFixed(2)}L of ${p.fuelType}`,
+            description: p.items.map(item => `${item.volume.toFixed(2)}L of ${item.fuelType}`).join(', '),
             debit: 0,
             credit: p.totalCost,
         });

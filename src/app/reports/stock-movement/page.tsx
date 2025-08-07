@@ -26,12 +26,14 @@ export default function StockMovementPage() {
 
     return FUEL_TYPES.map(fuelType => {
       const totalPurchased = purchases
-        .filter(p => p.fuelType === fuelType)
-        .reduce((sum, p) => sum + p.volume, 0);
+        .flatMap(p => p.items)
+        .filter(item => item.fuelType === fuelType)
+        .reduce((sum, item) => sum + item.volume, 0);
       
       const totalSold = transactions
-        .filter(t => t.fuelType === fuelType)
-        .reduce((sum, t) => sum + t.volume, 0);
+        .flatMap(tx => tx.items)
+        .filter(item => item.fuelType === fuelType)
+        .reduce((sum, item) => sum + item.volume, 0);
 
       const totalReturned = purchaseReturns
         .filter(pr => pr.fuelType === fuelType)

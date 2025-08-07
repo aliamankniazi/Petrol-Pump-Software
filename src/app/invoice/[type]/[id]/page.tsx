@@ -66,15 +66,13 @@ export default function InvoicePage() {
             contact: supplier?.contact || 'N/A',
             balance: 0,
           },
-          items: [
-            {
-              name: `Fuel - ${purchase.fuelType}`,
+          items: purchase.items.map(item => ({
+              name: `Fuel - ${item.fuelType}`,
               group: 'Fuel',
-              quantity: purchase.volume,
-              price: purchase.totalCost / purchase.volume,
-              amount: purchase.totalCost,
-            },
-          ],
+              quantity: item.volume,
+              price: item.cost / item.volume,
+              amount: item.cost,
+          })),
           totalAmount: purchase.totalCost,
           paymentMethod: 'Credit', // Purchases are assumed to be on credit
         };

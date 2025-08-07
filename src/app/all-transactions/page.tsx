@@ -83,7 +83,7 @@ export default function AllTransactionsPage() {
       timestamp: p.timestamp!,
       type: 'Purchase',
       partner: p.supplier,
-      details: `${p.volume.toFixed(2)}L of ${p.fuelType}`,
+      details: p.items.map(item => `${item.volume.toFixed(2)}L of ${item.fuelType}`).join(', '),
       amount: p.totalCost,
       original: p,
     }));

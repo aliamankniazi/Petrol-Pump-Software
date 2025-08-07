@@ -72,7 +72,7 @@ export default function LedgerPage() {
     purchases.forEach(p => combined.push({
       id: `pur-${p.id}`,
       timestamp: p.timestamp!,
-      description: `Purchase from ${p.supplier}: ${p.volume.toFixed(2)}L of ${p.fuelType}`,
+      description: `Purchase from ${p.supplier}: ${p.items.length} item(s)`,
       type: 'Purchase',
       debit: p.totalCost,
       credit: 0,

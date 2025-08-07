@@ -23,12 +23,17 @@ export interface Transaction {
   bankAccountName?: string;
 }
 
+export interface PurchaseItem {
+    fuelType: FuelType;
+    volume: number;
+    cost: number;
+}
+
 export interface Purchase {
   id?: string;
   supplierId: string;
   supplier: string;
-  fuelType: FuelType;
-  volume: number;
+  items: PurchaseItem[];
   totalCost: number;
   timestamp?: string;
 }

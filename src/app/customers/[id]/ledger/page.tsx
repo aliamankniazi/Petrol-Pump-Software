@@ -149,7 +149,7 @@ export default function CustomerLedgerPage() {
         supplierPurchases.forEach(p => combined.push({
             id: `pur-${p.id}`,
             timestamp: p.timestamp!,
-            description: `${p.volume.toFixed(2)}L of ${p.fuelType}`,
+            description: p.items.map(item => `${item.volume.toFixed(2)}L of ${item.fuelType}`).join(', '),
             type: 'Purchase',
             credit: p.totalCost,
             debit: 0,

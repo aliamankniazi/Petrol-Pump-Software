@@ -24,9 +24,11 @@ export default function ProductSalesPage() {
     if (!isLoaded) return [];
 
     const productSales = FUEL_TYPES.map(fuelType => {
-      const salesForFuel = transactions.filter(tx => tx.fuelType === fuelType);
-      const totalVolume = salesForFuel.reduce((sum, tx) => sum + tx.volume, 0);
-      const totalRevenue = salesForFuel.reduce((sum, tx) => sum + tx.totalAmount, 0);
+      
+      const salesForFuel = transactions.flatMap(tx => tx.items).filter(item => item.fuelType === fuelType);
+
+      const totalVolume = salesForFuel.reduce((sum, item) => sum + item.volume, 0);
+      const totalRevenue = salesForFuel.reduce((sum, item) => sum + item.totalAmount, 0);
 
       return {
         fuelType,
