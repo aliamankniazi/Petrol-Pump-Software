@@ -84,7 +84,7 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id' | 'timestamp'>>
     
     const docWithId = { ...newData, id: docRef.key! } as T & { id: string };
     
-    await set(docRef, newData);
+    await set(docRef, docWithId);
 
     return docWithId;
   }, [collectionName]);

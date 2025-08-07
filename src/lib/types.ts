@@ -10,7 +10,7 @@ export interface Transaction {
   pricePerLitre: number;
   totalAmount: number;
   paymentMethod: PaymentMethod;
-  timestamp?: string; // Changed from number to string to match usage
+  timestamp?: string;
   customerId?: string;
   customerName?: string;
   bankAccountId?: string;
@@ -65,14 +65,14 @@ export interface Customer {
   vehicleNumber?: string;
   area?: string;
   isPartner?: boolean;
-  timestamp?: string; // Changed from number to string
+  timestamp?: string;
 }
 
 export interface Supplier {
   id?: string;
   name: string;
   contact?: string;
-  timestamp?: string; // Changed from number to string
+  timestamp?: string;
 }
 
 export interface BankAccount {
@@ -80,7 +80,7 @@ export interface BankAccount {
   bankName: string;
   accountNumber: string;
   balance: number;
-  timestamp?: string; // Changed from number to string
+  timestamp?: string;
 }
 
 export interface Employee {
@@ -90,7 +90,7 @@ export interface Employee {
   position: string;
   salary: number;
   hireDate: string;
-  timestamp?: string; // Changed from number to string
+  timestamp?: string;
 }
 
 export interface CustomerPayment {
@@ -142,5 +142,5 @@ export interface BusinessPartner {
   name: string;
   sharePercentage: number;
   contact?: string;
-  timestamp?: string; // Changed from number to string
+  timestamp?: string;
 }
