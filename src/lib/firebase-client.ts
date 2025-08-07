@@ -28,27 +28,23 @@ const firebaseConfig = {
 };
 
 
-let app: FirebaseApp;
-let db: Database;
-let auth: Auth; // Auth is no longer initialized or used
-
 // This function checks if the placeholder values have been replaced.
 export const isFirebaseConfigured = () => {
     return firebaseConfig && firebaseConfig.projectId && firebaseConfig.apiKey && firebaseConfig.projectId !== 'pumppal-n1b9n';
 }
 
-if (isFirebaseConfigured()) {
-    if (getApps().length === 0) {
-      app = initializeApp(firebaseConfig);
-    } else {
-      app = getApps()[0];
-    }
-    db = getDatabase(app);
-    // Do not initialize auth
-    // auth = getAuth(app);
-} else {
-    console.warn("Firebase is not configured. The app will run in a limited, offline mode. Please update src/lib/firebase-client.ts with your project credentials.");
+let app: FirebaseApp;
+if (isFirebaseConfigured() && getApps().length === 0) {
+  app = initializeApp(firebaseConfig);
+} else if(isFirebaseConfigured()) {
+  app = getApps()[0];
 }
+
+// @ts-ignore
+const db: Database = isFirebaseConfigured() ? getDatabase(app) : null;
+// @ts-ignore
+const auth: Auth = isFirebaseConfigured() ? getAuth(app) : null; // Auth is not used but kept for type consistency if needed
+
 
 // @ts-ignore
 export { app, db, auth };

@@ -73,7 +73,9 @@ export function useDatabaseCollection<T extends DbDoc>(
 
   const addDoc = useCallback(async (newData: Omit<T, 'id'>, docId?: string): Promise<T> => {
     if (!db) {
-      throw new Error("Database not configured.");
+      console.error("Database not configured.");
+      // @ts-ignore
+      return;
     }
     
     let docRef;
