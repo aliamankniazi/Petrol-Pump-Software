@@ -73,9 +73,9 @@ export function useDatabaseCollection<T extends DbDoc>(
 
   const addDoc = useCallback(async (newData: Omit<T, 'id'>, docId?: string): Promise<T> => {
     if (!db) {
+      // This should not happen with the corrected firebase-client, but as a safeguard.
       console.error("Database not configured.");
-      // @ts-ignore
-      return;
+      throw new Error("Database not configured.");
     }
     
     let docRef;

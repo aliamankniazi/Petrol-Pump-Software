@@ -1,5 +1,5 @@
 
-import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getDatabase, type Database } from 'firebase/database';
 import { getAuth, type Auth } from 'firebase/auth';
 
@@ -14,34 +14,14 @@ const firebaseConfig = {
   measurementId: "G-N85T634MQ3"
 };
 
-let app: FirebaseApp;
-let db: Database;
-let auth: Auth;
-
-if (getApps().length === 0) {
-  try {
-    app = initializeApp(firebaseConfig);
-  } catch (error) {
-    console.error("Firebase initialization error", error);
-  }
-} else {
-  app = getApps()[0];
-}
-
+// This function checks if the Firebase config has been filled out.
 const isFirebaseConfigured = () => {
-    return firebaseConfig && firebaseConfig.projectId && firebaseConfig.apiKey && firebaseConfig.projectId !== 'pumppal-n1b9n';
-}
+    return firebaseConfig && firebaseConfig.projectId && firebaseConfig.apiKey && firebaseConfig.projectId !== 'pumppal-n1b9n-placeholder';
+};
 
-if (isFirebaseConfigured()) {
-    try {
-        db = getDatabase(app);
-        auth = getAuth(app);
-    } catch(e) {
-        console.error("Error getting database or auth instance", e);
-    }
-} else {
-    console.warn("Firebase is not configured. Skipping database and auth initialization.");
-}
+// Initialize Firebase
+const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const db: Database = getDatabase(app);
+const auth: Auth = getAuth(app);
 
-// @ts-ignore
 export { app, db, auth, isFirebaseConfigured };
