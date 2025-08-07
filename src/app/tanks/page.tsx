@@ -59,7 +59,7 @@ export default function TankManagementPage() {
     });
     
     toast({
-      title: 'Tank Reading Logged',
+      title: 'Machine Reading Logged',
       description: `New volume for ${product.name} tank has been recorded as ${data.volume}L and stock has been updated.`,
     });
     reset({ productId: '', volume: 0, date: new Date() });
@@ -71,9 +71,9 @@ export default function TankManagementPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <PlusCircle /> New Dip Reading
+              <PlusCircle /> New Machine Reading
             </CardTitle>
-            <CardDescription>Enter the current volume for a fuel tank to verify stock.</CardDescription>
+            <CardDescription>Enter the reading from the machine for a fuel tank to verify stock.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -147,10 +147,10 @@ export default function TankManagementPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <List /> Dip Reading History
+              <List /> Machine Reading History
             </CardTitle>
             <CardDescription>
-              A historical record of all tank volume entries.
+              A historical record of all machine reading entries.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -176,8 +176,8 @@ export default function TankManagementPage() {
             ) : (
               <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
                 <Beaker className="w-16 h-16" />
-                <h3 className="text-xl font-semibold">No Dip Readings Found</h3>
-                <p>Use the form to log your first tank volume reading.</p>
+                <h3 className="text-xl font-semibold">No Machine Readings Found</h3>
+                <p>Use the form to log your first machine reading.</p>
               </div>
             )}
           </CardContent>

@@ -59,7 +59,7 @@ const navItems = [
     icon: Package,
     subItems: [
         { href: '/inventory/', label: 'Stock Levels', icon: Package },
-        { href: '/tanks/', label: 'Dip Reading', icon: Beaker },
+        { href: '/tanks/', label: 'Machine Reading', icon: Beaker },
     ]
   },
   {
