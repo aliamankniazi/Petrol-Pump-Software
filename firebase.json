@@ -1,10 +1,4 @@
 {
-  "database": {
-    "rules": "database.rules.json"
-  },
-  "storage": {
-    "rules": "storage.rules"
-  },
   "hosting": {
     "public": "out",
     "ignore": [
@@ -18,5 +12,11 @@
         "destination": "/index.html"
       }
     ]
+  },
+  "database": {
+    "rules": "database.rules.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
   }
 }
