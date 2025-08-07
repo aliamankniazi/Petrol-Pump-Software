@@ -1,4 +1,4 @@
-# Petrol Pump Management Software
+# Mianwali Petroleum Service Mianwali
 
 This is a comprehensive management software for petrol pumps, built with a modern technology stack. It helps manage sales, inventory, customers, finances, and more, with AI-powered analytics. This project was bootstrapped with Firebase Studio.
 

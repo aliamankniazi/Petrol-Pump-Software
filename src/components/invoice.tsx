@@ -74,7 +74,7 @@ export function Invoice({ data }: { data: InvoiceData }) {
         <div className="flex items-start gap-4">
             <InvoiceLogo />
             <div>
-                <h1 className="text-xl font-bold text-gray-900">{companyDetails.name}</h1>
+                <h1 className="text-xl font-bold text-gray-900">{companyDetails.name} Mianwali</h1>
                 <p>Branch: {companyDetails.branch}</p>
                 <p>Mobile No1: {companyDetails.mobile1}</p>
                 <p>Mobile No2: {companyDetails.mobile2}</p>

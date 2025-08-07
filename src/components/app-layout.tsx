@@ -21,7 +21,6 @@ import {
   SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 import { FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, Fuel, DollarSign, Beaker, Handshake, PiggyBank, Archive, BarChartHorizontal } from 'lucide-react';
-import { Avatar, AvatarFallback } from './ui/avatar';
 
 
 const navItems = [
@@ -79,12 +78,23 @@ const navItems = [
 
 const AppLogo = () => (
     <div className="flex items-center gap-2.5">
-      <Avatar>
-          <AvatarFallback><Fuel /></AvatarFallback>
-      </Avatar>
+       <div className="flex items-center justify-center w-10 h-10 bg-blue-600 text-white rounded-full">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 8h.01"></path>
+                <path d="M6 8h.01"></path>
+                <path d="M10 4h.01"></path>
+                <path d="M18 8h.01"></path>
+                <path d="m3 22 1.3-1.3a1.5 1.5 0 0 0 0-2.1L3 17"></path>
+                <path d="m19 17-1.3 1.3a1.5 1.5 0 0 0 0 2.1L19 22"></path>
+                <path d="M10 18h4"></path>
+                <path d="M12 14v4"></path>
+                <path d="M10 10h.01"></path>
+                <path d="M14 10h.01"></path>
+            </svg>
+        </div>
       <div className="flex flex-col">
-        <h2 className="text-lg font-bold tracking-tighter text-primary">PumpPal</h2>
-        <p className="text-xs text-muted-foreground -mt-1">Management Software</p>
+        <h2 className="text-md font-bold tracking-tight text-primary">Mianwali Petroleum</h2>
+        <p className="text-xs text-muted-foreground -mt-1">Service Mianwali</p>
       </div>
     </div>
 );
