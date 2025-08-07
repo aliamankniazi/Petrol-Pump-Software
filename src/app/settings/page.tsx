@@ -64,6 +64,7 @@ export default function SettingsPage() {
     handleSubmit: handleSubmitProduct,
     reset: resetProduct,
     control: controlProduct,
+    setValue: setProductValue,
     formState: { errors: productErrors }
   } = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -100,20 +101,24 @@ export default function SettingsPage() {
   }, [clearAllData, toast]);
 
   const onProductSubmit: SubmitHandler<ProductFormValues> = React.useCallback((data) => {
+    const finalData = { ...data, supplierId: data.supplierId === 'none' ? undefined : data.supplierId };
     if (productToEdit) {
-      updateProduct(productToEdit.id!, data);
-      toast({ title: 'Product Updated', description: `${data.name} has been updated.` });
+      updateProduct(productToEdit.id!, finalData);
+      toast({ title: 'Product Updated', description: `${finalData.name} has been updated.` });
       setProductToEdit(null);
     } else {
-      addProduct({ ...data, stock: 0 }); // Initial stock is 0
-      toast({ title: 'Product Added', description: `${data.name} has been added.` });
+      addProduct({ ...finalData, stock: 0 }); // Initial stock is 0
+      toast({ title: 'Product Added', description: `${finalData.name} has been added.` });
     }
     resetProduct({ name: '', category: 'Lubricant', productType: 'Main', unit: 'Unit', price: 0, cost: 0, supplierId: '', location: '' });
   }, [productToEdit, addProduct, updateProduct, toast, resetProduct]);
   
   const handleEditProduct = (product: Product) => {
     setProductToEdit(product);
-    resetProduct(product);
+    // Use setValue for each field to ensure form state is updated correctly
+    Object.keys(product).forEach(key => {
+        setProductValue(key as keyof ProductFormValues, product[key as keyof ProductFormValues]);
+    });
   }
 
   const handleDeleteProduct = (id: string) => {
@@ -216,10 +221,10 @@ export default function SettingsPage() {
                             <div className="space-y-2">
                                 <Label>Supplier (Optional)</Label>
                                 <Controller name="supplierId" control={controlProduct} render={({ field }) => (
-                                    <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                                    <Select onValueChange={field.onChange} value={field.value || 'none'} defaultValue="none">
                                         <SelectTrigger><SelectValue placeholder="Select supplier"/></SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="">None</SelectItem>
+                                            <SelectItem value="none">None</SelectItem>
                                             {suppliersLoaded ? suppliers.map(s => <SelectItem key={s.id} value={s.id!}>{s.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
                                         </SelectContent>
                                     </Select>
@@ -231,7 +236,7 @@ export default function SettingsPage() {
                             </div>
                         </div>
                         <Button type="submit">{productToEdit ? 'Update Product' : 'Add Product'}</Button>
-                        {productToEdit && <Button type="button" variant="ghost" onClick={() => { setProductToEdit(null); resetProduct(); }}>Cancel Edit</Button>}
+                        {productToEdit && <Button type="button" variant="ghost" onClick={() => { setProductToEdit(null); resetProduct({ name: '', category: 'Lubricant', productType: 'Main', unit: 'Unit', price: 0, cost: 0, supplierId: 'none', location: '' }); }}>Cancel Edit</Button>}
                     </form>
                     <Separator className="my-6" />
                     <h4 className="text-md font-medium mb-4">Existing Products</h4>
