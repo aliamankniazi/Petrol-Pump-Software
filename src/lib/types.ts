@@ -5,9 +5,10 @@ export type FuelType = 'Unleaded' | 'Premium' | 'Diesel';
 export type PaymentMethod = 'Cash' | 'Card' | 'Mobile' | 'On Credit';
 
 export interface Product {
-    id: string;
+    id?: string;
     name: string;
     category: 'Fuel' | 'Lubricant' | 'Other';
+    productType: 'Main' | 'Secondary';
     unit: 'Litre' | 'Unit';
     price?: number; // Selling price
     cost?: number; // Purchase price

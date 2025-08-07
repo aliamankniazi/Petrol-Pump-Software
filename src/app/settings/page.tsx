@@ -24,9 +24,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
-import { useFuelPrices } from '@/hooks/use-fuel-prices';
-import type { FuelType, Supplier, Product } from '@/lib/types';
-import { useFuelStock } from '@/hooks/use-fuel-stock';
+import type { Supplier, Product } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSettings } from '@/hooks/use-settings';
 import { useSuppliers } from '@/hooks/use-suppliers';
@@ -34,11 +32,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import Link from 'next/link';
 import { useProducts } from '@/hooks/use-products';
 
-const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
-
 const productSchema = z.object({
   name: z.string().min(1, "Product name is required"),
   category: z.enum(['Fuel', 'Lubricant', 'Other']),
+  productType: z.enum(['Main', 'Secondary']),
   unit: z.enum(['Litre', 'Unit']),
   price: z.coerce.number().min(0, "Price must be non-negative"),
   cost: z.coerce.number().min(0, "Cost must be non-negative"),
@@ -64,9 +61,15 @@ export default function SettingsPage() {
     register: registerProduct,
     handleSubmit: handleSubmitProduct,
     reset: resetProduct,
+    control: controlProduct,
     formState: { errors: productErrors }
   } = useForm<ProductFormValues>({
-    resolver: zodResolver(productSchema)
+    resolver: zodResolver(productSchema),
+    defaultValues: {
+      category: 'Lubricant',
+      productType: 'Main',
+      unit: 'Unit'
+    }
   });
   
   const {
@@ -96,14 +99,14 @@ export default function SettingsPage() {
 
   const onProductSubmit: SubmitHandler<ProductFormValues> = React.useCallback((data) => {
     if (productToEdit) {
-      updateProduct(productToEdit.id, data);
+      updateProduct(productToEdit.id!, data);
       toast({ title: 'Product Updated', description: `${data.name} has been updated.` });
       setProductToEdit(null);
     } else {
       addProduct({ ...data, stock: 0 }); // Initial stock is 0
       toast({ title: 'Product Added', description: `${data.name} has been added.` });
     }
-    resetProduct({ name: '', category: 'Lubricant', unit: 'Unit', price: 0, cost: 0 });
+    resetProduct({ name: '', category: 'Lubricant', productType: 'Main', unit: 'Unit', price: 0, cost: 0 });
   }, [productToEdit, addProduct, updateProduct, toast, resetProduct]);
   
   const handleEditProduct = (product: Product) => {
@@ -127,7 +130,7 @@ export default function SettingsPage() {
 
   const handleDeleteSupplier = React.useCallback(() => {
     if (!supplierToDelete) return;
-    deleteSupplier(supplierToDelete.id);
+    deleteSupplier(supplierToDelete.id!);
     toast({
         title: "Supplier Deleted",
         description: `${supplierToDelete.name} has been removed from your list.`,
@@ -155,7 +158,7 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmitProduct(onProductSubmit)} className="space-y-4">
-                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="productName">Product Name</Label>
                                 <Input id="productName" {...registerProduct('name')} placeholder="e.g., Mobil Delvac 1" />
@@ -163,7 +166,7 @@ export default function SettingsPage() {
                             </div>
                             <div className="space-y-2">
                                 <Label>Category</Label>
-                                <Controller name="category" control={registerProduct.control} render={({ field }) => (
+                                <Controller name="category" control={controlProduct} render={({ field }) => (
                                     <Select onValueChange={field.onChange} value={field.value} defaultValue="Lubricant">
                                         <SelectTrigger><SelectValue/></SelectTrigger>
                                         <SelectContent>
@@ -174,9 +177,21 @@ export default function SettingsPage() {
                                     </Select>
                                 )}/>
                             </div>
+                             <div className="space-y-2">
+                                <Label>Product Type</Label>
+                                <Controller name="productType" control={controlProduct} render={({ field }) => (
+                                    <Select onValueChange={field.onChange} value={field.value} defaultValue="Main">
+                                        <SelectTrigger><SelectValue/></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Main">Main</SelectItem>
+                                            <SelectItem value="Secondary">Secondary</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                )}/>
+                            </div>
                             <div className="space-y-2">
                                 <Label>Unit</Label>
-                                <Controller name="unit" control={registerProduct.control} render={({ field }) => (
+                                <Controller name="unit" control={controlProduct} render={({ field }) => (
                                     <Select onValueChange={field.onChange} value={field.value} defaultValue="Unit">
                                         <SelectTrigger><SelectValue/></SelectTrigger>
                                         <SelectContent>
@@ -204,17 +219,17 @@ export default function SettingsPage() {
                     <h4 className="text-md font-medium mb-4">Existing Products</h4>
                     <div className="rounded-md border">
                         <Table>
-                            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Category</TableHead><TableHead>Unit</TableHead><TableHead>Price</TableHead><TableHead>Cost</TableHead><TableHead>Stock</TableHead><TableHead className="text-center">Actions</TableHead></TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Category</TableHead><TableHead>Type</TableHead><TableHead>Unit</TableHead><TableHead>Price</TableHead><TableHead>Cost</TableHead><TableHead>Stock</TableHead><TableHead className="text-center">Actions</TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {productsLoaded && products.length > 0 ? products.map(p => (
                                     <TableRow key={p.id}>
-                                        <TableCell>{p.name}</TableCell><TableCell>{p.category}</TableCell><TableCell>{p.unit}</TableCell><TableCell>{p.price}</TableCell><TableCell>{p.cost}</TableCell><TableCell>{p.stock}</TableCell>
+                                        <TableCell>{p.name}</TableCell><TableCell>{p.category}</TableCell><TableCell>{p.productType}</TableCell><TableCell>{p.unit}</TableCell><TableCell>{p.price}</TableCell><TableCell>{p.cost}</TableCell><TableCell>{p.stock}</TableCell>
                                         <TableCell className="text-center space-x-0">
                                             <Button variant="ghost" size="icon" title="Edit" onClick={() => handleEditProduct(p)}><Edit className="w-4 h-4" /></Button>
-                                            <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDeleteProduct(p.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                                            <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDeleteProduct(p.id!)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                                         </TableCell>
                                     </TableRow>
-                                )) : <TableRow><TableCell colSpan={7} className="h-24 text-center">{productsLoaded ? 'No products added.' : 'Loading...'}</TableCell></TableRow>}
+                                )) : <TableRow><TableCell colSpan={8} className="h-24 text-center">{productsLoaded ? 'No products added.' : 'Loading...'}</TableCell></TableRow>}
                             </TableBody>
                         </Table>
                     </div>
