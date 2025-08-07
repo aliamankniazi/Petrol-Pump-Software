@@ -4,13 +4,13 @@ export type FuelType = 'Unleaded' | 'Premium' | 'Diesel';
 export type PaymentMethod = 'Cash' | 'Card' | 'Mobile' | 'Salary';
 
 export interface Transaction {
-  id: string;
+  id?: string;
   fuelType: FuelType;
   volume: number;
   pricePerLitre: number;
   totalAmount: number;
   paymentMethod: PaymentMethod;
-  timestamp: string; // Changed from number to string to match usage
+  timestamp?: string; // Changed from number to string to match usage
   customerId?: string;
   customerName?: string;
   bankAccountId?: string;
@@ -18,129 +18,129 @@ export interface Transaction {
 }
 
 export interface Purchase {
-  id: string;
+  id?: string;
   supplierId: string;
   supplier: string;
   fuelType: FuelType;
   volume: number;
   totalCost: number;
-  timestamp: string;
+  timestamp?: string;
 }
 
 export interface PurchaseReturn {
-  id: string;
+  id?: string;
   supplierId: string;
   supplier: string;
   fuelType: FuelType;
   volume: number;
   totalRefund: number;
   reason: string;
-  timestamp: string;
+  timestamp?: string;
 }
 
 export type ExpenseCategory = 'Utilities' | 'Salaries' | 'Maintenance' | 'Other';
 
 export interface Expense {
-  id: string;
+  id?: string;
   description: string;
   category: ExpenseCategory;
   amount: number;
-  timestamp: string;
+  timestamp?: string;
 }
 
 export type OtherIncomeCategory = 'Service Station' | 'Tire Shop' | 'Tuck Shop' | 'Other';
 
 export interface OtherIncome {
-    id: string;
+    id?: string;
     description: string;
     category: OtherIncomeCategory;
     amount: number;
-    timestamp: string;
+    timestamp?: string;
 }
 
 export interface Customer {
-  id: string;
+  id?: string;
   name: string;
   contact: string;
   vehicleNumber?: string;
   area?: string;
   isPartner?: boolean;
-  timestamp: string; // Changed from number to string
+  timestamp?: string; // Changed from number to string
 }
 
 export interface Supplier {
-  id: string;
+  id?: string;
   name: string;
   contact?: string;
-  timestamp: string; // Changed from number to string
+  timestamp?: string; // Changed from number to string
 }
 
 export interface BankAccount {
-  id: string;
+  id?: string;
   bankName: string;
   accountNumber: string;
   balance: number;
-  timestamp: string; // Changed from number to string
+  timestamp?: string; // Changed from number to string
 }
 
 export interface Employee {
-  id: string;
+  id?: string;
   name: string;
   mobileNumber?: string;
   position: string;
   salary: number;
   hireDate: string;
-  timestamp: string; // Changed from number to string
+  timestamp?: string; // Changed from number to string
 }
 
 export interface CustomerPayment {
-  id: string;
+  id?: string;
   customerId: string;
   customerName: string;
   amount: number;
   paymentMethod: PaymentMethod;
-  timestamp: string;
+  timestamp?: string;
 }
 
 export interface SupplierPayment {
-  id: string;
+  id?: string;
   supplierId: string;
   supplierName: string;
   amount: number;
   paymentMethod: Omit<PaymentMethod, 'Salary'>;
-  timestamp: string;
+  timestamp?: string;
 }
 
 export interface CashAdvance {
-  id: string;
+  id?: string;
   customerId: string;
   customerName: string;
   amount: number;
   notes?: string;
-  timestamp: string;
+  timestamp?: string;
 }
 
 export interface TankReading {
-    id: string;
+    id?: string;
     fuelType: FuelType;
     volume: number;
-    timestamp: string;
+    timestamp?: string;
 }
 
 export interface Investment {
-  id: string;
+  id?: string;
   partnerId: string;
   partnerName: string;
   type: 'Investment' | 'Withdrawal';
   amount: number;
   notes?: string;
-  timestamp: string;
+  timestamp?: string;
 }
 
 export interface BusinessPartner {
-  id: string;
+  id?: string;
   name: string;
   sharePercentage: number;
   contact?: string;
-  timestamp: string; // Changed from number to string
+  timestamp?: string; // Changed from number to string
 }

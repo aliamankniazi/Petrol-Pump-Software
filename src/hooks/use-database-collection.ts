@@ -15,11 +15,11 @@ import { db, isFirebaseConfigured } from '@/lib/firebase-client';
 
 interface DbDoc {
   id: string;
-  timestamp?: string; // Timestamps should be strings (ISO 8601)
+  timestamp: string; 
   [key: string]: any;
 }
 
-export function useDatabaseCollection<T extends DbDoc>(
+export function useDatabaseCollection<T extends Omit<DbDoc, 'id' | 'timestamp'>>(
   collectionName: string,
 ) {
   const [data, setData] = useState<T[]>([]);
@@ -27,7 +27,6 @@ export function useDatabaseCollection<T extends DbDoc>(
 
   useEffect(() => {
     if (!isFirebaseConfigured() || !db) {
-      console.warn(`Firebase not configured or db not available, skipping fetch for ${collectionName}.`);
       setLoading(false);
       setData([]);
       return;
@@ -44,7 +43,7 @@ export function useDatabaseCollection<T extends DbDoc>(
     }
 
     const unsubscribe = onValue(collectionRef, (snapshot) => {
-      const dataArray: T[] = [];
+      const dataArray: any[] = [];
       if (snapshot.exists()) {
         const fetchedData = snapshot.val();
         Object.keys(fetchedData).forEach(key => {
@@ -71,10 +70,8 @@ export function useDatabaseCollection<T extends DbDoc>(
     return () => unsubscribe();
   }, [collectionName]);
 
-  const addDoc = useCallback(async (newData: Omit<T, 'id'>, docId?: string): Promise<T> => {
+  const addDoc = useCallback(async (newData: T, docId?: string): Promise<T & { id: string }> => {
     if (!db) {
-      // This should not happen with the corrected firebase-client, but as a safeguard.
-      console.error("Database not configured.");
       throw new Error("Database not configured.");
     }
     
@@ -85,15 +82,14 @@ export function useDatabaseCollection<T extends DbDoc>(
       docRef = push(ref(db, collectionName));
     }
     
-    const docWithId = { ...newData, id: docRef.key! } as T;
+    const docWithId = { ...newData, id: docRef.key! } as T & { id: string };
     
     await set(docRef, newData);
 
-    // No need to manually update state, onValue listener will handle it.
     return docWithId;
   }, [collectionName]);
   
-  const updateDoc = useCallback(async (id: string, updatedData: Partial<Omit<T, 'id'>>) => {
+  const updateDoc = useCallback(async (id: string, updatedData: Partial<T>) => {
      if (!db) return;
      const path = `${collectionName}/${id}`;
      
