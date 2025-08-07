@@ -88,8 +88,8 @@ export default function CustomerLedgerPage() {
 
         customerTransactions.forEach(tx => combined.push({
           id: `tx-${tx.id}`,
-          timestamp: tx.timestamp,
-          description: `${tx.volume.toFixed(2)}L of ${tx.fuelType}`,
+          timestamp: tx.timestamp!,
+          description: tx.items.map(item => `${item.volume.toFixed(2)}L of ${item.fuelType}`).join(', '),
           type: 'Sale',
           debit: tx.totalAmount,
           credit: 0,
@@ -98,7 +98,7 @@ export default function CustomerLedgerPage() {
         customerPaymentsReceived.forEach(p => {
             combined.push({
               id: `pay-${p.id}`,
-              timestamp: p.timestamp,
+              timestamp: p.timestamp!,
               description: `Payment Received (${p.paymentMethod})`,
               type: 'Payment',
               debit: 0,
@@ -109,7 +109,7 @@ export default function CustomerLedgerPage() {
         customerCashAdvances.forEach(ca => {
             combined.push({
               id: `adv-${ca.id}`,
-              timestamp: ca.timestamp,
+              timestamp: ca.timestamp!,
               description: ca.notes || 'Cash Advance',
               type: 'Cash Advance',
               debit: ca.amount,
@@ -123,7 +123,7 @@ export default function CustomerLedgerPage() {
                 if (inv.type === 'Investment') {
                     combined.push({
                         id: `inv-${inv.id}`,
-                        timestamp: inv.timestamp,
+                        timestamp: inv.timestamp!,
                         description: inv.notes || 'Investment',
                         type: 'Investment',
                         credit: inv.amount,
@@ -132,7 +132,7 @@ export default function CustomerLedgerPage() {
                 } else {
                     combined.push({
                         id: `wdr-${inv.id}`,
-                        timestamp: inv.timestamp,
+                        timestamp: inv.timestamp!,
                         description: inv.notes || 'Withdrawal',
                         type: 'Withdrawal',
                         debit: inv.amount,
@@ -148,7 +148,7 @@ export default function CustomerLedgerPage() {
 
         supplierPurchases.forEach(p => combined.push({
             id: `pur-${p.id}`,
-            timestamp: p.timestamp,
+            timestamp: p.timestamp!,
             description: `${p.volume.toFixed(2)}L of ${p.fuelType}`,
             type: 'Purchase',
             credit: p.totalCost,
@@ -157,7 +157,7 @@ export default function CustomerLedgerPage() {
 
         supplierPaymentsMade.forEach(sp => combined.push({
             id: `spay-${sp.id}`,
-            timestamp: sp.timestamp,
+            timestamp: sp.timestamp!,
             description: `Payment Made (${sp.paymentMethod})`,
             type: 'Supplier Payment',
             debit: sp.amount,

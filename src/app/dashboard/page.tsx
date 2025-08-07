@@ -66,7 +66,7 @@ export default function DashboardPage() {
     const salesByDay = useMemo(() => {
         const salesMap = new Map<string, number>();
         transactions.forEach(tx => {
-            const day = format(new Date(tx.timestamp), 'yyyy-MM-dd');
+            const day = format(new Date(tx.timestamp!), 'yyyy-MM-dd');
             salesMap.set(day, (salesMap.get(day) || 0) + tx.totalAmount);
         });
         
@@ -83,9 +83,9 @@ export default function DashboardPage() {
         const sales: RecentActivity[] = transactions.slice(0, 3).map(tx => ({
             id: `sale-${tx.id}`,
             type: 'Sale',
-            description: `${tx.customerName || 'Walk-in'} - ${tx.volume.toFixed(2)}L ${tx.fuelType}`,
+            description: `${tx.customerName || 'Walk-in'} - ${tx.items.length} item(s)`,
             amount: tx.totalAmount,
-            timestamp: tx.timestamp,
+            timestamp: tx.timestamp!,
             icon: Fuel,
             color: 'text-green-500',
         }));
@@ -95,7 +95,7 @@ export default function DashboardPage() {
             type: 'Purchase',
             description: `From ${p.supplier} - ${p.volume.toFixed(2)}L ${p.fuelType}`,
             amount: -p.totalCost,
-            timestamp: p.timestamp,
+            timestamp: p.timestamp!,
             icon: ShoppingCart,
             color: 'text-blue-500',
         }));
@@ -105,7 +105,7 @@ export default function DashboardPage() {
             type: 'Expense',
             description: `${ex.category} - ${ex.description}`,
             amount: -ex.amount,
-            timestamp: ex.timestamp,
+            timestamp: ex.timestamp!,
             icon: Receipt,
             color: 'text-red-500',
         }));

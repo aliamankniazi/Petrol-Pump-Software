@@ -62,8 +62,8 @@ export default function LedgerPage() {
 
     transactions.forEach(tx => combined.push({
       id: `tx-${tx.id}`,
-      timestamp: tx.timestamp,
-      description: `Sale: ${tx.volume.toFixed(2)}L of ${tx.fuelType} to ${tx.customerName || 'Walk-in'}`,
+      timestamp: tx.timestamp!,
+      description: `Sale to ${tx.customerName || 'Walk-in'}: ${tx.items.length} item(s)`,
       type: 'Sale',
       debit: 0,
       credit: tx.totalAmount,
@@ -71,7 +71,7 @@ export default function LedgerPage() {
 
     purchases.forEach(p => combined.push({
       id: `pur-${p.id}`,
-      timestamp: p.timestamp,
+      timestamp: p.timestamp!,
       description: `Purchase from ${p.supplier}: ${p.volume.toFixed(2)}L of ${p.fuelType}`,
       type: 'Purchase',
       debit: p.totalCost,
@@ -80,7 +80,7 @@ export default function LedgerPage() {
 
     expenses.forEach(e => combined.push({
         id: `exp-${e.id}`,
-        timestamp: e.timestamp,
+        timestamp: e.timestamp!,
         description: `Expense: ${e.description}`,
         type: 'Expense',
         debit: e.amount,
@@ -89,7 +89,7 @@ export default function LedgerPage() {
       
     purchaseReturns.forEach(pr => combined.push({
         id: `pr-${pr.id}`,
-        timestamp: pr.timestamp,
+        timestamp: pr.timestamp!,
         description: `Return to ${pr.supplier}: ${pr.volume.toFixed(2)}L of ${pr.fuelType}`,
         type: 'Purchase Return',
         debit: 0,
@@ -98,7 +98,7 @@ export default function LedgerPage() {
 
     otherIncomes.forEach(oi => combined.push({
         id: `oi-${oi.id}`,
-        timestamp: oi.timestamp,
+        timestamp: oi.timestamp!,
         description: `Income: ${oi.description}`,
         type: 'Other Income',
         debit: 0,
@@ -107,7 +107,7 @@ export default function LedgerPage() {
 
     supplierPayments.forEach(sp => combined.push({
       id: `sp-${sp.id}`,
-      timestamp: sp.timestamp,
+      timestamp: sp.timestamp!,
       description: `Payment to ${sp.supplierName}`,
       type: 'Supplier Payment',
       debit: sp.amount,
@@ -118,7 +118,7 @@ export default function LedgerPage() {
         if (inv.type === 'Investment') {
             combined.push({
                 id: `inv-${inv.id}`,
-                timestamp: inv.timestamp,
+                timestamp: inv.timestamp!,
                 description: `Investment from ${inv.partnerName}`,
                 type: 'Investment',
                 debit: 0,
@@ -127,7 +127,7 @@ export default function LedgerPage() {
         } else {
             combined.push({
                 id: `wdr-${inv.id}`,
-                timestamp: inv.timestamp,
+                timestamp: inv.timestamp!,
                 description: `Withdrawal by ${inv.partnerName}`,
                 type: 'Withdrawal',
                 debit: inv.amount,

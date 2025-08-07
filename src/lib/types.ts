@@ -4,11 +4,16 @@ export type FuelType = 'Unleaded' | 'Premium' | 'Diesel';
 
 export type PaymentMethod = 'Cash' | 'Card' | 'Mobile' | 'On Credit';
 
+export interface TransactionItem {
+    fuelType: FuelType;
+    volume: number;
+    pricePerLitre: number;
+    totalAmount: number;
+}
+
 export interface Transaction {
   id?: string;
-  fuelType: FuelType;
-  volume: number;
-  pricePerLitre: number;
+  items: TransactionItem[];
   totalAmount: number;
   paymentMethod: PaymentMethod;
   timestamp?: string;
@@ -101,7 +106,7 @@ export interface CustomerPayment {
   customerId: string;
   customerName: string;
   amount: number;
-  paymentMethod: PaymentMethod | 'Salary';
+  paymentMethod: Omit<PaymentMethod, 'On Credit'>;
   timestamp?: string;
 }
 
@@ -137,14 +142,5 @@ export interface Investment {
   type: 'Investment' | 'Withdrawal';
   amount: number;
   notes?: string;
-  timestamp?: string;
-}
-
-// This type is deprecated and will be removed. Use Customer with isPartner flag.
-export interface BusinessPartner {
-  id?: string;
-  name: string;
-  sharePercentage: number;
-  contact?: string;
   timestamp?: string;
 }

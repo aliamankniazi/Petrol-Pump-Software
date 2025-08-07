@@ -34,22 +34,20 @@ export default function InvoicePage() {
         const bankAccount = transaction.bankAccountId ? bankAccounts.find(b => b.id === transaction.bankAccountId) : null;
         invoiceData = {
           type: 'Sale',
-          id: transaction.id,
-          date: transaction.timestamp,
+          id: transaction.id!,
+          date: transaction.timestamp!,
           partner: {
             name: transaction.customerName || 'Walk-in Customer',
             contact: customer?.contact || 'N/A',
             balance: 0, // Note: Balance calculation would be complex here, so keeping it simple.
           },
-          items: [
-            {
-              name: `Fuel - ${transaction.fuelType}`,
-              group: 'Fuel',
-              quantity: transaction.volume,
-              price: transaction.pricePerLitre,
-              amount: transaction.totalAmount,
-            },
-          ],
+          items: transaction.items.map(item => ({
+            name: `Fuel - ${item.fuelType}`,
+            group: 'Fuel',
+            quantity: item.volume,
+            price: item.pricePerLitre,
+            amount: item.totalAmount,
+          })),
           totalAmount: transaction.totalAmount,
           paymentMethod: transaction.paymentMethod,
           bankDetails: bankAccount ? { name: bankAccount.bankName, number: bankAccount.accountNumber } : undefined,
@@ -61,8 +59,8 @@ export default function InvoicePage() {
         const supplier = suppliers.find(s => s.id === purchase.supplierId);
         invoiceData = {
           type: 'Purchase',
-          id: purchase.id,
-          date: purchase.timestamp,
+          id: purchase.id!,
+          date: purchase.timestamp!,
           partner: {
             name: purchase.supplier,
             contact: supplier?.contact || 'N/A',

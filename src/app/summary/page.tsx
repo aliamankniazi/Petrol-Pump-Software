@@ -86,7 +86,7 @@ export default function SummaryPage() {
     setSummary('');
     startTransition(async () => {
       try {
-        const todayTransactions = transactions.filter(tx => isToday(new Date(tx.timestamp)));
+        const todayTransactions = transactions.filter(tx => isToday(new Date(tx.timestamp!)));
         if (todayTransactions.length === 0) {
           setError("No sales recorded today to generate a summary.");
           return;
@@ -103,7 +103,7 @@ export default function SummaryPage() {
     });
   };
   
-  const hasTodayTransactions = isLoaded && transactions.some(tx => isToday(new Date(tx.timestamp)));
+  const hasTodayTransactions = isLoaded && transactions.some(tx => isToday(new Date(tx.timestamp!)));
 
   return (
     <div className="p-4 md:p-8 space-y-8">

@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -12,8 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Fuel, Tag, ScanLine, Calculator, Database, CreditCard, Wallet, Smartphone, Banknote } from 'lucide-react';
-import { Numpad } from '@/components/numpad';
+import { Fuel, Tag, ScanLine, Calculator, Database, CreditCard, Wallet, Smartphone, Banknote, PlusCircle, Trash2 } from 'lucide-react';
 import type { FuelType, Customer, BankAccount } from '@/lib/types';
 import { useFuelPrices } from '@/hooks/use-fuel-prices';
 import { useCustomers } from '@/hooks/use-customers';
@@ -21,14 +20,18 @@ import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomerBalance } from '@/hooks/use-customer-balance';
 import { useBankAccounts } from '@/hooks/use-bank-accounts';
 import { cn } from '@/lib/utils';
-
+import { Separator } from '@/components/ui/separator';
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
-const saleSchema = z.object({
+const saleItemSchema = z.object({
   fuelType: z.enum(FUEL_TYPES, { required_error: 'Please select a fuel type.' }),
-  saleType: z.enum(['amount', 'volume']),
+  saleType: z.enum(['amount', 'volume']).default('amount'),
   value: z.coerce.number().min(0.01, 'Value must be greater than 0'),
+});
+
+const saleSchema = z.object({
+  items: z.array(saleItemSchema).min(1, "Please add at least one item to the sale."),
   paymentMethod: z.enum(['Cash', 'Card', 'Mobile', 'On Credit']),
   customerId: z.string().optional(),
   bankAccountId: z.string().optional(),
@@ -43,49 +46,59 @@ export default function SalesPage() {
   const { addTransaction } = useTransactions();
   const { toast } = useToast();
 
-  const [activeInput, setActiveInput] = React.useState<'value' | 'barcode'>('value');
   const [barcode, setBarcode] = React.useState('');
   
   const { register, handleSubmit, control, watch, setValue, reset, formState: { errors } } = useForm<SaleFormValues>({
     resolver: zodResolver(saleSchema),
     defaultValues: {
-      saleType: 'amount',
+      items: [],
       paymentMethod: 'Cash',
-      value: 0,
     }
   });
 
-  const { fuelType, saleType, value, customerId, paymentMethod } = watch();
-  
-  const pricePerLitre = fuelType ? fuelPrices[fuelType] : 0;
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "items",
+  });
+
+  const { customerId, paymentMethod, items } = watch();
   
   const { balance: customerBalance, isLoaded: balanceLoaded } = useCustomerBalance(customerId || null);
 
   const calculated = React.useMemo(() => {
-    const numValue = Number(value) || 0;
-    if (pricePerLitre === 0 || numValue === 0) return { amount: 0, volume: 0 };
-    if (saleType === 'amount') {
-      return { amount: numValue, volume: numValue / pricePerLitre };
-    } else {
-      return { amount: numValue * pricePerLitre, volume: numValue };
-    }
-  }, [saleType, value, pricePerLitre]);
+    let totalAmount = 0;
+    const processedItems = items.map(item => {
+        const pricePerLitre = item.fuelType ? fuelPrices[item.fuelType] : 0;
+        const numValue = Number(item.value) || 0;
+        if (pricePerLitre === 0 || numValue === 0) return { ...item, amount: 0, volume: 0, pricePerLitre };
+        
+        let itemAmount = 0;
+        let itemVolume = 0;
 
-  const handleNumpadKey = React.useCallback((key: string) => {
-    const target = activeInput === 'value' ? 'value' : 'barcode';
-    const setter = activeInput === 'value' ? (v: any) => setValue('value', v, { shouldValidate: true }) : setBarcode;
-    const currentValue = activeInput === 'value' ? String(value) : barcode;
+        if (item.saleType === 'amount') {
+            itemAmount = numValue;
+            itemVolume = numValue / pricePerLitre;
+        } else {
+            itemVolume = numValue;
+            itemAmount = numValue * pricePerLitre;
+        }
+        totalAmount += itemAmount;
+        return { ...item, amount: itemAmount, volume: itemVolume, pricePerLitre };
+    });
 
-    if (key === 'C') {
-      setter(target === 'value' ? 0 : '');
-    } else if (key === '.' && currentValue.includes('.')) {
-      return;
-    } else {
-      const newValue = currentValue === '0' && key !== '.' ? key : currentValue + key;
-      setter(target === 'value' ? parseFloat(newValue) || 0 : newValue);
-    }
-  }, [activeInput, value, barcode, setValue]);
+    return { totalAmount, items: processedItems };
+  }, [items, fuelPrices]);
+
+  const addNewItem = () => {
+    append({ fuelType: 'Unleaded', saleType: 'amount', value: 0 });
+  };
   
+  React.useEffect(() => {
+    if (fields.length === 0) {
+        addNewItem();
+    }
+  }, [fields.length]);
+
   React.useEffect(() => {
     if (barcode.length > 0) {
         const foundCustomer = customers.find(c => c.id === barcode);
@@ -97,11 +110,11 @@ export default function SalesPage() {
   }, [barcode, customers, setValue]);
 
   const onSubmit = (data: SaleFormValues) => {
-    if (calculated.amount <= 0 || calculated.volume <= 0) {
+    if (calculated.totalAmount <= 0) {
         toast({
             variant: "destructive",
             title: "Invalid Sale",
-            description: "Please enter a valid amount or volume."
+            description: "Please enter a valid amount or volume for at least one item."
         })
         return;
     }
@@ -110,10 +123,13 @@ export default function SalesPage() {
     const bankAccount = bankAccounts.find(b => b.id === data.bankAccountId);
 
     addTransaction({
-      fuelType: data.fuelType,
-      volume: calculated.volume,
-      pricePerLitre: pricePerLitre,
-      totalAmount: calculated.amount,
+      items: calculated.items.map(i => ({
+          fuelType: i.fuelType,
+          volume: i.volume,
+          pricePerLitre: i.pricePerLitre,
+          totalAmount: i.amount
+      })),
+      totalAmount: calculated.totalAmount,
       paymentMethod: data.paymentMethod,
       timestamp: new Date().toISOString(),
       customerId: customer?.id,
@@ -124,14 +140,14 @@ export default function SalesPage() {
     
     toast({
       title: 'Sale Recorded',
-      description: `Sale of ${calculated.volume.toFixed(2)}L for PKR ${calculated.amount.toFixed(2)} completed.`,
+      description: `Sale of ${items.length} item(s) for PKR ${calculated.totalAmount.toFixed(2)} completed.`,
     });
     
     reset({
-        fuelType: data.fuelType,
-        saleType: 'amount',
+        items: [],
         paymentMethod: 'Cash',
-        value: 0
+        customerId: undefined,
+        bankAccountId: undefined,
     });
   };
 
@@ -144,76 +160,65 @@ export default function SalesPage() {
           <Card className="flex-grow flex flex-col">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Fuel/> Electronic Point of Sale (EPOS)</CardTitle>
-              <CardDescription>Process a new fuel sale transaction.</CardDescription>
+              <CardDescription>Process a new fuel sale transaction. Add multiple products to a single order.</CardDescription>
             </CardHeader>
             <CardContent className="flex-grow grid md:grid-cols-2 gap-8">
-              <div className="space-y-6">
-                 {/* Fuel Type Selection */}
-                <Controller
-                  name="fuelType"
-                  control={control}
-                  render={({ field }) => (
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      className="grid grid-cols-3 gap-4"
-                    >
-                      {FUEL_TYPES.map(type => (
-                        <div key={type}>
-                          <RadioGroupItem value={type} id={type} className="peer sr-only" />
-                          <Label
-                            htmlFor={type}
-                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                          >
-                            <span className="font-semibold">{type}</span>
-                            <span className="text-xs">PKR {fuelPrices[type].toFixed(2)}/L</span>
-                          </Label>
+              <div className="space-y-4">
+                 <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2">
+                 {fields.map((field, index) => (
+                    <Card key={field.id} className="p-4 relative">
+                        <div className="grid grid-cols-6 gap-4">
+                            <div className="col-span-3 space-y-2">
+                                <Label>Fuel Type</Label>
+                                <Controller
+                                    name={`items.${index}.fuelType`}
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <SelectTrigger><SelectValue placeholder="Select fuel" /></SelectTrigger>
+                                            <SelectContent>
+                                                {FUEL_TYPES.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </div>
+                             <div className="col-span-3 space-y-2">
+                                <Label>Sale By</Label>
+                                <Controller
+                                    name={`items.${index}.saleType`}
+                                    control={control}
+                                    render={({ field }) => (
+                                         <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-2 items-center h-10">
+                                            <Label className="flex items-center gap-2 border rounded-md p-2 cursor-pointer has-[:checked]:border-primary text-xs flex-1 justify-center">
+                                                <RadioGroupItem value="amount" />
+                                                Amount
+                                            </Label>
+                                            <Label className="flex items-center gap-2 border rounded-md p-2 cursor-pointer has-[:checked]:border-primary text-xs flex-1 justify-center">
+                                                <RadioGroupItem value="volume" />
+                                                Volume
+                                            </Label>
+                                        </RadioGroup>
+                                    )}
+                                />
+                            </div>
+                            <div className="col-span-6 space-y-2">
+                                <Label>Value</Label>
+                                <Input 
+                                    {...register(`items.${index}.value`)}
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="0.00"
+                                />
+                            </div>
                         </div>
-                      ))}
-                    </RadioGroup>
-                  )}
-                />
-                {errors.fuelType && <p className="text-sm text-destructive -mt-2">{errors.fuelType.message}</p>}
+                        {fields.length > 1 && <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 w-6 h-6" onClick={() => remove(index)}><Trash2 className="w-4 h-4" /></Button>}
+                    </Card>
+                 ))}
+                 </div>
+                 <Button type="button" variant="outline" onClick={addNewItem} className="w-full"><PlusCircle /> Add Another Product</Button>
                 
-                {/* Sale by Amount or Volume */}
-                <Controller
-                  name="saleType"
-                  control={control}
-                  render={({ field }) => (
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      className="grid grid-cols-2 gap-4"
-                    >
-                      <Label className="flex items-center gap-2 border rounded-md p-3 cursor-pointer has-[:checked]:border-primary">
-                        <RadioGroupItem value="amount" />
-                        <Tag className="w-5 h-5" />
-                        Sale by Amount
-                      </Label>
-                      <Label className="flex items-center gap-2 border rounded-md p-3 cursor-pointer has-[:checked]:border-primary">
-                        <RadioGroupItem value="volume" />
-                        <Database className="w-5 h-5"/>
-                        Sale by Volume
-                      </Label>
-                    </RadioGroup>
-                  )}
-                />
-
-                {/* Main Input */}
-                <div className="relative">
-                  <Input
-                    {...register('value')}
-                    type="number"
-                    step="0.01"
-                    className={`h-20 text-4xl font-bold text-center pr-12 ${activeInput === 'value' ? 'border-primary border-2' : ''}`}
-                    onFocus={() => setActiveInput('value')}
-                    placeholder="0.00"
-                  />
-                   <span className="absolute top-1/2 right-4 -translate-y-1/2 text-xl font-semibold text-muted-foreground">
-                    {saleType === 'amount' ? 'PKR' : 'L'}
-                   </span>
-                </div>
-                {errors.value && <p className="text-sm text-destructive">{errors.value.message}</p>}
+                <Separator />
                 
                 {/* Customer Selection */}
                 <div className="grid grid-cols-2 gap-4">
@@ -243,9 +248,8 @@ export default function SalesPage() {
                     <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                     <Input 
                       placeholder="Scan Barcode" 
-                      className={`pl-10 ${activeInput === 'barcode' ? 'border-primary border-2' : ''}`}
+                      className="pl-10"
                       value={barcode}
-                      onFocus={() => setActiveInput('barcode')}
                       onChange={(e) => setBarcode(e.target.value)}
                     />
                   </div>
@@ -299,25 +303,23 @@ export default function SalesPage() {
                       )}
                   />
                 )}
-
               </div>
               <div className="space-y-6">
                 <Card className="bg-muted/50">
                    <CardHeader>
                         <CardTitle className="flex items-center gap-2"><Calculator/> Sale Summary</CardTitle>
                    </CardHeader>
-                   <CardContent className="space-y-4">
-                     <div className="flex justify-between items-center text-lg">
-                       <span className="text-muted-foreground">Volume:</span>
-                       <span className="font-bold">{calculated.volume.toFixed(3)} L</span>
-                     </div>
-                      <div className="flex justify-between items-center text-lg">
-                       <span className="text-muted-foreground">Rate:</span>
-                       <span className="font-bold">PKR {pricePerLitre.toFixed(2)}</span>
-                     </div>
-                      <div className="flex justify-between items-center text-2xl font-bold border-t pt-4">
-                       <span>Total Amount:</span>
-                       <span className="text-primary">PKR {calculated.amount.toFixed(2)}</span>
+                   <CardContent className="space-y-2 text-sm">
+                     {calculated.items.map((item, index) => (
+                        <div key={index} className="flex justify-between items-center">
+                            <span className="text-muted-foreground">{item.fuelType} ({item.volume.toFixed(2)} L)</span>
+                            <span className="font-mono">PKR {item.amount.toFixed(2)}</span>
+                        </div>
+                     ))}
+                      <Separator />
+                      <div className="flex justify-between items-center text-xl font-bold border-t pt-4 mt-4">
+                       <span>Total:</span>
+                       <span className="text-primary">PKR {calculated.totalAmount.toFixed(2)}</span>
                      </div>
                    </CardContent>
                 </Card>
@@ -348,11 +350,6 @@ export default function SalesPage() {
           </Card>
         </form>
       </div>
-
-      <aside className="w-1/3 p-4 md:p-8 border-l bg-muted/20 hidden lg:block">
-        <h3 className="text-lg font-semibold text-center mb-6">Quick Input</h3>
-        <Numpad onKeyPress={handleNumpadKey} />
-      </aside>
     </div>
   );
 }

@@ -90,12 +90,12 @@ export default function UnifiedLedgerPage() {
         if (!entity) return;
         combined.push({
           id: `tx-${tx.id}`,
-          timestamp: tx.timestamp,
+          timestamp: tx.timestamp!,
           entityId: tx.customerId,
           entityName: tx.customerName || 'N/A',
           entityType: entity.type,
           type: 'Sale',
-          description: `${tx.volume.toFixed(2)}L of ${tx.fuelType}`,
+          description: tx.items.map(item => `${item.volume.toFixed(2)}L of ${item.fuelType}`).join(', '),
           debit: tx.totalAmount,
           credit: 0,
         });
@@ -107,7 +107,7 @@ export default function UnifiedLedgerPage() {
        if (!entity) return;
        combined.push({
         id: `pay-${p.id}`,
-        timestamp: p.timestamp,
+        timestamp: p.timestamp!,
         entityId: p.customerId,
         entityName: p.customerName,
         entityType: entity.type,
@@ -123,7 +123,7 @@ export default function UnifiedLedgerPage() {
        if (!entity) return;
        combined.push({
         id: `adv-${ca.id}`,
-        timestamp: ca.timestamp,
+        timestamp: ca.timestamp!,
         entityId: ca.customerId,
         entityName: ca.customerName,
         entityType: entity.type,
@@ -138,7 +138,7 @@ export default function UnifiedLedgerPage() {
     purchases.forEach(p => {
         combined.push({
             id: `pur-${p.id}`,
-            timestamp: p.timestamp,
+            timestamp: p.timestamp!,
             entityId: p.supplierId,
             entityName: p.supplier,
             entityType: 'Supplier',
@@ -152,7 +152,7 @@ export default function UnifiedLedgerPage() {
     supplierPayments.forEach(sp => {
         combined.push({
             id: `spay-${sp.id}`,
-            timestamp: sp.timestamp,
+            timestamp: sp.timestamp!,
             entityId: sp.supplierId,
             entityName: sp.supplierName,
             entityType: 'Supplier',
@@ -167,7 +167,7 @@ export default function UnifiedLedgerPage() {
     investments.forEach(inv => {
         combined.push({
             id: `inv-${inv.id}`,
-            timestamp: inv.timestamp,
+            timestamp: inv.timestamp!,
             entityId: inv.partnerId,
             entityName: inv.partnerName,
             entityType: 'Partner',

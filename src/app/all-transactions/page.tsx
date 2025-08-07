@@ -68,19 +68,19 @@ export default function AllTransactionsPage() {
 
     const sales: CombinedEntry[] = transactions.map(tx => ({
       id: `sale-${tx.id}`,
-      originalId: tx.id,
-      timestamp: tx.timestamp,
+      originalId: tx.id!,
+      timestamp: tx.timestamp!,
       type: 'Sale',
       partner: tx.customerName || 'Walk-in Customer',
-      details: `${tx.volume.toFixed(2)}L of ${tx.fuelType}`,
+      details: tx.items.map(item => `${item.volume.toFixed(2)}L of ${item.fuelType}`).join(', '),
       amount: tx.totalAmount,
       original: tx,
     }));
 
     const allPurchases: CombinedEntry[] = purchases.map(p => ({
       id: `purchase-${p.id}`,
-      originalId: p.id,
-      timestamp: p.timestamp,
+      originalId: p.id!,
+      timestamp: p.timestamp!,
       type: 'Purchase',
       partner: p.supplier,
       details: `${p.volume.toFixed(2)}L of ${p.fuelType}`,
@@ -90,8 +90,8 @@ export default function AllTransactionsPage() {
 
     const returns: CombinedEntry[] = purchaseReturns.map(pr => ({
       id: `return-${pr.id}`,
-      originalId: pr.id,
-      timestamp: pr.timestamp,
+      originalId: pr.id!,
+      timestamp: pr.timestamp!,
       type: 'Purchase Return',
       partner: pr.supplier,
       details: `${pr.volume.toFixed(2)}L of ${pr.fuelType}`,
