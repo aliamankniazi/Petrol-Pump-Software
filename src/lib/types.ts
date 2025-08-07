@@ -39,7 +39,8 @@ export interface PurchaseItem {
     productId: string;
     productName: string;
     quantity: number;
-    cost: number;
+    costPerUnit: number;
+    totalCost: number;
 }
 
 export interface Purchase {

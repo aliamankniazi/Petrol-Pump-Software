@@ -42,10 +42,10 @@ export default function InvoicePage() {
             balance: 0, // Note: Balance calculation would be complex here, so keeping it simple.
           },
           items: transaction.items.map(item => ({
-            name: `Fuel - ${item.fuelType}`,
+            name: item.productName,
             group: 'Fuel',
-            quantity: item.volume,
-            price: item.pricePerLitre,
+            quantity: item.quantity,
+            price: item.pricePerUnit,
             amount: item.totalAmount,
           })),
           totalAmount: transaction.totalAmount,
@@ -67,11 +67,11 @@ export default function InvoicePage() {
             balance: 0,
           },
           items: purchase.items.map(item => ({
-              name: `Fuel - ${item.fuelType}`,
+              name: item.productName,
               group: 'Fuel',
-              quantity: item.volume,
-              price: item.cost / item.volume,
-              amount: item.cost,
+              quantity: item.quantity,
+              price: item.costPerUnit,
+              amount: item.totalCost,
           })),
           totalAmount: purchase.totalCost,
           paymentMethod: 'Credit', // Purchases are assumed to be on credit

@@ -26,7 +26,8 @@ import { useProducts } from '@/hooks/use-products';
 const purchaseItemSchema = z.object({
   productId: z.string().min(1, 'Product is required.'),
   quantity: z.coerce.number().min(0.01, 'Quantity must be positive.'),
-  cost: z.coerce.number().min(0.01, 'Cost must be positive.'),
+  costPerUnit: z.coerce.number().min(0, "Cost must be non-negative."),
+  totalCost: z.coerce.number().min(0.01, 'Cost must be positive.'),
 });
 
 const purchaseSchema = z.object({
@@ -71,7 +72,7 @@ export default function PurchasesPage() {
 
   const watchedItems = watch('items');
   const totalCost = useMemo(() => {
-    return watchedItems.reduce((sum, item) => sum + (item.cost || 0), 0);
+    return watchedItems.reduce((sum, item) => sum + (item.totalCost || 0), 0);
   }, [watchedItems]);
 
   const {
@@ -85,9 +86,30 @@ export default function PurchasesPage() {
   
   useEffect(() => {
     if (fields.length === 0) {
-        append({ productId: '', quantity: 0, cost: 0 });
+        append({ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 });
     }
   }, [fields.length, append]);
+  
+  const handleProductChange = (index: number, productId: string) => {
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      setValue(`items.${index}.costPerUnit`, product.cost || 0, { shouldValidate: true });
+      const quantity = watch(`items.${index}.quantity`);
+      if (quantity > 0) {
+        setValue(`items.${index}.totalCost`, quantity * (product.cost || 0), { shouldValidate: true });
+      }
+    }
+  };
+
+  const handleQuantityChange = (index: number, quantity: number) => {
+    const costPerUnit = watch(`items.${index}.costPerUnit`);
+    setValue(`items.${index}.totalCost`, quantity * costPerUnit, { shouldValidate: true });
+  }
+
+  const handleCostPerUnitChange = (index: number, cost: number) => {
+    const quantity = watch(`items.${index}.quantity`);
+    setValue(`items.${index}.totalCost`, quantity * cost, { shouldValidate: true });
+  }
 
   const onPurchaseSubmit: SubmitHandler<PurchaseFormValues> = (data) => {
     const supplier = suppliers.find(s => s.id === data.supplierId);
@@ -97,7 +119,7 @@ export default function PurchasesPage() {
         const product = products.find(p => p.id === item.productId);
         return {
             ...item,
-            productName: product?.name || 'Unknown Product'
+            productName: product?.name || 'Unknown Product',
         }
     });
 
@@ -214,7 +236,10 @@ export default function PurchasesPage() {
                                       name={`items.${index}.productId`}
                                       control={control}
                                       render={({ field }) => (
-                                         <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                                         <Select onValueChange={(value) => {
+                                            field.onChange(value);
+                                            handleProductChange(index, value);
+                                        }} value={field.value} defaultValue="">
                                           <SelectTrigger>
                                             <SelectValue placeholder="Select a product" />
                                           </SelectTrigger>
@@ -229,20 +254,25 @@ export default function PurchasesPage() {
                                 </div>
                                  <div className="space-y-2">
                                   <Label htmlFor={`items.${index}.quantity`}>Quantity</Label>
-                                  <Input id={`items.${index}.quantity`} type="number" {...register(`items.${index}.quantity`)} placeholder="e.g., 5000" step="0.01" />
+                                  <Input id={`items.${index}.quantity`} type="number" {...register(`items.${index}.quantity`)} placeholder="e.g., 5000" step="0.01" onChange={(e) => handleQuantityChange(index, +e.target.value)} />
                                   {errors.items?.[index]?.quantity && <p className="text-sm text-destructive">{errors.items?.[index]?.quantity?.message}</p>}
                                 </div>
                                 <div className="space-y-2">
-                                  <Label htmlFor={`items.${index}.cost`}>Total Cost (PKR)</Label>
-                                  <Input id={`items.${index}.cost`} type="number" {...register(`items.${index}.cost`)} placeholder="e.g., 1000000" step="0.01" />
-                                  {errors.items?.[index]?.cost && <p className="text-sm text-destructive">{errors.items?.[index]?.cost?.message}</p>}
+                                  <Label htmlFor={`items.${index}.costPerUnit`}>Cost / Unit</Label>
+                                  <Input id={`items.${index}.costPerUnit`} type="number" {...register(`items.${index}.costPerUnit`)} placeholder="e.g., 250" step="0.01" onChange={(e) => handleCostPerUnitChange(index, +e.target.value)} />
+                                  {errors.items?.[index]?.costPerUnit && <p className="text-sm text-destructive">{errors.items?.[index]?.costPerUnit?.message}</p>}
+                                </div>
+                                <div className="col-span-2 space-y-2">
+                                  <Label htmlFor={`items.${index}.totalCost`}>Total Cost (PKR)</Label>
+                                  <Input id={`items.${index}.totalCost`} type="number" {...register(`items.${index}.totalCost`)} placeholder="e.g., 1000000" step="0.01" className="font-bold" />
+                                  {errors.items?.[index]?.totalCost && <p className="text-sm text-destructive">{errors.items?.[index]?.totalCost?.message}</p>}
                                 </div>
                              </div>
                             <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 w-6 h-6" onClick={() => remove(index)}><Trash2 className="w-4 h-4" /></Button>
                         </Card>
                     ))}
                 </div>
-                 <Button type="button" variant="outline" onClick={() => append({ productId: '', quantity: 0, cost: 0 })} className="w-full"><PlusCircle /> Add Product</Button>
+                 <Button type="button" variant="outline" onClick={() => append({ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 })} className="w-full"><PlusCircle /> Add Product</Button>
               
               <div className="border-t pt-4 space-y-2">
                 <h3 className="text-lg font-semibold">Total Purchase Cost</h3>

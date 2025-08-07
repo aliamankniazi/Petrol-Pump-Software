@@ -24,8 +24,9 @@ import { useProducts } from '@/hooks/use-products';
 
 const saleItemSchema = z.object({
   productId: z.string().min(1, 'Please select a product.'),
-  saleType: z.enum(['amount', 'quantity']).default('amount'),
-  value: z.coerce.number().min(0.01, 'Value must be greater than 0'),
+  quantity: z.coerce.number().min(0.01, 'Quantity must be positive.'),
+  pricePerUnit: z.coerce.number().min(0, 'Price must be non-negative.'),
+  totalAmount: z.coerce.number().min(0.01, 'Total must be positive.'),
 });
 
 const saleSchema = z.object({
@@ -62,35 +63,43 @@ export default function SalesPage() {
   const { customerId, paymentMethod, items } = watch();
   
   const { balance: customerBalance, isLoaded: balanceLoaded } = useCustomerBalance(customerId || null);
+  
+  const totalAmount = React.useMemo(() => {
+    return items.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
+  }, [items]);
 
-  const calculated = React.useMemo(() => {
-    let totalAmount = 0;
-    const processedItems = items.map(item => {
-        const product = products.find(p => p.id === item.productId);
-        if (!product || !product.price) return { ...item, amount: 0, quantity: 0, pricePerUnit: 0, productName: '' };
-        
-        const pricePerUnit = product.price;
-        const numValue = Number(item.value) || 0;
-        
-        let itemAmount = 0;
-        let itemQuantity = 0;
 
-        if (item.saleType === 'amount') {
-            itemAmount = numValue;
-            itemQuantity = pricePerUnit > 0 ? numValue / pricePerUnit : 0;
-        } else { // quantity
-            itemQuantity = numValue;
-            itemAmount = numValue * pricePerUnit;
+  const handleProductChange = (index: number, productId: string) => {
+    const product = products.find(p => p.id === productId);
+    if (product) {
+        setValue(`items.${index}.pricePerUnit`, product.price || 0, { shouldValidate: true });
+        const quantity = watch(`items.${index}.quantity`);
+        if (quantity > 0) {
+            setValue(`items.${index}.totalAmount`, quantity * (product.price || 0), { shouldValidate: true });
         }
-        totalAmount += itemAmount;
-        return { ...item, amount: itemAmount, quantity: itemQuantity, pricePerUnit, productName: product.name };
-    });
+    }
+  };
 
-    return { totalAmount, items: processedItems };
-  }, [items, products]);
+  const handleQuantityChange = (index: number, quantity: number) => {
+    const pricePerUnit = watch(`items.${index}.pricePerUnit`);
+    setValue(`items.${index}.totalAmount`, quantity * pricePerUnit, { shouldValidate: true });
+  }
+  
+  const handlePriceChange = (index: number, price: number) => {
+    const quantity = watch(`items.${index}.quantity`);
+    setValue(`items.${index}.totalAmount`, quantity * price, { shouldValidate: true });
+  }
+
+  const handleTotalAmountChange = (index: number, totalAmount: number) => {
+      const pricePerUnit = watch(`items.${index}.pricePerUnit`);
+      if (pricePerUnit > 0) {
+          setValue(`items.${index}.quantity`, totalAmount / pricePerUnit, { shouldValidate: true });
+      }
+  }
+
 
   const addNewItem = () => {
-    append({ productId: '', saleType: 'amount', value: 0 });
+    append({ productId: '', quantity: 0, pricePerUnit: 0, totalAmount: 0 });
   };
   
   React.useEffect(() => {
@@ -110,7 +119,7 @@ export default function SalesPage() {
   }, [barcode, customers, setValue]);
 
   const onSubmit = (data: SaleFormValues) => {
-    if (calculated.totalAmount <= 0) {
+    if (totalAmount <= 0) {
         toast({
             variant: "destructive",
             title: "Invalid Sale",
@@ -121,16 +130,18 @@ export default function SalesPage() {
 
     const customer = customers.find(c => c.id === data.customerId);
     const bankAccount = bankAccounts.find(b => b.id === data.bankAccountId);
+    
+    const finalItems = data.items.map(item => {
+        const product = products.find(p => p.id === item.productId);
+        return {
+            ...item,
+            productName: product?.name || 'Unknown Product'
+        };
+    });
 
     addTransaction({
-      items: calculated.items.map(i => ({
-          productId: i.productId,
-          productName: i.productName,
-          quantity: i.quantity,
-          pricePerUnit: i.pricePerUnit,
-          totalAmount: i.amount
-      })),
-      totalAmount: calculated.totalAmount,
+      items: finalItems,
+      totalAmount: totalAmount,
       paymentMethod: data.paymentMethod,
       timestamp: new Date().toISOString(),
       customerId: customer?.id,
@@ -141,7 +152,7 @@ export default function SalesPage() {
     
     toast({
       title: 'Sale Recorded',
-      description: `Sale of ${items.length} item(s) for PKR ${calculated.totalAmount.toFixed(2)} completed.`,
+      description: `Sale of ${items.length} item(s) for PKR ${totalAmount.toFixed(2)} completed.`,
     });
     
     reset({
@@ -167,15 +178,18 @@ export default function SalesPage() {
               <div className="space-y-4">
                  <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2">
                  {fields.map((field, index) => (
-                    <Card key={field.id} className="p-4 relative">
-                        <div className="grid grid-cols-6 gap-4">
-                            <div className="col-span-3 space-y-2">
+                    <Card key={field.id} className="p-4 relative bg-muted/30">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="col-span-2 space-y-2">
                                 <Label>Product</Label>
                                 <Controller
                                     name={`items.${index}.productId`}
                                     control={control}
                                     render={({ field }) => (
-                                        <Select onValueChange={field.onChange} value={field.value}>
+                                        <Select onValueChange={(value) => {
+                                            field.onChange(value);
+                                            handleProductChange(index, value);
+                                        }} value={field.value}>
                                             <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
                                             <SelectContent>
                                                 {productsLoaded ? products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
@@ -184,32 +198,35 @@ export default function SalesPage() {
                                     )}
                                 />
                             </div>
-                             <div className="col-span-3 space-y-2">
-                                <Label>Sale By</Label>
-                                <Controller
-                                    name={`items.${index}.saleType`}
-                                    control={control}
-                                    render={({ field }) => (
-                                         <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-2 items-center h-10">
-                                            <Label className="flex items-center gap-2 border rounded-md p-2 cursor-pointer has-[:checked]:border-primary text-xs flex-1 justify-center">
-                                                <RadioGroupItem value="amount" />
-                                                Amount
-                                            </Label>
-                                            <Label className="flex items-center gap-2 border rounded-md p-2 cursor-pointer has-[:checked]:border-primary text-xs flex-1 justify-center">
-                                                <RadioGroupItem value="quantity" />
-                                                Quantity
-                                            </Label>
-                                        </RadioGroup>
-                                    )}
-                                />
-                            </div>
-                            <div className="col-span-6 space-y-2">
-                                <Label>Value</Label>
+                            <div className="space-y-2">
+                                <Label>Quantity</Label>
                                 <Input 
-                                    {...register(`items.${index}.value`)}
+                                    {...register(`items.${index}.quantity`)}
                                     type="number"
                                     step="0.01"
                                     placeholder="0.00"
+                                    onChange={(e) => handleQuantityChange(index, +e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Price / Unit</Label>
+                                <Input 
+                                    {...register(`items.${index}.pricePerUnit`)}
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="0.00"
+                                    onChange={(e) => handlePriceChange(index, +e.target.value)}
+                                />
+                            </div>
+                            <div className="col-span-2 space-y-2">
+                                <Label>Total Amount</Label>
+                                <Input 
+                                    {...register(`items.${index}.totalAmount`)}
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="0.00"
+                                    className="font-bold"
+                                    onChange={(e) => handleTotalAmountChange(index, +e.target.value)}
                                 />
                             </div>
                         </div>
@@ -311,16 +328,19 @@ export default function SalesPage() {
                         <CardTitle className="flex items-center gap-2"><Calculator/> Sale Summary</CardTitle>
                    </CardHeader>
                    <CardContent className="space-y-2 text-sm">
-                     {calculated.items.map((item, index) => (
-                        <div key={index} className="flex justify-between items-center">
-                            <span className="text-muted-foreground">{item.productName} ({item.quantity.toFixed(2)} units)</span>
-                            <span className="font-mono">PKR {item.amount.toFixed(2)}</span>
-                        </div>
-                     ))}
+                     {items.map((item, index) => {
+                        const product = products.find(p => p.id === item.productId);
+                        return (
+                            <div key={index} className="flex justify-between items-center">
+                                <span className="text-muted-foreground">{product?.name || '...'} ({item.quantity.toFixed(2)} units)</span>
+                                <span className="font-mono">PKR {item.totalAmount.toFixed(2)}</span>
+                            </div>
+                        )
+                     })}
                       <Separator />
                       <div className="flex justify-between items-center text-xl font-bold border-t pt-4 mt-4">
                        <span>Total:</span>
-                       <span className="text-primary">PKR {calculated.totalAmount.toFixed(2)}</span>
+                       <span className="text-primary">PKR {totalAmount.toFixed(2)}</span>
                      </div>
                    </CardContent>
                 </Card>
