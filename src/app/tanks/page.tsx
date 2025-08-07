@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Fuel, List, PlusCircle, Calendar as CalendarIcon } from 'lucide-react';
+import { Fuel, List, PlusCircle, Calendar as CalendarIcon, Beaker } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTankReadings } from '@/hooks/use-tank-readings';
 import { useProducts } from '@/hooks/use-products';
@@ -71,7 +71,7 @@ export default function TankManagementPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <PlusCircle /> New Tank Reading (Dip)
+              <PlusCircle /> New Dip Reading
             </CardTitle>
             <CardDescription>Enter the current volume for a fuel tank to verify stock.</CardDescription>
           </CardHeader>
@@ -147,7 +147,7 @@ export default function TankManagementPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <List /> Tank Reading History
+              <List /> Dip Reading History
             </CardTitle>
             <CardDescription>
               A historical record of all tank volume entries.
@@ -175,8 +175,8 @@ export default function TankManagementPage() {
               </Table>
             ) : (
               <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
-                <Fuel className="w-16 h-16" />
-                <h3 className="text-xl font-semibold">No Tank Readings Found</h3>
+                <Beaker className="w-16 h-16" />
+                <h3 className="text-xl font-semibold">No Dip Readings Found</h3>
                 <p>Use the form to log your first tank volume reading.</p>
               </div>
             )}

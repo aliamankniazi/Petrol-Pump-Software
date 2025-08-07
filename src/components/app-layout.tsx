@@ -59,7 +59,7 @@ const navItems = [
     icon: Package,
     subItems: [
         { href: '/inventory/', label: 'Stock Levels', icon: Package },
-        { href: '/tanks/', label: 'Tank Readings', icon: Beaker },
+        { href: '/tanks/', label: 'Dip Reading', icon: Beaker },
     ]
   },
   {
@@ -80,15 +80,15 @@ const AppLogo = () => (
     <div className="flex items-center gap-2.5">
        <div className="flex items-center justify-center w-10 h-10 bg-green-600 text-white rounded-full">
             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 22V8" stroke="#5C3A21" strokeWidth="2.5"></path>
-                <path d="M12 8C8 8 6 10 6 12" stroke="#5C3A21" strokeWidth="2.5"></path>
-                <path d="M12 8C16 8 18 10 18 12" stroke="#5C3A21" strokeWidth="2.5"></path>
-                <path d="M6 12C4 12 3 14 3 16" stroke="#5C3A21" strokeWidth="2.5"></path>
-                <path d="M18 12C20 12 21 14 21 16" stroke="#5C3A21" strokeWidth="2.5"></path>
-                <path d="M4 8S5 6 7 6" stroke="#5C3A21" strokeWidth="2.5"></path>
-                <path d="M20 8S19 6 17 6" stroke="#5C3A21" strokeWidth="2.5"></path>
-                <path d="M12 8C10 6 9 4 9 2" stroke="#5C3A21" strokeWidth="2.5"></path>
-                <path d="M12 8C14 6 15 4 15 2" stroke="#5C3A21" strokeWidth="2.5"></path>
+                <path d="M12 22V8" stroke="#FFFFFF" strokeWidth="2.5"></path>
+                <path d="M12 8C8 8 6 10 6 12" stroke="#FFFFFF" strokeWidth="2.5"></path>
+                <path d="M12 8C16 8 18 10 18 12" stroke="#FFFFFF" strokeWidth="2.5"></path>
+                <path d="M6 12C4 12 3 14 3 16" stroke="#FFFFFF" strokeWidth="2.5"></path>
+                <path d="M18 12C20 12 21 14 21 16" stroke="#FFFFFF" strokeWidth="2.5"></path>
+                <path d="M4 8S5 6 7 6" stroke="#FFFFFF" strokeWidth="2.5"></path>
+                <path d="M20 8S19 6 17 6" stroke="#FFFFFF" strokeWidth="2.5"></path>
+                <path d="M12 8C10 6 9 4 9 2" stroke="#FFFFFF" strokeWidth="2.5"></path>
+                <path d="M12 8C14 6 15 4 15 2" stroke="#FFFFFF" strokeWidth="2.5"></path>
                 <path d="M9 2C7 2 6 4 6 6" fill="#4CAF50" stroke="#4CAF50" strokeWidth="1"></path>
                 <path d="M15 2C17 2 18 4 18 6" fill="#4CAF50" stroke="#4CAF50" strokeWidth="1"></path>
                 <path d="M7 6C5 6 4 8 4 10" fill="#4CAF50" stroke="#4CAF50" strokeWidth="1"></path>
