@@ -78,18 +78,23 @@ const navItems = [
 
 const AppLogo = () => (
     <div className="flex items-center gap-2.5">
-       <div className="flex items-center justify-center w-10 h-10 bg-blue-600 text-white rounded-full">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 8h.01"></path>
-                <path d="M6 8h.01"></path>
-                <path d="M10 4h.01"></path>
-                <path d="M18 8h.01"></path>
-                <path d="m3 22 1.3-1.3a1.5 1.5 0 0 0 0-2.1L3 17"></path>
-                <path d="m19 17-1.3 1.3a1.5 1.5 0 0 0 0 2.1L19 22"></path>
-                <path d="M10 18h4"></path>
-                <path d="M12 14v4"></path>
-                <path d="M10 10h.01"></path>
-                <path d="M14 10h.01"></path>
+       <div className="flex items-center justify-center w-10 h-10 bg-green-600 text-white rounded-full">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22V8" stroke="#5C3A21" strokeWidth="2.5"></path>
+                <path d="M12 8C8 8 6 10 6 12" stroke="#5C3A21" strokeWidth="2.5"></path>
+                <path d="M12 8C16 8 18 10 18 12" stroke="#5C3A21" strokeWidth="2.5"></path>
+                <path d="M6 12C4 12 3 14 3 16" stroke="#5C3A21" strokeWidth="2.5"></path>
+                <path d="M18 12C20 12 21 14 21 16" stroke="#5C3A21" strokeWidth="2.5"></path>
+                <path d="M4 8S5 6 7 6" stroke="#5C3A21" strokeWidth="2.5"></path>
+                <path d="M20 8S19 6 17 6" stroke="#5C3A21" strokeWidth="2.5"></path>
+                <path d="M12 8C10 6 9 4 9 2" stroke="#5C3A21" strokeWidth="2.5"></path>
+                <path d="M12 8C14 6 15 4 15 2" stroke="#5C3A21" strokeWidth="2.5"></path>
+                <path d="M9 2C7 2 6 4 6 6" fill="#4CAF50" stroke="#4CAF50" strokeWidth="1"></path>
+                <path d="M15 2C17 2 18 4 18 6" fill="#4CAF50" stroke="#4CAF50" strokeWidth="1"></path>
+                <path d="M7 6C5 6 4 8 4 10" fill="#4CAF50" stroke="#4CAF50" strokeWidth="1"></path>
+                <path d="M17 6C19 6 20 8 20 10" fill="#4CAF50" stroke="#4CAF50" strokeWidth="1"></path>
+                <path d="M3 16C2 16 2 18 3 18" fill="#4CAF50" stroke="#4CAF50" strokeWidth="1"></path>
+                <path d="M21 16C22 16 22 18 21 18" fill="#4CAF50" stroke="#4CAF50" strokeWidth="1"></path>
             </svg>
         </div>
       <div className="flex flex-col">
