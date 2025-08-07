@@ -2,6 +2,8 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
+  output: 'export',
+  trailingSlash: true,
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,
@@ -18,6 +20,7 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+    unoptimized: true,
   },
   experimental: {
     // This is required to allow the Next.js dev server to be proxied in the cloud development environment.
