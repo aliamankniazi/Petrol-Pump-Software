@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { format, isSameDay, startOfDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { HandCoins, XCircle, Calendar as CalendarIcon, X, TrendingUp, TrendingDown, Wallet, BookText } from 'lucide-react';
+import { HandCoins, XCircle, Calendar as CalendarIcon, X, TrendingUp, TrendingDown, Wallet, BookText, AlertTriangle, Trash2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -21,6 +21,9 @@ import { usePurchases } from '@/hooks/use-purchases';
 import { useSupplierPayments } from '@/hooks/use-supplier-payments';
 import Link from 'next/link';
 import { useInvestments } from '@/hooks/use-investments';
+import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+
 
 type EntityType = 'Customer' | 'Supplier' | 'Partner' | 'Employee';
 
@@ -38,17 +41,19 @@ type CombinedEntry = {
 };
 
 export default function UnifiedLedgerPage() {
-  const { customerPayments, isLoaded: paymentsLoaded } = useCustomerPayments();
+  const { customerPayments, deleteCustomerPayment, isLoaded: paymentsLoaded } = useCustomerPayments();
   const { customers, isLoaded: customersLoaded } = useCustomers();
-  const { transactions, isLoaded: transactionsLoaded } = useTransactions();
-  const { cashAdvances, isLoaded: advancesLoaded } = useCashAdvances();
+  const { transactions, deleteTransaction, isLoaded: transactionsLoaded } = useTransactions();
+  const { cashAdvances, deleteCashAdvance, isLoaded: advancesLoaded } = useCashAdvances();
   const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
-  const { purchases, isLoaded: purchasesLoaded } = usePurchases();
-  const { supplierPayments, isLoaded: supplierPaymentsLoaded } = useSupplierPayments();
-  const { investments, isLoaded: investmentsLoaded } = useInvestments();
+  const { purchases, deletePurchase, isLoaded: purchasesLoaded } = usePurchases();
+  const { supplierPayments, deleteSupplierPayment, isLoaded: supplierPaymentsLoaded } = useSupplierPayments();
+  const { investments, deleteInvestment, isLoaded: investmentsLoaded } = useInvestments();
   
   const [selectedEntityId, setSelectedEntityId] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [entryToDelete, setEntryToDelete] = useState<CombinedEntry | null>(null);
+  const { toast } = useToast();
 
   const isLoaded = paymentsLoaded && customersLoaded && transactionsLoaded && advancesLoaded && suppliersLoaded && purchasesLoaded && supplierPaymentsLoaded && investmentsLoaded;
 
@@ -146,7 +151,7 @@ export default function UnifiedLedgerPage() {
 
     supplierPayments.forEach(sp => {
         combined.push({
-            id: `sp-${sp.id}`,
+            id: `spay-${sp.id}`,
             timestamp: sp.timestamp,
             entityId: sp.supplierId,
             entityName: sp.supplierName,
@@ -273,6 +278,38 @@ export default function UnifiedLedgerPage() {
     setSelectedEntityId('');
     setSelectedDate(undefined);
   }, []);
+  
+  const handleDeleteEntry = () => {
+    if (!entryToDelete) return;
+    
+    const [typePrefix, id] = entryToDelete.id.split(/-(.*)/s);
+
+    try {
+      switch(typePrefix) {
+          case 'tx': deleteTransaction(id); break;
+          case 'pur': deletePurchase(id); break;
+          case 'pay': deleteCustomerPayment(id); break;
+          case 'adv': deleteCashAdvance(id); break;
+          case 'spay': deleteSupplierPayment(id); break;
+          case 'inv':
+          case 'wdr': deleteInvestment(id); break;
+          default:
+              throw new Error('Could not delete entry of unknown type.');
+      }
+      toast({
+          title: 'Entry Deleted',
+          description: `The ${entryToDelete.type} entry has been successfully deleted.`,
+      });
+    } catch (error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: error.message || "An error occurred while deleting the entry.",
+        });
+    } finally {
+        setEntryToDelete(null);
+    }
+  };
 
   const hasActiveFilters = selectedEntityId || selectedDate;
   const selectedEntity = entities.find(e => e.id === selectedEntityId);
@@ -285,6 +322,7 @@ export default function UnifiedLedgerPage() {
   }, []);
 
   return (
+    <>
     <div className="p-4 md:p-8 space-y-6">
        <Card>
         <CardHeader>
@@ -418,11 +456,14 @@ export default function UnifiedLedgerPage() {
                     <TableCell className={cn("text-right font-semibold font-mono", getBalanceColor(entry.balance || 0, entry.entityType))}>
                         {entry.balance?.toFixed(2)}
                     </TableCell>
-                     <TableCell className="text-center">
+                     <TableCell className="text-center space-x-0">
                         <Button asChild variant="ghost" size="icon" title="View Partner Ledger">
                            <Link href={`/customers/${entry.entityId}/ledger`}>
                              <BookText className="w-5 h-5" />
                            </Link>
+                        </Button>
+                        <Button variant="ghost" size="icon" title="Delete" className="text-destructive hover:text-destructive" onClick={() => setEntryToDelete(entry)}>
+                            <Trash2 className="w-4 h-4" />
                         </Button>
                     </TableCell>
                   </TableRow>
@@ -463,5 +504,24 @@ export default function UnifiedLedgerPage() {
         </CardContent>
       </Card>
     </div>
+    
+    <AlertDialog open={!!entryToDelete} onOpenChange={(isOpen) => !isOpen && setEntryToDelete(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete the entry: <br />
+            <strong className="font-medium text-foreground">{entryToDelete?.description}</strong>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDeleteEntry} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            Yes, delete entry
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
