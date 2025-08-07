@@ -16,9 +16,8 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
-import { useFuelStock } from '@/hooks/use-fuel-stock';
-import type { FuelType } from '@/lib/types';
 import { Progress } from '@/components/ui/progress';
+import { useProducts } from '@/hooks/use-products';
 
 const chartConfig = {
   sales: {
@@ -42,7 +41,7 @@ export default function DashboardPage() {
     const { purchases, isLoaded: purchasesLoaded } = usePurchases();
     const { expenses, isLoaded: expensesLoaded } = useExpenses();
     const { otherIncomes, isLoaded: otherIncomesLoaded } = useOtherIncomes();
-    const { fuelStock, isLoaded: stockLoaded } = useFuelStock();
+    const { products, isLoaded: stockLoaded } = useProducts();
 
     const isLoaded = transactionsLoaded && purchasesLoaded && expensesLoaded && otherIncomesLoaded && stockLoaded;
 
@@ -93,7 +92,7 @@ export default function DashboardPage() {
         const recentPurchases: RecentActivity[] = purchases.slice(0, 2).map(p => ({
             id: `purchase-${p.id}`,
             type: 'Purchase',
-            description: `From ${p.supplier} - ${p.volume.toFixed(2)}L ${p.fuelType}`,
+            description: `From ${p.supplier} - ${p.items.length} item(s)`,
             amount: -p.totalCost,
             timestamp: p.timestamp!,
             icon: ShoppingCart,
@@ -220,20 +219,20 @@ export default function DashboardPage() {
                         <CardDescription>Current stock levels.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {isLoaded ? (['Unleaded', 'Premium', 'Diesel'] as FuelType[]).map(fuel => {
-                            const currentStock = fuelStock[fuel] || 0;
+                        {isLoaded ? (products.filter(p => p.category === 'Fuel').map(fuel => {
+                            const currentStock = fuel.stock || 0;
                             const maxStock = 25000;
                             const percentage = Math.min((currentStock/maxStock) * 100, 100);
                             return (
-                                <div key={fuel}>
+                                <div key={fuel.id}>
                                     <div className="flex justify-between items-baseline mb-1">
-                                        <span className="text-sm font-medium">{fuel}</span>
+                                        <span className="text-sm font-medium">{fuel.name}</span>
                                         <span className="text-xs text-muted-foreground">{currentStock.toLocaleString(undefined, {maximumFractionDigits: 0})} / {maxStock.toLocaleString()} L</span>
                                     </div>
                                     <Progress value={percentage} className="h-2" />
                                 </div>
                             )
-                        }) : Array.from({length: 3}).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+                        })) : Array.from({length: 3}).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
                     </CardContent>
                 </Card>
             </div>

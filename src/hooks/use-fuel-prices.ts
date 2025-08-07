@@ -5,6 +5,10 @@ import { useCallback, useMemo } from 'react';
 import type { FuelType } from '@/lib/types';
 import { useDatabaseCollection } from './use-database-collection';
 
+// DEPRECATED: This hook is no longer in use. Product prices are now managed directly
+// on the product object via use-products.ts. This file is kept for archival purposes
+// and to avoid breaking any lingering imports, but it should be removed in the future.
+
 const COLLECTION_NAME = 'settings';
 const DOC_ID = 'fuel-prices';
 

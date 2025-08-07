@@ -25,23 +25,25 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
 import { useFuelPrices } from '@/hooks/use-fuel-prices';
-import type { FuelType, Supplier } from '@/lib/types';
+import type { FuelType, Supplier, Product } from '@/lib/types';
 import { useFuelStock } from '@/hooks/use-fuel-stock';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useSettings } from '@/hooks/use-settings';
 import { useSuppliers } from '@/hooks/use-suppliers';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Link from 'next/link';
-
+import { useProducts } from '@/hooks/use-products';
 
 const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
 
-const adjustmentSchema = z.object({
-  fuelType: z.enum(FUEL_TYPES, { required_error: 'Please select a fuel type.' }),
-  adjustment: z.coerce.number(),
+const productSchema = z.object({
+  name: z.string().min(1, "Product name is required"),
+  category: z.enum(['Fuel', 'Lubricant', 'Other']),
+  unit: z.enum(['Litre', 'Unit']),
+  price: z.coerce.number().min(0, "Price must be non-negative"),
+  cost: z.coerce.number().min(0, "Cost must be non-negative"),
 });
-
-type AdjustmentFormValues = z.infer<typeof adjustmentSchema>;
+type ProductFormValues = z.infer<typeof productSchema>;
 
 const supplierSchema = z.object({
   name: z.string().min(1, 'Supplier name is required'),
@@ -52,36 +54,29 @@ type SupplierFormValues = z.infer<typeof supplierSchema>;
 
 export default function SettingsPage() {
   const { clearAllData } = useSettings();
-  const { fuelPrices, updateFuelPrice, isLoaded: pricesLoaded } = useFuelPrices();
-  const { fuelStock, setFuelStock, isLoaded: stockLoaded } = useFuelStock();
   const { suppliers, addSupplier, deleteSupplier, isLoaded: suppliersLoaded } = useSuppliers();
+  const { products, addProduct, updateProduct, deleteProduct, isLoaded: productsLoaded } = useProducts();
   const { toast } = useToast();
   const [supplierToDelete, setSupplierToDelete] = React.useState<Supplier | null>(null);
+  const [productToEdit, setProductToEdit] = React.useState<Product | null>(null);
 
-  const { register, handleSubmit, control, reset, watch, formState: { errors } } = useForm<AdjustmentFormValues>({
-    resolver: zodResolver(adjustmentSchema),
-    defaultValues: {
-      adjustment: 0,
-    }
+  const {
+    register: registerProduct,
+    handleSubmit: handleSubmitProduct,
+    reset: resetProduct,
+    formState: { errors: productErrors }
+  } = useForm<ProductFormValues>({
+    resolver: zodResolver(productSchema)
   });
-
-  const { 
-    register: registerSupplier, 
-    handleSubmit: handleSubmitSupplier, 
-    reset: resetSupplier, 
-    formState: { errors: supplierErrors } 
-  } = useForm<SupplierFormValues>({
-    resolver: zodResolver(supplierSchema),
-  });
-
-  const selectedFuelType = watch('fuelType');
-  const adjustmentValue = watch('adjustment');
-  const currentStock = selectedFuelType ? (fuelStock[selectedFuelType] || 0) : 0;
   
-  const newStock = React.useMemo(() => {
-    const adj = Number(adjustmentValue) || 0;
-    return Number(currentStock) + adj;
-  }, [currentStock, adjustmentValue]);
+  const {
+    register: registerSupplier,
+    handleSubmit: handleSubmitSupplier,
+    reset: resetSupplier,
+    formState: { errors: supplierErrors }
+  } = useForm<SupplierFormValues>({
+    resolver: zodResolver(supplierSchema)
+  });
 
   const handleClearData = React.useCallback(async () => {
     try {
@@ -99,33 +94,28 @@ export default function SettingsPage() {
     }
   }, [clearAllData, toast]);
 
-  const handlePriceChange = React.useCallback((fuelType: FuelType, value: string) => {
-    const price = parseFloat(value);
-    if (!isNaN(price)) {
-      updateFuelPrice(fuelType, price);
+  const onProductSubmit: SubmitHandler<ProductFormValues> = React.useCallback((data) => {
+    if (productToEdit) {
+      updateProduct(productToEdit.id, data);
+      toast({ title: 'Product Updated', description: `${data.name} has been updated.` });
+      setProductToEdit(null);
+    } else {
+      addProduct({ ...data, stock: 0 }); // Initial stock is 0
+      toast({ title: 'Product Added', description: `${data.name} has been added.` });
     }
-  }, [updateFuelPrice]);
-
-  const onAdjustmentSubmit: SubmitHandler<AdjustmentFormValues> = React.useCallback((data) => {
-    const currentStockValue = fuelStock[data.fuelType] || 0;
-    const finalNewStock = currentStockValue + data.adjustment;
-
-    if (finalNewStock < 0) {
-      toast({
-        variant: 'destructive',
-        title: 'Invalid Adjustment',
-        description: 'Stock level cannot be negative.',
-      });
-      return;
-    }
-    setFuelStock(data.fuelType, finalNewStock);
-    toast({
-      title: 'Stock Adjusted',
-      description: `${data.fuelType} stock has been set to ${finalNewStock.toLocaleString()} L.`,
-    });
-    reset({ fuelType: data.fuelType, adjustment: 0 });
-  }, [fuelStock, setFuelStock, toast, reset]);
+    resetProduct({ name: '', category: 'Lubricant', unit: 'Unit', price: 0, cost: 0 });
+  }, [productToEdit, addProduct, updateProduct, toast, resetProduct]);
   
+  const handleEditProduct = (product: Product) => {
+    setProductToEdit(product);
+    resetProduct(product);
+  }
+
+  const handleDeleteProduct = (id: string) => {
+    deleteProduct(id);
+    toast({ title: 'Product Deleted' });
+  }
+
   const onSupplierSubmit: SubmitHandler<SupplierFormValues> = React.useCallback((data) => {
     addSupplier(data);
     toast({
@@ -134,7 +124,7 @@ export default function SettingsPage() {
     });
     resetSupplier();
   }, [addSupplier, toast, resetSupplier]);
-  
+
   const handleDeleteSupplier = React.useCallback(() => {
     if (!supplierToDelete) return;
     deleteSupplier(supplierToDelete.id);
@@ -153,16 +143,92 @@ export default function SettingsPage() {
           <CardTitle className="flex items-center gap-2">
             <Settings /> Settings
           </CardTitle>
-          <CardDescription>Customize application settings, fuel prices, and inventory.</CardDescription>
+          <CardDescription>Customize application settings, products, suppliers, and more.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
         
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium flex items-center gap-2"><Package /> Product Management</h3>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-xl flex items-center gap-2"><UserPlus /> {productToEdit ? 'Edit Product' : 'Add New Product'}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleSubmitProduct(onProductSubmit)} className="space-y-4">
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="productName">Product Name</Label>
+                                <Input id="productName" {...registerProduct('name')} placeholder="e.g., Mobil Delvac 1" />
+                                {productErrors.name && <p className="text-sm text-destructive">{productErrors.name.message}</p>}
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Category</Label>
+                                <Controller name="category" control={registerProduct.control} render={({ field }) => (
+                                    <Select onValueChange={field.onChange} value={field.value} defaultValue="Lubricant">
+                                        <SelectTrigger><SelectValue/></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Fuel">Fuel</SelectItem>
+                                            <SelectItem value="Lubricant">Lubricant</SelectItem>
+                                            <SelectItem value="Other">Other</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                )}/>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Unit</Label>
+                                <Controller name="unit" control={registerProduct.control} render={({ field }) => (
+                                    <Select onValueChange={field.onChange} value={field.value} defaultValue="Unit">
+                                        <SelectTrigger><SelectValue/></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Litre">Litre</SelectItem>
+                                            <SelectItem value="Unit">Unit</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                )}/>
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="price">Selling Price</Label>
+                                <Input id="price" type="number" step="0.01" {...registerProduct('price')} placeholder="e.g., 270.50" />
+                                {productErrors.price && <p className="text-sm text-destructive">{productErrors.price.message}</p>}
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="cost">Purchase Cost</Label>
+                                <Input id="cost" type="number" step="0.01" {...registerProduct('cost')} placeholder="e.g., 250.00" />
+                                {productErrors.cost && <p className="text-sm text-destructive">{productErrors.cost.message}</p>}
+                            </div>
+                        </div>
+                        <Button type="submit">{productToEdit ? 'Update Product' : 'Add Product'}</Button>
+                        {productToEdit && <Button type="button" variant="ghost" onClick={() => { setProductToEdit(null); resetProduct(); }}>Cancel Edit</Button>}
+                    </form>
+                    <Separator className="my-6" />
+                    <h4 className="text-md font-medium mb-4">Existing Products</h4>
+                    <div className="rounded-md border">
+                        <Table>
+                            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Category</TableHead><TableHead>Unit</TableHead><TableHead>Price</TableHead><TableHead>Cost</TableHead><TableHead>Stock</TableHead><TableHead className="text-center">Actions</TableHead></TableRow></TableHeader>
+                            <TableBody>
+                                {productsLoaded && products.length > 0 ? products.map(p => (
+                                    <TableRow key={p.id}>
+                                        <TableCell>{p.name}</TableCell><TableCell>{p.category}</TableCell><TableCell>{p.unit}</TableCell><TableCell>{p.price}</TableCell><TableCell>{p.cost}</TableCell><TableCell>{p.stock}</TableCell>
+                                        <TableCell className="text-center space-x-0">
+                                            <Button variant="ghost" size="icon" title="Edit" onClick={() => handleEditProduct(p)}><Edit className="w-4 h-4" /></Button>
+                                            <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDeleteProduct(p.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+                                        </TableCell>
+                                    </TableRow>
+                                )) : <TableRow><TableCell colSpan={7} className="h-24 text-center">{productsLoaded ? 'No products added.' : 'Loading...'}</TableCell></TableRow>}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+          </div>
+
+          <Separator />
+          
           <div className="space-y-4">
             <h3 className="text-lg font-medium flex items-center gap-2"><Truck /> Supplier Management</h3>
             <Card>
                 <CardHeader>
                     <CardTitle className="text-xl flex items-center gap-2"><UserPlus /> Add New Supplier</CardTitle>
-                    <CardDescription>Add a new supplier to your permanent list.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmitSupplier(onSupplierSubmit)} className="space-y-4">
@@ -184,129 +250,22 @@ export default function SettingsPage() {
                     <h4 className="text-md font-medium mb-4">Existing Suppliers</h4>
                     <div className="rounded-md border">
                         <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Contact</TableHead>
-                                    <TableHead className="text-center">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
+                            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Contact</TableHead><TableHead className="text-center">Actions</TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {suppliersLoaded && suppliers.length > 0 ? suppliers.map(s => (
                                     <TableRow key={s.id}>
                                         <TableCell className="font-medium">{s.name}</TableCell>
                                         <TableCell>{s.contact || 'N/A'}</TableCell>
                                         <TableCell className="text-center">
-                                            <Button asChild variant="ghost" size="icon" title="View Ledger">
-                                               <Link href={`/customers/${s.id}/ledger`}>
-                                                 <BookText className="w-5 h-5" />
-                                               </Link>
-                                            </Button>
-                                            <Button variant="ghost" size="icon" title="Delete Supplier" onClick={() => setSupplierToDelete(s)}>
-                                                <Trash2 className="w-5 h-5 text-destructive" />
-                                            </Button>
+                                            <Button asChild variant="ghost" size="icon" title="View Ledger"><Link href={`/customers/${s.id}/ledger`}><BookText className="w-5 h-5" /></Link></Button>
+                                            <Button variant="ghost" size="icon" title="Delete Supplier" onClick={() => setSupplierToDelete(s)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
                                         </TableCell>
                                     </TableRow>
-                                )) : (
-                                    <TableRow>
-                                        <TableCell colSpan={3} className="h-24 text-center">
-                                            {suppliersLoaded ? 'No suppliers added yet.' : 'Loading suppliers...'}
-                                        </TableCell>
-                                    </TableRow>
-                                )}
+                                )) : <TableRow><TableCell colSpan={3} className="h-24 text-center">{suppliersLoaded ? 'No suppliers added yet.' : 'Loading suppliers...'}</TableCell></TableRow>}
                             </TableBody>
                         </Table>
                     </div>
                 </CardContent>
-            </Card>
-          </div>
-        
-          <Separator />
-        
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Fuel Prices</h3>
-            <div className="space-y-4">
-              {pricesLoaded && FUEL_TYPES.map(fuel => (
-                <div key={fuel} className="flex items-center justify-between rounded-lg border p-4">
-                  <div>
-                    <Label htmlFor={`${fuel}-price`} className="flex items-center gap-2"><Droplets className="w-4 h-4" /> {fuel} Price (PKR/L)</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Set the price per litre for {fuel}.
-                    </p>
-                  </div>
-                  <Input 
-                    id={`${fuel}-price`} 
-                    type="number" 
-                    value={fuelPrices[fuel] || ''} 
-                    onChange={(e) => handlePriceChange(fuel, e.target.value)}
-                    className="w-28" 
-                    step="0.01"
-                  />
-                </div>
-              ))}
-              {!pricesLoaded && Array.from({length: 3}).map((_, i) => (
-                <div key={i} className="flex items-center justify-between rounded-lg border p-4">
-                  <div className='space-y-2'>
-                    <div className="h-6 w-48 bg-muted rounded-md animate-pulse" />
-                    <div className="h-4 w-64 bg-muted rounded-md animate-pulse" />
-                  </div>
-                  <div className="w-28 h-10 bg-muted rounded-md animate-pulse" />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <Separator />
-          
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium flex items-center gap-2"><Package /> Product Adjustment</h3>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl flex items-center gap-2"><Edit /> Manual Stock Adjustment</CardTitle>
-                <CardDescription>
-                  Manually adjust the current stock level for a fuel type.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit(onAdjustmentSubmit)} className="space-y-4">
-                   <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="space-y-2 md:col-span-1">
-                      <Label>Fuel Type</Label>
-                       <Controller
-                        name="fuelType"
-                        control={control}
-                        render={({ field }) => (
-                          <Select onValueChange={field.onChange} value={field.value} defaultValue="">
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a fuel type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {FUEL_TYPES.map(fuel => (
-                                <SelectItem key={fuel} value={fuel}>{fuel}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                       {errors.fuelType && <p className="text-sm text-destructive">{errors.fuelType.message}</p>}
-                    </div>
-                    <div className="space-y-2 md:col-span-1">
-                      <Label htmlFor="currentStock">Current Stock (L)</Label>
-                      <Input id="currentStock" type="number" value={stockLoaded ? currentStock.toFixed(2) : "Loading..."} readOnly disabled className="bg-muted/50" />
-                    </div>
-                    <div className="space-y-2 md:col-span-1">
-                      <Label htmlFor="adjustment">Adjustment (L)</Label>
-                      <Input id="adjustment" type="number" {...register('adjustment')} placeholder="e.g., -50 or 100" step="0.01" />
-                       {errors.adjustment && <p className="text-sm text-destructive">{errors.adjustment.message}</p>}
-                    </div>
-                     <div className="space-y-2 md:col-span-1">
-                      <Label htmlFor="newStock">New Stock (L)</Label>
-                      <Input id="newStock" type="number" value={selectedFuelType ? newStock.toFixed(2) : "..."} readOnly disabled className="bg-muted/50 font-bold" />
-                    </div>
-                  </div>
-                  <Button type="submit" disabled={!selectedFuelType || !stockLoaded}>Adjust Stock</Button>
-                </form>
-              </CardContent>
             </Card>
           </div>
 
@@ -315,12 +274,7 @@ export default function SettingsPage() {
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Appearance</h3>
             <div className="flex items-center justify-between rounded-lg border p-4">
-              <div>
-                <Label>Theme</Label>
-                <p className="text-sm text-muted-foreground">
-                  Switch between light and dark mode.
-                </p>
-              </div>
+              <div><Label>Theme</Label><p className="text-sm text-muted-foreground">Switch between light and dark mode.</p></div>
               <ThemeToggle />
             </div>
           </div>
@@ -332,29 +286,13 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between rounded-lg border border-destructive/50 p-4">
               <div>
                 <Label htmlFor="clear-data" className="text-destructive">Clear All Data</Label>
-                <p className="text-sm text-muted-foreground">
-                  This will permanently delete all application data. This action cannot be undone.
-                </p>
+                <p className="text-sm text-muted-foreground">This will permanently delete all application data. This action cannot be undone.</p>
               </div>
               <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" id="clear-data">
-                    <Trash2 className="mr-2 h-4 w-4" /> Clear Data
-                  </Button>
-                </AlertDialogTrigger>
+                <AlertDialogTrigger asChild><Button variant="destructive" id="clear-data"><Trash2 className="mr-2 h-4 w-4" /> Clear Data</Button></AlertDialogTrigger>
                 <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete all your application data from this device.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleClearData}>
-                      Yes, delete all data
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
+                  <AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone. This will permanently delete all your application data from this device.</AlertDialogDescription></AlertDialogHeader>
+                  <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleClearData}>Yes, delete all data</AlertDialogAction></AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
             </div>
@@ -364,19 +302,8 @@ export default function SettingsPage() {
       
       <AlertDialog open={!!supplierToDelete} onOpenChange={(isOpen) => !isOpen && setSupplierToDelete(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the supplier: <br />
-              <strong className="font-medium text-foreground">{supplierToDelete?.name}</strong>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteSupplier} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Yes, delete supplier
-            </AlertDialogAction>
-          </AlertDialogFooter>
+          <AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone. This will permanently delete the supplier: <br /><strong className="font-medium text-foreground">{supplierToDelete?.name}</strong></AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDeleteSupplier} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Yes, delete supplier</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>

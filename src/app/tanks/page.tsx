@@ -13,18 +13,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Fuel, List, PlusCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
-import type { FuelType } from '@/lib/types';
 import { useTankReadings } from '@/hooks/use-tank-readings';
-import { useFuelStock } from '@/hooks/use-fuel-stock';
+import { useProducts } from '@/hooks/use-products';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { useState, useEffect } from 'react';
-
-const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
+import { useState, useEffect, useMemo } from 'react';
 
 const tankReadingSchema = z.object({
-  fuelType: z.enum(FUEL_TYPES, { required_error: 'Please select a tank.' }),
+  productId: z.string().min(1, 'Please select a tank.'),
   volume: z.coerce.number().min(0, 'Volume cannot be negative'),
   date: z.date({ required_error: "A date is required."}),
 });
@@ -33,9 +30,11 @@ type TankReadingFormValues = z.infer<typeof tankReadingSchema>;
 
 export default function TankManagementPage() {
   const { tankReadings, addTankReading } = useTankReadings();
-  const { setFuelStock } = useFuelStock();
+  const { products, updateProductStock, isLoaded: productsLoaded } = useProducts();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
+
+  const fuelProducts = useMemo(() => products.filter(p => p.category === 'Fuel'), [products]);
 
   useEffect(() => {
     setIsClient(true);
@@ -49,15 +48,18 @@ export default function TankManagementPage() {
   });
 
   const onSubmit: SubmitHandler<TankReadingFormValues> = (data) => {
+    const product = products.find(p => p.id === data.productId);
+    if (!product) return;
+
     addTankReading({ 
-        fuelType: data.fuelType,
+        fuelType: product.name as any, // This is for historical compatibility
         volume: data.volume,
         timestamp: data.date.toISOString(),
     });
-    setFuelStock(data.fuelType, data.volume);
+    updateProductStock(data.productId, data.volume);
     toast({
       title: 'Tank Reading Logged',
-      description: `New volume for ${data.fuelType} tank has been recorded as ${data.volume}L.`,
+      description: `New volume for ${product.name} tank has been recorded as ${data.volume}L.`,
     });
     reset({ volume: 0, date: new Date() });
   };
@@ -77,7 +79,7 @@ export default function TankManagementPage() {
               <div className="space-y-2">
                 <Label>Tank / Fuel Type</Label>
                 <Controller
-                  name="fuelType"
+                  name="productId"
                   control={control}
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value} defaultValue="">
@@ -85,14 +87,14 @@ export default function TankManagementPage() {
                         <SelectValue placeholder="Select a tank" />
                       </SelectTrigger>
                       <SelectContent>
-                        {FUEL_TYPES.map(fuel => (
-                          <SelectItem key={fuel} value={fuel}>{fuel} Tank</SelectItem>
-                        ))}
+                        {productsLoaded ? fuelProducts.map(fuel => (
+                          <SelectItem key={fuel.id} value={fuel.id}>{fuel.name} Tank</SelectItem>
+                        )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
                       </SelectContent>
                     </Select>
                   )}
                 />
-                {errors.fuelType && <p className="text-sm text-destructive">{errors.fuelType.message}</p>}
+                {errors.productId && <p className="text-sm text-destructive">{errors.productId.message}</p>}
               </div>
               
               <div className="space-y-2">

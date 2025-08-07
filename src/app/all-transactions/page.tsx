@@ -72,7 +72,7 @@ export default function AllTransactionsPage() {
       timestamp: tx.timestamp!,
       type: 'Sale',
       partner: tx.customerName || 'Walk-in Customer',
-      details: tx.items.map(item => `${item.volume.toFixed(2)}L of ${item.fuelType}`).join(', '),
+      details: tx.items.map(item => `${item.quantity.toFixed(2)} units of ${item.productName}`).join(', '),
       amount: tx.totalAmount,
       original: tx,
     }));
@@ -83,7 +83,7 @@ export default function AllTransactionsPage() {
       timestamp: p.timestamp!,
       type: 'Purchase',
       partner: p.supplier,
-      details: p.items.map(item => `${item.volume.toFixed(2)}L of ${item.fuelType}`).join(', '),
+      details: p.items.map(item => `${item.quantity.toFixed(2)} units of ${item.productName}`).join(', '),
       amount: p.totalCost,
       original: p,
     }));
@@ -94,7 +94,7 @@ export default function AllTransactionsPage() {
       timestamp: pr.timestamp!,
       type: 'Purchase Return',
       partner: pr.supplier,
-      details: `${pr.volume.toFixed(2)}L of ${pr.fuelType}`,
+      details: `${pr.volume.toFixed(2)} units of ${pr.productName}`,
       amount: pr.totalRefund,
       original: pr,
     }));

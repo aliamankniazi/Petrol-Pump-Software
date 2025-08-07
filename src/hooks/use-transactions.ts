@@ -4,41 +4,41 @@
 import { useCallback } from 'react';
 import type { Transaction } from '@/lib/types';
 import { useDatabaseCollection } from './use-database-collection';
-import { useFuelStock } from './use-fuel-stock';
+import { useProducts } from './use-products';
 
 const COLLECTION_NAME = 'transactions';
 
 export function useTransactions() {
   const { data: transactions, addDoc, deleteDoc, loading } = useDatabaseCollection<Transaction>(COLLECTION_NAME);
-  const { fuelStock, setFuelStock } = useFuelStock();
+  const { products, updateProductStock } = useProducts();
 
   const addTransaction = useCallback((transaction: Omit<Transaction, 'id'>) => {
-    // First, add the transaction to the database.
     addDoc(transaction);
 
-    // Then, update the fuel stock for each item in the transaction.
     transaction.items.forEach(item => {
-        const currentStock = fuelStock[item.fuelType] || 0;
-        const newStock = currentStock - item.volume;
-        setFuelStock(item.fuelType, newStock);
+        const product = products.find(p => p.id === item.productId);
+        if (product) {
+            const newStock = product.stock - item.quantity;
+            updateProductStock(item.productId, newStock);
+        }
     });
     
-  }, [addDoc, fuelStock, setFuelStock]);
+  }, [addDoc, products, updateProductStock]);
   
   const deleteTransaction = useCallback((id: string) => {
     const transactionToDelete = transactions.find(t => t.id === id);
     if (!transactionToDelete) return;
     
-    // Add back the volume to the stock for each item
     transactionToDelete.items.forEach(item => {
-        const currentStock = fuelStock[item.fuelType] || 0;
-        const newStock = currentStock + item.volume;
-        setFuelStock(item.fuelType, newStock);
+        const product = products.find(p => p.id === item.productId);
+        if (product) {
+            const newStock = product.stock + item.quantity;
+            updateProductStock(item.productId, newStock);
+        }
     });
     
-    // Delete the transaction
     deleteDoc(id);
-  }, [deleteDoc, transactions, fuelStock, setFuelStock]);
+  }, [deleteDoc, transactions, products, updateProductStock]);
 
   return { 
     transactions: transactions || [], 

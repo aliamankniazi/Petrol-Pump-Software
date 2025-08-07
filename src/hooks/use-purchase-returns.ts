@@ -4,37 +4,37 @@
 import { useCallback } from 'react';
 import type { PurchaseReturn } from '@/lib/types';
 import { useDatabaseCollection } from './use-database-collection';
-import { useFuelStock } from './use-fuel-stock';
+import { useProducts } from './use-products';
 
 const COLLECTION_NAME = 'purchase-returns';
 
 export function usePurchaseReturns() {
   const { data: purchaseReturns, addDoc, deleteDoc, loading } = useDatabaseCollection<PurchaseReturn>(COLLECTION_NAME);
-  const { fuelStock, setFuelStock } = useFuelStock();
+  const { products, updateProductStock } = useProducts();
 
   const addPurchaseReturn = useCallback((purchaseReturn: Omit<PurchaseReturn, 'id'>) => {
-    // First, add the return record
     addDoc(purchaseReturn);
 
-    // Then, update the fuel stock
-    const currentStock = fuelStock[purchaseReturn.fuelType] || 0;
-    const newStock = currentStock - purchaseReturn.volume;
-    setFuelStock(purchaseReturn.fuelType, newStock);
+    const product = products.find(p => p.id === purchaseReturn.productId);
+    if(product) {
+        const newStock = product.stock - purchaseReturn.volume;
+        updateProductStock(product.id, newStock);
+    }
 
-  }, [addDoc, fuelStock, setFuelStock]);
+  }, [addDoc, products, updateProductStock]);
 
   const deletePurchaseReturn = useCallback((id: string) => {
      const returnToDelete = purchaseReturns.find(pr => pr.id === id);
     if (!returnToDelete) return;
 
-    // Add back the volume to the stock
-    const currentStock = fuelStock[returnToDelete.fuelType] || 0;
-    const newStock = currentStock + returnToDelete.volume;
-    setFuelStock(returnToDelete.fuelType, newStock);
-
-    // Delete the return record
+    const product = products.find(p => p.id === returnToDelete.productId);
+    if(product) {
+        const newStock = product.stock + returnToDelete.volume;
+        updateProductStock(product.id, newStock);
+    }
+    
     deleteDoc(id);
-  }, [deleteDoc, purchaseReturns, fuelStock, setFuelStock]);
+  }, [deleteDoc, purchaseReturns, products, updateProductStock]);
 
   return { 
     purchaseReturns: purchaseReturns || [], 

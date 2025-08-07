@@ -4,41 +4,41 @@
 import { useCallback } from 'react';
 import type { Purchase } from '@/lib/types';
 import { useDatabaseCollection } from './use-database-collection';
-import { useFuelStock } from './use-fuel-stock';
+import { useProducts } from './use-products';
 
 const COLLECTION_NAME = 'purchases';
 
 export function usePurchases() {
   const { data: purchases, addDoc, deleteDoc, loading } = useDatabaseCollection<Purchase>(COLLECTION_NAME);
-  const { fuelStock, setFuelStock } = useFuelStock();
+  const { products, updateProductStock } = useProducts();
 
   const addPurchase = useCallback((purchase: Omit<Purchase, 'id'>) => {
-    // First, add the purchase record
     addDoc(purchase);
 
-    // Then, update the fuel stock for each item
     purchase.items.forEach(item => {
-        const currentStock = fuelStock[item.fuelType] || 0;
-        const newStock = currentStock + item.volume;
-        setFuelStock(item.fuelType, newStock);
+        const product = products.find(p => p.id === item.productId);
+        if (product) {
+            const newStock = product.stock + item.quantity;
+            updateProductStock(item.productId, newStock);
+        }
     });
 
-  }, [addDoc, fuelStock, setFuelStock]);
+  }, [addDoc, products, updateProductStock]);
 
   const deletePurchase = useCallback((id: string) => {
     const purchaseToDelete = purchases.find(p => p.id === id);
     if (!purchaseToDelete) return;
 
-    // Subtract the volume from the stock for each item
     purchaseToDelete.items.forEach(item => {
-        const currentStock = fuelStock[item.fuelType] || 0;
-        const newStock = currentStock - item.volume;
-        setFuelStock(item.fuelType, newStock);
+        const product = products.find(p => p.id === item.productId);
+        if (product) {
+            const newStock = product.stock - item.quantity;
+            updateProductStock(item.productId, newStock);
+        }
     });
     
-    // Delete the purchase record
     deleteDoc(id);
-  }, [deleteDoc, purchases, fuelStock, setFuelStock]);
+  }, [deleteDoc, purchases, products, updateProductStock]);
   
   return { 
     purchases: purchases || [], 

@@ -12,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Undo2, PackageMinus, ListRestart, Calendar as CalendarIcon } from 'lucide-react';
-import type { FuelType } from '@/lib/types';
 import { format } from 'date-fns';
 import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,13 +20,11 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useSuppliers } from '@/hooks/use-suppliers';
 import { useState, useEffect } from 'react';
-
-
-const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
+import { useProducts } from '@/hooks/use-products';
 
 const purchaseReturnSchema = z.object({
   supplierId: z.string().min(1, 'Please select a supplier.'),
-  fuelType: z.enum(FUEL_TYPES, { required_error: 'Please select a fuel type.' }),
+  productId: z.string().min(1, 'Please select a product.'),
   volume: z.coerce.number().min(0.01, 'Volume must be greater than 0'),
   totalRefund: z.coerce.number().min(0.01, 'Total refund must be greater than 0'),
   reason: z.string().min(1, 'Reason for return is required'),
@@ -39,6 +36,7 @@ type PurchaseReturnFormValues = z.infer<typeof purchaseReturnSchema>;
 export default function PurchaseReturnsPage() {
   const { purchaseReturns, addPurchaseReturn } = usePurchaseReturns();
   const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
+  const { products, isLoaded: productsLoaded } = useProducts();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
@@ -56,10 +54,13 @@ export default function PurchaseReturnsPage() {
   const onSubmit: SubmitHandler<PurchaseReturnFormValues> = (data) => {
     const supplier = suppliers.find(s => s.id === data.supplierId);
     if (!supplier) return;
+    const product = products.find(p => p.id === data.productId);
+    if (!product) return;
 
     addPurchaseReturn({ 
         ...data, 
         supplier: supplier.name, // Pass name for display
+        productName: product.name,
         timestamp: data.date.toISOString() 
     });
     toast({
@@ -68,6 +69,7 @@ export default function PurchaseReturnsPage() {
     });
     reset({
         supplierId: '',
+        productId: '',
         volume: 0,
         totalRefund: 0,
         reason: '',
@@ -83,7 +85,7 @@ export default function PurchaseReturnsPage() {
             <CardTitle className="flex items-center gap-2">
               <Undo2 /> New Purchase Return
             </CardTitle>
-            <CardDescription>Record a fuel return to a supplier.</CardDescription>
+            <CardDescription>Record a product return to a supplier.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -109,29 +111,29 @@ export default function PurchaseReturnsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Fuel Type</Label>
+                <Label>Product</Label>
                  <Controller
-                  name="fuelType"
+                  name="productId"
                   control={control}
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value} defaultValue="">
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a fuel type" />
+                        <SelectValue placeholder="Select a product" />
                       </SelectTrigger>
                       <SelectContent>
-                        {FUEL_TYPES.map(fuel => (
-                          <SelectItem key={fuel} value={fuel}>{fuel}</SelectItem>
-                        ))}
+                        {productsLoaded ? products.map(p => (
+                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                        )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
                       </SelectContent>
                     </Select>
                   )}
                 />
-                {errors.fuelType && <p className="text-sm text-destructive">{errors.fuelType.message}</p>}
+                {errors.productId && <p className="text-sm text-destructive">{errors.productId.message}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="volume">Volume (Litres)</Label>
+                  <Label htmlFor="volume">Volume/Quantity</Label>
                   <Input id="volume" type="number" {...register('volume')} placeholder="e.g., 500" step="0.01" />
                   {errors.volume && <p className="text-sm text-destructive">{errors.volume.message}</p>}
                 </div>
@@ -193,7 +195,7 @@ export default function PurchaseReturnsPage() {
               <ListRestart /> Return History
             </CardTitle>
             <CardDescription>
-              A record of all fuel returns to suppliers.
+              A record of all product returns to suppliers.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -203,8 +205,8 @@ export default function PurchaseReturnsPage() {
                   <TableRow>
                     <TableHead>Date</TableHead>
                     <TableHead>Supplier</TableHead>
-                    <TableHead>Fuel Type</TableHead>
-                    <TableHead className="text-right">Volume (L)</TableHead>
+                    <TableHead>Product</TableHead>
+                    <TableHead className="text-right">Volume/Qty</TableHead>
                     <TableHead className="text-right">Total Refund</TableHead>
                     <TableHead>Reason</TableHead>
                   </TableRow>
@@ -215,7 +217,7 @@ export default function PurchaseReturnsPage() {
                       <TableRow key={p.id}>
                         <TableCell className="font-medium">{format(new Date(p.timestamp), 'PP')}</TableCell>
                         <TableCell>{p.supplier}</TableCell>
-                        <TableCell>{p.fuelType}</TableCell>
+                        <TableCell>{p.productName}</TableCell>
                         <TableCell className="text-right">{p.volume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                         <TableCell className="text-right">PKR {p.totalRefund.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                         <TableCell>{p.reason}</TableCell>

@@ -7,49 +7,46 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useTransactions } from '@/hooks/use-transactions';
 import { usePurchases } from '@/hooks/use-purchases';
 import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
-import { useFuelStock } from '@/hooks/use-fuel-stock';
-import type { FuelType } from '@/lib/types';
 import { Package } from 'lucide-react';
-
-const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
+import { useProducts } from '@/hooks/use-products';
 
 export default function StockMovementPage() {
   const { transactions, isLoaded: txLoaded } = useTransactions();
   const { purchases, isLoaded: purLoaded } = usePurchases();
   const { purchaseReturns, isLoaded: retLoaded } = usePurchaseReturns();
-  const { fuelStock, isLoaded: stockLoaded } = useFuelStock();
+  const { products, isLoaded: stockLoaded } = useProducts();
 
   const isLoaded = txLoaded && purLoaded && retLoaded && stockLoaded;
 
   const reportData = useMemo(() => {
     if (!isLoaded) return [];
 
-    return FUEL_TYPES.map(fuelType => {
+    return products.map(product => {
       const totalPurchased = purchases
         .flatMap(p => p.items)
-        .filter(item => item.fuelType === fuelType)
-        .reduce((sum, item) => sum + item.volume, 0);
+        .filter(item => item.productId === product.id)
+        .reduce((sum, item) => sum + item.quantity, 0);
       
       const totalSold = transactions
         .flatMap(tx => tx.items)
-        .filter(item => item.fuelType === fuelType)
-        .reduce((sum, item) => sum + item.volume, 0);
+        .filter(item => item.productId === product.id)
+        .reduce((sum, item) => sum + item.quantity, 0);
 
       const totalReturned = purchaseReturns
-        .filter(pr => pr.fuelType === fuelType)
+        .filter(pr => pr.productId === product.id)
         .reduce((sum, pr) => sum + pr.volume, 0);
 
-      const currentStock = fuelStock[fuelType] || 0;
+      const currentStock = product.stock || 0;
 
       return {
-        fuelType,
+        ...product,
         totalPurchased,
         totalSold,
         totalReturned,
         currentStock,
       };
     });
-  }, [isLoaded, purchases, transactions, purchaseReturns, fuelStock]);
+  }, [isLoaded, purchases, transactions, purchaseReturns, products]);
 
   return (
     <div className="p-4 md:p-8">
@@ -59,29 +56,29 @@ export default function StockMovementPage() {
             <Package /> Stock Sale & Purchase Report
           </CardTitle>
           <CardDescription>
-            A summary of stock movement for each fuel type.
+            A summary of stock movement for each product.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Fuel Type</TableHead>
-                <TableHead className="text-right">Total Purchased (L)</TableHead>
-                <TableHead className="text-right">Total Sold (L)</TableHead>
-                <TableHead className="text-right">Total Returned (L)</TableHead>
-                <TableHead className="text-right">Current Stock (L)</TableHead>
+                <TableHead>Product</TableHead>
+                <TableHead className="text-right">Total Purchased</TableHead>
+                <TableHead className="text-right">Total Sold</TableHead>
+                <TableHead className="text-right">Total Returned</TableHead>
+                <TableHead className="text-right">Current Stock</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoaded ? (
                 reportData.map(row => (
-                  <TableRow key={row.fuelType}>
-                    <TableCell className="font-medium">{row.fuelType}</TableCell>
-                    <TableCell className="text-right font-mono text-green-600">{row.totalPurchased.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                    <TableCell className="text-right font-mono text-destructive">{row.totalSold.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                    <TableCell className="text-right font-mono text-blue-600">{row.totalReturned.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                    <TableCell className="text-right font-mono font-bold">{row.currentStock.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                  <TableRow key={row.id}>
+                    <TableCell className="font-medium">{row.name}</TableCell>
+                    <TableCell className="text-right font-mono text-green-600">{row.totalPurchased.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.unit}(s)</TableCell>
+                    <TableCell className="text-right font-mono text-destructive">{row.totalSold.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.unit}(s)</TableCell>
+                    <TableCell className="text-right font-mono text-blue-600">{row.totalReturned.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.unit}(s)</TableCell>
+                    <TableCell className="text-right font-mono font-bold">{row.currentStock.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.unit}(s)</TableCell>
                   </TableRow>
                 ))
               ) : (

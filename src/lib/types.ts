@@ -4,10 +4,22 @@ export type FuelType = 'Unleaded' | 'Premium' | 'Diesel';
 
 export type PaymentMethod = 'Cash' | 'Card' | 'Mobile' | 'On Credit';
 
+export interface Product {
+    id: string;
+    name: string;
+    category: 'Fuel' | 'Lubricant' | 'Other';
+    unit: 'Litre' | 'Unit';
+    price?: number; // Selling price
+    cost?: number; // Purchase price
+    stock: number;
+    timestamp?: string;
+}
+
 export interface TransactionItem {
-    fuelType: FuelType;
-    volume: number;
-    pricePerLitre: number;
+    productId: string;
+    productName: string;
+    quantity: number;
+    pricePerUnit: number;
     totalAmount: number;
 }
 
@@ -24,8 +36,9 @@ export interface Transaction {
 }
 
 export interface PurchaseItem {
-    fuelType: FuelType;
-    volume: number;
+    productId: string;
+    productName: string;
+    quantity: number;
     cost: number;
 }
 
@@ -42,7 +55,8 @@ export interface PurchaseReturn {
   id?: string;
   supplierId: string;
   supplier: string;
-  fuelType: FuelType;
+  productId: string;
+  productName: string;
   volume: number;
   totalRefund: number;
   reason: string;

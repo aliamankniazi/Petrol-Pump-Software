@@ -13,20 +13,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Fuel, Tag, ScanLine, Calculator, Database, CreditCard, Wallet, Smartphone, Banknote, PlusCircle, Trash2 } from 'lucide-react';
-import type { FuelType, Customer, BankAccount } from '@/lib/types';
-import { useFuelPrices } from '@/hooks/use-fuel-prices';
+import type { Customer, BankAccount, Product } from '@/lib/types';
 import { useCustomers } from '@/hooks/use-customers';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomerBalance } from '@/hooks/use-customer-balance';
 import { useBankAccounts } from '@/hooks/use-bank-accounts';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
-
-const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
+import { useProducts } from '@/hooks/use-products';
 
 const saleItemSchema = z.object({
-  fuelType: z.enum(FUEL_TYPES, { required_error: 'Please select a fuel type.' }),
-  saleType: z.enum(['amount', 'volume']).default('amount'),
+  productId: z.string().min(1, 'Please select a product.'),
+  saleType: z.enum(['amount', 'quantity']).default('amount'),
   value: z.coerce.number().min(0.01, 'Value must be greater than 0'),
 });
 
@@ -40,7 +38,7 @@ const saleSchema = z.object({
 type SaleFormValues = z.infer<typeof saleSchema>;
 
 export default function SalesPage() {
-  const { fuelPrices } = useFuelPrices();
+  const { products, isLoaded: productsLoaded } = useProducts();
   const { customers, isLoaded: customersLoaded } = useCustomers();
   const { bankAccounts, isLoaded: bankAccountsLoaded } = useBankAccounts();
   const { addTransaction } = useTransactions();
@@ -68,36 +66,38 @@ export default function SalesPage() {
   const calculated = React.useMemo(() => {
     let totalAmount = 0;
     const processedItems = items.map(item => {
-        const pricePerLitre = item.fuelType ? fuelPrices[item.fuelType] : 0;
+        const product = products.find(p => p.id === item.productId);
+        if (!product || !product.price) return { ...item, amount: 0, quantity: 0, pricePerUnit: 0, productName: '' };
+        
+        const pricePerUnit = product.price;
         const numValue = Number(item.value) || 0;
-        if (pricePerLitre === 0 || numValue === 0) return { ...item, amount: 0, volume: 0, pricePerLitre };
         
         let itemAmount = 0;
-        let itemVolume = 0;
+        let itemQuantity = 0;
 
         if (item.saleType === 'amount') {
             itemAmount = numValue;
-            itemVolume = numValue / pricePerLitre;
-        } else {
-            itemVolume = numValue;
-            itemAmount = numValue * pricePerLitre;
+            itemQuantity = pricePerUnit > 0 ? numValue / pricePerUnit : 0;
+        } else { // quantity
+            itemQuantity = numValue;
+            itemAmount = numValue * pricePerUnit;
         }
         totalAmount += itemAmount;
-        return { ...item, amount: itemAmount, volume: itemVolume, pricePerLitre };
+        return { ...item, amount: itemAmount, quantity: itemQuantity, pricePerUnit, productName: product.name };
     });
 
     return { totalAmount, items: processedItems };
-  }, [items, fuelPrices]);
+  }, [items, products]);
 
   const addNewItem = () => {
-    append({ fuelType: 'Unleaded', saleType: 'amount', value: 0 });
+    append({ productId: '', saleType: 'amount', value: 0 });
   };
   
   React.useEffect(() => {
     if (fields.length === 0) {
         addNewItem();
     }
-  }, [fields.length]);
+  }, [fields.length, addNewItem]);
 
   React.useEffect(() => {
     if (barcode.length > 0) {
@@ -114,7 +114,7 @@ export default function SalesPage() {
         toast({
             variant: "destructive",
             title: "Invalid Sale",
-            description: "Please enter a valid amount or volume for at least one item."
+            description: "Please enter a valid amount or quantity for at least one item."
         })
         return;
     }
@@ -124,9 +124,10 @@ export default function SalesPage() {
 
     addTransaction({
       items: calculated.items.map(i => ({
-          fuelType: i.fuelType,
-          volume: i.volume,
-          pricePerLitre: i.pricePerLitre,
+          productId: i.productId,
+          productName: i.productName,
+          quantity: i.quantity,
+          pricePerUnit: i.pricePerUnit,
           totalAmount: i.amount
       })),
       totalAmount: calculated.totalAmount,
@@ -160,7 +161,7 @@ export default function SalesPage() {
           <Card className="flex-grow flex flex-col">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Fuel/> Electronic Point of Sale (EPOS)</CardTitle>
-              <CardDescription>Process a new fuel sale transaction. Add multiple products to a single order.</CardDescription>
+              <CardDescription>Process a new sale transaction. Add multiple products to a single order.</CardDescription>
             </CardHeader>
             <CardContent className="flex-grow grid md:grid-cols-2 gap-8">
               <div className="space-y-4">
@@ -169,15 +170,15 @@ export default function SalesPage() {
                     <Card key={field.id} className="p-4 relative">
                         <div className="grid grid-cols-6 gap-4">
                             <div className="col-span-3 space-y-2">
-                                <Label>Fuel Type</Label>
+                                <Label>Product</Label>
                                 <Controller
-                                    name={`items.${index}.fuelType`}
+                                    name={`items.${index}.productId`}
                                     control={control}
                                     render={({ field }) => (
                                         <Select onValueChange={field.onChange} value={field.value}>
-                                            <SelectTrigger><SelectValue placeholder="Select fuel" /></SelectTrigger>
+                                            <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
                                             <SelectContent>
-                                                {FUEL_TYPES.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                                                {productsLoaded ? products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
                                             </SelectContent>
                                         </Select>
                                     )}
@@ -195,8 +196,8 @@ export default function SalesPage() {
                                                 Amount
                                             </Label>
                                             <Label className="flex items-center gap-2 border rounded-md p-2 cursor-pointer has-[:checked]:border-primary text-xs flex-1 justify-center">
-                                                <RadioGroupItem value="volume" />
-                                                Volume
+                                                <RadioGroupItem value="quantity" />
+                                                Quantity
                                             </Label>
                                         </RadioGroup>
                                     )}
@@ -312,7 +313,7 @@ export default function SalesPage() {
                    <CardContent className="space-y-2 text-sm">
                      {calculated.items.map((item, index) => (
                         <div key={index} className="flex justify-between items-center">
-                            <span className="text-muted-foreground">{item.fuelType} ({item.volume.toFixed(2)} L)</span>
+                            <span className="text-muted-foreground">{item.productName} ({item.quantity.toFixed(2)} units)</span>
                             <span className="font-mono">PKR {item.amount.toFixed(2)}</span>
                         </div>
                      ))}

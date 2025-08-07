@@ -13,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { ShoppingCart, Package, Truck, Calendar as CalendarIcon, PlusCircle, Trash2 } from 'lucide-react';
-import type { FuelType } from '@/lib/types';
 import { format } from 'date-fns';
 import { usePurchases } from '@/hooks/use-purchases';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -22,12 +21,11 @@ import { cn } from '@/lib/utils';
 import { useSuppliers } from '@/hooks/use-suppliers';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-
-const FUEL_TYPES: FuelType[] = ['Unleaded', 'Premium', 'Diesel'];
+import { useProducts } from '@/hooks/use-products';
 
 const purchaseItemSchema = z.object({
-  fuelType: z.enum(FUEL_TYPES, { required_error: 'Fuel type is required.'}),
-  volume: z.coerce.number().min(0.01, 'Volume must be positive.'),
+  productId: z.string().min(1, 'Product is required.'),
+  quantity: z.coerce.number().min(0.01, 'Quantity must be positive.'),
   cost: z.coerce.number().min(0.01, 'Cost must be positive.'),
 });
 
@@ -49,6 +47,7 @@ type SupplierFormValues = z.infer<typeof supplierSchema>;
 export default function PurchasesPage() {
   const { purchases, addPurchase } = usePurchases();
   const { suppliers, addSupplier, isLoaded: suppliersLoaded } = useSuppliers();
+  const { products, isLoaded: productsLoaded } = useProducts();
   const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
@@ -86,7 +85,7 @@ export default function PurchasesPage() {
   
   useEffect(() => {
     if (fields.length === 0) {
-        append({ fuelType: 'Unleaded', volume: 0, cost: 0 });
+        append({ productId: '', quantity: 0, cost: 0 });
     }
   }, [fields.length, append]);
 
@@ -94,8 +93,17 @@ export default function PurchasesPage() {
     const supplier = suppliers.find(s => s.id === data.supplierId);
     if (!supplier) return;
 
+    const itemsWithNames = data.items.map(item => {
+        const product = products.find(p => p.id === item.productId);
+        return {
+            ...item,
+            productName: product?.name || 'Unknown Product'
+        }
+    });
+
     addPurchase({
       ...data,
+      items: itemsWithNames,
       supplier: supplier.name, // Pass the name for display purposes
       timestamp: data.date.toISOString(),
       totalCost,
@@ -131,7 +139,7 @@ export default function PurchasesPage() {
             <CardTitle className="flex items-center gap-2">
               <Truck /> New Purchase
             </CardTitle>
-            <CardDescription>Record a new fuel delivery with one or more products.</CardDescription>
+            <CardDescription>Record a new delivery with one or more products.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onPurchaseSubmit)} className="space-y-4">
@@ -201,28 +209,28 @@ export default function PurchasesPage() {
                         <Card key={field.id} className="p-4 relative bg-muted/30">
                              <div className="grid grid-cols-2 gap-4">
                                 <div className="col-span-2 space-y-2">
-                                    <Label>Fuel Type</Label>
+                                    <Label>Product</Label>
                                     <Controller
-                                      name={`items.${index}.fuelType`}
+                                      name={`items.${index}.productId`}
                                       control={control}
                                       render={({ field }) => (
                                          <Select onValueChange={field.onChange} value={field.value} defaultValue="">
                                           <SelectTrigger>
-                                            <SelectValue placeholder="Select a fuel type" />
+                                            <SelectValue placeholder="Select a product" />
                                           </SelectTrigger>
                                           <SelectContent>
-                                            {FUEL_TYPES.map(fuel => (
-                                              <SelectItem key={fuel} value={fuel}>{fuel}</SelectItem>
-                                            ))}
+                                            {productsLoaded ? products.map(p => (
+                                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                            )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
                                           </SelectContent>
                                         </Select>
                                       )}
                                     />
                                 </div>
                                  <div className="space-y-2">
-                                  <Label htmlFor={`items.${index}.volume`}>Volume (L)</Label>
-                                  <Input id={`items.${index}.volume`} type="number" {...register(`items.${index}.volume`)} placeholder="e.g., 5000" step="0.01" />
-                                  {errors.items?.[index]?.volume && <p className="text-sm text-destructive">{errors.items?.[index]?.volume?.message}</p>}
+                                  <Label htmlFor={`items.${index}.quantity`}>Quantity</Label>
+                                  <Input id={`items.${index}.quantity`} type="number" {...register(`items.${index}.quantity`)} placeholder="e.g., 5000" step="0.01" />
+                                  {errors.items?.[index]?.quantity && <p className="text-sm text-destructive">{errors.items?.[index]?.quantity?.message}</p>}
                                 </div>
                                 <div className="space-y-2">
                                   <Label htmlFor={`items.${index}.cost`}>Total Cost (PKR)</Label>
@@ -234,7 +242,7 @@ export default function PurchasesPage() {
                         </Card>
                     ))}
                 </div>
-                 <Button type="button" variant="outline" onClick={() => append({ fuelType: 'Unleaded', volume: 0, cost: 0 })} className="w-full"><PlusCircle /> Add Product</Button>
+                 <Button type="button" variant="outline" onClick={() => append({ productId: '', quantity: 0, cost: 0 })} className="w-full"><PlusCircle /> Add Product</Button>
               
               <div className="border-t pt-4 space-y-2">
                 <h3 className="text-lg font-semibold">Total Purchase Cost</h3>
@@ -254,7 +262,7 @@ export default function PurchasesPage() {
               <ShoppingCart /> Purchase History
             </CardTitle>
             <CardDescription>
-              A record of all incoming stock and fuel deliveries.
+              A record of all incoming stock and product deliveries.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -278,7 +286,7 @@ export default function PurchasesPage() {
                           <ul className="list-disc pl-4 text-xs">
                            {p.items.map((item, index) => (
                              <li key={index}>
-                                {item.volume.toLocaleString()}L of {item.fuelType}
+                                {item.quantity.toLocaleString()} x {item.productName}
                              </li>
                            ))}
                           </ul>
@@ -293,7 +301,7 @@ export default function PurchasesPage() {
               <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
                 <Package className="w-16 h-16" />
                 <h3 className="text-xl font-semibold">No Purchases Recorded</h3>
-                <p>Use the form to log your first fuel delivery.</p>
+                <p>Use the form to log your first product delivery.</p>
               </div>
             )}
           </CardContent>
