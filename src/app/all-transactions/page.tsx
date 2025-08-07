@@ -254,9 +254,9 @@ export default function AllTransactionsPage() {
               <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
                 <XCircle className="w-16 h-16" />
                 <h3 className="text-xl font-semibold">
-                  {searchTerm ? 'No Matching Transactions' : 'No Transactions Yet'}
+                  {searchTerm ? 'No Matching Transactions' : 'Not showing any details'}
                 </h3>
-                <p>{searchTerm ? 'Try a different search term.' : 'Sales, purchases, and returns will appear here.'}</p>
+                <p>{searchTerm ? 'Try a different search term.' : ''}</p>
               </div>
             )
           ) : (
