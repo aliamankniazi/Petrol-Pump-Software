@@ -48,8 +48,8 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id' | 'timestamp'>>
         const fetchedData = snapshot.val();
         Object.keys(fetchedData).forEach(key => {
           dataArray.push({
-            id: key,
             ...fetchedData[key],
+            id: key, // Ensure the key from the snapshot is the ID
           });
         });
       }
@@ -75,17 +75,15 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id' | 'timestamp'>>
       throw new Error("Database not configured.");
     }
     
-    if (docId) {
-      const docRef = ref(db, `${collectionName}/${docId}`);
-      const docWithId = { ...newData, id: docId } as T & { id: string };
-      await set(docRef, docWithId);
-      return docWithId;
-    } else {
-      const docRef = push(ref(db, collectionName));
-      const docWithId = { ...newData, id: docRef.key! } as T & { id: string };
-      await set(docRef, docWithId);
-      return docWithId;
-    }
+    const collectionRef = ref(db, collectionName);
+    const docRef = docId ? ref(db, `${collectionName}/${docId}`) : push(collectionRef);
+    const newId = docRef.key!;
+    
+    const docWithId = { ...newData, id: newId } as T & { id: string };
+    
+    await set(docRef, docWithId);
+    return docWithId;
+
   }, [collectionName]);
   
   const updateDoc = useCallback(async (id: string, updatedData: Partial<T>) => {
