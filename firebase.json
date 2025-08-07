@@ -1,4 +1,8 @@
+
 {
+  "database": {
+    "rules": "src/database.rules.json"
+  },
   "hosting": {
     "public": "out",
     "ignore": [
@@ -12,8 +16,5 @@
         "destination": "/index.html"
       }
     ]
-  },
-  "database": {
-    "rules": "src/database.rules.json"
   }
 }

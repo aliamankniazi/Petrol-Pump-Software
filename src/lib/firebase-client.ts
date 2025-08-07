@@ -4,14 +4,14 @@ import { getDatabase, type Database } from 'firebase/database';
 import { getAuth, type Auth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCXEB6bHuRf7q9wzAGgYDdvLGqbkPVxpDY",
-  authDomain: "pumppal-n1b9n.firebaseapp.com",
-  databaseURL: "https://pumppal-n1b9n-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "pumppal-n1b9n",
-  storageBucket: "pumppal-n1b9n.appspot.com",
-  messagingSenderId: "539336218754",
-  appId: "1:539336218754:web:1e90dd372f7615d3d33c9b",
-  measurementId: "G-N85T634MQ3"
+    apiKey: "AIzaSyCXEB6bHuRf7q9wzAGgYDdvLGqbkPVxpDY",
+    authDomain: "pumppal-n1b9n.firebaseapp.com",
+    databaseURL: "https://pumppal-n1b9n-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "pumppal-n1b9n",
+    storageBucket: "pumppal-n1b9n.appspot.com",
+    messagingSenderId: "539336218754",
+    appId: "1:539336218754:web:1e90dd372f7615d3d33c9b",
+    measurementId: "G-N85T634MQ3"
 };
 
 // This function checks if the Firebase config has been filled out.
@@ -19,9 +19,23 @@ const isFirebaseConfigured = () => {
     return firebaseConfig && firebaseConfig.projectId && firebaseConfig.apiKey && firebaseConfig.projectId !== 'pumppal-n1b9n-placeholder';
 };
 
-// Initialize Firebase
-const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const db: Database = getDatabase(app);
-const auth: Auth = getAuth(app);
+let app: FirebaseApp;
+let db: Database;
+let auth: Auth;
+
+if (isFirebaseConfigured()) {
+    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    db = getDatabase(app);
+    auth = getAuth(app);
+} else {
+    // Provide mock objects or handle the unconfigured state gracefully.
+    // @ts-ignore
+    app = {};
+    // @ts-ignore
+    db = {};
+    // @ts-ignore
+    auth = {};
+}
+
 
 export { app, db, auth, isFirebaseConfigured };
