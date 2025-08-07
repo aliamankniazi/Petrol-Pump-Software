@@ -30,7 +30,7 @@ type TankReadingFormValues = z.infer<typeof tankReadingSchema>;
 
 export default function TankManagementPage() {
   const { tankReadings, addTankReading } = useTankReadings();
-  const { products, updateProductStock, isLoaded: productsLoaded } = useProducts();
+  const { products, isLoaded: productsLoaded } = useProducts();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
@@ -52,16 +52,17 @@ export default function TankManagementPage() {
     if (!product) return;
 
     addTankReading({ 
-        fuelType: product.name as any, // This is for historical compatibility
+        productId: data.productId,
+        fuelType: product.name as any,
         volume: data.volume,
         timestamp: data.date.toISOString(),
     });
-    updateProductStock(data.productId, data.volume);
+    
     toast({
       title: 'Tank Reading Logged',
-      description: `New volume for ${product.name} tank has been recorded as ${data.volume}L.`,
+      description: `New volume for ${product.name} tank has been recorded as ${data.volume}L and stock has been updated.`,
     });
-    reset({ volume: 0, date: new Date() });
+    reset({ productId: '', volume: 0, date: new Date() });
   };
 
   return (
@@ -70,9 +71,9 @@ export default function TankManagementPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <PlusCircle /> New Tank Reading
+              <PlusCircle /> New Tank Reading (Dip)
             </CardTitle>
-            <CardDescription>Enter the current volume for a fuel tank.</CardDescription>
+            <CardDescription>Enter the current volume for a fuel tank to verify stock.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
