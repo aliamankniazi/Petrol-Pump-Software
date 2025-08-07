@@ -27,7 +27,7 @@ export function useDatabaseCollection<T extends DbDoc>(
 
   useEffect(() => {
     if (!isFirebaseConfigured() || !db) {
-      console.warn(`Firebase not configured, skipping fetch for ${collectionName}.`);
+      console.warn(`Firebase not configured or db not available, skipping fetch for ${collectionName}.`);
       setLoading(false);
       setData([]);
       return;
@@ -69,7 +69,7 @@ export function useDatabaseCollection<T extends DbDoc>(
     });
 
     return () => unsubscribe();
-  }, [collectionName, db]);
+  }, [collectionName]);
 
   const addDoc = useCallback(async (newData: Omit<T, 'id'>, docId?: string): Promise<T> => {
     if (!db) {

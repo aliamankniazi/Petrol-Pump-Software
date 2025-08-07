@@ -34,7 +34,7 @@ let auth: Auth; // Auth is no longer initialized or used
 
 // This function checks if the placeholder values have been replaced.
 export const isFirebaseConfigured = () => {
-    return firebaseConfig && firebaseConfig.projectId && firebaseConfig.apiKey && firebaseConfig.projectId === 'pumppal-n1b9n';
+    return firebaseConfig && firebaseConfig.projectId && firebaseConfig.apiKey && firebaseConfig.projectId !== 'pumppal-n1b9n';
 }
 
 if (isFirebaseConfigured()) {
