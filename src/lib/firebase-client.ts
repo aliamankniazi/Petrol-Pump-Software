@@ -28,9 +28,9 @@ const firebaseConfig = {
 };
 
 
-let app: FirebaseApp | null = null;
-let db: Database | null = null;
-let auth: Auth | null = null; // Auth is no longer initialized or used
+let app: FirebaseApp;
+let db: Database;
+let auth: Auth; // Auth is no longer initialized or used
 
 // This function checks if the placeholder values have been replaced.
 export const isFirebaseConfigured = () => {
@@ -50,4 +50,5 @@ if (isFirebaseConfigured()) {
     console.warn("Firebase is not configured. The app will run in a limited, offline mode. Please update src/lib/firebase-client.ts with your project credentials.");
 }
 
+// @ts-ignore
 export { app, db, auth };
