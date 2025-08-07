@@ -13,6 +13,8 @@ export interface Product {
     price?: number; // Selling price
     cost?: number; // Purchase price
     stock: number;
+    supplierId?: string;
+    location?: string;
     timestamp?: string;
 }
 

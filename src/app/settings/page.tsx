@@ -39,6 +39,8 @@ const productSchema = z.object({
   unit: z.enum(['Litre', 'Unit']),
   price: z.coerce.number().min(0, "Price must be non-negative"),
   cost: z.coerce.number().min(0, "Cost must be non-negative"),
+  supplierId: z.string().optional(),
+  location: z.string().optional(),
 });
 type ProductFormValues = z.infer<typeof productSchema>;
 
@@ -106,7 +108,7 @@ export default function SettingsPage() {
       addProduct({ ...data, stock: 0 }); // Initial stock is 0
       toast({ title: 'Product Added', description: `${data.name} has been added.` });
     }
-    resetProduct({ name: '', category: 'Lubricant', productType: 'Main', unit: 'Unit', price: 0, cost: 0 });
+    resetProduct({ name: '', category: 'Lubricant', productType: 'Main', unit: 'Unit', price: 0, cost: 0, supplierId: '', location: '' });
   }, [productToEdit, addProduct, updateProduct, toast, resetProduct]);
   
   const handleEditProduct = (product: Product) => {
@@ -211,6 +213,22 @@ export default function SettingsPage() {
                                 <Input id="cost" type="number" step="0.01" {...registerProduct('cost')} placeholder="e.g., 250.00" />
                                 {productErrors.cost && <p className="text-sm text-destructive">{productErrors.cost.message}</p>}
                             </div>
+                            <div className="space-y-2">
+                                <Label>Supplier (Optional)</Label>
+                                <Controller name="supplierId" control={controlProduct} render={({ field }) => (
+                                    <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                                        <SelectTrigger><SelectValue placeholder="Select supplier"/></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="">None</SelectItem>
+                                            {suppliersLoaded ? suppliers.map(s => <SelectItem key={s.id} value={s.id!}>{s.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
+                                        </SelectContent>
+                                    </Select>
+                                )}/>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="location">Location (Optional)</Label>
+                                <Input id="location" {...registerProduct('location')} placeholder="e.g., Shelf B" />
+                            </div>
                         </div>
                         <Button type="submit">{productToEdit ? 'Update Product' : 'Add Product'}</Button>
                         {productToEdit && <Button type="button" variant="ghost" onClick={() => { setProductToEdit(null); resetProduct(); }}>Cancel Edit</Button>}
@@ -219,17 +237,21 @@ export default function SettingsPage() {
                     <h4 className="text-md font-medium mb-4">Existing Products</h4>
                     <div className="rounded-md border">
                         <Table>
-                            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Category</TableHead><TableHead>Type</TableHead><TableHead>Unit</TableHead><TableHead>Price</TableHead><TableHead>Cost</TableHead><TableHead>Stock</TableHead><TableHead className="text-center">Actions</TableHead></TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Category</TableHead><TableHead>Type</TableHead><TableHead>Unit</TableHead><TableHead>Price</TableHead><TableHead>Cost</TableHead><TableHead>Stock</TableHead><TableHead>Supplier</TableHead><TableHead>Location</TableHead><TableHead className="text-center">Actions</TableHead></TableRow></TableHeader>
                             <TableBody>
-                                {productsLoaded && products.length > 0 ? products.map(p => (
+                                {productsLoaded && products.length > 0 ? products.map(p => {
+                                  const supplier = suppliers.find(s => s.id === p.supplierId);
+                                  return (
                                     <TableRow key={p.id}>
                                         <TableCell>{p.name}</TableCell><TableCell>{p.category}</TableCell><TableCell>{p.productType}</TableCell><TableCell>{p.unit}</TableCell><TableCell>{p.price}</TableCell><TableCell>{p.cost}</TableCell><TableCell>{p.stock}</TableCell>
+                                        <TableCell>{supplier?.name || 'N/A'}</TableCell><TableCell>{p.location || 'N/A'}</TableCell>
                                         <TableCell className="text-center space-x-0">
                                             <Button variant="ghost" size="icon" title="Edit" onClick={() => handleEditProduct(p)}><Edit className="w-4 h-4" /></Button>
                                             <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDeleteProduct(p.id!)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
                                         </TableCell>
                                     </TableRow>
-                                )) : <TableRow><TableCell colSpan={8} className="h-24 text-center">{productsLoaded ? 'No products added.' : 'Loading...'}</TableCell></TableRow>}
+                                  )
+                                }) : <TableRow><TableCell colSpan={10} className="h-24 text-center">{productsLoaded ? 'No products added.' : 'Loading...'}</TableCell></TableRow>}
                             </TableBody>
                         </Table>
                     </div>
