@@ -42,7 +42,7 @@ export default function SalesPage() {
   const { products, isLoaded: productsLoaded } = useProducts();
   const { customers, isLoaded: customersLoaded } = useCustomers();
   const { bankAccounts, isLoaded: bankAccountsLoaded } = useBankAccounts();
-  const { addTransaction } = useTransactions();
+  const { addTransaction, transactions } = useTransactions();
   const { toast } = useToast();
 
   const [barcode, setBarcode] = React.useState('');
@@ -72,10 +72,18 @@ export default function SalesPage() {
   const handleProductChange = (index: number, productId: string) => {
     const product = products.find(p => p.id === productId);
     if (product) {
-        setValue(`items.${index}.pricePerUnit`, product.price || 0, { shouldValidate: true });
+        // Find the last transaction for this product to get the last used price
+        const lastTransactionForItem = transactions
+            .flatMap(tx => tx.items)
+            .filter(item => item.productId === productId)
+            .sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime())[0];
+
+        const priceToUse = lastTransactionForItem?.pricePerUnit || product.price || 0;
+
+        setValue(`items.${index}.pricePerUnit`, priceToUse, { shouldValidate: true });
         const quantity = watch(`items.${index}.quantity`);
         if (quantity > 0) {
-            setValue(`items.${index}.totalAmount`, quantity * (product.price || 0), { shouldValidate: true });
+            setValue(`items.${index}.totalAmount`, quantity * priceToUse, { shouldValidate: true });
         }
     }
   };
@@ -135,7 +143,8 @@ export default function SalesPage() {
         const product = products.find(p => p.id === item.productId);
         return {
             ...item,
-            productName: product?.name || 'Unknown Product'
+            productName: product?.name || 'Unknown Product',
+            timestamp: new Date().toISOString(), // Add timestamp to each item
         };
     });
 

@@ -21,6 +21,7 @@ export interface TransactionItem {
     quantity: number;
     pricePerUnit: number;
     totalAmount: number;
+    timestamp?: string;
 }
 
 export interface Transaction {

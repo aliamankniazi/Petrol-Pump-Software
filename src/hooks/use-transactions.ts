@@ -18,7 +18,7 @@ export function useTransactions() {
     transaction.items.forEach(item => {
         const product = products.find(p => p.id === item.productId);
         if (product) {
-            const newStock = product.stock - item.quantity;
+            const newStock = (product.stock || 0) - item.quantity;
             updateProductStock(item.productId, newStock);
         }
     });
@@ -32,7 +32,7 @@ export function useTransactions() {
     transactionToDelete.items.forEach(item => {
         const product = products.find(p => p.id === item.productId);
         if (product) {
-            const newStock = product.stock + item.quantity;
+            const newStock = (product.stock || 0) + item.quantity;
             updateProductStock(item.productId, newStock);
         }
     });
