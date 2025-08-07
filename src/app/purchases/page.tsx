@@ -44,6 +44,7 @@ const supplierSchema = z.object({
 });
 type SupplierFormValues = z.infer<typeof supplierSchema>;
 
+const LOCAL_STORAGE_KEY = 'global-transaction-date';
 
 export default function PurchasesPage() {
   const { purchases, addPurchase } = usePurchases();
@@ -59,9 +60,12 @@ export default function PurchasesPage() {
   
   const { register, handleSubmit, reset, setValue, control, watch, formState: { errors } } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema),
-    defaultValues: {
-      date: new Date(),
-      items: [],
+    defaultValues: () => {
+      if (typeof window !== 'undefined') {
+        const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+        return { date: storedDate ? new Date(storedDate) : new Date(), items: [] };
+      }
+      return { date: new Date(), items: [] };
     }
   });
 
@@ -71,6 +75,14 @@ export default function PurchasesPage() {
   });
 
   const watchedItems = watch('items');
+  const selectedDate = watch('date');
+
+  useEffect(() => {
+    if (selectedDate && typeof window !== 'undefined') {
+      localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
+    }
+  }, [selectedDate]);
+
   const totalCost = useMemo(() => {
     return watchedItems.reduce((sum, item) => sum + (item.totalCost || 0), 0);
   }, [watchedItems]);
@@ -134,10 +146,11 @@ export default function PurchasesPage() {
       title: 'Purchase Recorded',
       description: `Delivery from ${supplier.name} has been logged.`,
     });
+    const lastDate = watch('date');
     reset({
         supplierId: '',
         items: [],
-        date: new Date(),
+        date: lastDate,
     });
   };
   

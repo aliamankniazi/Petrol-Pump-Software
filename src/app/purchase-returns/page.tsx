@@ -33,6 +33,8 @@ const purchaseReturnSchema = z.object({
 
 type PurchaseReturnFormValues = z.infer<typeof purchaseReturnSchema>;
 
+const LOCAL_STORAGE_KEY = 'global-transaction-date';
+
 export default function PurchaseReturnsPage() {
   const { purchaseReturns, addPurchaseReturn } = usePurchaseReturns();
   const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
@@ -44,12 +46,23 @@ export default function PurchaseReturnsPage() {
     setIsClient(true);
   }, []);
 
-  const { register, handleSubmit, reset, setValue, control, formState: { errors } } = useForm<PurchaseReturnFormValues>({
+  const { register, handleSubmit, reset, setValue, control, formState: { errors }, watch } = useForm<PurchaseReturnFormValues>({
     resolver: zodResolver(purchaseReturnSchema),
-    defaultValues: {
-        date: new Date(),
+    defaultValues: () => {
+      if (typeof window !== 'undefined') {
+        const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+        return { date: storedDate ? new Date(storedDate) : new Date() };
+      }
+      return { date: new Date() };
     }
   });
+
+  const selectedDate = watch('date');
+  useEffect(() => {
+    if (selectedDate && typeof window !== 'undefined') {
+      localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
+    }
+  }, [selectedDate]);
 
   const onSubmit: SubmitHandler<PurchaseReturnFormValues> = (data) => {
     const supplier = suppliers.find(s => s.id === data.supplierId);
@@ -67,13 +80,14 @@ export default function PurchaseReturnsPage() {
       title: 'Purchase Return Recorded',
       description: `Return to ${supplier.name} has been logged.`,
     });
+    const lastDate = watch('date');
     reset({
         supplierId: '',
         productId: '',
         volume: 0,
         totalRefund: 0,
         reason: '',
-        date: new Date(),
+        date: lastDate,
     });
   };
 

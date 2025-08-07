@@ -35,6 +35,7 @@ const investmentSchema = z.object({
 
 type InvestmentFormValues = z.infer<typeof investmentSchema>;
 
+const LOCAL_STORAGE_KEY = 'global-transaction-date';
 
 export default function InvestmentsPage() {
   const { investments, addInvestment, deleteInvestment, isLoaded: investmentsLoaded } = useInvestments();
@@ -50,10 +51,23 @@ export default function InvestmentsPage() {
   const { toast } = useToast();
   
   // Form for new investments/withdrawals
-  const { register: registerInvestment, handleSubmit: handleSubmitInvestment, reset: resetInvestment, control: controlInvestment, formState: { errors: investmentErrors } } = useForm<InvestmentFormValues>({
+  const { register: registerInvestment, handleSubmit: handleSubmitInvestment, reset: resetInvestment, control: controlInvestment, formState: { errors: investmentErrors }, watch } = useForm<InvestmentFormValues>({
     resolver: zodResolver(investmentSchema),
-    defaultValues: { date: new Date(), type: 'Investment' }
+    defaultValues: () => {
+      if (typeof window !== 'undefined') {
+        const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+        return { type: 'Investment', date: storedDate ? new Date(storedDate) : new Date() };
+      }
+      return { type: 'Investment', date: new Date() };
+    }
   });
+
+  const selectedDate = watch('date');
+  useEffect(() => {
+    if (selectedDate && typeof window !== 'undefined') {
+      localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
+    }
+  }, [selectedDate]);
   
   const isLoaded = investmentsLoaded && partnersLoaded;
   
@@ -70,7 +84,8 @@ export default function InvestmentsPage() {
       title: 'Transaction Recorded',
       description: `${data.type} of PKR ${data.amount} by ${partner.name} has been logged.`,
     });
-    resetInvestment({ partnerId: '', amount: 0, notes: '', date: new Date(), type: 'Investment' });
+    const lastDate = watch('date');
+    resetInvestment({ partnerId: '', amount: 0, notes: '', date: lastDate, type: 'Investment' });
   };
   
   const handleDeleteTransaction = useCallback(() => {

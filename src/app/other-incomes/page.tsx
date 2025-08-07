@@ -32,6 +32,8 @@ const incomeSchema = z.object({
 
 type IncomeFormValues = z.infer<typeof incomeSchema>;
 
+const LOCAL_STORAGE_KEY = 'global-transaction-date';
+
 export default function OtherIncomesPage() {
   const { otherIncomes, addOtherIncome, deleteOtherIncome } = useOtherIncomes();
   const { toast } = useToast();
@@ -42,12 +44,23 @@ export default function OtherIncomesPage() {
     setIsClient(true);
   }, []);
 
-  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<IncomeFormValues>({
+  const { register, handleSubmit, reset, control, formState: { errors }, watch } = useForm<IncomeFormValues>({
     resolver: zodResolver(incomeSchema),
-    defaultValues: {
-      date: new Date(),
+    defaultValues: () => {
+      if (typeof window !== 'undefined') {
+        const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+        return { date: storedDate ? new Date(storedDate) : new Date() };
+      }
+      return { date: new Date() };
     }
   });
+
+  const selectedDate = watch('date');
+  useEffect(() => {
+    if (selectedDate && typeof window !== 'undefined') {
+      localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
+    }
+  }, [selectedDate]);
 
   const onSubmit: SubmitHandler<IncomeFormValues> = (data) => {
     addOtherIncome({
@@ -58,7 +71,8 @@ export default function OtherIncomesPage() {
       title: 'Income Recorded',
       description: `Income of PKR ${data.amount} for "${data.description}" has been logged.`,
     });
-    reset({ description: '', amount: 0, date: new Date() });
+    const lastDate = watch('date');
+    reset({ description: '', category: undefined, amount: 0, date: lastDate });
   };
   
   const handleDeleteIncome = () => {

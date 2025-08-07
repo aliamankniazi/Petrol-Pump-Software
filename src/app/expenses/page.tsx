@@ -33,6 +33,8 @@ const expenseSchema = z.object({
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
 
+const LOCAL_STORAGE_KEY = 'global-transaction-date';
+
 export default function ExpensesPage() {
   const { expenses, addExpense, deleteExpense } = useExpenses();
   const { toast } = useToast();
@@ -43,12 +45,23 @@ export default function ExpensesPage() {
     setIsClient(true);
   }, []);
 
-  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<ExpenseFormValues>({
+  const { register, handleSubmit, reset, control, formState: { errors }, watch } = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
-    defaultValues: {
-        date: new Date(),
+    defaultValues: () => {
+      if (typeof window !== 'undefined') {
+        const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+        return { date: storedDate ? new Date(storedDate) : new Date() };
+      }
+      return { date: new Date() };
     }
   });
+  
+  const selectedDate = watch('date');
+  useEffect(() => {
+    if (selectedDate && typeof window !== 'undefined') {
+      localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
+    }
+  }, [selectedDate]);
 
   const onSubmit: SubmitHandler<ExpenseFormValues> = (data) => {
     addExpense({
@@ -59,7 +72,8 @@ export default function ExpensesPage() {
       title: 'Expense Recorded',
       description: `Expense of PKR ${data.amount} for "${data.description}" has been logged.`,
     });
-    reset({ description: '', amount: 0, date: new Date() });
+    const lastDate = watch('date');
+    reset({ description: '', category: undefined, amount: 0, date: lastDate });
   };
   
   const handleDeleteExpense = () => {

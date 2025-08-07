@@ -31,6 +31,8 @@ const supplierPaymentSchema = z.object({
 
 type SupplierPaymentFormValues = z.infer<typeof supplierPaymentSchema>;
 
+const LOCAL_STORAGE_KEY = 'global-transaction-date';
+
 export default function SupplierPaymentsPage() {
   const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
   const { supplierPayments, addSupplierPayment } = useSupplierPayments();
@@ -41,12 +43,23 @@ export default function SupplierPaymentsPage() {
     setIsClient(true);
   }, []);
   
-  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<SupplierPaymentFormValues>({
+  const { register, handleSubmit, control, reset, formState: { errors }, watch } = useForm<SupplierPaymentFormValues>({
     resolver: zodResolver(supplierPaymentSchema),
-    defaultValues: {
-      date: new Date(),
+    defaultValues: () => {
+      if (typeof window !== 'undefined') {
+        const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+        return { date: storedDate ? new Date(storedDate) : new Date(), paymentMethod: 'Cash' };
+      }
+      return { date: new Date(), paymentMethod: 'Cash' };
     }
   });
+
+  const selectedDate = watch('date');
+  useEffect(() => {
+    if (selectedDate && typeof window !== 'undefined') {
+      localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
+    }
+  }, [selectedDate]);
 
   const onSubmit: SubmitHandler<SupplierPaymentFormValues> = useCallback((data) => {
     const supplier = suppliers.find(s => s.id === data.supplierId);
@@ -62,7 +75,8 @@ export default function SupplierPaymentsPage() {
       title: 'Payment Recorded',
       description: `Payment of PKR ${data.amount} to ${supplier.name} has been logged.`,
     });
-    reset({ supplierId: '', amount: 0, date: new Date(), paymentMethod: 'Cash' });
+    const lastDate = watch('date');
+    reset({ supplierId: '', amount: 0, date: lastDate, paymentMethod: 'Cash' });
   }, [suppliers, addSupplierPayment, toast, reset]);
   
   const getBadgeVariant = (method: Omit<PaymentMethod, 'On Credit'>) => {

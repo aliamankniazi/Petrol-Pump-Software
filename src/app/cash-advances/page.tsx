@@ -30,6 +30,8 @@ const cashAdvanceSchema = z.object({
 
 type CashAdvanceFormValues = z.infer<typeof cashAdvanceSchema>;
 
+const LOCAL_STORAGE_KEY = 'global-transaction-date';
+
 export default function CashAdvancesPage() {
   const { customers, isLoaded: customersLoaded } = useCustomers();
   const { cashAdvances, addCashAdvance } = useCashAdvances();
@@ -40,12 +42,23 @@ export default function CashAdvancesPage() {
     setIsClient(true);
   }, []);
 
-  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<CashAdvanceFormValues>({
+  const { register, handleSubmit, reset, control, formState: { errors }, watch } = useForm<CashAdvanceFormValues>({
     resolver: zodResolver(cashAdvanceSchema),
-    defaultValues: {
-      date: new Date(),
+    defaultValues: () => {
+      if (typeof window !== 'undefined') {
+        const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+        return { date: storedDate ? new Date(storedDate) : new Date() };
+      }
+      return { date: new Date() };
     }
   });
+
+  const selectedDate = watch('date');
+  useEffect(() => {
+    if (selectedDate && typeof window !== 'undefined') {
+      localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
+    }
+  }, [selectedDate]);
 
   const onSubmit: SubmitHandler<CashAdvanceFormValues> = (data) => {
     const customer = customers.find(c => c.id === data.customerId);
@@ -63,7 +76,8 @@ export default function CashAdvancesPage() {
       title: 'Cash Advance Recorded',
       description: `Cash advance of PKR ${data.amount} to ${customer.name} has been logged.`,
     });
-    reset({ customerId: '', amount: 0, notes: '', date: new Date() });
+    const lastDate = watch('date');
+    reset({ customerId: '', amount: 0, notes: '', date: lastDate });
   };
 
   return (
