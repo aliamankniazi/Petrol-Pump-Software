@@ -339,10 +339,12 @@ export default function SalesPage() {
                    <CardContent className="space-y-2 text-sm">
                      {items.map((item, index) => {
                         const product = products.find(p => p.id === item.productId);
+                        const quantity = typeof item.quantity === 'number' ? item.quantity : 0;
+                        const totalAmount = typeof item.totalAmount === 'number' ? item.totalAmount : 0;
                         return (
                             <div key={index} className="flex justify-between items-center">
-                                <span className="text-muted-foreground">{product?.name || '...'} ({item.quantity.toFixed(2)} units)</span>
-                                <span className="font-mono">PKR {item.totalAmount.toFixed(2)}</span>
+                                <span className="text-muted-foreground">{product?.name || '...'} ({quantity.toFixed(2)} units)</span>
+                                <span className="font-mono">PKR {totalAmount.toFixed(2)}</span>
                             </div>
                         )
                      })}
