@@ -39,7 +39,7 @@ type LedgerEntry = {
   id: string;
   timestamp: string;
   description: string;
-  type: 'Sale' | 'Payment' | 'Cash Advance' | 'Purchase' | 'Supplier Payment' | 'Salary' | 'Investment' | 'Withdrawal';
+  type: 'Sale' | 'Payment' | 'Cash Advance' | 'Purchase' | 'Supplier Payment' | 'Investment' | 'Withdrawal';
   debit: number;
   credit: number;
   balance: number;
@@ -96,12 +96,11 @@ export default function CustomerLedgerPage() {
         }));
 
         customerPaymentsReceived.forEach(p => {
-            const isSalary = p.paymentMethod === 'Salary';
             combined.push({
               id: `pay-${p.id}`,
               timestamp: p.timestamp,
-              description: isSalary ? `Salary for ${format(new Date(p.timestamp), 'MMMM yyyy')}` : `Payment Received (${p.paymentMethod})`,
-              type: isSalary ? 'Salary' : 'Payment',
+              description: `Payment Received (${p.paymentMethod})`,
+              type: 'Payment',
               debit: 0,
               credit: p.amount,
             })
@@ -261,7 +260,7 @@ export default function CustomerLedgerPage() {
 
   const balanceColorClass = () => {
       if (entityType === 'Partner' || entityType === 'Supplier') {
-          // For partners/suppliers, positive balance is good for business (we owe less), negative is bad (we owe more).
+          // For partners/suppliers, positive balance means the business owes them (net investment/credit).
           // But visually, it's conventional for credit balance (money owed to them) to be green.
           return finalBalance >= 0 ? 'text-green-600' : 'text-destructive';
       }

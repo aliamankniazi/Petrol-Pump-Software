@@ -22,7 +22,7 @@ import { useSupplierPayments } from '@/hooks/use-supplier-payments';
 import Link from 'next/link';
 import { useInvestments } from '@/hooks/use-investments';
 
-type EntityType = 'Customer' | 'Supplier' | 'Partner';
+type EntityType = 'Customer' | 'Supplier' | 'Partner' | 'Employee';
 
 type CombinedEntry = {
   id: string;
@@ -30,7 +30,7 @@ type CombinedEntry = {
   entityId: string;
   entityName: string;
   entityType: EntityType;
-  type: 'Sale' | 'Payment' | 'Cash Advance' | 'Purchase' | 'Supplier Payment' | 'Investment' | 'Withdrawal' | 'Salary';
+  type: 'Sale' | 'Payment' | 'Cash Advance' | 'Purchase' | 'Supplier Payment' | 'Investment' | 'Withdrawal';
   description: string;
   debit: number;
   credit: number;
@@ -58,7 +58,9 @@ export default function UnifiedLedgerPage() {
     const entityMap = new Map<string, { id: string; name: string; type: EntityType }>();
 
     customers.forEach(c => {
-      const type: EntityType = c.isPartner ? 'Partner' : 'Customer';
+      let type: EntityType = 'Customer';
+      if (c.isPartner) type = 'Partner';
+      else if (c.isEmployee) type = 'Employee';
       entityMap.set(c.id, { id: c.id, name: c.name, type: type });
     });
 
@@ -98,15 +100,14 @@ export default function UnifiedLedgerPage() {
     customerPayments.forEach(p => {
        const entity = entities.find(e => e.id === p.customerId);
        if (!entity) return;
-       const isSalary = p.paymentMethod === 'Salary';
        combined.push({
         id: `pay-${p.id}`,
         timestamp: p.timestamp,
         entityId: p.customerId,
         entityName: p.customerName,
         entityType: entity.type,
-        type: isSalary ? 'Salary' : 'Payment',
-        description: isSalary ? `Salary for ${format(new Date(p.timestamp), 'MMMM')}` : `Payment Received (${p.paymentMethod})`,
+        type: 'Payment',
+        description: `Payment Received (${p.paymentMethod})`,
         debit: 0,
         credit: p.amount,
       });
@@ -258,7 +259,6 @@ export default function UnifiedLedgerPage() {
       case 'Payment':
       case 'Purchase':
       case 'Investment':
-      case 'Salary':
         return 'outline';
       default:
         return 'default';
@@ -266,7 +266,7 @@ export default function UnifiedLedgerPage() {
   };
 
   const isCreditType = (type: CombinedEntry['type']) => {
-    return ['Payment', 'Purchase', 'Investment', 'Salary'].includes(type);
+    return ['Payment', 'Purchase', 'Investment'].includes(type);
   }
 
   const clearFilters = useCallback(() => {

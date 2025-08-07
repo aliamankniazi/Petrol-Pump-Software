@@ -22,7 +22,6 @@ import type { Employee } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCustomers } from '@/hooks/use-customers';
-import { useCustomerPayments } from '@/hooks/use-customer-payments';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 
@@ -44,8 +43,7 @@ const months = Array.from({ length: 12 }, (_, i) => ({
 export default function EmployeesPage() {
   const { employees, addEmployee, updateEmployee, deleteEmployee, isLoaded } = useEmployees();
   const { addExpense } = useExpenses();
-  const { customers, addCustomer, updateCustomer } = useCustomers();
-  const { addCustomerPayment } = useCustomerPayments();
+  const { addCustomer, updateCustomer } = useCustomers();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -116,35 +114,13 @@ export default function EmployeesPage() {
       timestamp: new Date().toISOString(),
     });
 
-    let employeeAsCustomer = customers.find(c => c.id === employeeToPay.id);
-    
-    if (!employeeAsCustomer) {
-        // This case should ideally not happen with the new logic, but as a fallback:
-        employeeAsCustomer = await addCustomer({
-            id: employeeToPay.id,
-            name: employeeToPay.name,
-            contact: employeeToPay.mobileNumber || '',
-            area: 'Employee',
-            isEmployee: true,
-        }, employeeToPay.id);
-    }
-    
-    addCustomerPayment({
-        customerId: employeeAsCustomer.id,
-        customerName: employeeAsCustomer.name,
-        amount: employeeToPay.salary,
-        paymentMethod: 'Salary',
-        timestamp: new Date().toISOString(),
-    });
-
-
     toast({
-      title: 'Salary Paid and Recorded',
-      description: `Salary for ${employeeToPay.name} has been logged as an expense and a credit in their ledger.`,
+      title: 'Salary Expense Recorded',
+      description: `Salary for ${employeeToPay.name} has been logged as a business expense.`,
     });
 
     setEmployeeToPay(null);
-  }, [employeeToPay, selectedMonth, addExpense, customers, addCustomer, addCustomerPayment, toast]);
+  }, [employeeToPay, selectedMonth, addExpense, toast]);
   
   useEffect(() => {
     if (employeeToEdit) {
@@ -294,7 +270,7 @@ export default function EmployeesPage() {
           <DialogHeader>
             <DialogTitle>Pay Salary for {employeeToPay?.name}</DialogTitle>
             <DialogDescription>
-              Select the month for this salary payment. The amount is fixed at PKR {employeeToPay?.salary.toLocaleString()}.
+              Select the month for this salary payment. The amount is fixed at PKR {employeeToPay?.salary.toLocaleString()}. This will be recorded as a business expense.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-4">
