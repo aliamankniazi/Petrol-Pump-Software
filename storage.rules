@@ -1,6 +1,4 @@
 rules_version = '2';
-
-// Codelab: Add rules to allow access to all users
 service firebase.storage {
   match /b/{bucket}/o {
     match /{allPaths=**} {
