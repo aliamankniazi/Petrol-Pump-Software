@@ -2,21 +2,6 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useTransactions } from './use-transactions';
-import { usePurchases } from './use-purchases';
-import { useExpenses } from './use-expenses';
-import { useCustomers } from './use-customers';
-import { useSuppliers } from './use-suppliers';
-import { usePurchaseReturns } from './use-purchase-returns';
-import { useOtherIncomes } from './use-other-incomes';
-import { useBankAccounts } from './use-bank-accounts';
-import { useEmployees } from './use-employees';
-import { useCustomerPayments } from './use-customer-payments';
-import { useSupplierPayments } from './use-supplier-payments';
-import { useCashAdvances } from './use-cash-advances';
-import { useTankReadings } from './use-tank-readings';
-import { useInvestments } from './use-investments';
-import { useBusinessPartners } from './use-business-partners';
 import { useDatabaseCollection } from './use-database-collection';
 
 // A simple hook to clear all data from all collections.

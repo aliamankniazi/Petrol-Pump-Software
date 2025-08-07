@@ -65,7 +65,7 @@ export default function SupplierPaymentsPage() {
     reset({ supplierId: '', amount: 0, date: new Date(), paymentMethod: 'Cash' });
   }, [suppliers, addSupplierPayment, toast, reset]);
   
-  const getBadgeVariant = (method: Omit<PaymentMethod, 'Salary'>) => {
+  const getBadgeVariant = (method: Omit<PaymentMethod, 'On Credit'>) => {
     switch (method) {
       case 'Card': return 'default';
       case 'Cash': return 'secondary';

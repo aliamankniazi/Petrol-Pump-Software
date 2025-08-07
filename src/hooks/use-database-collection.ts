@@ -75,18 +75,17 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id' | 'timestamp'>>
       throw new Error("Database not configured.");
     }
     
-    let docRef;
     if (docId) {
-      docRef = ref(db, `${collectionName}/${docId}`);
+      const docRef = ref(db, `${collectionName}/${docId}`);
+      const docWithId = { ...newData, id: docId } as T & { id: string };
+      await set(docRef, docWithId);
+      return docWithId;
     } else {
-      docRef = push(ref(db, collectionName));
+      const docRef = push(ref(db, collectionName));
+      const docWithId = { ...newData, id: docRef.key! } as T & { id: string };
+      await set(docRef, docWithId);
+      return docWithId;
     }
-    
-    const docWithId = { ...newData, id: docRef.key! } as T & { id: string };
-    
-    await set(docRef, docWithId);
-
-    return docWithId;
   }, [collectionName]);
   
   const updateDoc = useCallback(async (id: string, updatedData: Partial<T>) => {

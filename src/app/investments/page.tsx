@@ -20,11 +20,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { useBusinessPartners } from '@/hooks/use-business-partners';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useCustomers } from '@/hooks/use-customers';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import type { BusinessPartner, Investment } from '@/lib/types';
-import Link from 'next/link';
+import type { Investment } from '@/lib/types';
 
 
 const investmentSchema = z.object({
@@ -37,21 +35,13 @@ const investmentSchema = z.object({
 
 type InvestmentFormValues = z.infer<typeof investmentSchema>;
 
-const partnerSchema = z.object({
-  name: z.string().min(1, 'Partner name is required.'),
-  contact: z.string().optional(),
-  sharePercentage: z.coerce.number().min(0, "Percentage can't be negative.").max(100, "Percentage can't exceed 100."),
-});
-type PartnerFormValues = z.infer<typeof partnerSchema>;
-
 
 export default function InvestmentsPage() {
   const { investments, addInvestment, deleteInvestment, isLoaded: investmentsLoaded } = useInvestments();
-  const { businessPartners, addBusinessPartner, updateBusinessPartner, deleteBusinessPartner, isLoaded: partnersLoaded } = useBusinessPartners();
-  const [partnerToEdit, setPartnerToEdit] = useState<BusinessPartner | null>(null);
-  const [partnerToDelete, setPartnerToDelete] = useState<BusinessPartner | null>(null);
+  const { customers, isLoaded: partnersLoaded } = useCustomers();
   const [transactionToDelete, setTransactionToDelete] = useState<Investment | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const businessPartners = useMemo(() => customers.filter(c => c.isPartner), [customers]);
 
   useEffect(() => {
     setIsClient(true);
@@ -63,11 +53,6 @@ export default function InvestmentsPage() {
   const { register: registerInvestment, handleSubmit: handleSubmitInvestment, reset: resetInvestment, control: controlInvestment, formState: { errors: investmentErrors } } = useForm<InvestmentFormValues>({
     resolver: zodResolver(investmentSchema),
     defaultValues: { date: new Date(), type: 'Investment' }
-  });
-  
-  // Form for adding/editing partners
-  const { register: registerPartner, handleSubmit: handleSubmitPartner, reset: resetPartner, setValue: setPartnerValue, formState: { errors: partnerErrors } } = useForm<PartnerFormValues>({
-    resolver: zodResolver(partnerSchema),
   });
   
   const isLoaded = investmentsLoaded && partnersLoaded;
@@ -87,32 +72,6 @@ export default function InvestmentsPage() {
     });
     resetInvestment({ partnerId: '', amount: 0, notes: '', date: new Date(), type: 'Investment' });
   };
-  
-  const onPartnerSubmit: SubmitHandler<PartnerFormValues> = (data) => {
-    if (partnerToEdit && partnerToEdit.id) {
-      updateBusinessPartner(partnerToEdit.id, data);
-      toast({ title: 'Partner Updated', description: `${data.name}'s details have been updated.` });
-    } else {
-      addBusinessPartner(data);
-      toast({ title: 'Partner Added', description: `${data.name} has been added as a permanent partner.` });
-    }
-    setPartnerToEdit(null);
-    resetPartner({ name: '', sharePercentage: 0, contact: '' });
-  };
-
-  const openEditDialog = (partner: BusinessPartner) => {
-    setPartnerToEdit(partner);
-    setPartnerValue('name', partner.name);
-    setPartnerValue('sharePercentage', partner.sharePercentage);
-    setPartnerValue('contact', partner.contact || '');
-  }
-
-  const handleDeletePartner = useCallback(() => {
-    if (!partnerToDelete) return;
-    deleteBusinessPartner(partnerToDelete.id);
-    toast({ title: 'Partner Deleted', description: `${partnerToDelete.name} has been removed.`});
-    setPartnerToDelete(null);
-  }, [partnerToDelete, deleteBusinessPartner, toast]);
   
   const handleDeleteTransaction = useCallback(() => {
     if (!transactionToDelete) return;
@@ -149,17 +108,16 @@ export default function InvestmentsPage() {
   }, [investments, businessPartners, isLoaded]);
 
   const totalNetInvestment = useMemo(() => partnerSummary.reduce((sum, p) => sum + p.netInvestment, 0), [partnerSummary]);
-  const totalSharePercentage = useMemo(() => businessPartners.reduce((sum, p) => sum + p.sharePercentage, 0), [businessPartners]);
+  const totalSharePercentage = useMemo(() => businessPartners.reduce((sum, p) => sum + (p.sharePercentage || 0), 0), [businessPartners]);
 
   return (
     <>
     <div className="p-4 md:p-8 space-y-8">
       
-      {/* Permanent Partner Management */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Users/>Permanent Partner Manager</CardTitle>
-          <CardDescription>Add, edit, or remove business partners and manage their share percentages.</CardDescription>
+          <CardTitle className="flex items-center gap-2"><Users/>Partner Capital Summary</CardTitle>
+          <CardDescription>View net investment and share percentage for all business partners.</CardDescription>
         </CardHeader>
         <CardContent>
             <Table>
@@ -168,31 +126,21 @@ export default function InvestmentsPage() {
                         <TableHead>Partner Name</TableHead>
                         <TableHead className="text-right">Share %</TableHead>
                         <TableHead className="text-right">Net Investment</TableHead>
-                        <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {isLoaded && partnerSummary.length > 0 ? partnerSummary.map(p => (
                         <TableRow key={p.id}>
                             <TableCell className="font-medium">{p.name}</TableCell>
-                            <TableCell className="text-right font-mono">{p.sharePercentage.toFixed(2)}%</TableCell>
+                            <TableCell className="text-right font-mono">{p.sharePercentage?.toFixed(2)}%</TableCell>
                             <TableCell className={`text-right font-semibold font-mono ${p.netInvestment >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                                 PKR {p.netInvestment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </TableCell>
-                            <TableCell className="text-center space-x-1">
-                                <Button asChild variant="ghost" size="icon" title="View Partner Ledger">
-                                   <Link href={`/customers/${p.id}/ledger`}>
-                                     <BookText className="w-5 h-5" />
-                                   </Link>
-                                </Button>
-                                <Button variant="ghost" size="icon" title="Edit Partner" onClick={() => openEditDialog(p)}><Edit className="w-4 h-4" /></Button>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" title="Delete Partner" onClick={() => setPartnerToDelete(p)}><Trash2 className="w-4 h-4" /></Button>
                             </TableCell>
                         </TableRow>
                     )) : (
                         <TableRow>
                             <TableCell colSpan={4} className="h-24 text-center">
-                                {isLoaded ? 'No partners added yet. Use the button below to add one.' : 'Loading partners...'}
+                                {isLoaded ? 'No partners found. Add them from the Customers page.' : 'Loading partners...'}
                             </TableCell>
                         </TableRow>
                     )}
@@ -204,14 +152,10 @@ export default function InvestmentsPage() {
                         <TableCell className={`text-right font-mono ${totalNetInvestment >= 0 ? 'text-primary' : 'text-destructive'}`}>
                             PKR {totalNetInvestment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell/>
                     </TableRow>
                 </TableFooter>
             </Table>
         </CardContent>
-        <CardFooter>
-            <Button onClick={() => setPartnerToEdit({} as BusinessPartner)}><PlusCircle className="mr-2"/>Add New Partner</Button>
-        </CardFooter>
       </Card>
 
       <div className="grid lg:grid-cols-3 gap-8">
@@ -373,61 +317,6 @@ export default function InvestmentsPage() {
             </Card>
         </div>
       </div>
-      
-      {/* Dialog for Add/Edit Partner */}
-      <Dialog open={!!partnerToEdit} onOpenChange={(isOpen) => { if (!isOpen) { setPartnerToEdit(null); resetPartner(); } }}>
-        <DialogContent>
-            <form onSubmit={handleSubmitPartner(onPartnerSubmit)}>
-                <DialogHeader>
-                    <DialogTitle>{partnerToEdit?.id ? 'Edit Partner' : 'Add New Partner'}</DialogTitle>
-                    <DialogDescription>
-                        {partnerToEdit?.id ? 'Update the details for this partner.' : 'Add a new permanent partner to manage their investments and shares.'}
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="name">Partner Name</Label>
-                        <Input id="name" {...registerPartner('name')} />
-                        {partnerErrors.name && <p className="text-sm text-destructive">{partnerErrors.name.message}</p>}
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="contact" className="flex items-center gap-2"><Phone className="w-4 h-4"/> Contact Number (Optional)</Label>
-                        <Input id="contact" {...registerPartner('contact')} placeholder="e.g. 03001234567" />
-                        {partnerErrors.contact && <p className="text-sm text-destructive">{partnerErrors.contact.message}</p>}
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="sharePercentage" className="flex items-center gap-2"><Percent className="w-4 h-4"/> Share Percentage</Label>
-                        <Input id="sharePercentage" type="number" {...registerPartner('sharePercentage')} step="0.01" />
-                        {partnerErrors.sharePercentage && <p className="text-sm text-destructive">{partnerErrors.sharePercentage.message}</p>}
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => { setPartnerToEdit(null); resetPartner(); }}>Cancel</Button>
-                    <Button type="submit">{partnerToEdit?.id ? 'Save Changes' : 'Add Partner'}</Button>
-                </DialogFooter>
-            </form>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Dialog for Delete Partner Confirmation */}
-      <AlertDialog open={!!partnerToDelete} onOpenChange={(isOpen) => !isOpen && setPartnerToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the partner: <br />
-              <strong className="font-medium text-foreground">{partnerToDelete?.name}</strong>.
-              All associated investment transactions will remain but will no longer be linked to a permanent partner.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeletePartner} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Yes, delete partner
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
       
       {/* Dialog for Delete Transaction Confirmation */}
       <AlertDialog open={!!transactionToDelete} onOpenChange={(isOpen) => !isOpen && setTransactionToDelete(null)}>

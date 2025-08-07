@@ -6,6 +6,8 @@ import type { BusinessPartner } from '@/lib/types';
 import { useCustomers } from './use-customers';
 import { useDatabaseCollection } from './use-database-collection';
 
+// Note: This hook is being deprecated in favor of managing partners as a type of customer.
+// It will be removed once all dependencies are updated.
 export function useBusinessPartners() {
   const { data: businessPartners, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<BusinessPartner>('business-partners');
   const { customers, addCustomer, updateCustomer, isLoaded: customersLoaded } = useCustomers();

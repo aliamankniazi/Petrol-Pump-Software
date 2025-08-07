@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Users, UserPlus, List, BookText, Pencil, Trash2, AlertTriangle } from 'lucide-react';
+import { Users, UserPlus, List, BookText, Pencil, Trash2, AlertTriangle, Percent } from 'lucide-react';
 import { format } from 'date-fns';
 import { useCustomers } from '@/hooks/use-customers';
 import Link from 'next/link';
@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import type { Customer } from '@/lib/types';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 const customerSchema = z.object({
@@ -27,6 +28,8 @@ const customerSchema = z.object({
   contact: z.string().min(1, 'Contact information is required'),
   vehicleNumber: z.string().optional(),
   area: z.string().optional(),
+  isPartner: z.boolean().default(false),
+  sharePercentage: z.coerce.number().optional(),
 });
 
 type CustomerFormValues = z.infer<typeof customerSchema>;
@@ -49,29 +52,33 @@ export default function CustomersPage() {
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<CustomerFormValues>({
+  const { register, handleSubmit, reset, control, watch, formState: { errors } } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
   });
 
-  const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, setValue: setEditValue, formState: { errors: editErrors } } = useForm<CustomerFormValues>({
+  const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, setValue: setEditValue, control: controlEdit, watch: watchEdit, formState: { errors: editErrors } } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
   });
+
+  const isPartner = watch('isPartner');
+  const isPartnerEdit = watchEdit('isPartner');
+
 
   const onAddSubmit: SubmitHandler<CustomerFormValues> = useCallback((data) => {
-    addCustomer({ ...data, isPartner: false });
+    addCustomer({ ...data, isEmployee: false });
     toast({
-      title: 'Customer Added',
-      description: `${data.name} has been added to your customer list.`,
+      title: 'Record Added',
+      description: `${data.name} has been added to your records.`,
     });
-    reset();
+    reset({name: '', contact: '', vehicleNumber: '', area: '', isPartner: false, sharePercentage: 0});
   }, [addCustomer, toast, reset]);
   
   const onEditSubmit: SubmitHandler<CustomerFormValues> = useCallback((data) => {
     if (!customerToEdit) return;
     updateCustomer(customerToEdit.id, data);
     toast({
-        title: 'Customer Updated',
-        description: "The customer's details have been saved."
+        title: 'Record Updated',
+        description: "The record's details have been saved."
     });
     setCustomerToEdit(null);
   }, [customerToEdit, updateCustomer, toast]);
@@ -80,7 +87,7 @@ export default function CustomersPage() {
     if (!customerToDelete) return;
     deleteCustomer(customerToDelete.id);
     toast({
-        title: 'Customer Deleted',
+        title: 'Record Deleted',
         description: `${customerToDelete.name} has been removed.`,
     });
     setCustomerToDelete(null);
@@ -92,6 +99,8 @@ export default function CustomersPage() {
         setEditValue('contact', customerToEdit.contact);
         setEditValue('vehicleNumber', customerToEdit.vehicleNumber || '');
         setEditValue('area', customerToEdit.area || '');
+        setEditValue('isPartner', customerToEdit.isPartner || false);
+        setEditValue('sharePercentage', customerToEdit.sharePercentage || 0);
       } else {
         resetEdit();
       }
@@ -108,14 +117,14 @@ export default function CustomersPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <UserPlus /> New Customer
+              <UserPlus /> New Customer or Partner
             </CardTitle>
-            <CardDescription>Add a new customer to your records.</CardDescription>
+            <CardDescription>Add a new person or business partner to your records.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onAddSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Customer Name</Label>
+                <Label htmlFor="name">Full Name</Label>
                 <Input id="name" {...register('name')} placeholder="e.g., John Doe" />
                 {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
               </div>
@@ -129,16 +138,28 @@ export default function CustomersPage() {
               <div className="space-y-2">
                 <Label htmlFor="vehicleNumber">Vehicle Number (Optional)</Label>
                 <Input id="vehicleNumber" {...register('vehicleNumber')} placeholder="e.g., ABC-123" />
-                {errors.vehicleNumber && <p className="text-sm text-destructive">{errors.vehicleNumber.message}</p>}
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="area">Area (Optional)</Label>
                 <Input id="area" {...register('area')} placeholder="e.g., Mianwali City" />
-                {errors.area && <p className="text-sm text-destructive">{errors.area.message}</p>}
               </div>
 
-              <Button type="submit" className="w-full">Add Customer</Button>
+              <div className="flex items-center space-x-2">
+                <Checkbox id="isPartner" {...register('isPartner')} />
+                <label htmlFor="isPartner" className="text-sm font-medium leading-none">
+                  This is a Business Partner
+                </label>
+              </div>
+
+              {isPartner && (
+                <div className="space-y-2">
+                  <Label htmlFor="sharePercentage" className="flex items-center gap-2"><Percent className="w-4 h-4"/> Share Percentage</Label>
+                  <Input id="sharePercentage" type="number" step="0.01" {...register('sharePercentage')} placeholder="e.g., 50" />
+                </div>
+              )}
+
+              <Button type="submit" className="w-full">Add Record</Button>
             </form>
           </CardContent>
         </Card>
@@ -158,15 +179,15 @@ export default function CustomersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Customer Details</TableHead>
+                  <TableHead>Details</TableHead>
                   <TableHead>Barcode</TableHead>
                   <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoaded ? (
-                  customers.length > 0 ? (
-                    customers.map(c => (
+                  customers.filter(c => !c.isEmployee).length > 0 ? (
+                    customers.filter(c => !c.isEmployee).map(c => (
                       <TableRow key={c.id}>
                         <TableCell>
                           <div className="font-medium flex items-center gap-2">
@@ -176,7 +197,7 @@ export default function CustomersPage() {
                           <div className="text-sm text-muted-foreground">{c.contact}</div>
                            <div className="text-xs text-muted-foreground">{c.area || 'N/A'}</div>
                           <div className="text-xs text-muted-foreground">{c.vehicleNumber || 'N/A'}</div>
-                          <div className="text-xs text-muted-foreground">Added: {format(new Date(c.timestamp), 'PP')}</div>
+                          <div className="text-xs text-muted-foreground">Added: {c.timestamp ? format(new Date(c.timestamp), 'PP') : 'N/A'}</div>
                         </TableCell>
                         <TableCell>
                           <Barcode value={c.id} height={40} width={1.5} fontSize={10} margin={2} />
@@ -236,14 +257,14 @@ export default function CustomersPage() {
         <DialogContent>
             <form onSubmit={handleSubmitEdit(onEditSubmit)}>
                 <DialogHeader>
-                    <DialogTitle>Edit Customer</DialogTitle>
+                    <DialogTitle>Edit Record</DialogTitle>
                     <DialogDescription>
-                        Update the details for this customer.
+                        Update the details for this customer or partner.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="space-y-2">
-                        <Label htmlFor="edit-name">Customer Name</Label>
+                        <Label htmlFor="edit-name">Full Name</Label>
                         <Input id="edit-name" {...registerEdit('name')} />
                         {editErrors.name && <p className="text-sm text-destructive">{editErrors.name.message}</p>}
                     </div>
@@ -255,13 +276,24 @@ export default function CustomersPage() {
                     <div className="space-y-2">
                         <Label htmlFor="edit-vehicleNumber">Vehicle Number</Label>
                         <Input id="edit-vehicleNumber" {...registerEdit('vehicleNumber')} />
-                        {editErrors.vehicleNumber && <p className="text-sm text-destructive">{editErrors.vehicleNumber.message}</p>}
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="edit-area">Area</Label>
                         <Input id="edit-area" {...registerEdit('area')} />
-                        {editErrors.area && <p className="text-sm text-destructive">{editErrors.area.message}</p>}
                     </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="edit-isPartner" {...registerEdit('isPartner')} checked={isPartnerEdit} onCheckedChange={(checked) => setEditValue('isPartner', !!checked)} />
+                      <label htmlFor="edit-isPartner" className="text-sm font-medium leading-none">
+                        This is a Business Partner
+                      </label>
+                    </div>
+
+                    {isPartnerEdit && (
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-sharePercentage" className="flex items-center gap-2"><Percent className="w-4 h-4"/> Share Percentage</Label>
+                        <Input id="edit-sharePercentage" type="number" step="0.01" {...registerEdit('sharePercentage')} />
+                      </div>
+                    )}
                 </div>
                 <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setCustomerToEdit(null)}>Cancel</Button>
@@ -276,7 +308,7 @@ export default function CustomersPage() {
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the customer: <br />
+            This action cannot be undone. This will permanently delete the record for: <br />
             <strong className="font-medium text-foreground">{customerToDelete?.name}</strong>.
             All their associated transactions will remain but will no longer be linked to them.
           </AlertDialogDescription>
@@ -284,7 +316,7 @@ export default function CustomersPage() {
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={handleDeleteCustomer} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-            Yes, delete customer
+            Yes, delete record
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

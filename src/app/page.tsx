@@ -29,7 +29,7 @@ const saleSchema = z.object({
   fuelType: z.enum(FUEL_TYPES, { required_error: 'Please select a fuel type.' }),
   saleType: z.enum(['amount', 'volume']),
   value: z.coerce.number().min(0.01, 'Value must be greater than 0'),
-  paymentMethod: z.enum(['Cash', 'Card', 'Mobile', 'Salary']),
+  paymentMethod: z.enum(['Cash', 'Card', 'Mobile', 'On Credit']),
   customerId: z.string().optional(),
   bankAccountId: z.string().optional(),
 });
@@ -223,7 +223,7 @@ export default function SalesPage() {
                     render={({ field }) => (
                       <Select onValueChange={(value) => {
                           field.onChange(value === 'walk-in' ? undefined : value);
-                          if (paymentMethod === 'Salary') {
+                          if (paymentMethod === 'On Credit' && value === 'walk-in') {
                             setValue('paymentMethod', 'Cash');
                           }
                       }} value={field.value || 'walk-in'}>
@@ -274,14 +274,14 @@ export default function SalesPage() {
                          <Smartphone className="w-5 h-5"/> Mobile
                        </Label>
                        <Label className={cn("flex flex-col items-center justify-center gap-1 border rounded-md p-2 cursor-pointer has-[:checked]:border-primary text-xs h-16", !customerId && "cursor-not-allowed opacity-50")}>
-                         <RadioGroupItem value="Salary" className="sr-only" disabled={!customerId}/>
+                         <RadioGroupItem value="On Credit" className="sr-only" disabled={!customerId}/>
                          <Banknote className="w-5 h-5"/> On Credit
                        </Label>
                      </RadioGroup>
                   )}
                 />
                 
-                {paymentMethod !== 'Cash' && paymentMethod !== 'Salary' && (
+                {paymentMethod !== 'Cash' && paymentMethod !== 'On Credit' && (
                   <Controller
                       name="bankAccountId"
                       control={control}

@@ -1,7 +1,8 @@
 
+
 export type FuelType = 'Unleaded' | 'Premium' | 'Diesel';
 
-export type PaymentMethod = 'Cash' | 'Card' | 'Mobile' | 'Salary';
+export type PaymentMethod = 'Cash' | 'Card' | 'Mobile' | 'On Credit';
 
 export interface Transaction {
   id?: string;
@@ -65,6 +66,8 @@ export interface Customer {
   vehicleNumber?: string;
   area?: string;
   isPartner?: boolean;
+  sharePercentage?: number; // Only for partners
+  isEmployee?: boolean;
   timestamp?: string;
 }
 
@@ -98,7 +101,7 @@ export interface CustomerPayment {
   customerId: string;
   customerName: string;
   amount: number;
-  paymentMethod: PaymentMethod;
+  paymentMethod: PaymentMethod | 'Salary';
   timestamp?: string;
 }
 
@@ -107,7 +110,7 @@ export interface SupplierPayment {
   supplierId: string;
   supplierName: string;
   amount: number;
-  paymentMethod: Omit<PaymentMethod, 'Salary'>;
+  paymentMethod: Omit<PaymentMethod, 'On Credit'>;
   timestamp?: string;
 }
 
@@ -137,6 +140,7 @@ export interface Investment {
   timestamp?: string;
 }
 
+// This type is deprecated and will be removed. Use Customer with isPartner flag.
 export interface BusinessPartner {
   id?: string;
   name: string;

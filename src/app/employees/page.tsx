@@ -44,7 +44,7 @@ const months = Array.from({ length: 12 }, (_, i) => ({
 export default function EmployeesPage() {
   const { employees, addEmployee, updateEmployee, deleteEmployee, isLoaded } = useEmployees();
   const { addExpense } = useExpenses();
-  const { customers, addCustomer } = useCustomers();
+  const { customers, addCustomer, updateCustomer } = useCustomers();
   const { addCustomerPayment } = useCustomerPayments();
   const [isClient, setIsClient] = useState(false);
 
@@ -71,15 +71,13 @@ export default function EmployeesPage() {
   const onAddSubmit: SubmitHandler<EmployeeFormValues> = useCallback(async (data) => {
     const newEmployee = await addEmployee({ ...data, hireDate: data.hireDate.toISOString() });
     
-    // Also create a corresponding customer record for ledger purposes
+    // Also create a corresponding customer record for ledger purposes, using the same ID
     await addCustomer({
         name: newEmployee.name,
         contact: newEmployee.mobileNumber || '',
         area: 'Employee',
-        isPartner: false,
-        id: newEmployee.id, // Use same ID to link them
-        timestamp: newEmployee.timestamp,
-    });
+        isEmployee: true,
+    }, newEmployee.id);
 
     toast({
       title: 'Employee Added',
@@ -91,9 +89,11 @@ export default function EmployeesPage() {
   const onEditSubmit: SubmitHandler<EmployeeFormValues> = useCallback((data) => {
     if (!employeeToEdit) return;
     updateEmployee(employeeToEdit.id, { ...data, hireDate: data.hireDate.toISOString() });
+    // Also update the associated customer record
+    updateCustomer(employeeToEdit.id, { name: data.name, contact: data.mobileNumber });
     toast({ title: 'Employee Updated', description: "The employee's details have been saved." });
     setEmployeeToEdit(null);
-  }, [employeeToEdit, updateEmployee, toast]);
+  }, [employeeToEdit, updateEmployee, updateCustomer, toast]);
 
   const handleDeleteEmployee = useCallback(() => {
     if (!employeeToDelete) return;
@@ -119,13 +119,14 @@ export default function EmployeesPage() {
     let employeeAsCustomer = customers.find(c => c.id === employeeToPay.id);
     
     if (!employeeAsCustomer) {
+        // This case should ideally not happen with the new logic, but as a fallback:
         employeeAsCustomer = await addCustomer({
             id: employeeToPay.id,
             name: employeeToPay.name,
             contact: employeeToPay.mobileNumber || '',
             area: 'Employee',
-            isPartner: false,
-        });
+            isEmployee: true,
+        }, employeeToPay.id);
     }
     
     addCustomerPayment({
@@ -396,6 +397,7 @@ export default function EmployeesPage() {
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the employee: <br/>
               <strong className="font-medium text-foreground">{employeeToDelete?.name}</strong>.
+              Their associated ledger will remain for historical record but they will be removed from the active employee list.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { BookUser, ArrowLeft, User, Phone, Car, Trash2, AlertTriangle, Percent } from 'lucide-react';
+import { BookUser, ArrowLeft, User, Phone, Car, Trash2, AlertTriangle, Percent, Briefcase } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
 import { useCashAdvances } from '@/hooks/use-cash-advances';
@@ -30,8 +30,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { useBusinessPartners } from '@/hooks/use-business-partners';
 import { useInvestments } from '@/hooks/use-investments';
+
+type EntityType = 'Customer' | 'Supplier' | 'Partner' | 'Employee';
 
 
 type LedgerEntry = {
@@ -50,7 +51,6 @@ export default function CustomerLedgerPage() {
 
   const { customers, isLoaded: customersLoaded } = useCustomers();
   const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
-  const { businessPartners, isLoaded: partnersLoaded } = useBusinessPartners();
   const { transactions, deleteTransaction, isLoaded: transactionsLoaded } = useTransactions();
   const { customerPayments, deleteCustomerPayment, isLoaded: paymentsLoaded } = useCustomerPayments();
   const { cashAdvances, deleteCashAdvance, isLoaded: advancesLoaded } = useCashAdvances();
@@ -60,25 +60,28 @@ export default function CustomerLedgerPage() {
   const [entryToDelete, setEntryToDelete] = useState<LedgerEntry | null>(null);
   const { toast } = useToast();
 
-  const isLoaded = customersLoaded && suppliersLoaded && partnersLoaded && transactionsLoaded && paymentsLoaded && advancesLoaded && purchasesLoaded && supplierPaymentsLoaded && investmentsLoaded;
+  const isLoaded = customersLoaded && suppliersLoaded && transactionsLoaded && paymentsLoaded && advancesLoaded && purchasesLoaded && supplierPaymentsLoaded && investmentsLoaded;
 
   const { entity, entityType } = useMemo(() => {
     if (!isLoaded) return { entity: null, entityType: null };
     const customer = customers.find(c => c.id === entityId);
-    if (customer) return { entity: customer, entityType: 'Customer' };
+    if (customer) {
+        if(customer.isPartner) return { entity: customer, entityType: 'Partner' };
+        if(customer.isEmployee) return { entity: customer, entityType: 'Employee' };
+        return { entity: customer, entityType: 'Customer' };
+    }
     const supplier = suppliers.find(s => s.id === entityId);
     if (supplier) return { entity: supplier, entityType: 'Supplier' };
-    const partner = businessPartners.find(p => p.id === entityId);
-    if (partner) return { entity: partner, entityType: 'Partner' };
+    
     return { entity: null, entityType: null };
-  }, [entityId, customers, suppliers, businessPartners, isLoaded]);
+  }, [entityId, customers, suppliers, isLoaded]);
 
   const { entries, finalBalance } = useMemo(() => {
     if (!entity) return { entries: [], finalBalance: 0 };
 
     const combined: Omit<LedgerEntry, 'balance'>[] = [];
 
-    if (entityType === 'Customer') {
+    if (entityType === 'Customer' || entityType === 'Partner' || entityType === 'Employee') {
         const customerTransactions = transactions.filter(tx => tx.customerId === entityId);
         const customerPaymentsReceived = customerPayments.filter(p => p.customerId === entityId);
         const customerCashAdvances = cashAdvances.filter(ca => ca.customerId === entityId);
@@ -114,6 +117,32 @@ export default function CustomerLedgerPage() {
               credit: 0,
             })
         });
+        
+        if (entityType === 'Partner') {
+            const partnerInvestments = investments.filter(inv => inv.partnerId === entityId);
+            partnerInvestments.forEach(inv => {
+                if (inv.type === 'Investment') {
+                    combined.push({
+                        id: `inv-${inv.id}`,
+                        timestamp: inv.timestamp,
+                        description: inv.notes || 'Investment',
+                        type: 'Investment',
+                        credit: inv.amount,
+                        debit: 0,
+                    });
+                } else {
+                    combined.push({
+                        id: `wdr-${inv.id}`,
+                        timestamp: inv.timestamp,
+                        description: inv.notes || 'Withdrawal',
+                        type: 'Withdrawal',
+                        debit: inv.amount,
+                        credit: 0,
+                    });
+                }
+            });
+        }
+
     } else if (entityType === 'Supplier') {
         const supplierPurchases = purchases.filter(p => p.supplierId === entityId);
         const supplierPaymentsMade = supplierPayments.filter(sp => sp.supplierId === entityId);
@@ -123,7 +152,7 @@ export default function CustomerLedgerPage() {
             timestamp: p.timestamp,
             description: `${p.volume.toFixed(2)}L of ${p.fuelType}`,
             type: 'Purchase',
-            credit: p.totalCost, // Credit to supplier's account
+            credit: p.totalCost,
             debit: 0,
         }));
 
@@ -135,30 +164,6 @@ export default function CustomerLedgerPage() {
             debit: sp.amount,
             credit: 0,
         }));
-    } else if (entityType === 'Partner') {
-        const partnerInvestments = investments.filter(inv => inv.partnerId === entityId);
-        
-        partnerInvestments.forEach(inv => {
-            if (inv.type === 'Investment') {
-                combined.push({
-                    id: `inv-${inv.id}`,
-                    timestamp: inv.timestamp,
-                    description: inv.notes || 'Investment',
-                    type: 'Investment',
-                    credit: inv.amount, // Credit to partner's capital account
-                    debit: 0,
-                });
-            } else {
-                combined.push({
-                    id: `wdr-${inv.id}`,
-                    timestamp: inv.timestamp,
-                    description: inv.notes || 'Withdrawal',
-                    type: 'Withdrawal',
-                    debit: inv.amount, // Debit from partner's capital account
-                    credit: 0,
-                });
-            }
-        });
     }
 
 
@@ -166,10 +171,9 @@ export default function CustomerLedgerPage() {
 
     let runningBalance = 0;
     const entriesWithBalance: LedgerEntry[] = combined.map(entry => {
-      // For customers/suppliers, a positive balance means they owe us.
-      // For partners, a positive balance means the business owes them (net investment).
-      // To keep it consistent visually (debit increases balance, credit decreases), we'll adjust the sign for partners.
-      if (entityType === 'Partner') {
+      // For partners/suppliers, a positive balance means the business owes them (net investment/credit).
+      // For customers/employees, a positive balance means they owe the business.
+      if (entityType === 'Partner' || entityType === 'Supplier') {
           runningBalance += entry.credit - entry.debit;
       } else {
           runningBalance += entry.debit - entry.credit;
@@ -246,20 +250,27 @@ export default function CustomerLedgerPage() {
     );
   }
 
-  const isCustomer = entityType === 'Customer';
-  const isPartner = entityType === 'Partner';
+  const getEntityTypeIcon = () => {
+    switch (entityType) {
+        case 'Partner': return <Percent />;
+        case 'Employee': return <Briefcase />;
+        default: return <User />;
+    }
+  }
+
 
   const balanceColorClass = () => {
-      if (isPartner) {
-          // For partners, positive balance is net investment (good), negative is net withdrawal (bad)
+      if (entityType === 'Partner' || entityType === 'Supplier') {
+          // For partners/suppliers, positive balance is good for business (we owe less), negative is bad (we owe more).
+          // But visually, it's conventional for credit balance (money owed to them) to be green.
           return finalBalance >= 0 ? 'text-green-600' : 'text-destructive';
       }
-      // For customers/suppliers, positive balance means they owe us (bad), negative means we owe them (good)
+      // For customers/employees, positive balance means they owe us (bad), negative means we owe them (good)
       return finalBalance > 0 ? 'text-destructive' : 'text-green-600';
   }
 
   const rowBalanceColorClass = (balance: number) => {
-    if (isPartner) {
+    if (entityType === 'Partner' || entityType === 'Supplier') {
         return balance >= 0 ? 'text-green-600' : 'text-destructive';
     }
     return balance > 0 ? 'text-destructive' : 'text-green-600';
@@ -270,7 +281,7 @@ export default function CustomerLedgerPage() {
        <Card>
         <CardHeader>
             <CardTitle className="flex items-center gap-3">
-                <User /> {entityType} Details
+                {getEntityTypeIcon()} {entityType} Details
             </CardTitle>
         </CardHeader>
         <CardContent className="grid sm:grid-cols-3 gap-4 text-sm">
@@ -284,13 +295,13 @@ export default function CustomerLedgerPage() {
                     <strong>Contact:</strong> {entity.contact || 'N/A'}
                 </div>
             )}
-            {isCustomer && 'vehicleNumber' in entity && (
+            {entityType === 'Customer' && 'vehicleNumber' in entity && (
                 <div className="flex items-center gap-2">
                     <Car className="w-4 h-4 text-muted-foreground"/>
                     <strong>Vehicle No:</strong> {entity.vehicleNumber || 'N/A'}
                 </div>
             )}
-            {isPartner && 'sharePercentage' in entity && (
+            {entityType === 'Partner' && 'sharePercentage' in entity && (
                  <div className="flex items-center gap-2">
                     <Percent className="w-4 h-4 text-muted-foreground"/>
                     <strong>Share:</strong> {entity.sharePercentage}%

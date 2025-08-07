@@ -20,15 +20,16 @@ import { useSuppliers } from '@/hooks/use-suppliers';
 import { usePurchases } from '@/hooks/use-purchases';
 import { useSupplierPayments } from '@/hooks/use-supplier-payments';
 import Link from 'next/link';
-import { useBusinessPartners } from '@/hooks/use-business-partners';
 import { useInvestments } from '@/hooks/use-investments';
+
+type EntityType = 'Customer' | 'Supplier' | 'Partner';
 
 type CombinedEntry = {
   id: string;
   timestamp: string;
   entityId: string;
   entityName: string;
-  entityType: 'Customer' | 'Supplier' | 'Partner';
+  entityType: EntityType;
   type: 'Sale' | 'Payment' | 'Cash Advance' | 'Purchase' | 'Supplier Payment' | 'Investment' | 'Withdrawal' | 'Salary';
   description: string;
   debit: number;
@@ -44,50 +45,48 @@ export default function UnifiedLedgerPage() {
   const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
   const { purchases, isLoaded: purchasesLoaded } = usePurchases();
   const { supplierPayments, isLoaded: supplierPaymentsLoaded } = useSupplierPayments();
-  const { businessPartners, isLoaded: partnersLoaded } = useBusinessPartners();
   const { investments, isLoaded: investmentsLoaded } = useInvestments();
   
   const [selectedEntityId, setSelectedEntityId] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
 
-  const isLoaded = paymentsLoaded && customersLoaded && transactionsLoaded && advancesLoaded && suppliersLoaded && purchasesLoaded && supplierPaymentsLoaded && partnersLoaded && investmentsLoaded;
+  const isLoaded = paymentsLoaded && customersLoaded && transactionsLoaded && advancesLoaded && suppliersLoaded && purchasesLoaded && supplierPaymentsLoaded && investmentsLoaded;
 
   const entities = useMemo(() => {
     if (!isLoaded) return [];
 
-    const entityMap = new Map<string, { id: string; name: string; type: 'Customer' | 'Supplier' | 'Partner' }>();
+    const entityMap = new Map<string, { id: string; name: string; type: EntityType }>();
 
     customers.forEach(c => {
-      entityMap.set(c.id, { id: c.id, name: c.name, type: 'Customer' });
+      const type: EntityType = c.isPartner ? 'Partner' : 'Customer';
+      entityMap.set(c.id, { id: c.id, name: c.name, type: type });
     });
 
     suppliers.forEach(s => {
       entityMap.set(s.id, { id: s.id, name: s.name, type: 'Supplier' });
     });
-    
-    businessPartners.forEach(p => {
-        entityMap.set(p.id, { id: p.id, name: p.name, type: 'Partner' });
-    });
 
     const allEntities = Array.from(entityMap.values());
     
     return allEntities.sort((a,b) => a.name.localeCompare(b.name));
-  }, [customers, suppliers, businessPartners, isLoaded]);
+  }, [customers, suppliers, isLoaded]);
 
   const { entries, totals, finalBalance, specialReport } = useMemo(() => {
     if (!isLoaded) return { entries: [], totals: { debit: 0, credit: 0 }, finalBalance: 0, specialReport: null };
 
     const combined: Omit<CombinedEntry, 'balance'>[] = [];
 
+    // Customer and Partner related transactions
     transactions.forEach(tx => {
       if (tx.customerId) {
-        const entityType = entities.find(e => e.id === tx.customerId)?.type || 'Customer';
+        const entity = entities.find(e => e.id === tx.customerId);
+        if (!entity) return;
         combined.push({
           id: `tx-${tx.id}`,
           timestamp: tx.timestamp,
           entityId: tx.customerId,
           entityName: tx.customerName || 'N/A',
-          entityType: entityType,
+          entityType: entity.type,
           type: 'Sale',
           description: `${tx.volume.toFixed(2)}L of ${tx.fuelType}`,
           debit: tx.totalAmount,
@@ -97,14 +96,15 @@ export default function UnifiedLedgerPage() {
     });
 
     customerPayments.forEach(p => {
-       const entityType = entities.find(e => e.id === p.customerId)?.type || 'Customer';
+       const entity = entities.find(e => e.id === p.customerId);
+       if (!entity) return;
        const isSalary = p.paymentMethod === 'Salary';
-      combined.push({
+       combined.push({
         id: `pay-${p.id}`,
         timestamp: p.timestamp,
         entityId: p.customerId,
         entityName: p.customerName,
-        entityType: entityType,
+        entityType: entity.type,
         type: isSalary ? 'Salary' : 'Payment',
         description: isSalary ? `Salary for ${format(new Date(p.timestamp), 'MMMM')}` : `Payment Received (${p.paymentMethod})`,
         debit: 0,
@@ -113,13 +113,14 @@ export default function UnifiedLedgerPage() {
     });
 
     cashAdvances.forEach(ca => {
-       const entityType = entities.find(e => e.id === ca.customerId)?.type || 'Customer';
-      combined.push({
+       const entity = entities.find(e => e.id === ca.customerId);
+       if (!entity) return;
+       combined.push({
         id: `adv-${ca.id}`,
         timestamp: ca.timestamp,
         entityId: ca.customerId,
         entityName: ca.customerName,
-        entityType: entityType,
+        entityType: entity.type,
         type: 'Cash Advance',
         description: ca.notes || 'Cash Advance',
         debit: ca.amount,
@@ -127,6 +128,7 @@ export default function UnifiedLedgerPage() {
       });
     });
     
+    // Supplier transactions
     purchases.forEach(p => {
         combined.push({
             id: `pur-${p.id}`,
@@ -154,7 +156,8 @@ export default function UnifiedLedgerPage() {
             credit: 0,
         });
     });
-
+    
+    // Partner-specific transactions
     investments.forEach(inv => {
         combined.push({
             id: `inv-${inv.id}`,
@@ -274,7 +277,7 @@ export default function UnifiedLedgerPage() {
   const hasActiveFilters = selectedEntityId || selectedDate;
   const selectedEntity = entities.find(e => e.id === selectedEntityId);
 
-  const getBalanceColor = useCallback((balance: number, type: CombinedEntry['entityType']) => {
+  const getBalanceColor = useCallback((balance: number, type: EntityType) => {
     if (type === 'Partner' || type === 'Supplier') {
         return balance >= 0 ? 'text-green-600' : 'text-destructive';
     }
