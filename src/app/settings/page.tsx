@@ -418,23 +418,6 @@ export default function SettingsPage() {
           </div>
           
           <Separator />
-
-          <div className="space-y-4">
-             <h3 className="text-lg font-medium text-destructive">Danger Zone</h3>
-            <div className="flex items-center justify-between rounded-lg border border-destructive/50 p-4">
-              <div>
-                <Label htmlFor="clear-data" className="text-destructive">Clear All Data</Label>
-                <p className="text-sm text-muted-foreground">This will permanently delete all application data. This action cannot be undone.</p>
-              </div>
-              <AlertDialog>
-                <AlertDialogTrigger asChild><Button variant="destructive" id="clear-data"><Trash2 className="mr-2 h-4 w-4" /> Clear Data</Button></AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone. This will permanently delete all your application data from this device.</AlertDialogDescription></AlertDialogHeader>
-                  <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleClearData}>Yes, delete all data</AlertDialogAction></AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          </div>
         </CardContent>
       </Card>
       
@@ -448,3 +431,5 @@ export default function SettingsPage() {
     </>
   );
 }
+
+    
