@@ -68,14 +68,25 @@ export default function EmployeesPage() {
     resolver: zodResolver(employeeSchema),
   });
 
-  const onAddSubmit: SubmitHandler<EmployeeFormValues> = useCallback((data) => {
-    addEmployee({ ...data, hireDate: data.hireDate.toISOString() });
+  const onAddSubmit: SubmitHandler<EmployeeFormValues> = useCallback(async (data) => {
+    const newEmployee = await addEmployee({ ...data, hireDate: data.hireDate.toISOString() });
+    
+    // Also create a corresponding customer record for ledger purposes
+    await addCustomer({
+        name: newEmployee.name,
+        contact: newEmployee.mobileNumber || '',
+        area: 'Employee',
+        isPartner: false,
+        id: newEmployee.id, // Use same ID to link them
+        timestamp: newEmployee.timestamp,
+    });
+
     toast({
       title: 'Employee Added',
-      description: `${data.name} has been added to your employee records.`,
+      description: `${data.name} has been added and a ledger has been created.`,
     });
     reset({ name: '', mobileNumber: '', position: '', salary: 0, hireDate: new Date() });
-  }, [addEmployee, toast, reset]);
+  }, [addEmployee, addCustomer, toast, reset]);
 
   const onEditSubmit: SubmitHandler<EmployeeFormValues> = useCallback((data) => {
     if (!employeeToEdit) return;
@@ -86,6 +97,7 @@ export default function EmployeesPage() {
 
   const handleDeleteEmployee = useCallback(() => {
     if (!employeeToDelete) return;
+    // Note: Deleting employee doesn't delete the customer record to preserve ledger history.
     deleteEmployee(employeeToDelete.id);
     toast({ title: 'Employee Deleted', description: `${employeeToDelete.name} has been removed.` });
     setEmployeeToDelete(null);
@@ -104,10 +116,11 @@ export default function EmployeesPage() {
       timestamp: new Date().toISOString(),
     });
 
-    let employeeAsCustomer = customers.find(c => c.name.toLowerCase() === employeeToPay.name.toLowerCase() && c.area === 'Employee');
+    let employeeAsCustomer = customers.find(c => c.id === employeeToPay.id);
     
     if (!employeeAsCustomer) {
         employeeAsCustomer = await addCustomer({
+            id: employeeToPay.id,
             name: employeeToPay.name,
             contact: employeeToPay.mobileNumber || '',
             area: 'Employee',
