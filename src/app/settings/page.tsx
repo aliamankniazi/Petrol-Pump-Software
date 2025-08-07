@@ -75,6 +75,11 @@ export default function SettingsPage() {
   const [supplierToDelete, setSupplierToDelete] = React.useState<Supplier | null>(null);
   const [productToEdit, setProductToEdit] = React.useState<Product | null>(null);
   const [showAdditionalDetails, setShowAdditionalDetails] = React.useState(false);
+  const [currentDate, setCurrentDate] = React.useState('');
+
+  React.useEffect(() => {
+    setCurrentDate(format(new Date(), 'dd-MM-yyyy'));
+  }, []);
 
 
   const {
@@ -228,7 +233,7 @@ export default function SettingsPage() {
                         <CardTitle className="text-xl flex items-center gap-2">
                             <PlusCircle /> {productToEdit ? 'Edit Product/Service' : 'New Product/Service Registration'}
                         </CardTitle>
-                        <span className="text-sm text-muted-foreground">Date: {format(new Date(), 'dd-MM-yyyy')}</span>
+                        <span className="text-sm text-muted-foreground">Date: {currentDate}</span>
                     </div>
                 </CardHeader>
                 <CardContent>
