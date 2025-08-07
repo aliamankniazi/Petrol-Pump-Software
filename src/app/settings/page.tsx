@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Settings, Trash2, AlertTriangle, Droplets, Package, Edit, Truck, UserPlus, BookText } from 'lucide-react';
+import { Settings, Trash2, AlertTriangle, Droplets, Package, Edit, Truck, UserPlus, BookText, PlusCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,16 +31,32 @@ import { useSuppliers } from '@/hooks/use-suppliers';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Link from 'next/link';
 import { useProducts } from '@/hooks/use-products';
+import { format } from 'date-fns';
+import { Switch } from '@/components/ui/switch';
+
 
 const productSchema = z.object({
   name: z.string().min(1, "Product name is required"),
-  category: z.enum(['Fuel', 'Lubricant', 'Other']),
-  productType: z.enum(['Main', 'Secondary']),
-  unit: z.enum(['Litre', 'Unit']),
-  price: z.coerce.number().min(0, "Price must be non-negative"),
-  cost: z.coerce.number().min(0, "Cost must be non-negative"),
-  supplierId: z.string().optional(),
-  location: z.string().optional(),
+  companyId: z.string().optional(),
+  productGroupId: z.string().optional(),
+  productCode: z.string().optional(),
+  barcode: z.string().optional(),
+
+  mainUnit: z.string().min(1, "Main unit is required."),
+  purchasePrice: z.coerce.number().min(0, "Purchase price must be non-negative"),
+  tradePrice: z.coerce.number().min(0, "Trade price must be non-negative"),
+  
+  addSubUnit: z.boolean().default(false),
+  subUnitName: z.string().optional(),
+  subUnitConversion: z.coerce.number().optional(),
+
+  initialStockMain: z.coerce.number().min(0).default(0),
+  initialStockSub: z.coerce.number().min(0).default(0),
+
+  // Legacy fields that need to be populated for type-safety
+  category: z.enum(['Fuel', 'Lubricant', 'Other']).default('Other'),
+  productType: z.enum(['Main', 'Secondary']).default('Main'),
+  unit: z.enum(['Litre', 'Unit']).default('Unit'),
 });
 type ProductFormValues = z.infer<typeof productSchema>;
 
@@ -58,23 +74,23 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [supplierToDelete, setSupplierToDelete] = React.useState<Supplier | null>(null);
   const [productToEdit, setProductToEdit] = React.useState<Product | null>(null);
+  const [showAdditionalDetails, setShowAdditionalDetails] = React.useState(false);
+
 
   const {
     register: registerProduct,
     handleSubmit: handleSubmitProduct,
     reset: resetProduct,
     control: controlProduct,
+    watch,
     setValue: setProductValue,
     formState: { errors: productErrors }
   } = useForm<ProductFormValues>({
-    resolver: zodResolver(productSchema),
-    defaultValues: {
-      category: 'Lubricant',
-      productType: 'Main',
-      unit: 'Unit'
-    }
+    resolver: zodResolver(productSchema)
   });
   
+  const addSubUnit = watch('addSubUnit');
+
   const {
     register: registerSupplier,
     handleSubmit: handleSubmitSupplier,
@@ -101,24 +117,71 @@ export default function SettingsPage() {
   }, [clearAllData, toast]);
 
   const onProductSubmit: SubmitHandler<ProductFormValues> = React.useCallback((data) => {
-    const finalData = { ...data, supplierId: data.supplierId === 'none' ? undefined : data.supplierId };
+    const productData: Omit<Product, 'id' | 'timestamp'> = {
+        name: data.name,
+        companyId: data.companyId,
+        productGroupId: data.productGroupId,
+        productCode: data.productCode,
+        barcode: data.barcode,
+        mainUnit: data.mainUnit,
+        purchasePrice: data.purchasePrice,
+        tradePrice: data.tradePrice,
+        stock: data.initialStockMain,
+        subUnitStock: data.initialStockSub,
+        subUnit: data.addSubUnit && data.subUnitName && data.subUnitConversion 
+            ? { name: data.subUnitName, conversionRate: data.subUnitConversion }
+            : undefined,
+        // Legacy fields
+        category: 'Other',
+        productType: 'Main',
+        unit: 'Unit'
+    };
+
     if (productToEdit) {
-      updateProduct(productToEdit.id!, finalData);
-      toast({ title: 'Product Updated', description: `${finalData.name} has been updated.` });
+      updateProduct(productToEdit.id!, productData);
+      toast({ title: 'Product Updated', description: `${productData.name} has been updated.` });
       setProductToEdit(null);
     } else {
-      addProduct({ ...finalData, stock: 0 }); // Initial stock is 0
-      toast({ title: 'Product Added', description: `${finalData.name} has been added.` });
+      addProduct(productData);
+      toast({ title: 'Product Added', description: `${productData.name} has been added.` });
     }
-    resetProduct({ name: '', category: 'Lubricant', productType: 'Main', unit: 'Unit', price: 0, cost: 0, supplierId: '', location: '' });
+    resetProduct({ 
+        name: '', 
+        companyId: '', 
+        productGroupId: '', 
+        productCode: '', 
+        barcode: '',
+        mainUnit: '',
+        purchasePrice: 0,
+        tradePrice: 0,
+        addSubUnit: false,
+        subUnitName: '',
+        subUnitConversion: 0,
+        initialStockMain: 0,
+        initialStockSub: 0
+    });
   }, [productToEdit, addProduct, updateProduct, toast, resetProduct]);
   
   const handleEditProduct = (product: Product) => {
     setProductToEdit(product);
-    // Use setValue for each field to ensure form state is updated correctly
-    Object.keys(product).forEach(key => {
-        setProductValue(key as keyof ProductFormValues, product[key as keyof ProductFormValues]);
-    });
+    setProductValue('name', product.name);
+    setProductValue('companyId', product.companyId);
+    setProductValue('productGroupId', product.productGroupId);
+    setProductValue('productCode', product.productCode);
+    setProductValue('barcode', product.barcode);
+    setProductValue('mainUnit', product.mainUnit);
+    setProductValue('purchasePrice', product.purchasePrice);
+    setProductValue('tradePrice', product.tradePrice);
+    setProductValue('initialStockMain', product.stock);
+    setProductValue('initialStockSub', product.subUnitStock || 0);
+
+    if (product.subUnit) {
+        setProductValue('addSubUnit', true);
+        setProductValue('subUnitName', product.subUnit.name);
+        setProductValue('subUnitConversion', product.subUnit.conversionRate);
+    } else {
+        setProductValue('addSubUnit', false);
+    }
   }
 
   const handleDeleteProduct = (id: string) => {
@@ -161,105 +224,133 @@ export default function SettingsPage() {
             <h3 className="text-lg font-medium flex items-center gap-2"><Package /> Product Management</h3>
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-xl flex items-center gap-2"><UserPlus /> {productToEdit ? 'Edit Product' : 'Add New Product'}</CardTitle>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="text-xl flex items-center gap-2">
+                            <PlusCircle /> {productToEdit ? 'Edit Product/Service' : 'New Product/Service Registration'}
+                        </CardTitle>
+                        <span className="text-sm text-muted-foreground">Date: {format(new Date(), 'dd-MM-yyyy')}</span>
+                    </div>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleSubmitProduct(onProductSubmit)} className="space-y-4">
-                        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="productName">Product Name</Label>
-                                <Input id="productName" {...registerProduct('name')} placeholder="e.g., Mobil Delvac 1" />
-                                {productErrors.name && <p className="text-sm text-destructive">{productErrors.name.message}</p>}
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Category</Label>
-                                <Controller name="category" control={controlProduct} render={({ field }) => (
-                                    <Select onValueChange={field.onChange} value={field.value} defaultValue="Lubricant">
-                                        <SelectTrigger><SelectValue/></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="Fuel">Fuel</SelectItem>
-                                            <SelectItem value="Lubricant">Lubricant</SelectItem>
-                                            <SelectItem value="Other">Other</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                )}/>
-                            </div>
-                             <div className="space-y-2">
-                                <Label>Product Type</Label>
-                                <Controller name="productType" control={controlProduct} render={({ field }) => (
-                                    <Select onValueChange={field.onChange} value={field.value} defaultValue="Main">
-                                        <SelectTrigger><SelectValue/></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="Main">Main</SelectItem>
-                                            <SelectItem value="Secondary">Secondary</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                )}/>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Unit</Label>
-                                <Controller name="unit" control={controlProduct} render={({ field }) => (
-                                    <Select onValueChange={field.onChange} value={field.value} defaultValue="Unit">
-                                        <SelectTrigger><SelectValue/></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="Litre">Litre</SelectItem>
-                                            <SelectItem value="Unit">Unit</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                )}/>
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="price">Selling Price</Label>
-                                <Input id="price" type="number" step="0.01" {...registerProduct('price')} placeholder="e.g., 270.50" />
-                                {productErrors.price && <p className="text-sm text-destructive">{productErrors.price.message}</p>}
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="cost">Purchase Cost</Label>
-                                <Input id="cost" type="number" step="0.01" {...registerProduct('cost')} placeholder="e.g., 250.00" />
-                                {productErrors.cost && <p className="text-sm text-destructive">{productErrors.cost.message}</p>}
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Supplier (Optional)</Label>
-                                <Controller name="supplierId" control={controlProduct} render={({ field }) => (
-                                    <Select onValueChange={field.onChange} value={field.value || 'none'} defaultValue="none">
-                                        <SelectTrigger><SelectValue placeholder="Select supplier"/></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="none">None</SelectItem>
-                                            {suppliersLoaded ? suppliers.map(s => <SelectItem key={s.id} value={s.id!}>{s.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                                        </SelectContent>
-                                    </Select>
-                                )}/>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="location">Location (Optional)</Label>
-                                <Input id="location" {...registerProduct('location')} placeholder="e.g., Shelf B" />
-                            </div>
+                    <form onSubmit={handleSubmitProduct(onProductSubmit)} className="space-y-6">
+                        {/* Section 1: Core Details */}
+                        <div className="p-4 border rounded-lg">
+                           <h4 className="font-semibold text-lg mb-4">1. Core Details</h4>
+                           <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="productName">Product Name <span className="text-destructive">*</span></Label>
+                                    <Input id="productName" {...registerProduct('name')} placeholder="e.g., Organic Whole Milk" />
+                                    {productErrors.name && <p className="text-sm text-destructive">{productErrors.name.message}</p>}
+                                </div>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Company/Manufacturer</Label>
+                                        <Controller name="companyId" control={controlProduct} render={({ field }) => (
+                                            <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                                                <SelectTrigger><SelectValue placeholder="Select a company"/></SelectTrigger>
+                                                <SelectContent>
+                                                    {suppliersLoaded ? suppliers.map(s => <SelectItem key={s.id} value={s.id!}>{s.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
+                                                </SelectContent>
+                                            </Select>
+                                        )}/>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Product Group</Label>
+                                        <Controller name="productGroupId" control={controlProduct} render={({ field }) => (
+                                            <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                                                <SelectTrigger><SelectValue placeholder="Select a group"/></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="fuel">Fuel</SelectItem>
+                                                    <SelectItem value="lubricant">Lubricant</SelectItem>
+                                                    <SelectItem value="other">Other</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        )}/>
+                                    </div>
+                                </div>
+                                <div className="flex items-center space-x-2 pt-2">
+                                    <Switch id="showAdditional" checked={showAdditionalDetails} onCheckedChange={setShowAdditionalDetails} />
+                                    <Label htmlFor="showAdditional">Show Additional Details (Code, Barcode...)</Label>
+                                </div>
+                                {showAdditionalDetails && (
+                                    <div className="grid md:grid-cols-2 gap-4 pt-2">
+                                        <div className="space-y-2">
+                                            <Label>Product Code</Label>
+                                            <Input {...registerProduct('productCode')} placeholder="e.g., SKU-123"/>
+                                        </div>
+                                         <div className="space-y-2">
+                                            <Label>Barcode</Label>
+                                            <Input {...registerProduct('barcode')} placeholder="e.g., 8964000123456"/>
+                                        </div>
+                                    </div>
+                                )}
+                           </div>
                         </div>
-                        <Button type="submit">{productToEdit ? 'Update Product' : 'Add Product'}</Button>
-                        {productToEdit && <Button type="button" variant="ghost" onClick={() => { setProductToEdit(null); resetProduct({ name: '', category: 'Lubricant', productType: 'Main', unit: 'Unit', price: 0, cost: 0, supplierId: 'none', location: '' }); }}>Cancel Edit</Button>}
+
+                        {/* Section 2: Units & Pricing */}
+                        <div className="p-4 border rounded-lg">
+                           <h4 className="font-semibold text-lg mb-4">2. Units & Pricing</h4>
+                           <div className="space-y-4">
+                                <div className="grid md:grid-cols-3 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Main Unit <span className="text-destructive">*</span></Label>
+                                        <Input {...registerProduct('mainUnit')} placeholder="e.g., Carton" />
+                                        {productErrors.mainUnit && <p className="text-sm text-destructive">{productErrors.mainUnit.message}</p>}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Purchase Price (Main Unit) <span className="text-destructive">*</span></Label>
+                                        <Input type="number" {...registerProduct('purchasePrice')} placeholder="0.00" />
+                                        {productErrors.purchasePrice && <p className="text-sm text-destructive">{productErrors.purchasePrice.message}</p>}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Trade Price (Main Unit) <span className="text-destructive">*</span></Label>
+                                        <Input type="number" {...registerProduct('tradePrice')} placeholder="0.00" />
+                                        {productErrors.tradePrice && <p className="text-sm text-destructive">{productErrors.tradePrice.message}</p>}
+                                    </div>
+                                </div>
+                                <div className="flex items-center space-x-2 pt-2">
+                                    <Controller name="addSubUnit" control={controlProduct} render={({ field }) => (
+                                         <Switch id="addSubUnit" checked={field.value} onCheckedChange={field.onChange} />
+                                    )} />
+                                    <Label htmlFor="addSubUnit">Add Sub Unit Details (e.g., pieces in a carton)</Label>
+                                </div>
+                                {addSubUnit && (
+                                    <div className="grid md:grid-cols-2 gap-4 pt-2">
+                                        <div className="space-y-2">
+                                            <Label>Sub Unit Name</Label>
+                                            <Input {...registerProduct('subUnitName')} placeholder="e.g., Piece"/>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Conversion (Sub Units per Main Unit)</Label>
+                                            <Input type="number" {...registerProduct('subUnitConversion')} placeholder="e.g., 12"/>
+                                        </div>
+                                    </div>
+                                )}
+                           </div>
+                        </div>
+
+                         {/* Section 3: Initial Stock */}
+                         <div className="p-4 border rounded-lg">
+                           <h4 className="font-semibold text-lg mb-4">3. Initial Stock</h4>
+                           <div className="grid md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Stock (in Main Units)</Label>
+                                    <Input type="number" {...registerProduct('initialStockMain')} placeholder="0" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Stock (in Sub Units)</Label>
+                                    <Input type="number" {...registerProduct('initialStockSub')} placeholder="0" disabled={!addSubUnit} />
+                                </div>
+                           </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                            <Button type="submit">{productToEdit ? 'Update Product' : 'Save Product'}</Button>
+                            <Button type="button" variant="outline" onClick={() => { setProductToEdit(null); resetProduct(); }}>
+                                {productToEdit ? 'Cancel Edit' : 'Discard/Reset'}
+                            </Button>
+                        </div>
                     </form>
-                    <Separator className="my-6" />
-                    <h4 className="text-md font-medium mb-4">Existing Products</h4>
-                    <div className="rounded-md border">
-                        <Table>
-                            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Category</TableHead><TableHead>Type</TableHead><TableHead>Unit</TableHead><TableHead>Price</TableHead><TableHead>Cost</TableHead><TableHead>Stock</TableHead><TableHead>Supplier</TableHead><TableHead>Location</TableHead><TableHead className="text-center">Actions</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {productsLoaded && products.length > 0 ? products.map(p => {
-                                  const supplier = suppliers.find(s => s.id === p.supplierId);
-                                  return (
-                                    <TableRow key={p.id}>
-                                        <TableCell>{p.name}</TableCell><TableCell>{p.category}</TableCell><TableCell>{p.productType}</TableCell><TableCell>{p.unit}</TableCell><TableCell>{p.price}</TableCell><TableCell>{p.cost}</TableCell><TableCell>{p.stock}</TableCell>
-                                        <TableCell>{supplier?.name || 'N/A'}</TableCell><TableCell>{p.location || 'N/A'}</TableCell>
-                                        <TableCell className="text-center space-x-0">
-                                            <Button variant="ghost" size="icon" title="Edit" onClick={() => handleEditProduct(p)}><Edit className="w-4 h-4" /></Button>
-                                            <Button variant="ghost" size="icon" title="Delete" onClick={() => handleDeleteProduct(p.id!)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                                        </TableCell>
-                                    </TableRow>
-                                  )
-                                }) : <TableRow><TableCell colSpan={10} className="h-24 text-center">{productsLoaded ? 'No products added.' : 'Loading...'}</TableCell></TableRow>}
-                            </TableBody>
-                        </Table>
-                    </div>
                 </CardContent>
             </Card>
           </div>

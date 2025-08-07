@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useCallback, useEffect } from 'react';
@@ -9,9 +10,9 @@ const COLLECTION_NAME = 'products';
 
 // Default fuel products to ensure they exist
 const DEFAULT_PRODUCTS: Omit<Product, 'id' | 'timestamp' | 'stock'>[] = [
-    { name: 'Unleaded', category: 'Fuel', unit: 'Litre', price: 0, cost: 0 },
-    { name: 'Premium', category: 'Fuel', unit: 'Litre', price: 0, cost: 0 },
-    { name: 'Diesel', category: 'Fuel', unit: 'Litre', price: 0, cost: 0 },
+    { name: 'Unleaded', category: 'Fuel', productType: 'Main', unit: 'Litre', purchasePrice: 0, tradePrice: 0, mainUnit: 'Litre' },
+    { name: 'Premium', category: 'Fuel', productType: 'Main', unit: 'Litre', purchasePrice: 0, tradePrice: 0, mainUnit: 'Litre' },
+    { name: 'Diesel', category: 'Fuel', productType: 'Main', unit: 'Litre', purchasePrice: 0, tradePrice: 0, mainUnit: 'Litre' },
 ];
 
 export function useProducts() {

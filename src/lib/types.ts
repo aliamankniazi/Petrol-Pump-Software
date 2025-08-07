@@ -4,19 +4,36 @@ export type FuelType = 'Unleaded' | 'Premium' | 'Diesel';
 
 export type PaymentMethod = 'Cash' | 'Card' | 'Mobile' | 'On Credit';
 
+export interface SubUnit {
+  name: string;
+  conversionRate: number; // How many sub-units make one main unit
+  purchasePrice?: number;
+  tradePrice?: number;
+}
+
 export interface Product {
     id?: string;
     name: string;
-    category: 'Fuel' | 'Lubricant' | 'Other';
-    productType: 'Main' | 'Secondary';
-    unit: 'Litre' | 'Unit';
-    price?: number; // Selling price
-    cost?: number; // Purchase price
-    stock: number;
+    productCode?: string;
+    barcode?: string;
+    productGroupId?: string;
+    companyId?: string;
+    mainUnit: string;
+    purchasePrice: number;
+    tradePrice: number;
+    stock: number; // Stock in main units
+    subUnitStock?: number; // Stock in sub-units
+    subUnit?: SubUnit;
+    category: 'Fuel' | 'Lubricant' | 'Other'; // Kept for filtering, can be removed if product groups replace it
+    productType: 'Main' | 'Secondary'; // Main or Secondary product
+    unit: 'Litre' | 'Unit'; // Simple unit, mainUnit is more specific
+    price?: number; // Selling price (legacy, replaced by tradePrice)
+    cost?: number; // Purchase price (legacy, replaced by purchasePrice)
     supplierId?: string;
     location?: string;
     timestamp?: string;
 }
+
 
 export interface TransactionItem {
     productId: string;
