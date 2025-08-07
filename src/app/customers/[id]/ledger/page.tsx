@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { BookUser, ArrowLeft, User, Phone, Car, Trash2, AlertTriangle, Percent, Briefcase } from 'lucide-react';
+import { BookUser, ArrowLeft, User, Phone, Car, Trash2, AlertTriangle, Percent, Briefcase, Printer } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
 import { useCashAdvances } from '@/hooks/use-cash-advances';
@@ -89,7 +89,7 @@ export default function CustomerLedgerPage() {
         customerTransactions.forEach(tx => combined.push({
           id: `tx-${tx.id}`,
           timestamp: tx.timestamp!,
-          description: tx.items.map(item => `${item.volume.toFixed(2)}L of ${item.fuelType}`).join(', '),
+          description: tx.items.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', '),
           type: 'Sale',
           debit: tx.totalAmount,
           credit: 0,
@@ -149,7 +149,7 @@ export default function CustomerLedgerPage() {
         supplierPurchases.forEach(p => combined.push({
             id: `pur-${p.id}`,
             timestamp: p.timestamp!,
-            description: p.items.map(item => `${item.volume.toFixed(2)}L of ${item.fuelType}`).join(', '),
+            description: p.items.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', '),
             type: 'Purchase',
             credit: p.totalCost,
             debit: 0,
@@ -318,9 +318,12 @@ export default function CustomerLedgerPage() {
               </CardTitle>
               <CardDescription>A record of all transactions for this {entityType.toLowerCase()}.</CardDescription>
             </div>
-             <Button asChild variant="outline">
-                <Link href="/partner-ledger"><ArrowLeft className="mr-2 h-4 w-4" />Back to Partner Ledger</Link>
-             </Button>
+             <div className="flex gap-2 print:hidden">
+                <Button variant="outline" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4"/>Print</Button>
+                <Button asChild variant="outline">
+                    <Link href="/partner-ledger"><ArrowLeft className="mr-2 h-4 w-4" />Back to Partner Ledger</Link>
+                </Button>
+             </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -334,7 +337,7 @@ export default function CustomerLedgerPage() {
                   <TableHead className="text-right">Debit</TableHead>
                   <TableHead className="text-right">Credit</TableHead>
                   <TableHead className="text-right">Balance</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
+                  <TableHead className="text-center print:hidden">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -361,7 +364,7 @@ export default function CustomerLedgerPage() {
                      <TableCell className={cn("text-right font-semibold font-mono", rowBalanceColorClass(entry.balance))}>
                         {entry.balance.toFixed(2)}
                     </TableCell>
-                     <TableCell className="text-center">
+                     <TableCell className="text-center print:hidden">
                         <Button 
                             variant="ghost" 
                             size="icon" 

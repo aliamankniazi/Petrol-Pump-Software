@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { format, isSameDay, startOfDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { HandCoins, XCircle, Calendar as CalendarIcon, X, TrendingUp, TrendingDown, Wallet, BookText, AlertTriangle, Trash2 } from 'lucide-react';
+import { HandCoins, XCircle, Calendar as CalendarIcon, X, TrendingUp, TrendingDown, Wallet, BookText, AlertTriangle, Trash2, Printer } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -95,7 +95,7 @@ export default function UnifiedLedgerPage() {
           entityName: tx.customerName || 'N/A',
           entityType: entity.type,
           type: 'Sale',
-          description: tx.items.map(item => `${item.volume.toFixed(2)}L of ${item.fuelType}`).join(', '),
+          description: tx.items.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', '),
           debit: tx.totalAmount,
           credit: 0,
         });
@@ -143,7 +143,7 @@ export default function UnifiedLedgerPage() {
             entityName: p.supplier,
             entityType: 'Supplier',
             type: 'Purchase',
-            description: p.items.map(item => `${item.volume.toFixed(2)}L of ${item.fuelType}`).join(', '),
+            description: p.items.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', '),
             debit: 0,
             credit: p.totalCost,
         });
@@ -326,12 +326,19 @@ export default function UnifiedLedgerPage() {
     <div className="p-4 md:p-8 space-y-6">
        <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <HandCoins /> Unified Ledger
-          </CardTitle>
-          <CardDescription>A unified record of all transactions for customers, suppliers, and business partners. Use the filters below to refine your search.</CardDescription>
+            <div className='flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4'>
+                <div>
+                    <CardTitle className="flex items-center gap-2">
+                        <HandCoins /> Unified Ledger
+                    </CardTitle>
+                    <CardDescription>A unified record of all transactions. Use the filters below to refine your search.</CardDescription>
+                </div>
+                <div className='print:hidden'>
+                    <Button variant="outline" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4"/>Print</Button>
+                </div>
+            </div>
           
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-4 print:hidden">
               <Select value={selectedEntityId} onValueChange={(value) => setSelectedEntityId(value === 'all' ? '' : value)}>
                 <SelectTrigger className="sm:w-[240px]">
                   <SelectValue placeholder="Filter by partner..." />
@@ -425,7 +432,7 @@ export default function UnifiedLedgerPage() {
                   <TableHead className="text-right">Debit</TableHead>
                   <TableHead className="text-right">Credit</TableHead>
                   <TableHead className="text-right">Balance</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
+                  <TableHead className="text-center print:hidden">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -456,7 +463,7 @@ export default function UnifiedLedgerPage() {
                     <TableCell className={cn("text-right font-semibold font-mono", getBalanceColor(entry.balance || 0, entry.entityType))}>
                         {entry.balance?.toFixed(2)}
                     </TableCell>
-                     <TableCell className="text-center space-x-0">
+                     <TableCell className="text-center space-x-0 print:hidden">
                         <Button asChild variant="ghost" size="icon" title="View Partner Ledger">
                            <Link href={`/customers/${entry.entityId}/ledger`}>
                              <BookText className="w-5 h-5" />

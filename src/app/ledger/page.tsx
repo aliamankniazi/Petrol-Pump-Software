@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { format, isSameDay, startOfDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, DollarSign, Calendar as CalendarIcon, X, Trash2, AlertTriangle } from 'lucide-react';
+import { BookOpen, DollarSign, Calendar as CalendarIcon, X, Trash2, AlertTriangle, Printer } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
 import { usePurchases } from '@/hooks/use-purchases';
 import { useExpenses } from '@/hooks/use-expenses';
@@ -90,7 +90,7 @@ export default function LedgerPage() {
     purchaseReturns.forEach(pr => combined.push({
         id: `pr-${pr.id}`,
         timestamp: pr.timestamp!,
-        description: `Return to ${pr.supplier}: ${pr.volume.toFixed(2)}L of ${pr.fuelType}`,
+        description: `Return to ${pr.supplier}: ${pr.volume.toFixed(2)}L of ${pr.productName}`,
         type: 'Purchase Return',
         debit: 0,
         credit: pr.totalRefund,
@@ -242,7 +242,8 @@ export default function LedgerPage() {
                 }
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 print:hidden">
+               <Button variant="outline" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4"/>Print</Button>
                <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -285,7 +286,7 @@ export default function LedgerPage() {
                   <TableHead className="text-right">Debit (PKR)</TableHead>
                   <TableHead className="text-right">Credit (PKR)</TableHead>
                   <TableHead className="text-right">Balance (PKR)</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
+                  <TableHead className="text-center print:hidden">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -321,7 +322,7 @@ export default function LedgerPage() {
                     <TableCell className={`text-right font-semibold font-mono ${entry.balance >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                         {entry.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center print:hidden">
                         <Button 
                             variant="ghost" 
                             size="icon" 

@@ -7,8 +7,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useTransactions } from '@/hooks/use-transactions';
 import { usePurchases } from '@/hooks/use-purchases';
 import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
-import { Package } from 'lucide-react';
+import { Package, Printer } from 'lucide-react';
 import { useProducts } from '@/hooks/use-products';
+import { Button } from '@/components/ui/button';
 
 export default function StockMovementPage() {
   const { transactions, isLoaded: txLoaded } = useTransactions();
@@ -52,12 +53,17 @@ export default function StockMovementPage() {
     <div className="p-4 md:p-8">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package /> Stock Sale & Purchase Report
-          </CardTitle>
-          <CardDescription>
-            A summary of stock movement for each product.
-          </CardDescription>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Package /> Stock Sale & Purchase Report
+              </CardTitle>
+              <CardDescription>
+                A summary of stock movement for each product.
+              </CardDescription>
+            </div>
+            <Button variant="outline" onClick={() => window.print()} className="print:hidden"><Printer className="mr-2 h-4 w-4" />Print</Button>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>

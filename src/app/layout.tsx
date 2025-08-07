@@ -17,11 +17,7 @@ const inter = Inter({
 });
 
 function PrintStyles() {
-    const pathname = usePathname();
-    if (pathname.startsWith('/invoice/')) {
-        return <link rel="stylesheet" href="/print-globals.css" media="print" />;
-    }
-    return null;
+    return <link rel="stylesheet" href="/print-globals.css" media="print" />;
 }
 
 export default function RootLayout({

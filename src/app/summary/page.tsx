@@ -10,7 +10,7 @@ import { useExpenses } from '@/hooks/use-expenses';
 import { useOtherIncomes } from '@/hooks/use-other-incomes';
 import { generateSalesSummary } from '@/ai/flows/generate-sales-summary';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { FileText, Sparkles, Terminal, AlertTriangle, TrendingUp, TrendingDown, DollarSign, BarChart2 } from 'lucide-react';
+import { FileText, Sparkles, Terminal, AlertTriangle, TrendingUp, TrendingDown, DollarSign, BarChart2, Printer } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { isToday } from 'date-fns';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from '@/components/ui/chart';
@@ -109,10 +109,15 @@ export default function SummaryPage() {
     <div className="p-4 md:p-8 space-y-8">
       <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign /> Financial Report
-            </CardTitle>
-            <CardDescription>An overview of your business's financial performance.</CardDescription>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign /> Financial Report
+                </CardTitle>
+                <CardDescription>An overview of your business's financial performance.</CardDescription>
+              </div>
+              <Button variant="outline" onClick={() => window.print()} className="print:hidden"><Printer className="mr-2 h-4 w-4" />Print</Button>
+            </div>
           </CardHeader>
           <CardContent>
             {!isLoaded ? (
@@ -220,7 +225,7 @@ export default function SummaryPage() {
             </CardContent>
         </Card>
 
-        <Card className="flex flex-col">
+        <Card className="flex flex-col print:hidden">
             <CardHeader>
             <CardTitle className="flex items-center gap-2">
                 <FileText /> Daily Sales AI Summary

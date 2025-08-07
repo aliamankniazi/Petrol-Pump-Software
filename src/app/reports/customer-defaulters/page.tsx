@@ -8,7 +8,7 @@ import { useCustomers } from '@/hooks/use-customers';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
 import { useCashAdvances } from '@/hooks/use-cash-advances';
-import { UserX, BookText } from 'lucide-react';
+import { UserX, BookText, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
@@ -62,12 +62,17 @@ export default function CustomerDefaulterReportPage() {
     <div className="p-4 md:p-8">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserX /> Customer Defaulter Report
-          </CardTitle>
-          <CardDescription>
-            A list of all customers with a positive (outstanding) balance.
-          </CardDescription>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <UserX /> Customer Defaulter Report
+              </CardTitle>
+              <CardDescription>
+                A list of all customers with a positive (outstanding) balance.
+              </CardDescription>
+            </div>
+            <Button variant="outline" onClick={() => window.print()} className="print:hidden"><Printer className="mr-2 h-4 w-4" />Print</Button>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -77,7 +82,7 @@ export default function CustomerDefaulterReportPage() {
                 <TableHead>Contact</TableHead>
                 <TableHead>Area</TableHead>
                 <TableHead className="text-right">Outstanding Balance (PKR)</TableHead>
-                <TableHead className="text-center">Actions</TableHead>
+                <TableHead className="text-center print:hidden">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -91,7 +96,7 @@ export default function CustomerDefaulterReportPage() {
                       <TableCell className="text-right font-mono text-destructive">
                         {d.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center print:hidden">
                         <Button asChild variant="ghost" size="icon" title="View Ledger">
                            <Link href={`/customers/${d.id}/ledger`}>
                              <BookText className="w-5 h-5" />

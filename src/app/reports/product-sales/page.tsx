@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useProducts } from '@/hooks/use-products';
-import { Box } from 'lucide-react';
+import { Box, Printer } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface ProductSaleRow {
   productName: string;
@@ -49,12 +50,17 @@ export default function ProductSalesPage() {
     <div className="p-4 md:p-8">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Box /> Product Wise Sales Report
-          </CardTitle>
-          <CardDescription>
-            A breakdown of sales volume and revenue for each product.
-          </CardDescription>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Box /> Product Wise Sales Report
+              </CardTitle>
+              <CardDescription>
+                A breakdown of sales volume and revenue for each product.
+              </CardDescription>
+            </div>
+            <Button variant="outline" onClick={() => window.print()} className="print:hidden"><Printer className="mr-2 h-4 w-4" />Print</Button>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
