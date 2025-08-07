@@ -1,7 +1,8 @@
 
 {
   "database": {
-    "rules": "src/database.rules.json"
+    "rules": "src/database.rules.json",
+    "instance": "pumppal-n1b9n-default-rtdb"
   },
   "hosting": {
     "public": "out",
