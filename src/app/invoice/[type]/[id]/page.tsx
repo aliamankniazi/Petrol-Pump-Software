@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCustomers } from '@/hooks/use-customers';
 import { useSuppliers } from '@/hooks/use-suppliers';
 import { useBankAccounts } from '@/hooks/use-bank-accounts';
+import { useProducts } from '@/hooks/use-products';
 
 export default function InvoicePage() {
   const params = useParams();
@@ -21,8 +22,10 @@ export default function InvoicePage() {
   const { customers, isLoaded: customersLoaded } = useCustomers();
   const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
   const { bankAccounts, isLoaded: bankAccountsLoaded } = useBankAccounts();
+  const { products, isLoaded: productsLoaded } = useProducts();
 
-  const isLoaded = transactionsLoaded && purchasesLoaded && customersLoaded && suppliersLoaded && bankAccountsLoaded;
+
+  const isLoaded = transactionsLoaded && purchasesLoaded && customersLoaded && suppliersLoaded && bankAccountsLoaded && productsLoaded;
 
   let invoiceData = null;
 
@@ -41,13 +44,16 @@ export default function InvoicePage() {
             contact: customer?.contact || 'N/A',
             balance: 0, // Note: Balance calculation would be complex here, so keeping it simple.
           },
-          items: transaction.items.map(item => ({
-            name: item.productName,
-            group: 'Fuel',
-            quantity: item.quantity,
-            price: item.pricePerUnit,
-            amount: item.totalAmount,
-          })),
+          items: transaction.items.map(item => {
+            const product = products.find(p => p.id === item.productId);
+            return {
+                name: item.productName,
+                group: product?.category || 'General',
+                quantity: item.quantity,
+                price: item.pricePerUnit,
+                amount: item.totalAmount,
+            }
+          }),
           totalAmount: transaction.totalAmount,
           paymentMethod: transaction.paymentMethod,
           bankDetails: bankAccount ? { name: bankAccount.bankName, number: bankAccount.accountNumber } : undefined,
@@ -66,13 +72,16 @@ export default function InvoicePage() {
             contact: supplier?.contact || 'N/A',
             balance: 0,
           },
-          items: purchase.items.map(item => ({
-              name: item.productName,
-              group: 'Fuel',
-              quantity: item.quantity,
-              price: item.costPerUnit,
-              amount: item.totalCost,
-          })),
+          items: purchase.items.map(item => {
+              const product = products.find(p => p.id === item.productId);
+              return {
+                  name: item.productName,
+                  group: product?.category || 'General',
+                  quantity: item.quantity,
+                  price: item.costPerUnit,
+                  amount: item.totalCost,
+              }
+          }),
           totalAmount: purchase.totalCost,
           paymentMethod: 'Credit', // Purchases are assumed to be on credit
         };
