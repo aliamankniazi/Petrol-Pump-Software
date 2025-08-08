@@ -257,7 +257,7 @@ export default function SettingsPage() {
                                         <Label>Company/Manufacturer</Label>
                                         <Controller name="companyId" control={controlProduct} render={({ field }) => (
                                             <Select onValueChange={field.onChange} value={field.value} defaultValue="">
-                                                <SelectTrigger><SelectValue placeholder="Select a supplier"/></SelectTrigger>
+                                                <SelectTrigger><SelectValue placeholder="Select a company"/></SelectTrigger>
                                                 <SelectContent>
                                                     {suppliersLoaded ? suppliers.map(s => <SelectItem key={s.id} value={s.id!}>{s.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
                                                 </SelectContent>
