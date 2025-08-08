@@ -45,6 +45,10 @@ export default function CustomerPaymentsPage() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const { register, handleSubmit, control, reset, formState: { errors }, watch, setValue } = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
     defaultValues: { 
@@ -54,12 +58,13 @@ export default function CustomerPaymentsPage() {
   });
   
   useEffect(() => {
-    setIsClient(true);
-    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (storedDate) {
-      setValue('date', new Date(storedDate));
+    if (isClient) {
+      const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (storedDate) {
+        setValue('date', new Date(storedDate));
+      }
     }
-  }, [setValue]);
+  }, [setValue, isClient]);
 
   const selectedDate = watch('date');
   useEffect(() => {

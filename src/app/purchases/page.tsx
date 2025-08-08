@@ -74,6 +74,10 @@ export default function PurchasesPage() {
   
   const [currentItem, setCurrentItem] = useState({ productId: '', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
 
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const { register, handleSubmit, reset, setValue, control, watch, getValues } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema),
     defaultValues: {
@@ -84,12 +88,13 @@ export default function PurchasesPage() {
   });
 
   useEffect(() => {
-    setIsClient(true);
-    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    const defaultDate = storedDate ? new Date(storedDate) : new Date();
-    setValue('date', defaultDate);
-    setValue('orderDeliveryDate', defaultDate);
-  }, [setValue]);
+    if (isClient) {
+      const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const defaultDate = storedDate ? new Date(storedDate) : new Date();
+      setValue('date', defaultDate);
+      setValue('orderDeliveryDate', defaultDate);
+    }
+  }, [setValue, isClient]);
   
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
 
@@ -186,7 +191,7 @@ export default function PurchasesPage() {
       description: `Delivery from ${supplier.name} has been logged.`,
     });
     
-    const defaultDate = localStorage.getItem(LOCAL_STORAGE_KEY) ? new Date(localStorage.getItem(LOCAL_STORAGE_KEY)!) : new Date();
+    const defaultDate = isClient && localStorage.getItem(LOCAL_STORAGE_KEY) ? new Date(localStorage.getItem(LOCAL_STORAGE_KEY)!) : new Date();
     reset({
         supplierId: '',
         items: [],

@@ -46,6 +46,10 @@ export default function InvestmentsPage() {
   
   const [isClient, setIsClient] = useState(false);
 
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const businessPartners = useMemo(() => customers.filter(c => c.isPartner), [customers]);
 
   // Form for new investments/withdrawals
@@ -55,12 +59,13 @@ export default function InvestmentsPage() {
   });
 
   useEffect(() => {
-    setIsClient(true);
-    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (storedDate) {
-      setValue('date', new Date(storedDate));
+    if (isClient) {
+      const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (storedDate) {
+        setValue('date', new Date(storedDate));
+      }
     }
-  }, [setValue]);
+  }, [setValue, isClient]);
 
   const selectedDate = watch('date');
   useEffect(() => {
