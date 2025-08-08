@@ -144,12 +144,10 @@ export default function PurchasesPage() {
   }, [selectedDate]);
 
   const totalCost = useMemo(() => {
-    if (!watchedItems) return 0;
     return watchedItems.reduce((sum, item) => sum + (item.totalCost || 0), 0);
   }, [watchedItems]);
 
   const totalEditCost = useMemo(() => {
-    if (!watchedEditItems) return 0;
     return watchedEditItems.reduce((sum, item) => sum + (item.totalCost || 0), 0);
   }, [watchedEditItems]);
 
@@ -231,7 +229,7 @@ export default function PurchasesPage() {
     });
     toast({
       title: 'Purchase Recorded',
-      description: `Delivery from ${supplier.name} has been logged. Associated expenses also recorded.`,
+      description: `Delivery from ${supplier.name} has been logged.`,
     });
     const lastDate = watch('date');
     reset({
