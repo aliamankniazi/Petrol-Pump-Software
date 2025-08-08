@@ -79,8 +79,7 @@ export default function EmployeesPage() {
 
     const salaryMonth = setMonth(new Date(selectedYear, 0, 1), parseInt(selectedMonth));
     const daysInMonth = getDaysInMonth(salaryMonth);
-    const expectedDuties = Math.ceil(daysInMonth / 2); // Employee works every other day
-
+    
     const employeeAttendance = attendance.filter(a => 
       a.employeeId === employeeToPay.id && 
       new Date(a.date).getMonth() === parseInt(selectedMonth) &&
@@ -89,16 +88,17 @@ export default function EmployeesPage() {
     
     const presentDays = employeeAttendance.filter(a => a.status === 'Present' || a.status === 'Paid Leave').length;
     const halfDays = employeeAttendance.filter(a => a.status === 'Half Day').length;
+    const absentDays = employeeAttendance.filter(a => a.status === 'Absent').length;
 
-    const perDutySalary = employeeToPay.salary / expectedDuties;
-    const payableSalary = (presentDays * perDutySalary) + (halfDays * perDutySalary * 0.5);
-    const totalPresentDuties = presentDays + halfDays * 0.5;
+    const perDaySalary = employeeToPay.salary / daysInMonth;
+    const payableSalary = (presentDays * perDaySalary) + (halfDays * perDaySalary * 0.5);
+    const totalPresentDays = presentDays + (halfDays * 0.5);
 
     return {
-      presentDays: totalPresentDuties,
-      absentDays: expectedDuties - totalPresentDuties,
+      presentDays: totalPresentDays,
+      absentDays: absentDays + (halfDays * 0.5),
       payableSalary,
-      daysInMonth: expectedDuties,
+      daysInMonth: daysInMonth,
     };
 
   }, [employeeToPay, selectedMonth, selectedYear, attendance]);
@@ -363,15 +363,15 @@ export default function EmployeesPage() {
                     <span className="font-medium">PKR {employeeToPay?.salary.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Working Duties in Month</span>
+                    <span className="text-muted-foreground">Days In Month</span>
                     <span className="font-medium">{salaryCalculation.daysInMonth}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground flex items-center gap-1"><TrendingUp className="text-green-500"/> Present Duties</span>
+                    <span className="text-muted-foreground flex items-center gap-1"><TrendingUp className="text-green-500"/> Present Days</span>
                     <span className="font-medium">{salaryCalculation.presentDays}</span>
                 </div>
                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground flex items-center gap-1"><TrendingDown className="text-destructive"/> Absent Duties</span>
+                    <span className="text-muted-foreground flex items-center gap-1"><TrendingDown className="text-destructive"/> Absent Days</span>
                     <span className="font-medium">{salaryCalculation.absentDays}</span>
                 </div>
                 <div className="flex justify-between items-center text-lg font-bold border-t pt-2 mt-2">
