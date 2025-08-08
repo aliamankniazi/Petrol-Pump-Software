@@ -75,16 +75,17 @@ export default function PurchasesPage() {
   const { register, handleSubmit, reset, setValue, control, watch, formState: { errors } } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema),
     defaultValues: {
-      date: new Date(), items: []
+      items: [{ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 }],
+      date: new Date()
     }
   });
 
   useEffect(() => {
     const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if(storedDate) {
+    if(storedDate && isClient) {
       setValue('date', new Date(storedDate));
     }
-  }, [setValue]);
+  }, [setValue, isClient]);
 
 
   const { fields, append, remove } = useFieldArray({
@@ -170,7 +171,7 @@ export default function PurchasesPage() {
     const lastDate = watch('date');
     reset({
         supplierId: '',
-        items: [],
+        items: [{ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 }],
         date: lastDate,
     });
   };
@@ -199,43 +200,143 @@ export default function PurchasesPage() {
   return (
     <>
     <div className="p-4 md:p-8 grid gap-8 lg:grid-cols-3">
-      <div className="lg:col-span-1">
+      <div className="lg:col-span-2 space-y-8">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Truck /> New Purchase
-            </CardTitle>
-            <CardDescription>Record a new delivery with one or more products.</CardDescription>
+           <CardHeader className="flex flex-row justify-between items-start">
+              <div>
+                <CardTitle className="flex items-center gap-2"><Truck /> New Purchase</CardTitle>
+                <CardDescription>Select products and enter quantities to record a new delivery.</CardDescription>
+              </div>
+              <Button asChild variant="outline">
+                  <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
+              </Button>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onPurchaseSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="supplierId">Supplier</Label>
-                <div className="flex items-center gap-2">
-                    <Controller
-                      name="supplierId"
-                      control={control}
-                      render={({ field }) => (
-                         <Select onValueChange={field.onChange} value={field.value} defaultValue="">
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a supplier" />
-                          </SelectTrigger>
-                          <SelectContent>
-                             {suppliersLoaded ? suppliers.map(s => (
-                              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                            )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                    <Button type="button" variant="outline" size="icon" onClick={() => setIsAddSupplierOpen(true)} title="Add new supplier">
-                        <PlusCircle className="h-4 w-4" />
-                    </Button>
-                </div>
-                {errors.supplierId && <p className="text-sm text-destructive">{errors.supplierId.message}</p>}
-              </div>
+              <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
+                {fields.map((field, index) => (
+                    <Card key={field.id} className="p-4 relative bg-muted/40">
+                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div className="md:col-span-2 space-y-2">
+                                <Label>Product</Label>
+                                <Controller
+                                  name={`items.${index}.productId`}
+                                  control={control}
+                                  render={({ field }) => (
+                                     <Select onValueChange={(value) => {
+                                        field.onChange(value);
+                                        handleProductChange(index, value);
+                                    }} value={field.value} defaultValue="">
+                                      <SelectTrigger><SelectValue placeholder="Select a product" /></SelectTrigger>
+                                      <SelectContent>
+                                        {productsLoaded ? products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
+                                      </SelectContent>
+                                    </Select>
+                                  )}
+                                />
+                                {errors.items?.[index]?.productId && <p className="text-sm text-destructive">{errors.items?.[index]?.productId?.message}</p>}
+                            </div>
+                             <div className="space-y-2">
+                              <Label>Quantity</Label>
+                              <Input type="number" {...register(`items.${index}.quantity`)} placeholder="e.g., 5000" step="0.01" onChange={(e) => handleQuantityChange(index, +e.target.value)} />
+                               {errors.items?.[index]?.quantity && <p className="text-sm text-destructive">{errors.items?.[index]?.quantity?.message}</p>}
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Cost / Unit</Label>
+                              <Input type="number" {...register(`items.${index}.costPerUnit`)} placeholder="e.g., 250" step="0.01" onChange={(e) => handleCostPerUnitChange(index, +e.target.value)} />
+                               {errors.items?.[index]?.costPerUnit && <p className="text-sm text-destructive">{errors.items?.[index]?.costPerUnit?.message}</p>}
+                            </div>
+                         </div>
+                         <div className="mt-4 text-right">
+                            <Label>Total Cost for Item</Label>
+                            <p className="text-lg font-semibold">PKR {watchedItems[index]?.totalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</p>
+                         </div>
+                        <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 w-6 h-6" onClick={() => remove(index)}><Trash2 className="w-4 h-4" /></Button>
+                    </Card>
+                ))}
+            </div>
+            {errors.items && <p className="text-sm text-destructive">{errors.items.message}</p>}
+             <Button type="button" variant="outline" onClick={() => append({ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 })} className="w-full"><PlusCircle /> Add Another Product</Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
 
-               {watchedSupplierId && (
+      <div className="lg:col-span-1 space-y-8">
+        <Card>
+            <CardHeader>
+                <CardTitle>Supplier & Date</CardTitle>
+            </CardHeader>
+            <CardContent>
+                 <form onSubmit={handleSubmit(onPurchaseSubmit)} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="supplierId">Supplier</Label>
+                    <div className="flex items-center gap-2">
+                        <Controller
+                          name="supplierId"
+                          control={control}
+                          render={({ field }) => (
+                             <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a supplier" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                 {suppliersLoaded ? suppliers.map(s => (
+                                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                        <Button type="button" variant="outline" size="icon" onClick={() => setIsAddSupplierOpen(true)} title="Add new supplier">
+                            <PlusCircle className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    {errors.supplierId && <p className="text-sm text-destructive">{errors.supplierId.message}</p>}
+                  </div>
+
+                   <div className="space-y-2">
+                      <Label>Date</Label>
+                      {isClient && <Controller
+                        name="date"
+                        control={control}
+                        render={({ field }) => (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        )}
+                      />}
+                      {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
+                    </div>
+                 </form>
+            </CardContent>
+        </Card>
+        
+        <Card>
+            <CardHeader>
+                <CardTitle>Purchase Summary</CardTitle>
+            </CardHeader>
+             <CardContent className="space-y-4">
+                {watchedSupplierId && (
                   <Card className="bg-muted/40 p-4">
                     <CardHeader className="p-0 pb-2">
                       <CardTitle className="text-md">Supplier Account</CardTitle>
@@ -247,11 +348,7 @@ export default function PurchasesPage() {
                             <span className='text-muted-foreground'>Previous Balance:</span>
                             <span className='font-medium'>PKR {supplierBalance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                           </div>
-                          <div className='flex justify-between'>
-                            <span className='text-muted-foreground'>Current Purchase:</span>
-                            <span className='font-medium'>PKR {totalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                          </div>
-                           <Separator />
+                          <Separator/>
                            <div className='flex justify-between font-bold text-base'>
                             <span>Total Payable:</span>
                             <span className={cn(supplierBalance + totalCost >= 0 ? 'text-green-600' : 'text-destructive' )}>PKR {(supplierBalance + totalCost).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
@@ -261,103 +358,20 @@ export default function PurchasesPage() {
                     </CardContent>
                   </Card>
                 )}
-
-
-               <div className="space-y-2">
-                  <Label>Date</Label>
-                  {isClient && <Controller
-                    name="date"
-                    control={control}
-                    render={({ field }) => (
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    )}
-                  />}
-                  {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-4 max-h-[35vh] overflow-y-auto pr-2">
-                    {fields.map((field, index) => (
-                        <Card key={field.id} className="p-4 relative bg-muted/30">
-                             <div className="grid grid-cols-2 gap-4">
-                                <div className="col-span-2 space-y-2">
-                                    <Label>Product</Label>
-                                    <Controller
-                                      name={`items.${index}.productId`}
-                                      control={control}
-                                      render={({ field }) => (
-                                         <Select onValueChange={(value) => {
-                                            field.onChange(value);
-                                            handleProductChange(index, value);
-                                        }} value={field.value} defaultValue="">
-                                          <SelectTrigger>
-                                            <SelectValue placeholder="Select a product" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            {productsLoaded ? products.map(p => (
-                                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                                            )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                                          </SelectContent>
-                                        </Select>
-                                      )}
-                                    />
-                                </div>
-                                 <div className="space-y-2">
-                                  <Label htmlFor={`items.${index}.quantity`}>Quantity</Label>
-                                  <Input id={`items.${index}.quantity`} type="number" {...register(`items.${index}.quantity`)} placeholder="e.g., 5000" step="0.01" onChange={(e) => handleQuantityChange(index, +e.target.value)} />
-                                  {errors.items?.[index]?.quantity && <p className="text-sm text-destructive">{errors.items?.[index]?.quantity?.message}</p>}
-                                </div>
-                                <div className="space-y-2">
-                                  <Label htmlFor={`items.${index}.costPerUnit`}>Cost / Unit</Label>
-                                  <Input id={`items.${index}.costPerUnit`} type="number" {...register(`items.${index}.costPerUnit`)} placeholder="e.g., 250" step="0.01" onChange={(e) => handleCostPerUnitChange(index, +e.target.value)} />
-                                  {errors.items?.[index]?.costPerUnit && <p className="text-sm text-destructive">{errors.items?.[index]?.costPerUnit?.message}</p>}
-                                </div>
-                                <div className="col-span-2 space-y-2">
-                                  <Label htmlFor={`items.${index}.totalCost`}>Total Cost (PKR)</Label>
-                                  <Input id={`items.${index}.totalCost`} type="number" {...register(`items.${index}.totalCost`)} placeholder="e.g., 1000000" step="0.01" className="font-bold" />
-                                  {errors.items?.[index]?.totalCost && <p className="text-sm text-destructive">{errors.items?.[index]?.totalCost?.message}</p>}
-                                </div>
-                             </div>
-                            <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 w-6 h-6" onClick={() => remove(index)}><Trash2 className="w-4 h-4" /></Button>
-                        </Card>
-                    ))}
-                </div>
-                 <Button type="button" variant="outline" onClick={() => append({ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 })} className="w-full"><PlusCircle /> Add Product</Button>
-              
-              <div className="border-t pt-4 space-y-2">
-                <h3 className="text-lg font-semibold">Total Purchase Cost</h3>
-                <p className="text-2xl font-bold text-primary">PKR {totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-              </div>
-
-              <Button type="submit" className="w-full">Record Purchase</Button>
-            </form>
-          </CardContent>
+                 <div className="border-t pt-4 space-y-2">
+                    <div className="flex justify-between items-center text-xl font-bold">
+                        <h3 className="text-lg font-semibold">Total Purchase Cost</h3>
+                        <p className="text-2xl font-bold text-primary">PKR {totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    </div>
+                 </div>
+             </CardContent>
+            <CardFooter>
+                 <Button type="submit" onClick={handleSubmit(onPurchaseSubmit)} className="w-full">Record Purchase</Button>
+            </CardFooter>
         </Card>
       </div>
-
-      <div className="lg:col-span-2">
+      
+       <div className="lg:col-span-3">
         <Card>
           <CardHeader className="flex flex-row justify-between items-start">
             <div>
@@ -368,9 +382,6 @@ export default function PurchasesPage() {
                 A record of all incoming stock and product deliveries.
               </CardDescription>
             </div>
-             <Button asChild variant="outline">
-                <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
-            </Button>
           </CardHeader>
           <CardContent>
             {purchases.length > 0 ? (
