@@ -55,8 +55,8 @@ export default function SalePage() {
   const { register, handleSubmit, control, watch, setValue, reset, formState: { errors } } = useForm<SaleFormValues>({
     resolver: zodResolver(saleSchema),
     defaultValues: {
-      ...formState,
       items: [{ productId: '', quantity: 0, pricePerUnit: 0, totalAmount: 0 }],
+      ...formState
     }
   });
 
@@ -101,7 +101,7 @@ export default function SalePage() {
   }
 
   const onSubmit: SubmitHandler<SaleFormValues> = (data) => {
-    const isWalkIn = data.customerId === 'walk-in';
+    const isWalkIn = !data.customerId || data.customerId === 'walk-in';
     const customer = !isWalkIn ? customers.find(c => c.id === data.customerId) : null;
     const bankAccount = bankAccounts.find(b => b.id === data.bankAccountId);
 
@@ -203,7 +203,7 @@ export default function SalePage() {
                 <div className="space-y-2">
                   <Label>Customer</Label>
                   <Controller name="customerId" control={control} render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue="walk-in">
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <SelectTrigger><SelectValue placeholder="Select Customer (or leave for Walk-in)" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="walk-in">Walk-in Customer</SelectItem>

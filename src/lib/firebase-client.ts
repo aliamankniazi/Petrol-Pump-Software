@@ -19,25 +19,23 @@ const firebaseConfig = {
 const isFirebaseConfigured = () => {
     // A basic check to see if the config has been populated.
     // Replace "YOUR_PROJECT_ID" with an actual check against the placeholder value.
-    return firebaseConfig && firebaseConfig.projectId && firebaseConfig.projectId !== "YOUR_PROJECT_ID";
+    return firebaseConfig && firebaseConfig.projectId && firebaseConfig.projectId !== "YOUR_PROJECT_ID" && firebaseConfig.apiKey !== "YOUR_API_KEY";
 };
 
-let app: FirebaseApp;
-let db: Database;
-let auth: Auth;
+let app: FirebaseApp | undefined;
+let db: Database | undefined;
+let auth: Auth | undefined;
 
 if (isFirebaseConfigured()) {
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-    db = getDatabase(app);
-    auth = getAuth(app);
+    try {
+        app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+        db = getDatabase(app);
+        auth = getAuth(app);
+    } catch(e) {
+        console.error("Failed to initialize Firebase", e);
+    }
 } else {
-    // Provide mock objects or handle the unconfigured state gracefully.
-    // @ts-ignore
-    app = {};
-    // @ts-ignore
-    db = {};
-    // @ts-ignore
-    auth = {};
+    console.warn("Firebase is not configured. Please add your Firebase project configuration to src/lib/firebase-client.ts");
 }
 
 

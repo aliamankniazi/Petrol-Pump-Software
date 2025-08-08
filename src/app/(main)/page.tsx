@@ -123,7 +123,7 @@ export default function DashboardPage() {
                     <p className="text-muted-foreground">A quick overview of your business performance.</p>
                 </div>
                 <Button asChild>
-                    <Link href="/"><PlusCircle/> New Sale</Link>
+                    <Link href="/sale"><PlusCircle/> New Sale</Link>
                 </Button>
             </header>
             
