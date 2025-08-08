@@ -394,7 +394,7 @@ export default function PurchasesPage() {
                           <ul className="list-disc pl-4 text-xs">
                            {p.items.map((item, index) => (
                              <li key={index}>
-                                {item.quantity.toLocaleString()} x {item.productName}
+                                {item.quantity.toLocaleString()} x {item.productName} @ {item.costPerUnit.toFixed(2)}
                              </li>
                            ))}
                           </ul>
