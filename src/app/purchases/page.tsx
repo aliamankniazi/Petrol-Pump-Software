@@ -89,6 +89,7 @@ export default function PurchasesPage() {
   const { 
       control: controlEdit, 
       handleSubmit: handleSubmitEdit, 
+      register: registerEdit,
       reset: resetEdit, 
       watch: watchEdit,
       setValue: setEditValue,
@@ -509,7 +510,7 @@ export default function PurchasesPage() {
                             <Button variant="ghost" size="icon" title="Edit" onClick={() => setPurchaseToEdit(p)}>
                                 <Edit className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" title="Delete" className="text-destructive hover:text-destructive" onClick={() => setPurchaseToEdit(p)}>
+                            <Button variant="ghost" size="icon" title="Delete" className="text-destructive hover:text-destructive" onClick={() => setPurchaseToDelete(p)}>
                                 <Trash2 className="w-4 h-4" />
                             </Button>
                         </TableCell>
