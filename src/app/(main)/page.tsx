@@ -1,387 +1,280 @@
 
 'use client';
 
-import * as React from 'react';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useToast } from '@/hooks/use-toast';
-import { Fuel, Tag, ScanLine, Calculator, Database, CreditCard, Wallet, Smartphone, Banknote, PlusCircle, Trash2 } from 'lucide-react';
-import type { Customer, BankAccount, Product } from '@/lib/types';
-import { useCustomers } from '@/hooks/use-customers';
+import Link from 'next/link';
+import { ArrowRight, BarChart2, BookOpen, DollarSign, PlusCircle, TrendingDown, TrendingUp, Users, Fuel, Droplets, Receipt, ShoppingCart } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
-import { useCustomerBalance } from '@/hooks/use-customer-balance';
-import { useBankAccounts } from '@/hooks/use-bank-accounts';
-import { cn } from '@/lib/utils';
-import { Separator } from '@/components/ui/separator';
+import { usePurchases } from '@/hooks/use-purchases';
+import { useExpenses } from '@/hooks/use-expenses';
+import { useOtherIncomes } from '@/hooks/use-other-incomes';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { format, formatDistanceToNow } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
+import { Progress } from '@/components/ui/progress';
 import { useProducts } from '@/hooks/use-products';
 
-const saleItemSchema = z.object({
-  productId: z.string().min(1, 'Please select a product.'),
-  quantity: z.coerce.number().min(0.01, 'Quantity must be positive.'),
-  pricePerUnit: z.coerce.number().min(0, 'Price must be non-negative.'),
-  totalAmount: z.coerce.number().min(0.01, 'Total must be positive.'),
-});
+const chartConfig = {
+  sales: {
+    label: "Sales",
+    color: "hsl(var(--chart-1))",
+  },
+} satisfies ChartConfig;
 
-const saleSchema = z.object({
-  items: z.array(saleItemSchema).min(1, "Please add at least one item to the sale."),
-  paymentMethod: z.enum(['Cash', 'Card', 'Mobile', 'On Credit']),
-  customerId: z.string().optional(),
-  bankAccountId: z.string().optional(),
-});
+type RecentActivity = {
+  id: string;
+  type: 'Sale' | 'Purchase' | 'Expense';
+  description: string;
+  amount: number;
+  timestamp: string;
+  icon: React.ElementType;
+  color: string;
+}
 
-type SaleFormValues = z.infer<typeof saleSchema>;
+export default function DashboardPage() {
+    const { transactions, isLoaded: transactionsLoaded } = useTransactions();
+    const { purchases, isLoaded: purchasesLoaded } = usePurchases();
+    const { expenses, isLoaded: expensesLoaded } = useExpenses();
+    const { otherIncomes, isLoaded: otherIncomesLoaded } = useOtherIncomes();
+    const { products, isLoaded: stockLoaded } = useProducts();
 
-export default function SalesPage() {
-  const { products, isLoaded: productsLoaded } = useProducts();
-  const { customers, isLoaded: customersLoaded } = useCustomers();
-  const { bankAccounts, isLoaded: bankAccountsLoaded } = useBankAccounts();
-  const { addTransaction, transactions } = useTransactions();
-  const { toast } = useToast();
+    const isLoaded = transactionsLoaded && purchasesLoaded && expensesLoaded && otherIncomesLoaded && stockLoaded;
 
-  const [barcode, setBarcode] = React.useState('');
-  
-  const { register, handleSubmit, control, watch, setValue, reset, formState: { errors } } = useForm<SaleFormValues>({
-    resolver: zodResolver(saleSchema),
-    defaultValues: {
-      items: [],
-      paymentMethod: 'Cash',
-    }
-  });
+    const financialSummary = useMemo(() => {
+        if (!isLoaded) return null;
 
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "items",
-  });
+        const totalRevenue = transactions.reduce((sum, tx) => sum + tx.totalAmount, 0) + otherIncomes.reduce((sum, oi) => sum + oi.amount, 0);
+        const totalCostOfGoods = purchases.reduce((sum, p) => sum + p.totalCost, 0);
+        const totalExpenses = expenses.reduce((sum, ex) => sum + ex.amount, 0);
+        const netProfit = totalRevenue - totalCostOfGoods - totalExpenses;
+        const totalCustomers = new Set(transactions.map(tx => tx.customerId).filter(Boolean)).size;
 
-  const { customerId, paymentMethod, items } = watch();
-  
-  const { balance: customerBalance, isLoaded: balanceLoaded } = useCustomerBalance(customerId || null);
-  
-  const totalAmount = React.useMemo(() => {
-    return items.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
-  }, [items]);
-
-
-  const handleProductChange = (index: number, productId: string) => {
-    const product = products.find(p => p.id === productId);
-    if (product) {
-        // Find the last transaction for this product to get the last used price
-        const lastTransactionForItem = transactions
-            .flatMap(tx => tx.items)
-            .filter(item => item.productId === productId)
-            .sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime())[0];
-
-        const priceToUse = lastTransactionForItem?.pricePerUnit || product.price || 0;
-
-        setValue(`items.${index}.pricePerUnit`, priceToUse, { shouldValidate: true });
-        const quantity = watch(`items.${index}.quantity`);
-        if (quantity > 0) {
-            setValue(`items.${index}.totalAmount`, quantity * priceToUse, { shouldValidate: true });
-        }
-    }
-  };
-
-  const handleQuantityChange = (index: number, quantity: number) => {
-    const pricePerUnit = watch(`items.${index}.pricePerUnit`);
-    setValue(`items.${index}.totalAmount`, quantity * pricePerUnit, { shouldValidate: true });
-  }
-  
-  const handlePriceChange = (index: number, price: number) => {
-    const quantity = watch(`items.${index}.quantity`);
-    setValue(`items.${index}.totalAmount`, quantity * price, { shouldValidate: true });
-  }
-
-  const handleTotalAmountChange = (index: number, totalAmount: number) => {
-      const pricePerUnit = watch(`items.${index}.pricePerUnit`);
-      if (pricePerUnit > 0) {
-          setValue(`items.${index}.quantity`, totalAmount / pricePerUnit, { shouldValidate: true });
-      }
-  }
-
-
-  const addNewItem = () => {
-    append({ productId: '', quantity: 0, pricePerUnit: 0, totalAmount: 0 });
-  };
-  
-  React.useEffect(() => {
-    if (fields.length === 0) {
-        addNewItem();
-    }
-  }, [fields.length, addNewItem]);
-
-  React.useEffect(() => {
-    if (barcode.length > 0) {
-        const foundCustomer = customers.find(c => c.id === barcode);
-        if (foundCustomer) {
-            setValue('customerId', foundCustomer.id);
-            setBarcode('');
-        }
-    }
-  }, [barcode, customers, setValue]);
-
-  const onSubmit = (data: SaleFormValues) => {
-    if (totalAmount <= 0) {
-        toast({
-            variant: "destructive",
-            title: "Invalid Sale",
-            description: "Please enter a valid amount or quantity for at least one item."
-        })
-        return;
-    }
-
-    const customer = customers.find(c => c.id === data.customerId);
-    const bankAccount = bankAccounts.find(b => b.id === data.bankAccountId);
-    
-    const finalItems = data.items.map(item => {
-        const product = products.find(p => p.id === item.productId);
         return {
-            ...item,
-            productName: product?.name || 'Unknown Product',
-            timestamp: new Date().toISOString(), // Add timestamp to each item
+            totalRevenue,
+            netProfit,
+            totalExpenses,
+            totalCustomers,
         };
-    });
-
-    addTransaction({
-      items: finalItems,
-      totalAmount: totalAmount,
-      paymentMethod: data.paymentMethod,
-      timestamp: new Date().toISOString(),
-      customerId: customer?.id,
-      customerName: customer?.name,
-      bankAccountId: bankAccount?.id,
-      bankAccountName: bankAccount?.bankName,
-    });
+    }, [isLoaded, transactions, purchases, expenses, otherIncomes]);
     
-    toast({
-      title: 'Sale Recorded',
-      description: `Sale of ${items.length} item(s) for PKR ${totalAmount.toFixed(2)} completed.`,
-    });
+    const salesByDay = useMemo(() => {
+        const salesMap = new Map<string, number>();
+        transactions.forEach(tx => {
+            const day = format(new Date(tx.timestamp!), 'yyyy-MM-dd');
+            salesMap.set(day, (salesMap.get(day) || 0) + tx.totalAmount);
+        });
+        
+        const sortedDays = Array.from(salesMap.keys()).sort((a,b) => new Date(a).getTime() - new Date(b).getTime()).slice(-7);
+        
+        return sortedDays.map(day => ({
+            date: format(new Date(day), 'MMM d'),
+            sales: salesMap.get(day) || 0,
+        }));
+
+    }, [transactions]);
     
-    reset({
-        items: [],
-        paymentMethod: 'Cash',
-        customerId: undefined,
-        bankAccountId: undefined,
-    });
-  };
+    const recentActivity = useMemo((): RecentActivity[] => {
+        const sales: RecentActivity[] = transactions.slice(0, 3).map(tx => ({
+            id: `sale-${tx.id}`,
+            type: 'Sale',
+            description: `${tx.customerName || 'Walk-in'} - ${tx.items.length} item(s)`,
+            amount: tx.totalAmount,
+            timestamp: tx.timestamp!,
+            icon: Fuel,
+            color: 'text-green-500',
+        }));
 
-  const selectedCustomer = customers.find(c => c.id === customerId);
+        const recentPurchases: RecentActivity[] = purchases.slice(0, 2).map(p => ({
+            id: `purchase-${p.id}`,
+            type: 'Purchase',
+            description: `From ${p.supplier} - ${p.items.length} item(s)`,
+            amount: -p.totalCost,
+            timestamp: p.timestamp!,
+            icon: ShoppingCart,
+            color: 'text-blue-500',
+        }));
 
-  return (
-    <div className="flex h-[calc(100vh-81px)]">
-      <div className="flex-1 p-4 md:p-8">
-        <form onSubmit={handleSubmit(onSubmit)} className="h-full flex flex-col">
-          <Card className="flex-grow flex flex-col">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2"><Fuel/> Electronic Point of Sale (EPOS)</CardTitle>
-              <CardDescription>Process a new sale transaction. Add multiple products to a single order.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow grid md:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                 <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2">
-                 {fields.map((field, index) => (
-                    <Card key={field.id} className="p-4 relative bg-muted/30">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="col-span-2 space-y-2">
-                                <Label>Product</Label>
-                                <Controller
-                                    name={`items.${index}.productId`}
-                                    control={control}
-                                    render={({ field }) => (
-                                        <Select onValueChange={(value) => {
-                                            field.onChange(value);
-                                            handleProductChange(index, value);
-                                        }} value={field.value}>
-                                            <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
-                                            <SelectContent>
-                                                {productsLoaded ? products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                                            </SelectContent>
-                                        </Select>
-                                    )}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Quantity</Label>
-                                <Input 
-                                    {...register(`items.${index}.quantity`)}
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    onChange={(e) => handleQuantityChange(index, +e.target.value)}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Price / Unit</Label>
-                                <Input 
-                                    {...register(`items.${index}.pricePerUnit`)}
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    onChange={(e) => handlePriceChange(index, +e.target.value)}
-                                />
-                            </div>
-                            <div className="col-span-2 space-y-2">
-                                <Label>Total Amount</Label>
-                                <Input 
-                                    {...register(`items.${index}.totalAmount`)}
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    className="font-bold"
-                                    onChange={(e) => handleTotalAmountChange(index, +e.target.value)}
-                                />
-                            </div>
-                        </div>
-                        {fields.length > 1 && <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 w-6 h-6" onClick={() => remove(index)}><Trash2 className="w-4 h-4" /></Button>}
-                    </Card>
-                 ))}
-                 </div>
-                 <Button type="button" variant="outline" onClick={addNewItem} className="w-full"><PlusCircle /> Add Another Product</Button>
-                
-                <Separator />
-                
-                {/* Customer Selection */}
-                <div className="grid grid-cols-2 gap-4">
-                  <Controller
-                    name="customerId"
-                    control={control}
-                    render={({ field }) => (
-                      <Select onValueChange={(value) => {
-                          field.onChange(value === 'walk-in' ? undefined : value);
-                          if (paymentMethod === 'On Credit' && value === 'walk-in') {
-                            setValue('paymentMethod', 'Cash');
-                          }
-                      }} value={field.value || 'walk-in'}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Customer (Optional)" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="walk-in">Walk-in Customer</SelectItem>
-                          {customersLoaded ? customers.map(c => (
-                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                          )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                  <div className="relative">
-                    <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input 
-                      placeholder="Scan Barcode" 
-                      className="pl-10"
-                      value={barcode}
-                      onChange={(e) => setBarcode(e.target.value)}
-                    />
-                  </div>
+        const recentExpenses: RecentActivity[] = expenses.slice(0, 2).map(ex => ({
+            id: `expense-${ex.id}`,
+            type: 'Expense',
+            description: `${ex.category} - ${ex.description}`,
+            amount: -ex.amount,
+            timestamp: ex.timestamp!,
+            icon: Receipt,
+            color: 'text-red-500',
+        }));
+
+        return [...sales, ...recentPurchases, ...recentExpenses]
+            .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, 5);
+    }, [transactions, purchases, expenses]);
+
+
+    return (
+        <div className="p-4 md:p-8 space-y-8 bg-muted/40 min-h-full">
+            <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+                    <p className="text-muted-foreground">A quick overview of your business performance.</p>
                 </div>
-
-                {/* Payment Method */}
-                <Controller
-                  name="paymentMethod"
-                  control={control}
-                  render={({ field }) => (
-                     <RadioGroup
-                        onValueChange={field.onChange}
-                        value={field.value}
-                        className="grid grid-cols-4 gap-2"
-                     >
-                       <Label className="flex flex-col items-center justify-center gap-1 border rounded-md p-2 cursor-pointer has-[:checked]:border-primary text-xs h-16">
-                         <RadioGroupItem value="Cash" className="sr-only"/>
-                         <Wallet className="w-5 h-5"/> Cash
-                       </Label>
-                       <Label className="flex flex-col items-center justify-center gap-1 border rounded-md p-2 cursor-pointer has-[:checked]:border-primary text-xs h-16">
-                         <RadioGroupItem value="Card" className="sr-only"/>
-                         <CreditCard className="w-5 h-5"/> Card
-                       </Label>
-                        <Label className="flex flex-col items-center justify-center gap-1 border rounded-md p-2 cursor-pointer has-[:checked]:border-primary text-xs h-16">
-                         <RadioGroupItem value="Mobile" className="sr-only"/>
-                         <Smartphone className="w-5 h-5"/> Mobile
-                       </Label>
-                       <Label className={cn("flex flex-col items-center justify-center gap-1 border rounded-md p-2 cursor-pointer has-[:checked]:border-primary text-xs h-16", !customerId && "cursor-not-allowed opacity-50")}>
-                         <RadioGroupItem value="On Credit" className="sr-only" disabled={!customerId}/>
-                         <Banknote className="w-5 h-5"/> On Credit
-                       </Label>
-                     </RadioGroup>
-                  )}
-                />
-                
-                {paymentMethod !== 'Cash' && paymentMethod !== 'On Credit' && (
-                  <Controller
-                      name="bankAccountId"
-                      control={control}
-                      render={({ field }) => (
-                          <Select onValueChange={field.onChange} value={field.value}>
-                              <SelectTrigger>
-                                  <SelectValue placeholder="Select Bank Account" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                  {bankAccountsLoaded ? bankAccounts.map(b => (
-                                      <SelectItem key={b.id} value={b.id}>{b.bankName} - {b.accountNumber}</SelectItem>
-                                  )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                              </SelectContent>
-                          </Select>
-                      )}
-                  />
+                <Button asChild>
+                    <Link href="/"><PlusCircle/> New Sale</Link>
+                </Button>
+            </header>
+            
+            {/* Stat Cards */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {isLoaded && financialSummary ? (
+                    <>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">PKR {financialSummary.totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</div>
+                                <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+                            </CardContent>
+                        </Card>
+                         <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
+                                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className={`text-2xl font-bold ${financialSummary.netProfit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                                    PKR {financialSummary.netProfit.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+                                </div>
+                                <p className="text-xs text-muted-foreground">After all costs & expenses</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+                                <TrendingDown className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">PKR {financialSummary.totalExpenses.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</div>
+                                <p className="text-xs text-muted-foreground">Operational and other costs</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">Active Customers</CardTitle>
+                                <Users className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{financialSummary.totalCustomers}</div>
+                                <p className="text-xs text-muted-foreground">Customers with recorded sales</p>
+                            </CardContent>
+                        </Card>
+                    </>
+                ) : (
+                   Array.from({length: 4}).map((_, i) => <Skeleton key={i} className="h-[126px]" />)
                 )}
-              </div>
-              <div className="space-y-6">
-                <Card className="bg-muted/50">
-                   <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Calculator/> Sale Summary</CardTitle>
-                   </CardHeader>
-                   <CardContent className="space-y-2 text-sm">
-                     {items.map((item, index) => {
-                        const product = products.find(p => p.id === item.productId);
-                        const quantity = typeof item.quantity === 'number' ? item.quantity : 0;
-                        const totalAmount = typeof item.totalAmount === 'number' ? item.totalAmount : 0;
-                        return (
-                            <div key={index} className="flex justify-between items-center">
-                                <span className="text-muted-foreground">{product?.name || '...'} ({quantity.toFixed(2)} units)</span>
-                                <span className="font-mono">PKR {totalAmount.toFixed(2)}</span>
-                            </div>
-                        )
-                     })}
-                      <Separator />
-                      <div className="flex justify-between items-center text-xl font-bold border-t pt-4 mt-4">
-                       <span>Total:</span>
-                       <span className="text-primary">PKR {totalAmount.toFixed(2)}</span>
-                     </div>
-                   </CardContent>
+            </div>
+            
+            <div className="grid gap-8 lg:grid-cols-3">
+                {/* Sales Chart */}
+                <Card className="lg:col-span-2">
+                    <CardHeader>
+                        <CardTitle>Sales - Last 7 Days</CardTitle>
+                        <CardDescription>A look at your daily sales revenue.</CardDescription>
+                    </CardHeader>
+                     <CardContent>
+                        {isLoaded ? (
+                             <ChartContainer config={chartConfig} className="h-[250px] w-full">
+                                <AreaChart accessibilityLayer data={salesByDay} margin={{left: -20, right: 10, top: 10, bottom: 0}}>
+                                    <CartesianGrid vertical={false} />
+                                    <XAxis
+                                        dataKey="date"
+                                        tickLine={false}
+                                        tickMargin={10}
+                                        axisLine={false}
+                                        tickFormatter={(value) => value.slice(0, 3)}
+                                    />
+                                    <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
+                                    <defs>
+                                        <linearGradient id="fillSales" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="var(--color-sales)" stopOpacity={0.8} />
+                                            <stop offset="95%" stopColor="var(--color-sales)" stopOpacity={0.1} />
+                                        </linearGradient>
+                                    </defs>
+                                    <Area dataKey="sales" type="natural" fill="url(#fillSales)" fillOpacity={0.4} stroke="var(--color-sales)" stackId="a" />
+                                </AreaChart>
+                            </ChartContainer>
+                        ) : <Skeleton className="h-[250px] w-full" />}
+                     </CardContent>
                 </Card>
+                
+                {/* Fuel Stock */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Fuel Inventory</CardTitle>
+                        <CardDescription>Current stock levels.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {isLoaded ? (products.filter(p => p.category === 'Fuel').map(fuel => {
+                            const currentStock = fuel.stock || 0;
+                            const maxStock = 25000;
+                            const percentage = Math.min((currentStock/maxStock) * 100, 100);
+                            return (
+                                <div key={fuel.id}>
+                                    <div className="flex justify-between items-baseline mb-1">
+                                        <span className="text-sm font-medium">{fuel.name}</span>
+                                        <span className="text-xs text-muted-foreground">{currentStock.toLocaleString(undefined, {maximumFractionDigits: 0})} / {maxStock.toLocaleString()} L</span>
+                                    </div>
+                                    <Progress value={percentage} className="h-2" />
+                                </div>
+                            )
+                        })) : Array.from({length: 3}).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+                    </CardContent>
+                </Card>
+            </div>
+            
+            {/* Recent Activity */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Recent Activity</CardTitle>
+                    <CardDescription>A feed of your latest transactions.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-6">
+                        {isLoaded ? recentActivity.length > 0 ? recentActivity.map(item => (
+                            <div key={item.id} className="flex items-center gap-4">
+                                <div className="p-2 bg-muted rounded-full">
+                                    <item.icon className={`w-5 h-5 ${item.color}`} />
+                                </div>
+                                <div className="flex-grow">
+                                    <p className="font-medium">{item.type}</p>
+                                    <p className="text-sm text-muted-foreground truncate">{item.description}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className={`font-mono font-semibold ${item.amount > 0 ? 'text-green-600' : 'text-destructive'}`}>
+                                       {item.amount > 0 ? '+' : ''}PKR {item.amount.toLocaleString(undefined, {maximumFractionDigits: 0})}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}</p>
+                                </div>
+                            </div>
+                        )) : (
+                            <p className="text-center text-muted-foreground py-8">No recent activity.</p>
+                        ) : (
+                            Array.from({length: 5}).map((_, i) => <div key={i} className="flex items-center gap-4"><Skeleton className="w-10 h-10 rounded-full" /><div className="flex-grow space-y-2"><Skeleton className="h-4 w-1/4" /><Skeleton className="h-4 w-3/4" /></div><Skeleton className="h-6 w-1/5" /></div>)
+                        )}
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <Button asChild variant="secondary" className="w-full">
+                        <Link href="/all-transactions">View All Transactions <ArrowRight className="ml-2 h-4 w-4"/></Link>
+                    </Button>
+                </CardFooter>
+            </Card>
 
-                {selectedCustomer && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Customer Info</CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-sm space-y-2">
-                           <p><strong>Name:</strong> {selectedCustomer.name}</p>
-                           <p><strong>Contact:</strong> {selectedCustomer.contact}</p>
-                           <p><strong>Previous Balance:</strong>
-                            <span className={cn("font-semibold", customerBalance > 0 ? 'text-destructive' : 'text-green-600')}>
-                                {' '}PKR {balanceLoaded ? customerBalance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '...'}
-                            </span>
-                           </p>
-                        </CardContent>
-                    </Card>
-                )}
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button type="submit" size="lg" className="w-full h-16 text-xl">
-                Process Sale
-              </Button>
-            </CardFooter>
-          </Card>
-        </form>
-      </div>
-    </div>
-  );
+        </div>
+    );
 }
