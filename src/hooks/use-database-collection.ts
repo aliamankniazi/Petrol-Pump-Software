@@ -79,10 +79,10 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id' | 'timestamp'>>
     const docRef = docId ? ref(db, `${collectionName}/${docId}`) : push(collectionRef);
     const newId = docRef.key!;
     
-    const docWithId = { ...newData, id: newId } as T & { id: string };
+    const docToWrite = { ...newData, id: newId };
     
-    await set(docRef, docWithId);
-    return docWithId;
+    await set(docRef, docToWrite);
+    return docToWrite;
 
   }, [collectionName]);
   
