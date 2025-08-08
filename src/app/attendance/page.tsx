@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Check, X, Minus, Calendar as CalendarIcon, UserCheck, LayoutDashboard, ChevronLeft, ChevronRight, CircleDot } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDaysInMonth, addMonths, subMonths, addDays, getDay, startOfWeek } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDaysInMonth, addMonths, subMonths, addDays, getDay, startOfWeek, isToday } from 'date-fns';
 import { useEmployees } from '@/hooks/use-employees';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -21,10 +21,23 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-const CalendarCell = ({ status }: { status?: AttendanceStatus }) => {
+const CalendarCell = ({ status, isSelectedDay }: { status?: AttendanceStatus, isSelectedDay?: boolean }) => {
     let styles = "w-4 h-4 rounded-full";
     let icon = null;
     let tooltipText = "No Record";
+
+    if (isSelectedDay) {
+        return (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                       <CircleDot className="w-4 h-4 text-primary" />
+                    </TooltipTrigger>
+                    <TooltipContent><p>Selected Day</p></TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        )
+    }
 
     switch(status) {
         case 'Present':
@@ -98,8 +111,24 @@ export default function AttendancePage() {
       title: 'Attendance Submitted',
       description: `${employee.name}'s attendance for ${format(selectedDate, 'PPP')} marked as ${status}.`,
     });
-    setSelectedDate(prevDate => addDays(prevDate, 1));
+    // Don't auto-advance date for single entries anymore
   }, [selectedDate, addOrUpdateAttendance, toast]);
+
+  const handleMarkAllPresent = useCallback(() => {
+    const dateString = format(selectedDate, 'yyyy-MM-dd');
+    employees.forEach(employee => {
+        addOrUpdateAttendance({
+            employeeId: employee.id!,
+            employeeName: employee.name,
+            date: dateString,
+            status: 'Present'
+        });
+    });
+    toast({
+        title: 'Attendance Marked',
+        description: `All employees marked as Present for ${format(selectedDate, 'PPP')}.`,
+    });
+  }, [selectedDate, employees, addOrUpdateAttendance, toast]);
   
   const currentMonthDays = useMemo(() => {
     const start = startOfMonth(selectedDate);
@@ -120,7 +149,7 @@ export default function AttendancePage() {
                     <CardTitle className="flex items-center gap-2">
                         <UserCheck /> Employee Attendance
                     </CardTitle>
-                    <CardDescription>Mark daily attendance for all employees.</CardDescription>
+                    <CardDescription>Mark daily attendance for all employees. You can mark all as present for faster entry.</CardDescription>
                 </div>
                  <div className='print:hidden flex gap-2'>
                     <Button asChild variant="outline">
@@ -129,31 +158,34 @@ export default function AttendancePage() {
                 </div>
             </div>
           
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4">
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="icon" onClick={() => setSelectedDate(subMonths(selectedDate, 1))}><ChevronLeft/></Button>
                 <span className="font-semibold text-lg w-32 text-center">{format(selectedDate, 'MMMM yyyy')}</span>
                 <Button variant="outline" size="icon" onClick={() => setSelectedDate(addMonths(selectedDate, 1))}><ChevronRight/></Button>
               </div>
-              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn("w-full sm:w-[240px] justify-start text-left font-normal")}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(selectedDate, "PPP")}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={handleDateChange}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <div className="flex flex-col sm:flex-row items-center gap-2">
+                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn("w-full sm:w-[240px] justify-start text-left font-normal")}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {format(selectedDate, "PPP")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={handleDateChange}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                 <Button onClick={handleMarkAllPresent}>Mark All Present</Button>
+              </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -190,6 +222,7 @@ export default function AttendancePage() {
                             <TableCell>
                                 <RadioGroup 
                                     defaultValue={currentStatus} 
+                                    value={currentStatus}
                                     className="flex gap-4"
                                     onValueChange={(status: AttendanceStatus) => handleAttendanceChange(employee, status)}
                                 >
@@ -220,7 +253,10 @@ export default function AttendancePage() {
                                         {calendarDays.map((day, index) => (
                                             <div key={index} className="flex justify-center items-center h-6">
                                                 {day ? (
-                                                    <CalendarCell status={monthAttendance.get(day)} />
+                                                    <CalendarCell 
+                                                        status={monthAttendance.get(day)} 
+                                                        isSelectedDay={day === selectedDate.getDate()}
+                                                    />
                                                 ) : <div />}
                                             </div>
                                         ))}
