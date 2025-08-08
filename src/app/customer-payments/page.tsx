@@ -1,393 +1,295 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useCustomerPayments } from '@/hooks/use-customer-payments';
-import { useCustomers } from '@/hooks/use-customers';
-import { useTransactions } from '@/hooks/use-transactions';
-import { useCashAdvances } from '@/hooks/use-cash-advances';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
-import { format, isSameDay, startOfDay } from 'date-fns';
-import { Badge } from '@/components/ui/badge';
-import { HandCoins, XCircle, Calendar as CalendarIcon, X, TrendingUp, TrendingDown, Wallet, BookText } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useState, useMemo, useCallback } from 'react';
+import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useToast } from '@/hooks/use-toast';
+import { HandCoins, ListChecks, WalletCards, CreditCard, Wallet, Smartphone, Calendar as CalendarIcon, AlertTriangle, Trash2 } from 'lucide-react';
+import type { PaymentMethod, CustomerPayment } from '@/lib/types';
+import { format } from 'date-fns';
+import { useCustomerPayments } from '@/hooks/use-customer-payments';
+import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { useSuppliers } from '@/hooks/use-suppliers';
-import { usePurchases } from '@/hooks/use-purchases';
-import { useSupplierPayments } from '@/hooks/use-supplier-payments';
-import Link from 'next/link';
+import { useCustomers } from '@/hooks/use-customers';
+import { useCustomerBalance } from '@/hooks/use-customer-balance';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
-type CombinedEntry = {
-  id: string;
-  timestamp: string;
-  entityId: string;
-  entityName: string;
-  entityType: 'Customer' | 'Supplier';
-  type: 'Sale' | 'Payment' | 'Cash Advance' | 'Purchase' | 'Supplier Payment';
-  description: string;
-  debit: number;
-  credit: number;
-  balance?: number;
-};
+const paymentSchema = z.object({
+  customerId: z.string().min(1, 'Please select a customer.'),
+  amount: z.coerce.number().min(0.01, 'Amount must be greater than 0'),
+  paymentMethod: z.enum(['Cash', 'Card', 'Mobile'], { required_error: 'Please select a payment method.' }),
+  date: z.date({ required_error: "A date is required."}),
+});
 
-export default function PartnerLedgerPage() {
-  const { customerPayments, isLoaded: paymentsLoaded } = useCustomerPayments();
+type PaymentFormValues = z.infer<typeof paymentSchema>;
+
+const LOCAL_STORAGE_KEY = 'global-transaction-date';
+
+export default function CustomerPaymentsPage() {
   const { customers, isLoaded: customersLoaded } = useCustomers();
-  const { transactions, isLoaded: transactionsLoaded } = useTransactions();
-  const { cashAdvances, isLoaded: advancesLoaded } = useCashAdvances();
-  const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
-  const { purchases, isLoaded: purchasesLoaded } = usePurchases();
-  const { supplierPayments, isLoaded: supplierPaymentsLoaded } = useSupplierPayments();
+  const { customerPayments, addCustomerPayment, deleteCustomerPayment, isLoaded: paymentsLoaded } = useCustomerPayments();
+  const { toast } = useToast();
   
-  const [selectedEntityId, setSelectedEntityId] = useState<string>('');
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
-
-  const isLoaded = paymentsLoaded && customersLoaded && transactionsLoaded && advancesLoaded && suppliersLoaded && purchasesLoaded && supplierPaymentsLoaded;
-
-  const entities = useMemo(() => {
-    if (!isLoaded) return [];
-    const allEntities = [
-      ...customers.map(c => ({ id: c.id, name: c.name, type: 'Customer' as const })),
-      ...suppliers.map(s => ({ id: s.id, name: s.name, type: 'Supplier' as const }))
-    ];
-    return allEntities.sort((a,b) => a.name.localeCompare(b.name));
-  }, [customers, suppliers, isLoaded]);
-
-  const { entries, totals, finalBalance, specialReport } = useMemo(() => {
-    if (!isLoaded) return { entries: [], totals: { debit: 0, credit: 0 }, finalBalance: 0, specialReport: null };
-
-    const combined: Omit<CombinedEntry, 'balance'>[] = [];
-
-    // Customer transactions
-    transactions.forEach(tx => {
-      if (tx.customerId) {
-        combined.push({
-          id: `tx-${tx.id}`,
-          timestamp: tx.timestamp,
-          entityId: tx.customerId,
-          entityName: tx.customerName || 'N/A',
-          entityType: 'Customer',
-          type: 'Sale',
-          description: `${tx.volume.toFixed(2)}L of ${tx.fuelType}`,
-          debit: tx.totalAmount,
-          credit: 0,
-        });
+  const [paymentToDelete, setPaymentToDelete] = useState<CustomerPayment | null>(null);
+  const [isClient, setIsClient] = useState(false);
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  
+  const { register, handleSubmit, control, reset, formState: { errors }, watch } = useForm<PaymentFormValues>({
+    resolver: zodResolver(paymentSchema),
+    defaultValues: () => {
+      if (typeof window !== 'undefined') {
+        const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+        return { date: storedDate ? new Date(storedDate) : new Date(), paymentMethod: 'Cash' };
       }
-    });
-
-    customerPayments.forEach(p => {
-      combined.push({
-        id: `pay-${p.id}`,
-        timestamp: p.timestamp,
-        entityId: p.customerId,
-        entityName: p.customerName,
-        entityType: 'Customer',
-        type: 'Payment',
-        description: `Payment Received (${p.paymentMethod})`,
-        debit: 0,
-        credit: p.amount,
-      });
-    });
-
-    cashAdvances.forEach(ca => {
-      combined.push({
-        id: `adv-${ca.id}`,
-        timestamp: ca.timestamp,
-        entityId: ca.customerId,
-        entityName: ca.customerName,
-        entityType: 'Customer',
-        type: 'Cash Advance',
-        description: ca.notes || 'Cash Advance',
-        debit: ca.amount,
-        credit: 0,
-      });
-    });
-    
-    // Supplier transactions
-    purchases.forEach(p => {
-        combined.push({
-            id: `pur-${p.id}`,
-            timestamp: p.timestamp,
-            entityId: p.supplierId,
-            entityName: p.supplier,
-            entityType: 'Supplier',
-            type: 'Purchase',
-            description: `${p.volume.toFixed(2)}L of ${p.fuelType}`,
-            debit: 0,
-            credit: p.totalCost,
-        });
-    });
-
-    supplierPayments.forEach(sp => {
-        combined.push({
-            id: `sp-${sp.id}`,
-            timestamp: sp.timestamp,
-            entityId: sp.supplierId,
-            entityName: sp.supplierName,
-            entityType: 'Supplier',
-            type: 'Supplier Payment',
-            description: `Payment Made (${sp.paymentMethod})`,
-            debit: sp.amount,
-            credit: 0,
-        });
-    });
-
-
-    combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-
-    const entityFilteredEntries = selectedEntityId 
-      ? combined.filter(entry => entry.entityId === selectedEntityId)
-      : combined;
-      
-    let reportData = null;
-    if (selectedEntityId && entityFilteredEntries.length > 0) {
-        const lastDebitEntry = [...entityFilteredEntries].reverse().find(e => e.debit > 0);
-        const lastCreditEntry = [...entityFilteredEntries].reverse().find(e => e.credit > 0);
-        const entityTotalBalance = entityFilteredEntries.reduce((acc, entry) => acc + (entry.debit - entry.credit), 0);
-
-        reportData = {
-            totalBalance: entityTotalBalance,
-            lastDebit: lastDebitEntry ? lastDebitEntry.debit : 0,
-            lastCredit: lastCreditEntry ? lastCreditEntry.credit : 0,
-        };
+      return { date: new Date(), paymentMethod: 'Cash' };
     }
+  });
 
-    let openingBalance = 0;
-    let entriesForDisplay = entityFilteredEntries;
-    
-    if (selectedDate) {
-      openingBalance = entityFilteredEntries
-        .filter(entry => new Date(entry.timestamp) < startOfDay(selectedDate))
-        .reduce((acc, entry) => acc + (entry.debit - entry.credit), 0);
-
-      entriesForDisplay = entityFilteredEntries.filter(entry => isSameDay(new Date(entry.timestamp), selectedDate));
+  const selectedDate = watch('date');
+  useEffect(() => {
+    if (selectedDate && typeof window !== 'undefined') {
+      localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
+  }, [selectedDate]);
 
-    let runningBalance = openingBalance;
-    const entriesWithBalance: CombinedEntry[] = entriesForDisplay.map(entry => {
-        runningBalance += (entry.debit - entry.credit);
-        return { ...entry, balance: runningBalance };
+  const watchedCustomerId = watch('customerId');
+  const { balance: customerBalance, isLoaded: balanceLoaded } = useCustomerBalance(watchedCustomerId || null);
+
+  const onSubmit: SubmitHandler<PaymentFormValues> = useCallback((data) => {
+    const customer = customers.find(c => c.id === data.customerId);
+    if (!customer) return;
+
+    addCustomerPayment({ 
+      ...data,
+      customerName: customer.name,
+      timestamp: data.date.toISOString(),
     });
-
-    const calculatedTotals = entriesForDisplay.reduce(
-        (acc, entry) => {
-            acc.debit += entry.debit;
-            acc.credit += entry.credit;
-            return acc;
-        },
-        { debit: 0, credit: 0 }
-    );
     
-    return { 
-        entries: entriesWithBalance.reverse(),
-        totals: calculatedTotals,
-        finalBalance: runningBalance,
-        specialReport: reportData,
-    };
-  }, [customerPayments, transactions, cashAdvances, purchases, supplierPayments, selectedEntityId, selectedDate, isLoaded]);
+    toast({
+      title: 'Payment Recorded',
+      description: `Payment of PKR ${data.amount} from ${customer.name} has been logged.`,
+    });
+    const lastDate = watch('date');
+    reset({ customerId: '', amount: 0, date: lastDate, paymentMethod: 'Cash' });
+  }, [customers, addCustomerPayment, toast, reset]);
   
-  const getBadgeVariant = (type: CombinedEntry['type']) => {
-    switch (type) {
-      case 'Sale':
-      case 'Cash Advance':
-      case 'Supplier Payment':
-        return 'destructive';
-      case 'Payment':
-      case 'Purchase':
-        return 'outline';
-      default:
-        return 'default';
+  const handleDeletePayment = useCallback(() => {
+    if (!paymentToDelete) return;
+    deleteCustomerPayment(paymentToDelete.id);
+    toast({
+      title: 'Payment Deleted',
+      description: `The payment from ${paymentToDelete.customerName} has been removed.`,
+    });
+    setPaymentToDelete(null);
+  }, [paymentToDelete, deleteCustomerPayment, toast]);
+
+  const getBadgeVariant = (method: Omit<PaymentMethod, 'On Credit'>) => {
+    switch (method) {
+      case 'Card': return 'default';
+      case 'Cash': return 'secondary';
+      case 'Mobile': return 'outline';
+      default: return 'default';
     }
   };
-
-  const clearFilters = () => {
-    setSelectedEntityId('');
-    setSelectedDate(undefined);
-  };
-
-  const hasActiveFilters = selectedEntityId || selectedDate;
-  const selectedEntity = entities.find(e => e.id === selectedEntityId);
 
   return (
-    <div className="p-4 md:p-8 space-y-6">
-       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <HandCoins /> Partner Ledger
-          </CardTitle>
-          <CardDescription>A unified record of all transactions for customers and suppliers. Use the filters below to refine your search.</CardDescription>
-          
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-4">
-              <Select value={selectedEntityId} onValueChange={(value) => setSelectedEntityId(value === 'all' ? '' : value)}>
-                <SelectTrigger className="sm:w-[240px]">
-                  <SelectValue placeholder="Filter by partner..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Partners</SelectItem>
-                  {entities.map(e => (
-                    <SelectItem key={e.id} value={e.id}>{e.name} ({e.type})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full sm:w-[240px] justify-start text-left font-normal",
-                      !selectedDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "PPP") : <span>Filter by date...</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-
-              {hasActiveFilters && (
-                <Button variant="ghost" onClick={clearFilters}>
-                  <X className="mr-2 h-4 w-4" />
-                  Clear Filters
-                </Button>
-              )}
-          </div>
-        </CardHeader>
-      </Card>
-
-      {selectedEntityId && specialReport && selectedEntity && (
+    <>
+    <div className="p-4 md:p-8 grid gap-8 lg:grid-cols-3">
+      <div className="lg:col-span-1">
         <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                    Partner Report for {selectedEntity.name}
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="p-4 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground"><Wallet /> Total Balance</div>
-                    <div className={`text-2xl font-bold ${specialReport.totalBalance > 0 ? 'text-destructive' : 'text-green-600'}`}>PKR {specialReport.totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                </div>
-                <div className="p-4 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground"><TrendingDown /> Last Debit</div>
-                    <div className="text-2xl font-bold text-destructive">PKR {specialReport.lastDebit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                </div>
-                <div className="p-4 bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground"><TrendingUp /> Last Credit</div>
-                    <div className="text-2xl font-bold text-green-600">PKR {specialReport.lastCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                </div>
-            </CardContent>
-        </Card>
-      )}
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <WalletCards /> New Customer Payment
+            </CardTitle>
+            <CardDescription>Record a payment received from a customer.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Customer</Label>
+                <Controller
+                  name="customerId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a customer" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {customersLoaded ? customers.map(c => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.customerId && <p className="text-sm text-destructive">{errors.customerId.message}</p>}
+              </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Transaction History</CardTitle>
-          <CardDescription>
-            {selectedDate 
-              ? `Showing transactions for ${format(selectedDate, 'PPP')}` 
-              : 'A detailed log of all transactions for the selected filter.'
-            }
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoaded && entries.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Partner</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-center">Type</TableHead>
-                  <TableHead className="text-right">Debit</TableHead>
-                  <TableHead className="text-right">Credit</TableHead>
-                  <TableHead className="text-right">Balance</TableHead>
-                  <TableHead className="text-center">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {entries.map(entry => (
-                  <TableRow key={entry.id}>
-                    <TableCell className="font-medium">
-                      {format(new Date(entry.timestamp), 'PP pp')}
-                    </TableCell>
-                    <TableCell>
-                      <div>{entry.entityName}</div>
-                      <div className="text-xs text-muted-foreground">{entry.entityType}</div>
-                    </TableCell>
-                    <TableCell>{entry.description}</TableCell>
-                    <TableCell className="text-center">
-                       <Badge 
-                         variant={getBadgeVariant(entry.type)}
-                         className={cn((entry.type === 'Payment' || entry.type === 'Purchase') && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}
-                       >
-                         {entry.type}
-                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-destructive">
-                        {entry.debit > 0 ? `PKR ${entry.debit.toFixed(2)}` : '-'}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-green-600">
-                        {entry.credit > 0 ? `PKR ${entry.credit.toFixed(2)}` : '-'}
-                    </TableCell>
-                    <TableCell className={`text-right font-semibold font-mono ${entry.balance && entry.balance > 0 ? 'text-destructive' : 'text-green-600'}`}>
-                        {entry.balance?.toFixed(2)}
-                    </TableCell>
-                     <TableCell className="text-center">
-                        <Button asChild variant="ghost" size="icon" title="View Partner Ledger">
-                           <Link href={`/customers/${entry.entityId}/ledger`}>
-                             <BookText className="w-5 h-5" />
-                           </Link>
-                        </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-               <TableFooter>
-                <TableRow>
-                  <TableCell colSpan={4} className="font-bold text-right">Totals for Period</TableCell>
-                  <TableCell className="text-right font-bold font-mono text-destructive">PKR {totals.debit.toFixed(2)}</TableCell>
-                  <TableCell className="text-right font-bold font-mono text-green-600">PKR {totals.credit.toFixed(2)}</TableCell>
-                  <TableCell colSpan={2} />
-                </TableRow>
-                <TableRow>
-                  <TableCell colSpan={5} className="font-bold text-right">Closing Balance for Period</TableCell>
-                  <TableCell colSpan={3} className={`text-right font-bold text-lg font-mono ${finalBalance > 0 ? 'text-destructive' : 'text-green-600'}`}>
-                    PKR {finalBalance.toFixed(2)}
-                  </TableCell>
-                </TableRow>
-              </TableFooter>
-            </Table>
-          ) : (
-            <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
-                {isLoaded ? (
-                    <>
-                        <XCircle className="w-16 h-16" />
-                        <h3 className="text-xl font-semibold">
-                          {hasActiveFilters ? 'No Matching Transactions' : 'No Partner Transactions Yet'}
-                        </h3>
-                        <p>
-                          {hasActiveFilters ? 'Try adjusting or clearing your filters.' : 'Sales, purchases, and payments will appear here.'}
+              {watchedCustomerId && (
+                  <Card className="bg-muted/40 p-4">
+                    <CardHeader className="p-0 pb-2">
+                      <CardTitle className="text-md">Customer Balance</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      {balanceLoaded ? (
+                         <p className={cn("text-xl font-bold", customerBalance > 0 ? 'text-destructive' : 'text-green-600')}>
+                          PKR {customerBalance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                         </p>
-                    </>
-                ) : (
-                    <p>Loading transaction data...</p>
+                      ) : <p>Loading balance...</p>}
+                      <p className="text-xs text-muted-foreground">Current outstanding balance.</p>
+                    </CardContent>
+                  </Card>
                 )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount (PKR)</Label>
+                <Input id="amount" type="number" {...register('amount')} placeholder="e.g., 5000" step="0.01" />
+                {errors.amount && <p className="text-sm text-destructive">{errors.amount.message}</p>}
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Payment Method</Label>
+                <Controller
+                  name="paymentMethod"
+                  control={control}
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select payment method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Cash"><div className="flex items-center gap-2"><Wallet/>Cash</div></SelectItem>
+                        <SelectItem value="Card"><div className="flex items-center gap-2"><CreditCard/>Card</div></SelectItem>
+                        <SelectItem value="Mobile"><div className="flex items-center gap-2"><Smartphone/>Mobile</div></SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                 {errors.paymentMethod && <p className="text-sm text-destructive">{errors.paymentMethod.message}</p>}
+              </div>
+
+               <div className="space-y-2">
+                <Label>Date</Label>
+                {isClient && <Controller
+                  name="date"
+                  control={control}
+                  render={({ field }) => (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                />}
+                {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
+              </div>
+
+              <Button type="submit" className="w-full">Record Payment</Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="lg:col-span-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ListChecks /> Payment History
+            </CardTitle>
+            <CardDescription>
+              A record of all payments received from customers.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {customerPayments.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Method</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {customerPayments.map(p => (
+                      <TableRow key={p.id}>
+                        <TableCell className="font-medium">{format(new Date(p.timestamp), 'PP pp')}</TableCell>
+                        <TableCell>{p.customerName}</TableCell>
+                        <TableCell>
+                          <Badge variant={getBadgeVariant(p.paymentMethod)}>{p.paymentMethod}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">PKR {p.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                         <TableCell className="text-center">
+                            <Button variant="ghost" size="icon" title="Delete" className="text-destructive hover:text-destructive" onClick={() => setPaymentToDelete(p)}>
+                                <Trash2 className="w-4 h-4" />
+                            </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
+                <HandCoins className="w-16 h-16" />
+                <h3 className="text-xl font-semibold">No Customer Payments Recorded</h3>
+                <p>Use the form to log your first payment from a customer.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
+
+    <AlertDialog open={!!paymentToDelete} onOpenChange={(isOpen) => !isOpen && setPaymentToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the payment entry for: <br />
+              <strong className="font-medium text-foreground">{paymentToDelete?.customerName} of PKR {paymentToDelete?.amount}</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeletePayment} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Yes, delete entry
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

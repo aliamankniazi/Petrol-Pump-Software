@@ -54,6 +54,9 @@ export interface Transaction {
   customerName?: string;
   bankAccountId?: string;
   bankAccountName?: string;
+  // Legacy fields for dashboard compatibility
+  fuelType?: FuelType;
+  volume?: number;
 }
 
 export interface PurchaseItem {
@@ -71,6 +74,9 @@ export interface Purchase {
   items: PurchaseItem[];
   totalCost: number;
   timestamp?: string;
+  // Legacy fields
+  fuelType?: FuelType;
+  volume?: number;
 }
 
 export interface PurchaseReturn {
