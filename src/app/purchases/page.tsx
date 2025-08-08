@@ -148,6 +148,7 @@ export default function PurchasesPage() {
   }, [watchedItems]);
 
   const totalEditCost = useMemo(() => {
+    if (!watchedEditItems) return 0;
     return watchedEditItems.reduce((sum, item) => sum + (item.totalCost || 0), 0);
   }, [watchedEditItems]);
 
@@ -706,3 +707,4 @@ export default function PurchasesPage() {
     </>
   );
 }
+
