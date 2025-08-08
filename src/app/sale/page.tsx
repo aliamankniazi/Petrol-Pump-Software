@@ -75,24 +75,25 @@ export default function SalePage() {
     setIsClient(true);
   }, []);
 
-  let defaultDate: Date;
-  if (isClient) {
-    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    defaultDate = storedDate ? new Date(storedDate) : new Date();
-  } else {
-    defaultDate = new Date();
-  }
-
   const { register, handleSubmit, control, watch, setValue, reset, getValues } = useForm<SaleFormValues>({
     resolver: zodResolver(saleSchema),
     defaultValues: {
-      date: defaultDate,
-      orderDeliveryDate: defaultDate,
       items: [],
       paymentMethod: 'On Credit',
       customerId: 'walk-in'
     }
   });
+
+  useEffect(() => {
+    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedDate) {
+        setValue('date', new Date(storedDate));
+        setValue('orderDeliveryDate', new Date(storedDate));
+    } else {
+        setValue('date', new Date());
+        setValue('orderDeliveryDate', new Date());
+    }
+  }, [setValue, isClient]);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -180,8 +181,6 @@ export default function SalePage() {
     });
     
     reset({ 
-        date: defaultDate,
-        orderDeliveryDate: defaultDate,
         items: [],
         paymentMethod: 'On Credit',
         customerId: 'walk-in'
@@ -224,7 +223,7 @@ export default function SalePage() {
                         </div>
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                         <div className="space-y-1">
+                         <div className="space-y-1 hidden">
                             <Label>Bonus</Label>
                             <Input type="number" placeholder="bonus qty" value={currentItem.bonus} onChange={e => setCurrentItem(prev => ({...prev, bonus: e.target.value}))}/>
                         </div>
@@ -252,7 +251,7 @@ export default function SalePage() {
                                 <TableHead>Unit</TableHead>
                                 <TableHead>Sold Price</TableHead>
                                 <TableHead>Sold Qty</TableHead>
-                                <TableHead>Bonus</TableHead>
+                                <TableHead className="hidden">Bonus</TableHead>
                                 <TableHead>Discount</TableHead>
                                 <TableHead>T.Price</TableHead>
                                 <TableHead></TableHead>
@@ -265,7 +264,7 @@ export default function SalePage() {
                                     <TableCell>{field.unit}</TableCell>
                                     <TableCell>{field.pricePerUnit.toFixed(2)}</TableCell>
                                     <TableCell>{field.quantity}</TableCell>
-                                    <TableCell>{field.bonus}</TableCell>
+                                    <TableCell className="hidden">{field.bonus}</TableCell>
                                     <TableCell>{field.discount.toFixed(2)}</TableCell>
                                     <TableCell>{field.totalAmount.toFixed(2)}</TableCell>
                                     <TableCell>
