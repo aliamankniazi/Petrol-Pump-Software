@@ -396,8 +396,8 @@ export default function SettingsPage() {
                                 products.map(product => (
                                     <TableRow key={product.id}>
                                         <TableCell className="font-medium">{product.name}</TableCell>
-                                        <TableCell>PKR {product.purchasePrice.toFixed(2)}</TableCell>
-                                        <TableCell>PKR {product.tradePrice.toFixed(2)}</TableCell>
+                                        <TableCell>PKR {product.purchasePrice?.toFixed(2) || 'N/A'}</TableCell>
+                                        <TableCell>PKR {product.tradePrice?.toFixed(2) || 'N/A'}</TableCell>
                                         <TableCell>{product.stock} {product.mainUnit}(s)</TableCell>
                                         <TableCell className="text-center">
                                             <Button variant="ghost" size="icon" onClick={() => handleEditProduct(product)}>
@@ -498,7 +498,7 @@ export default function SettingsPage() {
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the product: <br />
               <strong className="font-medium text-foreground">{productToDelete?.name}</strong>
-            </AlertDialogDescription>
+            </AndroidDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
