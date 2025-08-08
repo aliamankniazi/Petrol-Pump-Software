@@ -84,6 +84,7 @@ export default function PurchasesPage() {
   }, [selectedDate]);
 
   const totalCost = useMemo(() => {
+    if (!watchedItems) return 0;
     return watchedItems.reduce((sum, item) => sum + (item.totalCost || 0), 0);
   }, [watchedItems]);
 
