@@ -124,10 +124,10 @@ export default function SettingsPage() {
   const onProductSubmit: SubmitHandler<ProductFormValues> = React.useCallback((data) => {
     const productData: Omit<Product, 'id' | 'timestamp'> = {
         name: data.name,
-        companyId: data.companyId,
-        productGroupId: data.productGroupId,
-        productCode: data.productCode,
-        barcode: data.barcode,
+        companyId: data.companyId || null,
+        productGroupId: data.productGroupId || null,
+        productCode: data.productCode || null,
+        barcode: data.barcode || null,
         mainUnit: data.mainUnit,
         purchasePrice: data.purchasePrice,
         tradePrice: data.tradePrice,
@@ -135,7 +135,7 @@ export default function SettingsPage() {
         subUnitStock: data.initialStockSub,
         subUnit: data.addSubUnit && data.subUnitName && data.subUnitConversion 
             ? { name: data.subUnitName, conversionRate: data.subUnitConversion }
-            : undefined,
+            : null,
         // Legacy fields
         category: 'Other',
         productType: 'Main',
