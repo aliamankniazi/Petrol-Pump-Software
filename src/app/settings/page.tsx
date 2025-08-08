@@ -20,7 +20,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
@@ -73,6 +72,7 @@ export default function SettingsPage() {
   const { products, addProduct, updateProduct, deleteProduct, isLoaded: productsLoaded } = useProducts();
   const { toast } = useToast();
   const [supplierToDelete, setSupplierToDelete] = React.useState<Supplier | null>(null);
+  const [productToDelete, setProductToDelete] = React.useState<Product | null>(null);
   const [productToEdit, setProductToEdit] = React.useState<Product | null>(null);
   const [showAdditionalDetails, setShowAdditionalDetails] = React.useState(false);
   const [currentDate, setCurrentDate] = React.useState('');
@@ -189,9 +189,11 @@ export default function SettingsPage() {
     }
   }
 
-  const handleDeleteProduct = (id: string) => {
-    deleteProduct(id);
-    toast({ title: 'Product Deleted' });
+  const handleDeleteProduct = () => {
+    if (!productToDelete) return;
+    deleteProduct(productToDelete.id!);
+    toast({ title: 'Product Deleted', description: `${productToDelete.name} has been removed.` });
+    setProductToDelete(null);
   }
 
   const onSupplierSubmit: SubmitHandler<SupplierFormValues> = React.useCallback((data) => {
@@ -369,6 +371,56 @@ export default function SettingsPage() {
                     </form>
                 </CardContent>
             </Card>
+
+            <Separator />
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Product List</CardTitle>
+                <CardDescription>View, edit, or delete existing products.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Product Name</TableHead>
+                                <TableHead>Purchase Price</TableHead>
+                                <TableHead>Trade Price</TableHead>
+                                <TableHead>Stock</TableHead>
+                                <TableHead className="text-center">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {productsLoaded && products.length > 0 ? (
+                                products.map(product => (
+                                    <TableRow key={product.id}>
+                                        <TableCell className="font-medium">{product.name}</TableCell>
+                                        <TableCell>PKR {product.purchasePrice.toFixed(2)}</TableCell>
+                                        <TableCell>PKR {product.tradePrice.toFixed(2)}</TableCell>
+                                        <TableCell>{product.stock} {product.mainUnit}(s)</TableCell>
+                                        <TableCell className="text-center">
+                                            <Button variant="ghost" size="icon" onClick={() => handleEditProduct(product)}>
+                                                <Edit className="w-4 h-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setProductToDelete(product)}>
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="h-24 text-center">
+                                        {productsLoaded ? 'No products found.' : 'Loading products...'}
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           <Separator />
@@ -436,6 +488,24 @@ export default function SettingsPage() {
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone. This will permanently delete the supplier: <br /><strong className="font-medium text-foreground">{supplierToDelete?.name}</strong></AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDeleteSupplier} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Yes, delete supplier</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!productToDelete} onOpenChange={(isOpen) => !isOpen && setProductToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the product: <br />
+              <strong className="font-medium text-foreground">{productToDelete?.name}</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteProduct} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Yes, delete product
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
