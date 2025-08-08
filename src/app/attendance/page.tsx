@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Check, X, Minus, Calendar as CalendarIcon, UserCheck, LayoutDashboard, ChevronLeft, ChevronRight } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDaysInMonth, addMonths, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDaysInMonth, addMonths, subMonths, addDays } from 'date-fns';
 import { useEmployees } from '@/hooks/use-employees';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -40,9 +40,10 @@ export default function AttendancePage() {
       status: status,
     });
     toast({
-      title: 'Attendance Updated',
+      title: 'Attendance Submitted',
       description: `${employee.name}'s attendance for ${format(selectedDate, 'PPP')} marked as ${status}.`,
     });
+    setSelectedDate(prevDate => addDays(prevDate, 1));
   }, [selectedDate, addOrUpdateAttendance, toast]);
   
   const currentMonthDays = useMemo(() => {
