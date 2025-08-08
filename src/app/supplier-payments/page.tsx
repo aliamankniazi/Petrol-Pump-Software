@@ -39,6 +39,11 @@ export default function SupplierPaymentsPage() {
   const { supplierPayments, addSupplierPayment } = useSupplierPayments();
   const { toast } = useToast();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const { register, handleSubmit, control, reset, formState: { errors }, watch, setValue } = useForm<SupplierPaymentFormValues>({
     resolver: zodResolver(supplierPaymentSchema),
@@ -49,18 +54,20 @@ export default function SupplierPaymentsPage() {
   });
 
   useEffect(() => {
-    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (storedDate) {
-      setValue('date', new Date(storedDate));
+    if (typeof window !== 'undefined') {
+      const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (storedDate) {
+        setValue('date', new Date(storedDate));
+      }
     }
-  }, [setValue]);
+  }, [setValue, isClient]);
   
   const selectedDate = watch('date');
   useEffect(() => {
-    if (selectedDate) {
+    if (selectedDate && typeof window !== 'undefined') {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate]);
+  }, [selectedDate, isClient]);
 
   const onSubmit: SubmitHandler<SupplierPaymentFormValues> = useCallback((data) => {
     const supplier = suppliers.find(s => s.id === data.supplierId);
@@ -151,7 +158,7 @@ export default function SupplierPaymentsPage() {
 
                <div className="space-y-2">
                 <Label>Date</Label>
-                <Controller
+                {isClient && <Controller
                   name="date"
                   control={control}
                   render={({ field }) => (
@@ -173,7 +180,7 @@ export default function SupplierPaymentsPage() {
                           mode="single"
                           selected={field.value}
                           onSelect={(date) => {
-                            field.onChange(date);
+                            if(date) field.onChange(date);
                             setIsCalendarOpen(false);
                           }}
                           initialFocus
@@ -181,7 +188,7 @@ export default function SupplierPaymentsPage() {
                       </PopoverContent>
                     </Popover>
                   )}
-                />
+                />}
                 {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
               </div>
 

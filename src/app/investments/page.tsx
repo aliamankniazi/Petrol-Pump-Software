@@ -43,7 +43,12 @@ export default function InvestmentsPage() {
   const { customers, isLoaded: partnersLoaded } = useCustomers();
   const [transactionToDelete, setTransactionToDelete] = useState<Investment | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const businessPartners = useMemo(() => customers.filter(c => c.isPartner), [customers]);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Form for new investments/withdrawals
   const { register: registerInvestment, handleSubmit: handleSubmitInvestment, reset: resetInvestment, control: controlInvestment, formState: { errors: investmentErrors }, watch, setValue } = useForm<InvestmentFormValues>({
@@ -52,18 +57,20 @@ export default function InvestmentsPage() {
   });
 
   useEffect(() => {
-    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (storedDate) {
-      setValue('date', new Date(storedDate));
+    if (typeof window !== 'undefined') {
+      const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (storedDate) {
+        setValue('date', new Date(storedDate));
+      }
     }
-  }, [setValue]);
+  }, [setValue, isClient]);
 
   const selectedDate = watch('date');
   useEffect(() => {
-    if (selectedDate) {
+    if (selectedDate && typeof window !== 'undefined') {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate]);
+  }, [selectedDate, isClient]);
   
   const isLoaded = investmentsLoaded && partnersLoaded;
   
@@ -241,7 +248,7 @@ export default function InvestmentsPage() {
               
               <div className="space-y-2">
                 <Label>Date</Label>
-                <Controller
+                {isClient && <Controller
                   name="date"
                   control={controlInvestment}
                   render={({ field }) => (
@@ -263,7 +270,7 @@ export default function InvestmentsPage() {
                           mode="single"
                           selected={field.value}
                           onSelect={(date) => {
-                            field.onChange(date);
+                            if(date) field.onChange(date);
                             setIsCalendarOpen(false);
                           }}
                           initialFocus
@@ -271,7 +278,7 @@ export default function InvestmentsPage() {
                       </PopoverContent>
                     </Popover>
                   )}
-                />
+                />}
                 {investmentErrors.date && <p className="text-sm text-destructive">{investmentErrors.date.message}</p>}
               </div>
 

@@ -36,6 +36,11 @@ export default function TankManagementPage() {
   const { products, isLoaded: productsLoaded } = useProducts();
   const { toast } = useToast();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const fuelProducts = useMemo(() => products.filter(p => p.category === 'Fuel'), [products]);
 
@@ -47,18 +52,20 @@ export default function TankManagementPage() {
   });
 
   useEffect(() => {
-    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (storedDate) {
-      setValue('date', new Date(storedDate));
+    if (typeof window !== 'undefined') {
+      const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (storedDate) {
+        setValue('date', new Date(storedDate));
+      }
     }
-  }, [setValue]);
+  }, [setValue, isClient]);
 
   const selectedDate = watch('date');
   useEffect(() => {
-    if (selectedDate) {
+    if (selectedDate && typeof window !== 'undefined') {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate]);
+  }, [selectedDate, isClient]);
 
   const onSubmit: SubmitHandler<TankReadingFormValues> = (data) => {
     const product = products.find(p => p.id === data.productId);
@@ -120,7 +127,7 @@ export default function TankManagementPage() {
 
                <div className="space-y-2">
                 <Label>Date</Label>
-                <Controller
+                {isClient && <Controller
                   name="date"
                   control={control}
                   render={({ field }) => (
@@ -142,7 +149,7 @@ export default function TankManagementPage() {
                           mode="single"
                           selected={field.value}
                           onSelect={(date) => {
-                            field.onChange(date);
+                            if(date) field.onChange(date);
                             setIsCalendarOpen(false);
                           }}
                           initialFocus
@@ -150,7 +157,7 @@ export default function TankManagementPage() {
                       </PopoverContent>
                     </Popover>
                   )}
-                />
+                />}
                 {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
               </div>
 

@@ -40,6 +40,11 @@ export default function OtherIncomesPage() {
   const { toast } = useToast();
   const [incomeToDelete, setIncomeToDelete] = useState<OtherIncome | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const { register, handleSubmit, reset, control, formState: { errors }, watch, setValue } = useForm<IncomeFormValues>({
     resolver: zodResolver(incomeSchema),
@@ -47,18 +52,20 @@ export default function OtherIncomesPage() {
   });
 
   useEffect(() => {
-    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (storedDate) {
-      setValue('date', new Date(storedDate));
+    if (typeof window !== 'undefined') {
+      const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (storedDate) {
+        setValue('date', new Date(storedDate));
+      }
     }
-  }, [setValue]);
+  }, [setValue, isClient]);
 
   const selectedDate = watch('date');
   useEffect(() => {
-    if (selectedDate) {
+    if (selectedDate && typeof window !== 'undefined') {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate]);
+  }, [selectedDate, isClient]);
 
   const onSubmit: SubmitHandler<IncomeFormValues> = (data) => {
     addOtherIncome({
@@ -131,7 +138,7 @@ export default function OtherIncomesPage() {
               
               <div className="space-y-2">
                   <Label>Date</Label>
-                  <Controller
+                  {isClient && <Controller
                     name="date"
                     control={control}
                     render={({ field }) => (
@@ -153,7 +160,7 @@ export default function OtherIncomesPage() {
                             mode="single"
                             selected={field.value}
                             onSelect={(date) => {
-                                field.onChange(date);
+                                if(date) field.onChange(date);
                                 setIsCalendarOpen(false);
                             }}
                             initialFocus
@@ -161,7 +168,7 @@ export default function OtherIncomesPage() {
                         </PopoverContent>
                       </Popover>
                     )}
-                  />
+                  />}
                   {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
                 </div>
 
