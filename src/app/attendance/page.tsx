@@ -111,7 +111,7 @@ export default function AttendancePage() {
       title: 'Attendance Submitted',
       description: `${employee.name}'s attendance for ${format(selectedDate, 'PPP')} marked as ${status}.`,
     });
-    // Don't auto-advance date for single entries anymore
+    setSelectedDate(addDays(selectedDate, 1));
   }, [selectedDate, addOrUpdateAttendance, toast]);
 
   const handleMarkAllPresent = useCallback(() => {
@@ -128,6 +128,7 @@ export default function AttendancePage() {
         title: 'Attendance Marked',
         description: `All employees marked as Present for ${format(selectedDate, 'PPP')}.`,
     });
+    setSelectedDate(addDays(selectedDate, 1));
   }, [selectedDate, employees, addOrUpdateAttendance, toast]);
   
   const currentMonthDays = useMemo(() => {
