@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingCart, Package, Truck, Calendar as CalendarIcon, PlusCircle, Trash2, LayoutDashboard } from 'lucide-react';
+import { ShoppingCart, Package, Truck, Calendar as CalendarIcon, PlusCircle, Trash2, LayoutDashboard, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePurchases } from '@/hooks/use-purchases';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -23,6 +23,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Separator } from '@/components/ui/separator';
 import { useProducts } from '@/hooks/use-products';
 import Link from 'next/link';
+import type { Purchase } from '@/lib/types';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const purchaseItemSchema = z.object({
   productId: z.string().min(1, 'Product is required.'),
@@ -48,12 +59,13 @@ type SupplierFormValues = z.infer<typeof supplierSchema>;
 const LOCAL_STORAGE_KEY = 'global-transaction-date';
 
 export default function PurchasesPage() {
-  const { purchases, addPurchase } = usePurchases();
+  const { purchases, addPurchase, deletePurchase } = usePurchases();
   const { suppliers, addSupplier, isLoaded: suppliersLoaded } = useSuppliers();
   const { products, isLoaded: productsLoaded } = useProducts();
   const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
+  const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -169,6 +181,16 @@ export default function PurchasesPage() {
     resetSupplier();
     setIsAddSupplierOpen(false);
   }, [addSupplier, toast, resetSupplier]);
+
+  const handleDeletePurchase = useCallback(() => {
+    if (!purchaseToDelete) return;
+    deletePurchase(purchaseToDelete.id!);
+    toast({
+        title: 'Purchase Deleted',
+        description: 'The purchase record has been removed.',
+    });
+    setPurchaseToDelete(null);
+  }, [purchaseToDelete, deletePurchase, toast]);
 
 
   return (
@@ -328,6 +350,7 @@ export default function PurchasesPage() {
                     <TableHead>Supplier</TableHead>
                     <TableHead>Items</TableHead>
                     <TableHead className="text-right">Total Cost</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -346,6 +369,11 @@ export default function PurchasesPage() {
                           </ul>
                         </TableCell>
                         <TableCell className="text-right font-mono font-semibold">PKR {p.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-center">
+                            <Button variant="ghost" size="icon" title="Delete" className="text-destructive hover:text-destructive" onClick={() => setPurchaseToDelete(p)}>
+                                <Trash2 className="w-4 h-4" />
+                            </Button>
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -390,6 +418,24 @@ export default function PurchasesPage() {
             </form>
         </DialogContent>
     </Dialog>
+
+    <AlertDialog open={!!purchaseToDelete} onOpenChange={(isOpen) => !isOpen && setPurchaseToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the purchase from <br />
+              <strong className="font-medium text-foreground">{purchaseToDelete?.supplier}</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeletePurchase} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Yes, delete entry
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
