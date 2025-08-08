@@ -44,9 +44,6 @@ export default function PurchaseReturnsPage() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   
   const [isClient, setIsClient] = useState(false);
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const { register, handleSubmit, reset, setValue, control, formState: { errors }, watch } = useForm<PurchaseReturnFormValues>({
     resolver: zodResolver(purchaseReturnSchema),
@@ -54,20 +51,19 @@ export default function PurchaseReturnsPage() {
   });
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (storedDate) {
-        setValue('date', new Date(storedDate));
-      }
+    setIsClient(true);
+    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedDate) {
+      setValue('date', new Date(storedDate));
     }
   }, [setValue]);
 
   const selectedDate = watch('date');
   useEffect(() => {
-    if (selectedDate && typeof window !== 'undefined') {
+    if (selectedDate && isClient) {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate]);
+  }, [selectedDate, isClient]);
 
   const onSubmit: SubmitHandler<PurchaseReturnFormValues> = (data) => {
     const supplier = suppliers.find(s => s.id === data.supplierId);

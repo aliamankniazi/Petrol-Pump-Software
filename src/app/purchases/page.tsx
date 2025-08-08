@@ -23,6 +23,7 @@ import { Separator } from '@/components/ui/separator';
 import { useProducts } from '@/hooks/use-products';
 import Link from 'next/link';
 import { useSupplierBalance } from '@/hooks/use-supplier-balance';
+import { useBankAccounts } from '@/hooks/use-bank-accounts';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
@@ -65,24 +66,13 @@ export default function PurchasesPage() {
   const { addPurchase } = usePurchases();
   const { suppliers, addSupplier, isLoaded: suppliersLoaded } = useSuppliers();
   const { products, isLoaded: productsLoaded } = useProducts();
+  const { bankAccounts, isLoaded: bankAccountsLoaded } = useBankAccounts();
   const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
+  const [lastFocused, setLastFocused] = useState<'quantity' | 'total'>('quantity');
   
-  const [currentItem, setCurrentItem] = useState({ productId: '', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '' });
-  const [itemTotal, setItemTotal] = useState(0);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-  
-  let defaultDate: Date;
-  if (isClient) {
-    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    defaultDate = storedDate ? new Date(storedDate) : new Date();
-  } else {
-    defaultDate = new Date();
-  }
+  const [currentItem, setCurrentItem] = useState({ productId: '', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
 
   const { register, handleSubmit, reset, setValue, control, watch, getValues } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema),
@@ -90,10 +80,16 @@ export default function PurchasesPage() {
       items: [],
       expenses: 0,
       paymentMethod: 'On Credit',
-      date: defaultDate,
-      orderDeliveryDate: defaultDate,
     }
   });
+
+  useEffect(() => {
+    setIsClient(true);
+    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const defaultDate = storedDate ? new Date(storedDate) : new Date();
+    setValue('date', defaultDate);
+    setValue('orderDeliveryDate', defaultDate);
+  }, [setValue]);
   
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
 
@@ -102,13 +98,20 @@ export default function PurchasesPage() {
     const quantity = parseFloat(currentItem.quantity) || 0;
     const price = parseFloat(currentItem.costPerUnit) || 0;
     const discountAmount = parseFloat(currentItem.discountAmount) || 0;
+    const totalValue = parseFloat(currentItem.totalValue) || 0;
     
-    let total = quantity * price;
-    if (discountAmount > 0) {
-        total -= discountAmount;
+    if (lastFocused === 'quantity') {
+        let total = quantity * price;
+        if (discountAmount > 0) {
+            total -= discountAmount;
+        }
+        setCurrentItem(prev => ({...prev, totalValue: total.toFixed(2)}));
+    } else if (lastFocused === 'total' && price > 0) {
+        let calculatedQty = totalValue / price;
+        setCurrentItem(prev => ({...prev, quantity: calculatedQty.toFixed(2)}));
     }
-    setItemTotal(total);
-  }, [currentItem, products]);
+
+  }, [currentItem.quantity, currentItem.costPerUnit, currentItem.discountAmount, currentItem.totalValue, lastFocused, products]);
 
   const watchedItems = watch('items');
   const watchedSupplierId = watch('supplierId');
@@ -145,6 +148,7 @@ export default function PurchasesPage() {
     
         const costPerUnit = parseFloat(currentItem.costPerUnit);
         const discount = parseFloat(currentItem.discountAmount) || 0;
+        const totalCost = parseFloat(currentItem.totalValue);
     
         append({
             productId: product.id!,
@@ -152,14 +156,13 @@ export default function PurchasesPage() {
             unit: product.mainUnit,
             quantity: quantity,
             costPerUnit: costPerUnit,
-            totalCost: itemTotal,
+            totalCost: totalCost,
             discount: discount,
             bonus: parseFloat(currentItem.bonus) || 0,
         });
         
         // Reset temporary item form
-        setCurrentItem({ productId: '', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '' });
-        setItemTotal(0);
+        setCurrentItem({ productId: '', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
     }
   
     const { subTotal, grandTotal } = useMemo(() => {
@@ -182,10 +185,13 @@ export default function PurchasesPage() {
       title: 'Purchase Recorded',
       description: `Delivery from ${supplier.name} has been logged.`,
     });
+    
+    const defaultDate = localStorage.getItem(LOCAL_STORAGE_KEY) ? new Date(localStorage.getItem(LOCAL_STORAGE_KEY)!) : new Date();
     reset({
         supplierId: '',
         items: [],
         date: defaultDate,
+        orderDeliveryDate: defaultDate,
         expenses: 0,
         notes: '',
         paymentMethod: 'On Credit',
@@ -197,12 +203,16 @@ export default function PurchasesPage() {
     addSupplier(data);
     toast({
         title: 'Supplier Added',
-        description: `${data.name} has been added. You can now select them from the list.`,
+        description: `${data.name} has been added. You can now select them for purchases.`,
     });
     resetSupplier();
     setIsAddSupplierOpen(false);
   }, [addSupplier, toast, resetSupplier]);
 
+
+  if (!isClient) {
+      return null;
+  }
 
   return (
     <>
@@ -233,7 +243,7 @@ export default function PurchasesPage() {
                         </div>
                          <div className="space-y-1">
                             <Label>Enter Qty</Label>
-                            <Input type="number" placeholder="0" value={currentItem.quantity} onChange={e => setCurrentItem(prev => ({...prev, quantity: e.target.value}))}/>
+                            <Input type="number" placeholder="0" value={currentItem.quantity} onFocus={() => setLastFocused('quantity')} onChange={e => setCurrentItem(prev => ({...prev, quantity: e.target.value}))}/>
                         </div>
                         <div className="space-y-1">
                             <Label>Purchase At</Label>
@@ -250,14 +260,10 @@ export default function PurchasesPage() {
                             <Input type="number" placeholder="RS 0" value={currentItem.discountAmount} onChange={e => setCurrentItem(prev => ({...prev, discountAmount: e.target.value}))}/>
                         </div>
                         <div className="space-y-1">
-                            <Label>Discount (%)</Label>
-                            <Input type="number" placeholder="0 %" value={currentItem.discountPercent} onChange={e => setCurrentItem(prev => ({...prev, discountPercent: e.target.value}))}/>
+                            <Label>Total Value</Label>
+                            <Input type="number" placeholder="0.00" value={currentItem.totalValue} onFocus={() => setLastFocused('total')} onChange={e => setCurrentItem(prev => ({...prev, totalValue: e.target.value}))}/>
                         </div>
                         <Button type="button" onClick={handleAddItemToPurchase}><PlusCircle/> Add To Purchase</Button>
-                    </div>
-                    <div>
-                        <Label>Total Value:</Label>
-                        <p className="font-bold text-lg">RS {itemTotal.toFixed(2)}</p>
                     </div>
                 </div>
 
@@ -329,21 +335,21 @@ export default function PurchasesPage() {
                     </div>
                     <div className="space-y-1">
                         <Label>Purchase Date</Label>
-                         {isClient && <Controller name="date" control={control} render={({ field }) => (
+                         <Controller name="date" control={control} render={({ field }) => (
                             <Popover>
                                 <PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
-                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(d) => {field.onChange(d);}} initialFocus /></PopoverContent>
+                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(d) => {if (d) field.onChange(d);}} initialFocus /></PopoverContent>
                             </Popover>
-                        )}/>}
+                        )}/>
                     </div>
                     <div className="space-y-1">
                         <Label>Order Delivery Date</Label>
-                         {isClient && <Controller name="orderDeliveryDate" control={control} render={({ field }) => (
+                         <Controller name="orderDeliveryDate" control={control} render={({ field }) => (
                             <Popover>
                                 <PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
-                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(d) => {field.onChange(d);}} initialFocus /></PopoverContent>
+                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(d) => {if (d) field.onChange(d);}} initialFocus /></PopoverContent>
                             </Popover>
-                        )}/>}
+                        )}/>
                     </div>
                     <div className="space-y-1">
                         <Label>Paid (Amount)</Label>
@@ -353,7 +359,7 @@ export default function PurchasesPage() {
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <SelectTrigger><SelectValue placeholder="@Bank" /></SelectTrigger>
                                     <SelectContent>
-                                        {/* Assuming bank accounts can be used for expenses */}
+                                        {bankAccountsLoaded ? bankAccounts.map(b => <SelectItem key={b.id} value={b.id}>{b.bankName}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
                                     </SelectContent>
                                 </Select>
                              )}/>

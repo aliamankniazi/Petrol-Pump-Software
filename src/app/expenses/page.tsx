@@ -43,30 +43,26 @@ export default function ExpensesPage() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   
   const [isClient, setIsClient] = useState(false);
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const { register, handleSubmit, reset, control, formState: { errors }, watch, setValue } = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
     defaultValues: { date: new Date() }
   });
-
+  
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (storedDate) {
-        setValue('date', new Date(storedDate));
-      }
+    setIsClient(true);
+    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedDate) {
+      setValue('date', new Date(storedDate));
     }
   }, [setValue]);
   
   const selectedDate = watch('date');
   useEffect(() => {
-    if (selectedDate && typeof window !== 'undefined') {
+    if (selectedDate && isClient) {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate]);
+  }, [selectedDate, isClient]);
 
   const onSubmit: SubmitHandler<ExpenseFormValues> = (data) => {
     addExpense({
