@@ -153,6 +153,7 @@ export default function EmployeesPage() {
     });
 
     // 2. Log the payment as a credit against the employee's ledger
+    // We use the customer payment hook which correctly creates a credit entry.
     addCustomerPayment({
         customerId: employeeToPay.id,
         customerName: employeeToPay.name,
