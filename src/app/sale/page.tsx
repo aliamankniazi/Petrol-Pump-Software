@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Fuel, PlusCircle, Trash2, Users, CreditCard, Wallet, Smartphone, Landmark, Printer, CheckCircle } from 'lucide-react';
+import { Fuel, PlusCircle, Trash2, Users, CreditCard, Wallet, Smartphone, Landmark, Printer, CheckCircle, LayoutDashboard } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomers } from '@/hooks/use-customers';
@@ -20,6 +20,8 @@ import { useCustomerBalance } from '@/hooks/use-customer-balance';
 import { cn } from '@/lib/utils';
 import { useBankAccounts } from '@/hooks/use-bank-accounts';
 import { useFormState } from '@/hooks/use-form-state';
+import { Textarea } from '@/components/ui/textarea';
+import Link from 'next/link';
 
 const saleItemSchema = z.object({
   productId: z.string().min(1, 'Product is required.'),
@@ -32,6 +34,7 @@ const saleSchema = z.object({
   customerId: z.string().optional(),
   paymentMethod: z.enum(['Cash', 'Card', 'Mobile', 'On Credit']),
   bankAccountId: z.string().optional(),
+  notes: z.string().optional(),
   items: z.array(saleItemSchema).min(1, 'At least one item is required.'),
 });
 
@@ -111,6 +114,7 @@ export default function SalePage() {
       items: itemsWithNames,
       totalAmount,
       paymentMethod: data.paymentMethod,
+      notes: data.notes,
       timestamp: new Date().toISOString(),
       customerId: isWalkIn ? undefined : data.customerId,
       customerName: isWalkIn ? 'Walk-in Customer' : customer?.name,
@@ -126,7 +130,7 @@ export default function SalePage() {
     
     // Persist customer and payment method, but clear items.
     const persistentState = { customerId: data.customerId, paymentMethod: data.paymentMethod, bankAccountId: data.bankAccountId };
-    reset({ ...persistentState, items: [{ productId: '', quantity: 0, pricePerUnit: 0, totalAmount: 0 }] });
+    reset({ ...persistentState, notes: '', items: [{ productId: '', quantity: 0, pricePerUnit: 0, totalAmount: 0 }] });
   };
 
   return (
@@ -135,9 +139,14 @@ export default function SalePage() {
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Fuel /> New Sale Transaction</CardTitle>
-                <CardDescription>Select products and enter quantities to record a new sale.</CardDescription>
+              <CardHeader className="flex flex-row justify-between items-start">
+                  <div>
+                    <CardTitle className="flex items-center gap-2"><Fuel /> New Sale Transaction</CardTitle>
+                    <CardDescription>Select products and enter quantities to record a new sale.</CardDescription>
+                  </div>
+                  <Button asChild variant="outline">
+                      <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
+                  </Button>
               </CardHeader>
               <CardContent className="space-y-4">
                  <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
@@ -194,7 +203,7 @@ export default function SalePage() {
                 <div className="space-y-2">
                   <Label>Customer</Label>
                   <Controller name="customerId" control={control} render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue="walk-in">
                       <SelectTrigger><SelectValue placeholder="Select Customer (or leave for Walk-in)" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="walk-in">Walk-in Customer</SelectItem>
@@ -248,6 +257,10 @@ export default function SalePage() {
                     )}/>
                   </div>
                 )}
+                <div className="space-y-2">
+                    <Label htmlFor="notes">Transaction Notes</Label>
+                    <Textarea id="notes" {...register('notes')} placeholder="e.g., Special instructions, reference number..." />
+                </div>
               </CardContent>
             </Card>
 

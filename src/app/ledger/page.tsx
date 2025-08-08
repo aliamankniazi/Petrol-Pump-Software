@@ -64,7 +64,7 @@ export default function LedgerPage() {
     transactions.forEach(tx => combined.push({
       id: `tx-${tx.id}`,
       timestamp: tx.timestamp!,
-      description: `Sale to ${tx.customerName || 'Walk-in'}: ${tx.items.length} item(s)`,
+      description: `Sale to ${tx.customerName || 'Walk-in'}: ${tx.items.length} item(s) ${tx.notes ? `- ${tx.notes}` : ''}`,
       type: 'Sale',
       debit: 0,
       credit: tx.totalAmount,

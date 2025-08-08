@@ -49,6 +49,7 @@ export interface Transaction {
   items: TransactionItem[];
   totalAmount: number;
   paymentMethod: PaymentMethod;
+  notes?: string;
   timestamp?: string;
   customerId?: string;
   customerName?: string;

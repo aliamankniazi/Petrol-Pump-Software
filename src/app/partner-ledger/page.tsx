@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { format, isSameDay, startOfDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { HandCoins, XCircle, Calendar as CalendarIcon, X, TrendingUp, TrendingDown, Wallet, BookText, AlertTriangle, Trash2, Printer } from 'lucide-react';
+import { HandCoins, XCircle, Calendar as CalendarIcon, X, TrendingUp, TrendingDown, Wallet, BookText, AlertTriangle, Trash2, Printer, LayoutDashboard } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -95,7 +95,7 @@ export default function UnifiedLedgerPage() {
           entityName: tx.customerName || 'N/A',
           entityType: entity.type,
           type: 'Sale',
-          description: tx.items.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', '),
+          description: `${tx.items.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', ')} ${tx.notes ? `- ${tx.notes}` : ''}`,
           debit: tx.totalAmount,
           credit: 0,
         });
@@ -333,7 +333,10 @@ export default function UnifiedLedgerPage() {
                     </CardTitle>
                     <CardDescription>A unified record of all transactions. Use the filters below to refine your search.</CardDescription>
                 </div>
-                <div className='print:hidden'>
+                 <div className='print:hidden flex gap-2'>
+                    <Button asChild variant="outline">
+                        <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
+                    </Button>
                     <Button variant="outline" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4"/>Print</Button>
                 </div>
             </div>

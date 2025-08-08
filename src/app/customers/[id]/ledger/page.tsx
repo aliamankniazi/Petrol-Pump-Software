@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { BookUser, ArrowLeft, User, Phone, Car, Trash2, AlertTriangle, Percent, Briefcase, Printer } from 'lucide-react';
+import { BookUser, ArrowLeft, User, Phone, Car, Trash2, AlertTriangle, Percent, Briefcase, Printer, LayoutDashboard } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
 import { useCashAdvances } from '@/hooks/use-cash-advances';
@@ -89,7 +89,7 @@ export default function CustomerLedgerPage() {
         customerTransactions.forEach(tx => combined.push({
           id: `tx-${tx.id}`,
           timestamp: tx.timestamp!,
-          description: tx.items.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', '),
+          description: `${tx.items.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', ')} ${tx.notes ? `- ${tx.notes}` : ''}`,
           type: 'Sale',
           debit: tx.totalAmount,
           credit: 0,
@@ -278,10 +278,15 @@ export default function CustomerLedgerPage() {
   return (
     <div className="p-4 md:p-8 space-y-8 watermark-container">
        <Card>
-        <CardHeader>
-            <CardTitle className="flex items-center gap-3">
-                {getEntityTypeIcon()} {entityType} Details
-            </CardTitle>
+        <CardHeader className="flex flex-row justify-between items-start">
+            <div>
+              <CardTitle className="flex items-center gap-3">
+                  {getEntityTypeIcon()} {entityType} Details
+              </CardTitle>
+            </div>
+             <Button asChild variant="outline">
+                <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
+            </Button>
         </CardHeader>
         <CardContent className="grid sm:grid-cols-3 gap-4 text-sm">
             <div className="flex items-center gap-2">
