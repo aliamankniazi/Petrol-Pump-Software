@@ -5,14 +5,14 @@ import { getAuth, type Auth } from 'firebase/auth';
 
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    databaseURL: "YOUR_DATABASE_URL",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID",
-    measurementId: "YOUR_MEASUREMENT_ID"
+    projectId: "pumppal-n1b9n",
+    appId: "1:539336218754:web:1e90dd372f7615d3d33c9b",
+    storageBucket: "pumppal-n1b9n.firebasestorage.app",
+    apiKey: "AIzaSyCXEB6bHuRf7q9wzAGgYDdvLGqbkPVxpDY",
+    authDomain: "pumppal-n1b9n.firebaseapp.com",
+    measurementId: "G-N85T634MQ3",
+    messagingSenderId: "539336218754",
+    databaseURL: "https://pumppal-n1b9n-default-rtdb.asia-southeast1.firebasedatabase.app"
   };
 
 // This function checks if the Firebase config has been filled out.
