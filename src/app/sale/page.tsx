@@ -53,6 +53,8 @@ export default function SalePage() {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [lastFocused, setLastFocused] = useState<'quantity' | 'amount'>('quantity');
+
 
   useEffect(() => {
     setIsClient(true);
@@ -131,11 +133,24 @@ export default function SalePage() {
   };
 
   const handleQuantityChange = (index: number, quantity: number) => {
+    if (lastFocused !== 'quantity') return;
     const roundedQuantity = Math.round(quantity * 100) / 100;
     const pricePerUnit = watch(`items.${index}.pricePerUnit`);
     setValue(`items.${index}.quantity`, roundedQuantity, { shouldValidate: true });
-    setValue(`items.${index}.totalAmount`, roundedQuantity * pricePerUnit, { shouldValidate: true });
+    if (pricePerUnit > 0) {
+        setValue(`items.${index}.totalAmount`, roundedQuantity * pricePerUnit, { shouldValidate: true });
+    }
   }
+
+  const handleAmountChange = (index: number, amount: number) => {
+    if (lastFocused !== 'amount') return;
+    const pricePerUnit = watch(`items.${index}.pricePerUnit`);
+    setValue(`items.${index}.totalAmount`, amount, { shouldValidate: true });
+    if (pricePerUnit > 0) {
+        const newQuantity = Math.round((amount / pricePerUnit) * 100) / 100;
+        setValue(`items.${index}.quantity`, newQuantity, { shouldValidate: true });
+    }
+  };
 
   const handlePriceChange = (index: number, price: number) => {
       const quantity = watch(`items.${index}.quantity`);
@@ -194,7 +209,7 @@ export default function SalePage() {
                  <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
                     {fields.map((field, index) => (
                         <Card key={field.id} className="p-4 relative bg-muted/40">
-                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                                 <div className="md:col-span-2 space-y-2">
                                     <Label>Product</Label>
                                     <Controller
@@ -215,16 +230,20 @@ export default function SalePage() {
                                 </div>
                                  <div className="space-y-2">
                                   <Label>Quantity</Label>
-                                  <Input type="number" {...register(`items.${index}.quantity`)} placeholder="0.00" step="0.01" onChange={(e) => handleQuantityChange(index, +e.target.value)} />
+                                  <Input type="number" {...register(`items.${index}.quantity`)} placeholder="0.00" step="0.01" 
+                                  onFocus={() => setLastFocused('quantity')}
+                                  onChange={(e) => handleQuantityChange(index, +e.target.value)} />
                                 </div>
                                 <div className="space-y-2">
-                                  <Label>Price / Unit</Label>
+                                  <Label>Amount</Label>
+                                  <Input type="number" {...register(`items.${index}.totalAmount`)} placeholder="0.00" step="0.01" 
+                                   onFocus={() => setLastFocused('amount')}
+                                   onChange={(e) => handleAmountChange(index, +e.target.value)}/>
+                                </div>
+                                <div className="space-y-2">
+                                  <Label>Price</Label>
                                   <Input type="number" {...register(`items.${index}.pricePerUnit`)} placeholder="0.00" step="0.01" onChange={(e) => handlePriceChange(index, +e.target.value)}/>
                                 </div>
-                             </div>
-                             <div className="mt-4 text-right">
-                                <Label>Total Amount for Item</Label>
-                                <p className="text-lg font-semibold">PKR {watchedItems[index]?.totalAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</p>
                              </div>
                             <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 w-6 h-6" onClick={() => remove(index)}><Trash2 className="w-4 h-4" /></Button>
                         </Card>
@@ -369,3 +388,5 @@ export default function SalePage() {
     </div>
   );
 }
+
+    
