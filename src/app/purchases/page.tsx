@@ -34,6 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useSupplierBalance } from '@/hooks/use-supplier-balance';
 
 const purchaseItemSchema = z.object({
   productId: z.string().min(1, 'Product is required.'),
@@ -93,6 +94,8 @@ export default function PurchasesPage() {
 
   const watchedItems = watch('items');
   const selectedDate = watch('date');
+  const watchedSupplierId = watch('supplierId');
+  const { balance: supplierBalance, isLoaded: balanceLoaded } = useSupplierBalance(watchedSupplierId || null);
 
   useEffect(() => {
     if (selectedDate && typeof window !== 'undefined') {
@@ -123,10 +126,10 @@ export default function PurchasesPage() {
   const handleProductChange = (index: number, productId: string) => {
     const product = products.find(p => p.id === productId);
     if (product) {
-      setValue(`items.${index}.costPerUnit`, product.cost || 0, { shouldValidate: true });
+      setValue(`items.${index}.costPerUnit`, product.purchasePrice || 0, { shouldValidate: true });
       const quantity = watch(`items.${index}.quantity`);
       if (quantity > 0) {
-        setValue(`items.${index}.totalCost`, quantity * (product.cost || 0), { shouldValidate: true });
+        setValue(`items.${index}.totalCost`, quantity * (product.purchasePrice || 0), { shouldValidate: true });
       }
     }
   };
@@ -231,6 +234,34 @@ export default function PurchasesPage() {
                 </div>
                 {errors.supplierId && <p className="text-sm text-destructive">{errors.supplierId.message}</p>}
               </div>
+
+               {watchedSupplierId && (
+                  <Card className="bg-muted/40 p-4">
+                    <CardHeader className="p-0 pb-2">
+                      <CardTitle className="text-md">Supplier Account</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0 text-sm space-y-2">
+                       {balanceLoaded ? (
+                         <>
+                          <div className='flex justify-between'>
+                            <span className='text-muted-foreground'>Previous Balance:</span>
+                            <span className='font-medium'>PKR {supplierBalance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                          </div>
+                          <div className='flex justify-between'>
+                            <span className='text-muted-foreground'>Current Purchase:</span>
+                            <span className='font-medium'>PKR {totalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                          </div>
+                           <Separator />
+                           <div className='flex justify-between font-bold text-base'>
+                            <span>Total Payable:</span>
+                            <span className={cn(supplierBalance + totalCost >= 0 ? 'text-green-600' : 'text-destructive' )}>PKR {(supplierBalance + totalCost).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                          </div>
+                         </>
+                       ) : <p>Loading balance...</p>}
+                    </CardContent>
+                  </Card>
+                )}
+
 
                <div className="space-y-2">
                   <Label>Date</Label>
