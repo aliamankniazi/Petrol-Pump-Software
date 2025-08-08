@@ -66,9 +66,8 @@ export default function SalePage() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   
   // State for the temporary item being added
-  const [currentItem, setCurrentItem] = useState({ productId: '', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '' });
-  const [itemTotal, setItemTotal] = useState(0);
-
+  const [currentItem, setCurrentItem] = useState({ productId: '', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
+  const [lastFocused, setLastFocused] = useState<'quantity' | 'total'>('quantity');
 
   useEffect(() => {
     setIsClient(true);
@@ -106,18 +105,25 @@ export default function SalePage() {
 
   const { balance: customerBalance, isLoaded: balanceLoaded } = useCustomerBalance(watchedCustomerId === 'walk-in' ? null : watchedCustomerId || null);
   
-  useEffect(() => {
-    const selectedProduct = products.find(p => p.id === currentItem.productId);
-    const quantity = parseFloat(currentItem.quantity) || 0;
-    const price = parseFloat(currentItem.pricePerUnit) || 0;
-    const discountAmount = parseFloat(currentItem.discountAmount) || 0;
+    useEffect(() => {
+        const selectedProduct = products.find(p => p.id === currentItem.productId);
+        const quantity = parseFloat(currentItem.quantity) || 0;
+        const price = parseFloat(currentItem.pricePerUnit) || 0;
+        const discountAmount = parseFloat(currentItem.discountAmount) || 0;
+        const totalValue = parseFloat(currentItem.totalValue) || 0;
+        
+        if (lastFocused === 'quantity') {
+            let total = quantity * price;
+            if (discountAmount > 0) {
+                total -= discountAmount;
+            }
+            setCurrentItem(prev => ({...prev, totalValue: total.toFixed(2)}));
+        } else if (lastFocused === 'total' && price > 0) {
+            let calculatedQty = totalValue / price;
+            setCurrentItem(prev => ({...prev, quantity: calculatedQty.toFixed(2)}));
+        }
     
-    let total = quantity * price;
-    if (discountAmount > 0) {
-        total -= discountAmount;
-    }
-    setItemTotal(total);
-  }, [currentItem, products]);
+    }, [currentItem.quantity, currentItem.pricePerUnit, currentItem.discountAmount, currentItem.totalValue, lastFocused, products]);
   
   const handleCurrentProductChange = (productId: string) => {
     const product = products.find(p => p.id === productId);
@@ -140,6 +146,7 @@ export default function SalePage() {
 
     const pricePerUnit = parseFloat(currentItem.pricePerUnit);
     const discount = parseFloat(currentItem.discountAmount) || 0;
+    const totalAmount = parseFloat(currentItem.totalValue);
 
     append({
         productId: product.id!,
@@ -147,14 +154,13 @@ export default function SalePage() {
         unit: product.mainUnit,
         quantity: quantity,
         pricePerUnit: pricePerUnit,
-        totalAmount: itemTotal,
+        totalAmount: totalAmount,
         discount: discount,
         bonus: parseFloat(currentItem.bonus) || 0,
     });
     
     // Reset temporary item form
-    setCurrentItem({ productId: '', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '' });
-    setItemTotal(0);
+    setCurrentItem({ productId: '', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
   }
 
   const { subTotal, grandTotal } = useMemo(() => {
@@ -220,7 +226,7 @@ export default function SalePage() {
                         </div>
                          <div className="space-y-1">
                             <Label>Enter Qty</Label>
-                            <Input type="number" placeholder="0" value={currentItem.quantity} onChange={e => setCurrentItem(prev => ({...prev, quantity: e.target.value}))}/>
+                            <Input type="number" placeholder="0" value={currentItem.quantity} onFocus={() => setLastFocused('quantity')} onChange={e => setCurrentItem(prev => ({...prev, quantity: e.target.value}))}/>
                         </div>
                         <div className="space-y-1">
                             <Label>Sale At</Label>
@@ -237,14 +243,10 @@ export default function SalePage() {
                             <Input type="number" placeholder="RS 0" value={currentItem.discountAmount} onChange={e => setCurrentItem(prev => ({...prev, discountAmount: e.target.value}))}/>
                         </div>
                         <div className="space-y-1">
-                            <Label>Discount (%)</Label>
-                            <Input type="number" placeholder="0 %" value={currentItem.discountPercent} onChange={e => setCurrentItem(prev => ({...prev, discountPercent: e.target.value}))}/>
+                            <Label>Total Value</Label>
+                            <Input type="number" placeholder="0.00" value={currentItem.totalValue} onFocus={() => setLastFocused('total')} onChange={e => setCurrentItem(prev => ({...prev, totalValue: e.target.value}))} />
                         </div>
                         <Button type="button" onClick={handleAddItemToSale}><PlusCircle/> Add To Sale</Button>
-                    </div>
-                    <div>
-                        <Label>Total Value:</Label>
-                        <p className="font-bold text-lg">RS {itemTotal.toFixed(2)}</p>
                     </div>
                 </div>
 
@@ -381,3 +383,5 @@ export default function SalePage() {
     </div>
   );
 }
+
+    
