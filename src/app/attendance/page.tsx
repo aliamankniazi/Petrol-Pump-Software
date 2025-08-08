@@ -74,6 +74,11 @@ export default function AttendancePage() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleDateChange = (date: Date | undefined) => {
     if (date) {
@@ -101,6 +106,10 @@ export default function AttendancePage() {
     const end = endOfMonth(selectedDate);
     return eachDayOfInterval({ start, end });
   }, [selectedDate]);
+
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <div className="p-4 md:p-8 space-y-6">

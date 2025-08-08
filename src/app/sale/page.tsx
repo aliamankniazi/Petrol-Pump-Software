@@ -188,6 +188,10 @@ export default function SalePage() {
     });
   };
 
+  if (!isClient) {
+    return null;
+  }
+
   return (
     <div className="p-4 md:p-8">
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -313,21 +317,21 @@ export default function SalePage() {
                     </div>
                     <div className="space-y-1">
                         <Label>Sale Date</Label>
-                         {isClient && <Controller name="date" control={control} render={({ field }) => (
+                         <Controller name="date" control={control} render={({ field }) => (
                             <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                                 <PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
-                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(d) => {field.onChange(d); if(d) setIsCalendarOpen(false);}} initialFocus /></PopoverContent>
+                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(d) => {if(d) field.onChange(d); setIsCalendarOpen(false);}} initialFocus /></PopoverContent>
                             </Popover>
-                        )}/>}
+                        )}/>
                     </div>
                     <div className="space-y-1 hidden">
                         <Label>Order Delivery Date</Label>
-                         {isClient && <Controller name="orderDeliveryDate" control={control} render={({ field }) => (
+                         <Controller name="orderDeliveryDate" control={control} render={({ field }) => (
                             <Popover>
                                 <PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
-                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(d) => {field.onChange(d);}} initialFocus /></PopoverContent>
+                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(d) => {if(d) field.onChange(d);}} initialFocus /></PopoverContent>
                             </Popover>
-                        )}/>}
+                        )}/>
                     </div>
                     <div className="space-y-1">
                         <Label>Paid (Amount)</Label>
