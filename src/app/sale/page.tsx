@@ -106,6 +106,7 @@ export default function SalePage() {
   }, [selectedDate]);
 
   const totalAmount = useMemo(() => {
+    if (!watchedItems) return 0;
     return watchedItems.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
   }, [watchedItems]);
 
@@ -185,7 +186,6 @@ export default function SalePage() {
       action: <CheckCircle className="text-green-500" />
     });
     
-    // Persist customer and payment method, but clear items.
     const persistentState = { customerId: data.customerId, paymentMethod: data.paymentMethod, bankAccountId: data.bankAccountId, date: data.date };
     reset({ ...persistentState, notes: '', items: [{ productId: '', quantity: 0, pricePerUnit: 0, totalAmount: 0 }] });
   };
@@ -255,7 +255,7 @@ export default function SalePage() {
                         </Card>
                     ))}
                 </div>
-                {errors.items && <p className="text-sm text-destructive">{errors.items.message}</p>}
+                {errors.items && typeof errors.items !== 'undefined' && 'message' in errors.items && <p className="text-sm text-destructive">{errors.items.message}</p>}
                 <Button type="button" variant="outline" onClick={() => append({ productId: '', quantity: 0, pricePerUnit: 0, totalAmount: 0 })} className="w-full"><PlusCircle /> Add Another Product</Button>
               </CardContent>
             </Card>
@@ -292,7 +292,7 @@ export default function SalePage() {
                               selected={field.value}
                               onSelect={(date) => {
                                 field.onChange(date);
-                                setIsCalendarOpen(false);
+                                if (date) setIsCalendarOpen(false);
                               }}
                               initialFocus
                             />

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
@@ -425,7 +426,7 @@ export default function PurchasesPage() {
                                 selected={field.value}
                                 onSelect={(date) => {
                                   field.onChange(date);
-                                  setIsCalendarOpen(false);
+                                  if (date) setIsCalendarOpen(false);
                                 }}
                                 initialFocus
                               />
@@ -635,7 +636,7 @@ export default function PurchasesPage() {
                             {isClient && <Controller name="date" control={controlEdit} render={({ field }) => (
                                 <Popover open={isEditCalendarOpen} onOpenChange={setIsEditCalendarOpen}>
                                     <PopoverTrigger asChild><Button variant="outline" className={cn("w-full justify-start", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(date) => {field.onChange(date); setIsEditCalendarOpen(false);}} /></PopoverContent>
+                                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(date) => {field.onChange(date); if (date) setIsEditCalendarOpen(false);}} /></PopoverContent>
                                 </Popover>
                             )}/>}
                             {editErrors.date && <p className="text-sm text-destructive">{editErrors.date.message}</p>}
@@ -714,3 +715,4 @@ export default function PurchasesPage() {
     </>
   );
 }
+
