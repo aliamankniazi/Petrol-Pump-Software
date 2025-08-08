@@ -43,6 +43,7 @@ export default function InvestmentsPage() {
   const { customers, isLoaded: partnersLoaded } = useCustomers();
   const [transactionToDelete, setTransactionToDelete] = useState<Investment | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const businessPartners = useMemo(() => customers.filter(c => c.isPartner), [customers]);
 
   useEffect(() => {
@@ -51,12 +52,12 @@ export default function InvestmentsPage() {
   
   const { toast } = useToast();
   
-  let defaultDate = new Date();
-  if (typeof window !== 'undefined') {
+  let defaultDate: Date;
+  if (isClient) {
     const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (storedDate) {
-      defaultDate = new Date(storedDate);
-    }
+    defaultDate = storedDate ? new Date(storedDate) : new Date();
+  } else {
+    defaultDate = new Date();
   }
 
   // Form for new investments/withdrawals
@@ -250,7 +251,7 @@ export default function InvestmentsPage() {
                   name="date"
                   control={controlInvestment}
                   render={({ field }) => (
-                    <Popover>
+                    <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                       <PopoverTrigger asChild>
                         <Button
                           variant={"outline"}
@@ -267,7 +268,10 @@ export default function InvestmentsPage() {
                         <Calendar
                           mode="single"
                           selected={field.value}
-                          onSelect={field.onChange}
+                          onSelect={(date) => {
+                            field.onChange(date);
+                            setIsCalendarOpen(false);
+                          }}
                           initialFocus
                         />
                       </PopoverContent>

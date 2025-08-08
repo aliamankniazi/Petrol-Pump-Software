@@ -43,17 +43,18 @@ export default function CustomerPaymentsPage() {
   
   const [paymentToDelete, setPaymentToDelete] = useState<CustomerPayment | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   
   useEffect(() => {
     setIsClient(true);
   }, []);
   
-  let defaultDate = new Date();
-  if (typeof window !== 'undefined') {
+  let defaultDate: Date;
+  if (isClient) {
     const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (storedDate) {
-      defaultDate = new Date(storedDate);
-    }
+    defaultDate = storedDate ? new Date(storedDate) : new Date();
+  } else {
+    defaultDate = new Date();
   }
 
   const { register, handleSubmit, control, reset, formState: { errors }, watch } = useForm<PaymentFormValues>({
@@ -194,7 +195,7 @@ export default function CustomerPaymentsPage() {
                   name="date"
                   control={control}
                   render={({ field }) => (
-                    <Popover>
+                    <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                       <PopoverTrigger asChild>
                         <Button
                           variant={"outline"}
@@ -211,7 +212,10 @@ export default function CustomerPaymentsPage() {
                         <Calendar
                           mode="single"
                           selected={field.value}
-                          onSelect={field.onChange}
+                          onSelect={(date) => {
+                            field.onChange(date);
+                            setIsCalendarOpen(false);
+                          }}
                           initialFocus
                         />
                       </PopoverContent>

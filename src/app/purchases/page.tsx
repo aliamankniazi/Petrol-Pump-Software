@@ -73,6 +73,8 @@ export default function PurchasesPage() {
   const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isEditCalendarOpen, setIsEditCalendarOpen] = useState(false);
   const [purchaseToEdit, setPurchaseToEdit] = useState<Purchase | null>(null);
   const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null);
 
@@ -80,12 +82,12 @@ export default function PurchasesPage() {
     setIsClient(true);
   }, []);
   
-  let defaultDate = new Date();
-  if (typeof window !== 'undefined') {
+  let defaultDate: Date;
+  if (isClient) {
     const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (storedDate) {
-      defaultDate = new Date(storedDate);
-    }
+    defaultDate = storedDate ? new Date(storedDate) : new Date();
+  } else {
+    defaultDate = new Date();
   }
 
   const { register, handleSubmit, reset, setValue, control, watch, formState: { errors } } = useForm<PurchaseFormValues>({
@@ -398,7 +400,7 @@ export default function PurchasesPage() {
                         name="date"
                         control={control}
                         render={({ field }) => (
-                          <Popover>
+                          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                             <PopoverTrigger asChild>
                               <Button
                                 variant={"outline"}
@@ -415,7 +417,10 @@ export default function PurchasesPage() {
                               <Calendar
                                 mode="single"
                                 selected={field.value}
-                                onSelect={field.onChange}
+                                onSelect={(date) => {
+                                  field.onChange(date);
+                                  setIsCalendarOpen(false);
+                                }}
                                 initialFocus
                               />
                             </PopoverContent>
@@ -622,9 +627,9 @@ export default function PurchasesPage() {
                         <div className="space-y-2">
                             <Label>Date</Label>
                             {isClient && <Controller name="date" control={controlEdit} render={({ field }) => (
-                                <Popover>
+                                <Popover open={isEditCalendarOpen} onOpenChange={setIsEditCalendarOpen}>
                                     <PopoverTrigger asChild><Button variant="outline" className={cn("w-full justify-start", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} /></PopoverContent>
+                                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(date) => {field.onChange(date); setIsEditCalendarOpen(false);}} /></PopoverContent>
                                 </Popover>
                             )}/>}
                             {editErrors.date && <p className="text-sm text-destructive">{editErrors.date.message}</p>}

@@ -52,6 +52,7 @@ export default function SalePage() {
   const { bankAccounts, isLoaded: bankAccountsLoaded } = useBankAccounts();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -62,12 +63,12 @@ export default function SalePage() {
     customerId: 'walk-in',
   });
 
-  let defaultDate = new Date();
-  if (typeof window !== 'undefined') {
+  let defaultDate: Date;
+  if (isClient) {
     const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (storedDate) {
-      defaultDate = new Date(storedDate);
-    }
+    defaultDate = storedDate ? new Date(storedDate) : new Date();
+  } else {
+    defaultDate = new Date();
   }
 
   const { register, handleSubmit, control, watch, setValue, reset, formState: { errors } } = useForm<SaleFormValues>({
@@ -245,7 +246,7 @@ export default function SalePage() {
                       name="date"
                       control={control}
                       render={({ field }) => (
-                        <Popover>
+                        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                           <PopoverTrigger asChild>
                             <Button
                               variant={"outline"}
@@ -262,7 +263,10 @@ export default function SalePage() {
                             <Calendar
                               mode="single"
                               selected={field.value}
-                              onSelect={field.onChange}
+                              onSelect={(date) => {
+                                field.onChange(date);
+                                setIsCalendarOpen(false);
+                              }}
                               initialFocus
                             />
                           </PopoverContent>
@@ -351,7 +355,7 @@ export default function SalePage() {
                     </Button>
                     <Button type="button" variant="outline" className="w-full" onClick={() => {
                         const persistentState = { customerId: watch('customerId'), paymentMethod: watch('paymentMethod'), date: watch('date') };
-                        reset({ ...persistentState, items: [{ productId: '', quantity: 0, pricePerUnit: 0, totalAmount: 0 }] });
+                        reset({ ...persistentState, notes: '', items: [{ productId: '', quantity: 0, pricePerUnit: 0, totalAmount: 0 }] });
                     }}>
                         Reset Form
                     </Button>

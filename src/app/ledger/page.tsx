@@ -51,6 +51,7 @@ export default function LedgerPage() {
   const { investments, deleteInvestment, isLoaded: investmentsLoaded } = useInvestments();
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<LedgerEntry | null>(null);
   const { toast } = useToast();
 
@@ -248,7 +249,7 @@ export default function LedgerPage() {
                   <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
                </Button>
                <Button variant="outline" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4"/>Print</Button>
-               <Popover>
+               <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant={"outline"}
@@ -265,7 +266,10 @@ export default function LedgerPage() {
                   <Calendar
                     mode="single"
                     selected={selectedDate}
-                    onSelect={setSelectedDate}
+                    onSelect={(date) => {
+                        setSelectedDate(date);
+                        setIsCalendarOpen(false);
+                    }}
                     initialFocus
                   />
                 </PopoverContent>

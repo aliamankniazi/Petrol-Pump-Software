@@ -36,6 +36,7 @@ export default function TankManagementPage() {
   const { products, isLoaded: productsLoaded } = useProducts();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const fuelProducts = useMemo(() => products.filter(p => p.category === 'Fuel'), [products]);
 
@@ -43,12 +44,12 @@ export default function TankManagementPage() {
     setIsClient(true);
   }, []);
 
-  let defaultDate = new Date();
-  if (typeof window !== 'undefined') {
+  let defaultDate: Date;
+  if (isClient) {
     const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (storedDate) {
-      defaultDate = new Date(storedDate);
-    }
+    defaultDate = storedDate ? new Date(storedDate) : new Date();
+  } else {
+    defaultDate = new Date();
   }
 
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<TankReadingFormValues>({
@@ -73,8 +74,19 @@ export default function TankManagementPage() {
       title: 'Machine Reading Logged',
       description: `New volume for ${product.name} tank has been recorded as ${data.volume}L and stock has been updated.`,
     });
-    reset({ productId: '', volume: 0, date: new Date() });
+    const lastDate = watch('date');
+    reset({ productId: '', volume: 0, date: lastDate });
   };
+  
+  const { watch } = useForm<TankReadingFormValues>();
+  const selectedDate = watch('date');
+
+  useEffect(() => {
+    if (selectedDate && typeof window !== 'undefined') {
+      localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
+    }
+  }, [selectedDate]);
+
 
   return (
     <div className="p-4 md:p-8 grid gap-8 lg:grid-cols-3">
@@ -121,7 +133,7 @@ export default function TankManagementPage() {
                   name="date"
                   control={control}
                   render={({ field }) => (
-                    <Popover>
+                    <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                       <PopoverTrigger asChild>
                         <Button
                           variant={"outline"}
@@ -138,7 +150,10 @@ export default function TankManagementPage() {
                         <Calendar
                           mode="single"
                           selected={field.value}
-                          onSelect={field.onChange}
+                          onSelect={(date) => {
+                            field.onChange(date);
+                            setIsCalendarOpen(false);
+                          }}
                           initialFocus
                         />
                       </PopoverContent>

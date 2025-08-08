@@ -50,6 +50,7 @@ export default function EmployeesPage() {
   const { addCustomer, updateCustomer } = useCustomers();
   const { attendance } = useAttendance();
   const [isClient, setIsClient] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -209,7 +210,7 @@ export default function EmployeesPage() {
                     name="hireDate"
                     control={control}
                     render={({ field }) => (
-                      <Popover>
+                      <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                         <PopoverTrigger asChild>
                           <Button
                             variant={"outline"}
@@ -226,7 +227,10 @@ export default function EmployeesPage() {
                           <Calendar
                             mode="single"
                             selected={field.value}
-                            onSelect={field.onChange}
+                            onSelect={(date) => {
+                                field.onChange(date);
+                                setIsCalendarOpen(false);
+                            }}
                             initialFocus
                           />
                         </PopoverContent>

@@ -22,11 +22,13 @@ export default function AttendancePage() {
   const { employees, isLoaded: employeesLoaded } = useEmployees();
   const { attendanceByDate, addOrUpdateAttendance, isLoaded: attendanceLoaded } = useAttendance();
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const { toast } = useToast();
 
   const handleDateChange = (date: Date | undefined) => {
     if (date) {
       setSelectedDate(date);
+      setIsCalendarOpen(false);
     }
   };
 
@@ -69,11 +71,11 @@ export default function AttendancePage() {
           
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-4">
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" onClick={() => handleDateChange(subMonths(selectedDate, 1))}><ChevronLeft/></Button>
+                <Button variant="outline" size="icon" onClick={() => setSelectedDate(subMonths(selectedDate, 1))}><ChevronLeft/></Button>
                 <span className="font-semibold text-lg w-32 text-center">{format(selectedDate, 'MMMM yyyy')}</span>
-                <Button variant="outline" size="icon" onClick={() => handleDateChange(addMonths(selectedDate, 1))}><ChevronRight/></Button>
+                <Button variant="outline" size="icon" onClick={() => setSelectedDate(addMonths(selectedDate, 1))}><ChevronRight/></Button>
               </div>
-              <Popover>
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant={"outline"}

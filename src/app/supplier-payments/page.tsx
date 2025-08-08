@@ -39,17 +39,18 @@ export default function SupplierPaymentsPage() {
   const { supplierPayments, addSupplierPayment } = useSupplierPayments();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
   
-  let defaultDate = new Date();
-  if (typeof window !== 'undefined') {
+  let defaultDate: Date;
+  if (isClient) {
     const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (storedDate) {
-      defaultDate = new Date(storedDate);
-    }
+    defaultDate = storedDate ? new Date(storedDate) : new Date();
+  } else {
+    defaultDate = new Date();
   }
 
   const { register, handleSubmit, control, reset, formState: { errors }, watch } = useForm<SupplierPaymentFormValues>({
@@ -160,7 +161,7 @@ export default function SupplierPaymentsPage() {
                   name="date"
                   control={control}
                   render={({ field }) => (
-                    <Popover>
+                    <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                       <PopoverTrigger asChild>
                         <Button
                           variant={"outline"}
@@ -177,7 +178,10 @@ export default function SupplierPaymentsPage() {
                         <Calendar
                           mode="single"
                           selected={field.value}
-                          onSelect={field.onChange}
+                          onSelect={(date) => {
+                            field.onChange(date);
+                            setIsCalendarOpen(false);
+                          }}
                           initialFocus
                         />
                       </PopoverContent>
