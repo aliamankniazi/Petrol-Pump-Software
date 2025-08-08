@@ -35,6 +35,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useSupplierBalance } from '@/hooks/use-supplier-balance';
 import { Textarea } from '@/components/ui/textarea';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
 
 const purchaseItemSchema = z.object({
   productId: z.string().min(1, 'Product is required.'),
