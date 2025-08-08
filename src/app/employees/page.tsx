@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Briefcase, UserPlus, List, Calendar as CalendarIcon, Trash2, AlertTriangle, Edit, LayoutDashboard, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
+import { Briefcase, UserPlus, List, Calendar as CalendarIcon, Trash2, AlertTriangle, Edit, LayoutDashboard, Wallet, TrendingUp, TrendingDown, BookText } from 'lucide-react';
 import { format, getMonth, setMonth, getDaysInMonth } from 'date-fns';
 import { useEmployees } from '@/hooks/use-employees';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -298,6 +298,11 @@ export default function EmployeesPage() {
                           <TableCell className="text-right">{e.salary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                           <TableCell className="text-center space-x-0">
                             <Button size="sm" onClick={() => setEmployeeToPay(e)}>Pay Salary</Button>
+                            <Button asChild variant="ghost" size="icon" title="View Ledger">
+                              <Link href={`/customers/${e.id}/ledger`}>
+                                <BookText className="w-4 h-4" />
+                              </Link>
+                           </Button>
                             <Button variant="ghost" size="icon" title="Edit" onClick={() => setEmployeeToEdit(e)}>
                               <Edit className="w-4 h-4" />
                             </Button>
