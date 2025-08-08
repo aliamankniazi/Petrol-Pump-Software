@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Check, X, Minus, Calendar as CalendarIcon, UserCheck, LayoutDashboard, ChevronLeft, ChevronRight, CircleDot } from 'lucide-react';
+import { Check, X, Minus, Calendar as CalendarIcon, UserCheck, LayoutDashboard, ChevronLeft, ChevronRight, CircleDot, RotateCcw } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDaysInMonth, addMonths, subMonths, addDays, getDay, startOfWeek, isToday } from 'date-fns';
 import { useEmployees } from '@/hooks/use-employees';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -83,7 +83,7 @@ const CalendarCell = ({ status, isSelectedDay }: { status?: AttendanceStatus, is
 
 export default function AttendancePage() {
   const { employees, isLoaded: employeesLoaded } = useEmployees();
-  const { attendanceByDate, addOrUpdateAttendance, isLoaded: attendanceLoaded } = useAttendance();
+  const { attendanceByDate, addOrUpdateAttendance, deleteAttendance, isLoaded: attendanceLoaded } = useAttendance();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const { toast } = useToast();
@@ -113,6 +113,15 @@ export default function AttendancePage() {
     });
     setSelectedDate(addDays(selectedDate, 1));
   }, [selectedDate, addOrUpdateAttendance, toast]);
+
+  const handleClearAttendance = useCallback((employeeId: string) => {
+      const dateString = format(selectedDate, 'yyyy-MM-dd');
+      deleteAttendance(employeeId, dateString);
+      toast({
+        title: 'Attendance Cleared',
+        description: `Attendance for ${format(selectedDate, 'PPP')} has been cleared.`,
+      });
+  }, [selectedDate, deleteAttendance, toast]);
 
   const handleMarkAllPresent = useCallback(() => {
     const dateString = format(selectedDate, 'yyyy-MM-dd');
@@ -221,6 +230,7 @@ export default function AttendancePage() {
                         <TableRow key={employee.id}>
                             <TableCell className="font-medium">{employee.name}</TableCell>
                             <TableCell>
+                                <div className="flex items-center gap-4">
                                 <RadioGroup 
                                     defaultValue={currentStatus} 
                                     value={currentStatus}
@@ -244,6 +254,19 @@ export default function AttendancePage() {
                                         <Label htmlFor={`leave-${employee.id}`}>Paid Leave</Label>
                                     </div>
                                 </RadioGroup>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" onClick={() => handleClearAttendance(employee.id!)}>
+                                                <RotateCcw className="w-4 h-4 text-muted-foreground" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>Clear Attendance</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                                </div>
                             </TableCell>
                             <TableCell className="text-right">
                                 <div className="p-2 bg-muted/50 rounded-md">

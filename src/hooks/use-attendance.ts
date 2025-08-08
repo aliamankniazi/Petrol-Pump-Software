@@ -9,7 +9,7 @@ import { format, startOfMonth, endOfMonth } from 'date-fns';
 const COLLECTION_NAME = 'attendance';
 
 export function useAttendance() {
-  const { data: attendance, addDoc, updateDoc, loading } = useDatabaseCollection<Attendance>(COLLECTION_NAME);
+  const { data: attendance, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<Attendance>(COLLECTION_NAME);
 
   const addOrUpdateAttendance = useCallback(async (record: Omit<Attendance, 'id' | 'timestamp'>) => {
     
@@ -30,6 +30,14 @@ export function useAttendance() {
     }
 
   }, [addDoc, updateDoc, attendance]);
+
+  const deleteAttendance = useCallback(async (employeeId: string, date: string) => {
+    const recordId = `${employeeId}_${date}`;
+    const existingRecord = attendance.find(a => a.id === recordId);
+    if (existingRecord) {
+      await deleteDoc(recordId);
+    }
+  }, [deleteDoc, attendance]);
 
   const getAttendanceForMonth = useCallback((employeeId: string, month: Date) => {
       const startDate = startOfMonth(month);
@@ -52,6 +60,7 @@ export function useAttendance() {
     attendance, 
     attendanceByDate,
     addOrUpdateAttendance, 
+    deleteAttendance,
     getAttendanceForMonth,
     isLoaded: !loading 
   };
