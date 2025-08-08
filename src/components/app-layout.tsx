@@ -110,7 +110,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <Sidebar>
+      <Sidebar collapsible="none">
         <SidebarHeader className='p-4 border-b border-sidebar-border'>
             <AppLogo />
         </SidebarHeader>
