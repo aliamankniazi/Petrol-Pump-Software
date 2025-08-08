@@ -48,17 +48,10 @@ const companyDetails = {
 }
 
 const InvoiceLogo = () => (
-    <div className="flex items-center justify-center w-16 h-16 bg-primary text-white rounded-full">
+    <div className="flex items-center justify-center w-16 h-16 bg-primary text-white rounded-lg">
         <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 22V8"/>
-            <path d="M6 12a6 6 0 0 1 6-6V2"/>
-            <path d="M18 12a6 6 0 0 0-6-6V2"/>
-            <path d="M12 8a6 6 0 0 1 6 4"/>
-            <path d="M12 8a6 6 0 0 0-6 4"/>
-            <path d="M12 22a4 4 0 0 1-4-4"/>
-            <path d="M12 22a4 4 0 0 0 4-4"/>
-            <path d="m15 12-1-1"/>
-            <path d="m9 12 1-1"/>
+            <path d="M14 13.1a2.5 2.5 0 0 0-2-3.1h-1a2.5 2.5 0 0 0-2 3.1"/>
+            <path d="M12 3a8.8 8.8 0 0 0-8.8 8.8c0 4.9 3.9 11.2 8.8 11.2s8.8-6.3 8.8-11.2A8.8 8.8 0 0 0 12 3Z"/>
         </svg>
     </div>
 );
@@ -71,127 +64,116 @@ export function Invoice({ data }: { data: InvoiceData }) {
   const totalAmountInWords = numWords(Math.floor(totalAmountWithExpenses));
 
   return (
-    <div className="font-sans text-xs text-gray-800">
-      <header className="flex justify-between items-start pb-4 border-b-2 border-gray-300">
-        <div className="flex items-start gap-4">
-            <InvoiceLogo />
-            <div>
-                <h1 className="text-xl font-bold text-gray-900">{companyDetails.name}</h1>
-                <p>Branch: {companyDetails.branch}</p>
-                <p>Mobile No1: {companyDetails.mobile1}</p>
-                <p>Mobile No2: {companyDetails.mobile2}</p>
-                <p className="font-semibold">Deals in: {companyDetails.dealsIn}</p>
-                <p>Sale Tax Registration No. {companyDetails.saleTaxNo}</p>
+    <div className="font-sans text-xs text-gray-800 bg-white p-2">
+      <header className="pb-4">
+        <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+                 <InvoiceLogo />
+                 <div>
+                    <h1 className="text-2xl font-bold text-gray-900">{companyDetails.name}</h1>
+                    <p className="text-gray-600">{companyDetails.branch}</p>
+                 </div>
+            </div>
+            <div className="text-right">
+                <h2 className="text-3xl font-bold uppercase text-primary">{data.type} Invoice</h2>
             </div>
         </div>
-        <div className="text-right flex-shrink-0">
-            <h2 className="text-2xl font-bold text-blue-600 mb-2">{data.type.toUpperCase()} INVOICE</h2>
-            <p className="font-semibold">NTN NO: {companyDetails.ntn}</p>
+        <div className="mt-4 grid grid-cols-2 gap-4 text-gray-600">
+            <div>
+                 <p>{companyDetails.mobile1}, {companyDetails.mobile2}</p>
+                 <p>Deals in: {companyDetails.dealsIn}</p>
+            </div>
+             <div className="text-right">
+                 <p><strong>NTN:</strong> {companyDetails.ntn}</p>
+                 <p><strong>Sale Tax No:</strong> {companyDetails.saleTaxNo}</p>
+            </div>
         </div>
       </header>
+      
+      <div className="my-4 h-px bg-gray-300" />
 
-      <section className="grid grid-cols-2 gap-4 py-4">
+      <section className="grid grid-cols-2 gap-4 pb-4">
         <div>
-            <h3 className="font-bold mb-1">Bill To:</h3>
-            <p className="font-semibold">{data.partner.name}</p>
-            <p>Contact No.: {data.partner.contact}</p>
+            <p className="font-semibold text-gray-500 mb-1">BILL TO</p>
+            <p className="font-bold text-base text-gray-900">{data.partner.name}</p>
+            <p className="text-gray-600">{data.partner.contact}</p>
              {data.bankDetails && (
-                <p>Bank: {data.bankDetails.name} ({data.bankDetails.number})</p>
+                <p className="text-gray-600">Bank: {data.bankDetails.name} ({data.bankDetails.number})</p>
              )}
         </div>
         <div className="text-right">
-            <p><span className="font-semibold">Invoice No.:</span> {data.id.slice(0, 8)}</p>
-            <p><span className="font-semibold">Date:</span> {format(new Date(data.date), 'dd-MM-yyyy')}</p>
-            <p><span className="font-semibold">Print Date:</span> {format(new Date(), 'dd-MM-yyyy')}</p>
+            <div className="grid grid-cols-2 gap-x-4">
+                <span className="font-semibold">Invoice No:</span>
+                <span>{data.id.slice(0, 8)}</span>
+                <span className="font-semibold">Invoice Date:</span>
+                <span>{format(new Date(data.date), 'dd-MMM-yyyy')}</span>
+                <span className="font-semibold">Print Date:</span>
+                <span>{format(new Date(), 'dd-MMM-yyyy')}</span>
+            </div>
         </div>
       </section>
 
       <section className="mb-4">
-        <table className="w-full">
-            <thead className="bg-blue-600 text-white">
-                <tr>
-                    <th className="p-2 text-left w-8">#</th>
-                    <th className="p-2 text-left">Item name</th>
-                    <th className="p-2 text-left">Group</th>
-                    <th className="p-2 text-right">Quantity</th>
-                    <th className="p-2 text-right">Price/Unit</th>
-                    <th className="p-2 text-right">Discount</th>
-                    <th className="p-2 text-right">Amount</th>
+        <table className="w-full border-collapse">
+            <thead>
+                <tr className="bg-gray-100 font-semibold text-gray-600">
+                    <th className="p-2 text-left w-8 border-b-2 border-gray-200">#</th>
+                    <th className="p-2 text-left border-b-2 border-gray-200">Item Name</th>
+                    <th className="p-2 text-right border-b-2 border-gray-200">Quantity</th>
+                    <th className="p-2 text-right border-b-2 border-gray-200">Price/Unit</th>
+                    <th className="p-2 text-right border-b-2 border-gray-200">Amount</th>
                 </tr>
             </thead>
             <tbody>
                 {data.items.map((item, index) => (
-                    <tr key={index} className="border-b">
+                    <tr key={index} className="border-b border-gray-100">
                         <td className="p-2">{index + 1}</td>
                         <td className="p-2">{item.name}</td>
-                        <td className="p-2">{item.group}</td>
-                        <td className="p-2 text-right">{item.quantity.toFixed(3)} LTR</td>
+                        <td className="p-2 text-right">{item.quantity.toFixed(2)}</td>
                         <td className="p-2 text-right">{item.price.toFixed(2)}</td>
-                        <td className="p-2 text-right">0.00%</td>
-                        <td className="p-2 text-right">{item.amount.toFixed(2)}</td>
+                        <td className="p-2 text-right font-medium">{item.amount.toFixed(2)}</td>
                     </tr>
                 ))}
             </tbody>
-            <tfoot className="font-bold">
-                <tr className="border-b-2 border-gray-300">
-                    <td colSpan={3} className="p-2 text-left">Total</td>
-                    <td className="p-2 text-right">{totalQuantity.toFixed(3)}</td>
-                    <td colSpan={2}></td>
-                    <td className="p-2 text-right">{data.totalAmount.toFixed(2)}</td>
-                </tr>
-            </tfoot>
         </table>
       </section>
 
-      <section className="grid grid-cols-2 gap-4">
-        <div>
-            <h3 className="font-bold mb-1">Description</h3>
-            <p>{data.partner.name} - {data.items[0]?.name || ''}</p>
-            <h3 className="font-bold mt-4 mb-1">TERMS AND CONDITIONS</h3>
-            <p>Thanks for doing business with us!</p>
-            <p className="font-bold mt-4">Amount in Words:</p>
-            <p className="capitalize">{totalAmountInWords} rupees only.</p>
-        </div>
-        <div className="text-right">
-            <div className="inline-block text-left">
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                    <span className="font-semibold">Sub Total:</span>
-                    <span>RS {data.totalAmount.toFixed(2)}</span>
-                    <span className="font-semibold">Discount:</span>
-                    <span>RS 0 (0%)</span>
-                    {data.expenses && data.expenses > 0 && (
-                        <>
-                            <span className="font-semibold">Purchase Expenses:</span>
-                            <span>RS {data.expenses.toFixed(2)}</span>
-                        </>
-                    )}
-                    <span className="font-semibold">GST@:</span>
-                    <span>0</span>
-                    <span className="font-bold text-lg border-t-2 border-b-2 border-gray-800 py-1">Total Payable:</span>
-                    <span className="font-bold text-lg border-t-2 border-b-2 border-gray-800 py-1">RS {totalAmountWithExpenses.toFixed(2)}</span>
-                    <span className="font-semibold">Paid:</span>
-                    <span>RS 0.00</span>
-                    <span className="font-semibold">Invoice Balance:</span>
-                    <span>RS {totalAmountWithExpenses.toFixed(2)}</span>
-                    <span className="font-semibold">Payment Mode:</span>
-                    <span>{data.paymentMethod}</span>
-                </div>
+      <section className="grid grid-cols-2 gap-8">
+        <div className="space-y-4">
+            <div>
+                <h3 className="font-semibold text-gray-500 mb-1">Amount in Words</h3>
+                <p className="capitalize font-medium">{totalAmountInWords} rupees only.</p>
+            </div>
+             <div>
+                <h3 className="font-semibold text-gray-500 mb-1">Terms & Conditions</h3>
+                <p>Thanks for doing business with us!</p>
             </div>
         </div>
+        <div className="text-right">
+             <table className="w-full">
+                <tbody>
+                    <tr>
+                        <td className="p-1 pr-4 font-semibold text-gray-600">Sub Total:</td>
+                        <td className="p-1 font-medium">{data.totalAmount.toFixed(2)}</td>
+                    </tr>
+                    {data.expenses && data.expenses > 0 && (
+                        <tr>
+                            <td className="p-1 pr-4 font-semibold text-gray-600">Purchase Expenses:</td>
+                            <td className="p-1 font-medium">{data.expenses.toFixed(2)}</td>
+                        </tr>
+                    )}
+                    <tr className="font-bold text-lg text-primary">
+                        <td className="p-1 pr-4 border-t-2 border-b-2 border-primary/50">Total Payable:</td>
+                        <td className="p-1 border-t-2 border-b-2 border-primary/50">RS {totalAmountWithExpenses.toFixed(2)}</td>
+                    </tr>
+                </tbody>
+             </table>
+        </div>
       </section>
-
-      <footer className="grid grid-cols-2 gap-4 pt-8 mt-8 border-t-2 border-gray-300">
-        <div>
-            <h3 className="font-bold">Pay To:</h3>
-            <p>Bank Name: {companyDetails.bank.name}</p>
-            <p>Bank Account No.: {companyDetails.bank.accountNo}</p>
-            <p>Bank code: {companyDetails.bank.code}</p>
-        </div>
-        <div className="text-center">
-            <div className="w-48 h-16 border mx-auto mb-1"></div>
-            <p className="border-t border-gray-800 pt-1">Authorized Signatory</p>
-        </div>
-      </footer>
+      
+      <div className="mt-8 pt-4 border-t-2 border-dashed border-gray-300">
+          <p className="text-center text-xs text-gray-500">This is a computer-generated invoice and does not require a signature.</p>
+      </div>
     </div>
   );
 }
