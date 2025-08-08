@@ -48,7 +48,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 export default function EmployeesPage() {
   const { employees, addEmployee, updateEmployee, deleteEmployee, isLoaded } = useEmployees();
   const { addExpense } = useExpenses();
-  const { addCustomer, updateCustomer } = useCustomers();
+  const { updateCustomer } = useCustomers();
   const { attendance } = useAttendance();
   const { addCustomerPayment } = useCustomerPayments();
   const [isClient, setIsClient] = useState(false);
@@ -102,28 +102,19 @@ export default function EmployeesPage() {
   }, [employeeToPay, selectedMonth, selectedYear, attendance]);
 
   const onAddSubmit: SubmitHandler<EmployeeFormValues> = useCallback(async (data) => {
-    const newEmployee = await addEmployee({ ...data, hireDate: data.hireDate.toISOString() });
+    await addEmployee({ ...data, hireDate: data.hireDate.toISOString() });
     
-    // Also create a corresponding customer record for ledger purposes, using the same ID
-    await addCustomer({
-        name: newEmployee.name,
-        contact: newEmployee.mobileNumber || '',
-        area: 'Employee',
-        isPartner: false,
-        isEmployee: true,
-    }, newEmployee.id);
-
     toast({
       title: 'Employee Added',
       description: `${data.name} has been added and a ledger has been created.`,
     });
     reset({ name: '', mobileNumber: '', position: '', salary: 0, hireDate: new Date() });
-  }, [addEmployee, addCustomer, toast, reset]);
+  }, [addEmployee, toast, reset]);
 
   const onEditSubmit: SubmitHandler<EmployeeFormValues> = useCallback((data) => {
     if (!employeeToEdit) return;
     updateEmployee(employeeToEdit.id, { ...data, hireDate: data.hireDate.toISOString() });
-    // Also update the associated customer record
+    // Also update the associated customer record for name/contact changes
     updateCustomer(employeeToEdit.id, { name: data.name, contact: data.mobileNumber });
     toast({ title: 'Employee Updated', description: "The employee's details have been saved." });
     setEmployeeToEdit(null);
