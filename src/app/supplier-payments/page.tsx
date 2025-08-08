@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Handshake, ListChecks, WalletCards, CreditCard, Wallet, Smartphone, Calendar as CalendarIcon } from 'lucide-react';
+import { Handshake, ListChecks, WalletCards, CreditCard, Wallet, Smartphone, Calendar as CalendarIcon, LayoutDashboard } from 'lucide-react';
 import { format } from 'date-fns';
 import { useSupplierPayments } from '@/hooks/use-supplier-payments';
 import type { PaymentMethod } from '@/lib/types';
@@ -21,6 +21,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useSuppliers } from '@/hooks/use-suppliers';
 import { useCallback, useState, useEffect } from 'react';
+import Link from 'next/link';
 
 const supplierPaymentSchema = z.object({
   supplierId: z.string().min(1, 'Please select a supplier.'),
@@ -189,13 +190,18 @@ export default function SupplierPaymentsPage() {
 
       <div className="lg:col-span-2">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ListChecks /> Payment History
-            </CardTitle>
-            <CardDescription>
-              A record of all payments made to suppliers.
-            </CardDescription>
+          <CardHeader className="flex flex-row justify-between items-start">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <ListChecks /> Payment History
+              </CardTitle>
+              <CardDescription>
+                A record of all payments made to suppliers.
+              </CardDescription>
+            </div>
+             <Button asChild variant="outline">
+                <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
+            </Button>
           </CardHeader>
           <CardContent>
             {supplierPayments.length > 0 ? (

@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { HandCoins, ListChecks, WalletCards, CreditCard, Wallet, Smartphone, Calendar as CalendarIcon, AlertTriangle, Trash2 } from 'lucide-react';
+import { HandCoins, ListChecks, WalletCards, CreditCard, Wallet, Smartphone, Calendar as CalendarIcon, AlertTriangle, Trash2, LayoutDashboard } from 'lucide-react';
 import type { PaymentMethod, CustomerPayment } from '@/lib/types';
 import { format } from 'date-fns';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { useCustomers } from '@/hooks/use-customers';
 import { useCustomerBalance } from '@/hooks/use-customer-balance';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import Link from 'next/link';
 
 const paymentSchema = z.object({
   customerId: z.string().min(1, 'Please select a customer.'),
@@ -223,13 +224,18 @@ export default function CustomerPaymentsPage() {
 
       <div className="lg:col-span-2">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ListChecks /> Payment History
-            </CardTitle>
-            <CardDescription>
-              A record of all payments received from customers.
-            </CardDescription>
+          <CardHeader className="flex flex-row justify-between items-start">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <ListChecks /> Payment History
+              </CardTitle>
+              <CardDescription>
+                A record of all payments received from customers.
+              </CardDescription>
+            </div>
+             <Button asChild variant="outline">
+                <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
+            </Button>
           </CardHeader>
           <CardContent>
             {customerPayments.length > 0 ? (

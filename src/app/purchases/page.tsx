@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingCart, Package, Truck, Calendar as CalendarIcon, PlusCircle, Trash2 } from 'lucide-react';
+import { ShoppingCart, Package, Truck, Calendar as CalendarIcon, PlusCircle, Trash2, LayoutDashboard } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePurchases } from '@/hooks/use-purchases';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -22,6 +22,7 @@ import { useSuppliers } from '@/hooks/use-suppliers';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { useProducts } from '@/hooks/use-products';
+import Link from 'next/link';
 
 const purchaseItemSchema = z.object({
   productId: z.string().min(1, 'Product is required.'),
@@ -301,13 +302,18 @@ export default function PurchasesPage() {
 
       <div className="lg:col-span-2">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ShoppingCart /> Purchase History
-            </CardTitle>
-            <CardDescription>
-              A record of all incoming stock and product deliveries.
-            </CardDescription>
+          <CardHeader className="flex flex-row justify-between items-start">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <ShoppingCart /> Purchase History
+              </CardTitle>
+              <CardDescription>
+                A record of all incoming stock and product deliveries.
+              </CardDescription>
+            </div>
+             <Button asChild variant="outline">
+                <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
+            </Button>
           </CardHeader>
           <CardContent>
             {purchases.length > 0 ? (

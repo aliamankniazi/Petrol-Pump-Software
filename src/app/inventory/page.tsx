@@ -2,7 +2,7 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package, Droplets } from 'lucide-react';
+import { Package, Droplets, LayoutDashboard } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import type { Product } from '@/lib/types';
@@ -24,13 +24,18 @@ export default function InventoryPage() {
   return (
     <div className="p-4 md:p-8">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package /> Product Inventory
-          </CardTitle>
-          <CardDescription>
-            Current stock levels for all products.
-          </CardDescription>
+        <CardHeader className="flex flex-row justify-between items-start">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Package /> Product Inventory
+            </CardTitle>
+            <CardDescription>
+              Current stock levels for all products.
+            </CardDescription>
+          </div>
+           <Button asChild variant="outline">
+              <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
+          </Button>
         </CardHeader>
         <CardContent className="space-y-6">
           {!isLoaded ? (

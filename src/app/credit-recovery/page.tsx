@@ -15,9 +15,10 @@ import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, FileText, Printer, Search } from 'lucide-react';
+import { Calendar as CalendarIcon, FileText, Printer, Search, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Customer } from '@/lib/types';
+import Link from 'next/link';
 
 
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -130,12 +131,19 @@ Mianwali Petroleum Service`;
         <div className="p-4 md:p-8 space-y-6 watermark-container">
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <FileText /> Customer Credit Recovery Report
-                    </CardTitle>
-                    <CardDescription>
-                        View sales, recoveries, and balances for customers within a specific date range.
-                    </CardDescription>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <CardTitle className="flex items-center gap-2">
+                                <FileText /> Customer Credit Recovery Report
+                            </CardTitle>
+                            <CardDescription>
+                                View sales, recoveries, and balances for customers within a specific date range.
+                            </CardDescription>
+                        </div>
+                        <Button asChild variant="outline">
+                            <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
+                        </Button>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <div className="bg-muted p-4 rounded-lg flex flex-col md:flex-row items-center gap-4">

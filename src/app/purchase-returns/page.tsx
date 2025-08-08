@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Undo2, PackageMinus, ListRestart, Calendar as CalendarIcon } from 'lucide-react';
+import { Undo2, PackageMinus, ListRestart, Calendar as CalendarIcon, LayoutDashboard } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { useSuppliers } from '@/hooks/use-suppliers';
 import { useState, useEffect } from 'react';
 import { useProducts } from '@/hooks/use-products';
+import Link from 'next/link';
 
 const purchaseReturnSchema = z.object({
   supplierId: z.string().min(1, 'Please select a supplier.'),
@@ -204,13 +205,18 @@ export default function PurchaseReturnsPage() {
 
       <div className="lg:col-span-2">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ListRestart /> Return History
-            </CardTitle>
-            <CardDescription>
-              A record of all product returns to suppliers.
-            </CardDescription>
+          <CardHeader className="flex flex-row justify-between items-start">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <ListRestart /> Return History
+              </CardTitle>
+              <CardDescription>
+                A record of all product returns to suppliers.
+              </CardDescription>
+            </div>
+             <Button asChild variant="outline">
+                <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
+            </Button>
           </CardHeader>
           <CardContent>
             {purchaseReturns.length > 0 ? (

@@ -17,8 +17,10 @@ import {
   ArrowRight,
   TrendingUp,
   FileText as ReportsIcon,
+  LayoutDashboard,
 } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 const reportLinks = [
   {
@@ -75,11 +77,16 @@ export default function ReportsPage() {
   return (
     <div className="p-4 md:p-8">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><ReportsIcon /> Reports Hub</CardTitle>
-          <CardDescription>
-            Select a report to view detailed analytics about your business operations.
-          </CardDescription>
+        <CardHeader className="flex flex-row justify-between items-start">
+          <div>
+            <CardTitle className="flex items-center gap-2"><ReportsIcon /> Reports Hub</CardTitle>
+            <CardDescription>
+              Select a report to view detailed analytics about your business operations.
+            </CardDescription>
+          </div>
+           <Button asChild variant="outline">
+              <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
+          </Button>
         </CardHeader>
         <CardContent className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {reportLinks.map((report) => (

@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Landmark, List, PlusCircle, Edit, Trash2, AlertTriangle } from 'lucide-react';
+import { Landmark, List, PlusCircle, Edit, Trash2, AlertTriangle, LayoutDashboard } from 'lucide-react';
 import { format } from 'date-fns';
 import { useBankAccounts } from '@/hooks/use-bank-accounts';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -18,6 +18,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useState, useEffect, useCallback } from 'react';
 import type { BankAccount } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
 
 const bankAccountSchema = z.object({
   bankName: z.string().min(1, 'Bank name is required'),
@@ -120,13 +121,18 @@ export default function BankManagementPage() {
 
       <div className="lg:col-span-2">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <List /> Bank Accounts
-            </CardTitle>
-            <CardDescription>
-              A record of all your registered bank accounts.
-            </CardDescription>
+          <CardHeader className="flex flex-row justify-between items-start">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <List /> Bank Accounts
+              </CardTitle>
+              <CardDescription>
+                A record of all your registered bank accounts.
+              </CardDescription>
+            </div>
+             <Button asChild variant="outline">
+                <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
+            </Button>
           </CardHeader>
           <CardContent>
             {!isLoaded ? (

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { Archive, XCircle, Printer, Trash2, AlertTriangle } from 'lucide-react';
+import { Archive, XCircle, Printer, Trash2, AlertTriangle, LayoutDashboard } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
 import { usePurchases } from '@/hooks/use-purchases';
 import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
@@ -180,12 +180,17 @@ export default function AllTransactionsPage() {
                 </CardTitle>
                 <CardDescription>A unified record of all sales, purchases, and returns.</CardDescription>
             </div>
-            <Input 
-                placeholder="Search by partner, type, details..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-sm"
-            />
+            <div className='flex gap-2 items-center'>
+                 <Input 
+                    placeholder="Search by partner, type, details..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="max-w-sm"
+                />
+                <Button asChild variant="outline">
+                    <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
+                </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
