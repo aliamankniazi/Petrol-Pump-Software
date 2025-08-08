@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Settings, Trash2, AlertTriangle, Droplets, Package, Edit, Truck, UserPlus, BookText, PlusCircle } from 'lucide-react';
+import { Settings, Trash2, AlertTriangle, Droplets, Package, Edit, Truck, UserPlus, BookText, PlusCircle, LayoutDashboard } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -217,11 +217,16 @@ export default function SettingsPage() {
     <>
     <div className="p-4 md:p-8">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings /> Settings
-          </CardTitle>
-          <CardDescription>Customize application settings, products, suppliers, and more.</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Settings /> Settings
+            </CardTitle>
+            <CardDescription>Customize application settings, products, suppliers, and more.</CardDescription>
+          </div>
+          <Button asChild variant="outline">
+              <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
+          </Button>
         </CardHeader>
         <CardContent className="space-y-8">
         
@@ -252,7 +257,7 @@ export default function SettingsPage() {
                                         <Label>Company/Manufacturer</Label>
                                         <Controller name="companyId" control={controlProduct} render={({ field }) => (
                                             <Select onValueChange={field.onChange} value={field.value} defaultValue="">
-                                                <SelectTrigger><SelectValue placeholder="Select a company"/></SelectTrigger>
+                                                <SelectTrigger><SelectValue placeholder="Select a supplier"/></SelectTrigger>
                                                 <SelectContent>
                                                     {suppliersLoaded ? suppliers.map(s => <SelectItem key={s.id} value={s.id!}>{s.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
                                                 </SelectContent>
@@ -431,5 +436,3 @@ export default function SettingsPage() {
     </>
   );
 }
-
-    
