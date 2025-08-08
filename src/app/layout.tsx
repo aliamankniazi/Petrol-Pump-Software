@@ -1,12 +1,8 @@
 
-'use client';
-
 import * as React from 'react';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google';
-import { AppLayout } from '@/components/app-layout';
-import { usePathname } from 'next/navigation';
 import { ThemeScript } from '@/components/theme-script';
 import { DataProvider } from '@/hooks/use-database';
 import { isFirebaseConfigured } from '@/lib/firebase-client';
@@ -34,9 +30,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <DataProvider key={isFirebaseConfigured() ? 'configured' : 'not-configured'}>
-            <AppLayout>
-              {children}
-            </AppLayout>
+            {children}
         </DataProvider>
         <Toaster />
       </body>
