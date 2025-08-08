@@ -65,7 +65,7 @@ export default function SalePage() {
   const watchedItems = watch('items');
   const watchedCustomerId = watch('customerId');
   const watchedPaymentMethod = watch('paymentMethod');
-  const { balance: customerBalance, isLoaded: balanceLoaded } = useCustomerBalance(watchedCustomerId || null);
+  const { balance: customerBalance, isLoaded: balanceLoaded } = useCustomerBalance(watchedCustomerId === 'walk-in' ? null : watchedCustomerId || null);
 
   useEffect(() => {
     const subscription = watch((value) => setFormState(value as Partial<SaleFormValues>));
@@ -98,7 +98,8 @@ export default function SalePage() {
   }
 
   const onSubmit: SubmitHandler<SaleFormValues> = (data) => {
-    const customer = customers.find(c => c.id === data.customerId);
+    const isWalkIn = data.customerId === 'walk-in';
+    const customer = !isWalkIn ? customers.find(c => c.id === data.customerId) : null;
     const bankAccount = bankAccounts.find(b => b.id === data.bankAccountId);
 
     const itemsWithNames = data.items.map(item => {
@@ -111,7 +112,7 @@ export default function SalePage() {
       totalAmount,
       paymentMethod: data.paymentMethod,
       timestamp: new Date().toISOString(),
-      customerId: data.customerId,
+      customerId: isWalkIn ? undefined : data.customerId,
       customerName: customer?.name,
       bankAccountId: data.bankAccountId,
       bankAccountName: bankAccount?.bankName,
@@ -196,14 +197,14 @@ export default function SalePage() {
                     <Select onValueChange={field.onChange} value={field.value} defaultValue="">
                       <SelectTrigger><SelectValue placeholder="Select Customer (or leave for Walk-in)" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Walk-in Customer</SelectItem>
+                        <SelectItem value="walk-in">Walk-in Customer</SelectItem>
                         {customersLoaded ? customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
                       </SelectContent>
                     </Select>
                   )} />
                 </div>
                 
-                {watchedCustomerId && (
+                {watchedCustomerId && watchedCustomerId !== 'walk-in' && (
                   <Card className="bg-muted/40 p-4">
                     <CardHeader className="p-0 pb-2">
                       <CardTitle className="text-md">Customer Balance</CardTitle>
