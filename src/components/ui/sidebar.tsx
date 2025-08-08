@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -55,7 +56,7 @@ const SidebarProvider = React.forwardRef<
 >(
   (
     {
-      defaultOpen = true,
+      defaultOpen: defaultOpenProp = true,
       open: openProp,
       onOpenChange: setOpenProp,
       className,
@@ -66,6 +67,19 @@ const SidebarProvider = React.forwardRef<
     ref
   ) => {
     const [openMobile, setOpenMobile] = React.useState(false)
+
+    const defaultOpen = React.useMemo(() => {
+        if (typeof window === "undefined") {
+            return defaultOpenProp;
+        }
+        const cookieValue = document.cookie
+            .split("; ")
+            .find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
+            ?.split("=")[1];
+
+        return cookieValue ? cookieValue === "true" : defaultOpenProp;
+    }, [defaultOpenProp]);
+
 
     // This is the internal state of the sidebar.
     // We use openProp and setOpenProp for control from outside the component.
