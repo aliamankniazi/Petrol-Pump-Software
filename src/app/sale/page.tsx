@@ -46,7 +46,7 @@ type SaleFormValues = z.infer<typeof saleSchema>;
 const LOCAL_STORAGE_KEY = 'global-transaction-date';
 
 export default function SalePage() {
-  const { addTransaction } = useTransactions();
+  const { transactions, addTransaction } = useTransactions();
   const { customers, isLoaded: customersLoaded } = useCustomers();
   const { products, isLoaded: productsLoaded } = useProducts();
   const { bankAccounts, isLoaded: bankAccountsLoaded } = useBankAccounts();
@@ -109,10 +109,22 @@ export default function SalePage() {
   const handleProductChange = (index: number, productId: string) => {
     const product = products.find(p => p.id === productId);
     if (product) {
-      setValue(`items.${index}.pricePerUnit`, product.tradePrice || 0, { shouldValidate: true });
+      const lastSaleOfProduct = transactions
+          .filter(t => t.items.some(item => item.productId === productId))
+          .sort((a,b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime())[0];
+      
+      let lastPrice = product.tradePrice || 0;
+      if (lastSaleOfProduct) {
+          const lastItem = lastSaleOfProduct.items.find(item => item.productId === productId);
+          if (lastItem) {
+              lastPrice = lastItem.pricePerUnit;
+          }
+      }
+      
+      setValue(`items.${index}.pricePerUnit`, lastPrice, { shouldValidate: true });
       const quantity = watch(`items.${index}.quantity`);
       if (quantity > 0) {
-        setValue(`items.${index}.totalAmount`, quantity * (product.tradePrice || 0), { shouldValidate: true });
+        setValue(`items.${index}.totalAmount`, quantity * lastPrice, { shouldValidate: true });
       }
     }
   };

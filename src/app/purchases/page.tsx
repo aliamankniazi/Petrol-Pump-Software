@@ -169,10 +169,23 @@ export default function PurchasesPage() {
   const createProductChangeHandler = (formControl: typeof setValue | typeof setEditValue, formWatch: typeof watch | typeof watchEdit) => (index: number, productId: string) => {
     const product = products.find(p => p.id === productId);
     if (product) {
-        formControl(`items.${index}.costPerUnit`, product.purchasePrice || 0, { shouldValidate: true });
+        // Find the last purchase for this product
+        const lastPurchaseOfProduct = purchases
+            .filter(p => p.items.some(item => item.productId === productId))
+            .sort((a,b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime())[0];
+        
+        let lastPrice = product.purchasePrice || 0;
+        if(lastPurchaseOfProduct) {
+            const lastItem = lastPurchaseOfProduct.items.find(item => item.productId === productId);
+            if(lastItem) {
+                lastPrice = lastItem.costPerUnit;
+            }
+        }
+        
+        formControl(`items.${index}.costPerUnit`, lastPrice, { shouldValidate: true });
         const quantity = formWatch(`items.${index}.quantity`);
         if (quantity > 0) {
-            formControl(`items.${index}.totalCost`, quantity * (product.purchasePrice || 0), { shouldValidate: true });
+            formControl(`items.${index}.totalCost`, quantity * lastPrice, { shouldValidate: true });
         }
     }
   };
