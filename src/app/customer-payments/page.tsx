@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -85,7 +85,7 @@ export default function CustomerPaymentsPage() {
     });
     const lastDate = watch('date');
     reset({ customerId: '', amount: 0, date: lastDate, paymentMethod: 'Cash' });
-  }, [customers, addCustomerPayment, toast, reset]);
+  }, [customers, addCustomerPayment, toast, reset, watch]);
   
   const handleDeletePayment = useCallback(() => {
     if (!paymentToDelete) return;
