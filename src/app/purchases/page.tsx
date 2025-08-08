@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingCart, Package, Truck, Calendar as CalendarIcon, PlusCircle, Trash2, LayoutDashboard, AlertTriangle } from 'lucide-react';
+import { ShoppingCart, Package, Truck, Calendar as CalendarIcon, PlusCircle, Trash2, LayoutDashboard, AlertTriangle, Edit } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePurchases } from '@/hooks/use-purchases';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -40,6 +40,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 const purchaseItemSchema = z.object({
   productId: z.string().min(1, 'Product is required.'),
+  productName: z.string().optional(), // Added for edit form
   quantity: z.coerce.number().min(0.01, 'Quantity must be positive.'),
   costPerUnit: z.coerce.number().min(0, "Cost must be non-negative."),
   totalCost: z.coerce.number().min(0.01, 'Cost must be positive.'),
@@ -64,12 +65,13 @@ type SupplierFormValues = z.infer<typeof supplierSchema>;
 const LOCAL_STORAGE_KEY = 'global-transaction-date';
 
 export default function PurchasesPage() {
-  const { purchases, addPurchase, deletePurchase } = usePurchases();
+  const { purchases, addPurchase, updatePurchase, deletePurchase } = usePurchases();
   const { suppliers, addSupplier, isLoaded: suppliersLoaded } = useSuppliers();
   const { products, isLoaded: productsLoaded } = useProducts();
   const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
+  const [purchaseToEdit, setPurchaseToEdit] = useState<Purchase | null>(null);
   const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null);
 
   useEffect(() => {
@@ -81,24 +83,51 @@ export default function PurchasesPage() {
     defaultValues: {
       items: [{ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 }],
       expenses: 0,
-      date: new Date()
     }
   });
+  
+  const { 
+      control: controlEdit, 
+      handleSubmit: handleSubmitEdit, 
+      reset: resetEdit, 
+      watch: watchEdit,
+      setValue: setEditValue,
+      formState: { errors: editErrors }
+  } = useForm<PurchaseFormValues>({
+    resolver: zodResolver(purchaseSchema),
+  });
+  
+  const { fields, append, remove } = useFieldArray({ control, name: 'items' });
+  const { fields: editFields, append: appendEdit, remove: removeEdit } = useFieldArray({ control: controlEdit, name: 'items' });
+
+  useEffect(() => {
+    if (purchaseToEdit) {
+      resetEdit({
+        supplierId: purchaseToEdit.supplierId,
+        date: new Date(purchaseToEdit.timestamp!),
+        expenses: purchaseToEdit.expenses || 0,
+        notes: purchaseToEdit.notes || '',
+        items: purchaseToEdit.items.map(item => ({...item}))
+      });
+    }
+  }, [purchaseToEdit, resetEdit]);
 
   useEffect(() => {
     const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
     if(storedDate && isClient) {
-      setValue('date', new Date(storedDate));
+      const date = new Date(storedDate);
+      setValue('date', date);
+      setEditValue('date', date);
+    } else if(isClient) {
+        const today = new Date();
+        setValue('date', today);
+        setEditValue('date', today);
     }
-  }, [setValue, isClient]);
+  }, [setValue, setEditValue, isClient]);
 
-
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'items',
-  });
 
   const watchedItems = watch('items');
+  const watchedEditItems = watchEdit('items');
   const selectedDate = watch('date');
   const watchedSupplierId = watch('supplierId');
   const watchedExpenses = watch('expenses') || 0;
@@ -115,6 +144,11 @@ export default function PurchasesPage() {
     return watchedItems.reduce((sum, item) => sum + (item.totalCost || 0), 0);
   }, [watchedItems]);
 
+  const totalEditCost = useMemo(() => {
+    if (!watchedEditItems) return 0;
+    return watchedEditItems.reduce((sum, item) => sum + (item.totalCost || 0), 0);
+  }, [watchedEditItems]);
+
   const {
     register: registerSupplier,
     handleSubmit: handleSubmitSupplier,
@@ -130,26 +164,34 @@ export default function PurchasesPage() {
     }
   }, [fields.length, append]);
   
-  const handleProductChange = (index: number, productId: string) => {
+  const createProductChangeHandler = (formControl: typeof setValue | typeof setEditValue, formWatch: typeof watch | typeof watchEdit) => (index: number, productId: string) => {
     const product = products.find(p => p.id === productId);
     if (product) {
-      setValue(`items.${index}.costPerUnit`, product.purchasePrice || 0, { shouldValidate: true });
-      const quantity = watch(`items.${index}.quantity`);
-      if (quantity > 0) {
-        setValue(`items.${index}.totalCost`, quantity * (product.purchasePrice || 0), { shouldValidate: true });
-      }
+        formControl(`items.${index}.costPerUnit`, product.purchasePrice || 0, { shouldValidate: true });
+        const quantity = formWatch(`items.${index}.quantity`);
+        if (quantity > 0) {
+            formControl(`items.${index}.totalCost`, quantity * (product.purchasePrice || 0), { shouldValidate: true });
+        }
     }
   };
 
-  const handleQuantityChange = (index: number, quantity: number) => {
-    const costPerUnit = watch(`items.${index}.costPerUnit`);
-    setValue(`items.${index}.totalCost`, quantity * costPerUnit, { shouldValidate: true });
+  const createQuantityChangeHandler = (formControl: typeof setValue | typeof setEditValue, formWatch: typeof watch | typeof watchEdit) => (index: number, quantity: number) => {
+    const costPerUnit = formWatch(`items.${index}.costPerUnit`);
+    formControl(`items.${index}.totalCost`, quantity * costPerUnit, { shouldValidate: true });
   }
 
-  const handleCostPerUnitChange = (index: number, cost: number) => {
-    const quantity = watch(`items.${index}.quantity`);
-    setValue(`items.${index}.totalCost`, quantity * cost, { shouldValidate: true });
+  const createCostPerUnitChangeHandler = (formControl: typeof setValue | typeof setEditValue, formWatch: typeof watch | typeof watchEdit) => (index: number, cost: number) => {
+    const quantity = formWatch(`items.${index}.quantity`);
+    formControl(`items.${index}.totalCost`, quantity * cost, { shouldValidate: true });
   }
+
+  const handleProductChange = createProductChangeHandler(setValue, watch);
+  const handleQuantityChange = createQuantityChangeHandler(setValue, watch);
+  const handleCostPerUnitChange = createCostPerUnitChangeHandler(setValue, watch);
+
+  const handleEditProductChange = createProductChangeHandler(setEditValue, watchEdit);
+  const handleEditQuantityChange = createQuantityChangeHandler(setEditValue, watchEdit);
+  const handleEditCostPerUnitChange = createCostPerUnitChangeHandler(setEditValue, watchEdit);
 
   const onPurchaseSubmit: SubmitHandler<PurchaseFormValues> = (data) => {
     const supplier = suppliers.find(s => s.id === data.supplierId);
@@ -166,7 +208,7 @@ export default function PurchasesPage() {
     addPurchase({
       ...data,
       items: itemsWithNames,
-      supplier: supplier.name, // Pass the name for display purposes
+      supplier: supplier.name, 
       timestamp: data.date.toISOString(),
       totalCost,
       expenses: data.expenses,
@@ -185,6 +227,36 @@ export default function PurchasesPage() {
     });
   };
   
+  const onEditSubmit: SubmitHandler<PurchaseFormValues> = (data) => {
+      if (!purchaseToEdit) return;
+      const supplier = suppliers.find(s => s.id === data.supplierId);
+      if (!supplier) return;
+  
+      const itemsWithNames = data.items.map(item => {
+          const product = products.find(p => p.id === item.productId);
+          return {
+              ...item,
+              productName: product?.name || 'Unknown Product',
+          }
+      });
+  
+      const updatedPurchase = {
+        ...data,
+        items: itemsWithNames,
+        supplier: supplier.name,
+        timestamp: data.date.toISOString(),
+        totalCost: totalEditCost,
+      };
+      
+      updatePurchase(purchaseToEdit.id!, purchaseToEdit, updatedPurchase);
+      
+      toast({
+        title: 'Purchase Updated',
+        description: `The purchase from ${supplier.name} has been updated.`,
+      });
+      setPurchaseToEdit(null);
+  }
+  
   const onSupplierSubmit: SubmitHandler<SupplierFormValues> = useCallback((data) => {
     addSupplier(data);
     toast({
@@ -197,7 +269,7 @@ export default function PurchasesPage() {
 
   const handleDeletePurchase = useCallback(() => {
     if (!purchaseToDelete) return;
-    deletePurchase(purchaseToDelete.id!);
+    deletePurchase(purchaseToDelete);
     toast({
         title: 'Purchase Deleted',
         description: 'The purchase record has been removed.',
@@ -265,7 +337,7 @@ export default function PurchasesPage() {
                     </Card>
                 ))}
             </div>
-            {errors.items && <p className="text-sm text-destructive">{errors.items.message}</p>}
+            {errors.items && typeof errors.items !== 'undefined' && 'message' in errors.items && <p className="text-sm text-destructive">{errors.items.message}</p>}
              <Button type="button" variant="outline" onClick={() => append({ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 })} className="w-full"><PlusCircle /> Add Another Product</Button>
             </div>
           </CardContent>
@@ -433,8 +505,11 @@ export default function PurchasesPage() {
                           </ul>
                         </TableCell>
                         <TableCell className="text-right font-mono font-semibold">PKR {p.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                        <TableCell className="text-center">
-                            <Button variant="ghost" size="icon" title="Delete" className="text-destructive hover:text-destructive" onClick={() => setPurchaseToDelete(p)}>
+                        <TableCell className="text-center space-x-0">
+                            <Button variant="ghost" size="icon" title="Edit" onClick={() => setPurchaseToEdit(p)}>
+                                <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" title="Delete" className="text-destructive hover:text-destructive" onClick={() => setPurchaseToEdit(p)}>
                                 <Trash2 className="w-4 h-4" />
                             </Button>
                         </TableCell>
@@ -478,6 +553,93 @@ export default function PurchasesPage() {
                 <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setIsAddSupplierOpen(false)}>Cancel</Button>
                     <Button type="submit">Save Supplier</Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+    </Dialog>
+    
+    <Dialog open={!!purchaseToEdit} onOpenChange={(isOpen) => !isOpen && setPurchaseToEdit(null)}>
+        <DialogContent className="max-w-4xl">
+            <form onSubmit={handleSubmitEdit(onEditSubmit)}>
+                <DialogHeader>
+                    <DialogTitle>Edit Purchase Invoice</DialogTitle>
+                    <DialogDescription>
+                        Update the details for this purchase. Inventory will be adjusted accordingly.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-6">
+                    <div className="grid lg:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Supplier</Label>
+                            <Controller name="supplierId" control={controlEdit} render={({ field }) => (
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <SelectTrigger><SelectValue/></SelectTrigger>
+                                    <SelectContent>
+                                        {suppliersLoaded ? suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
+                                    </SelectContent>
+                                </Select>
+                            )}/>
+                            {editErrors.supplierId && <p className="text-sm text-destructive">{editErrors.supplierId.message}</p>}
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Date</Label>
+                            {isClient && <Controller name="date" control={controlEdit} render={({ field }) => (
+                                <Popover>
+                                    <PopoverTrigger asChild><Button variant="outline" className={cn("w-full justify-start", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} /></PopoverContent>
+                                </Popover>
+                            )}/>}
+                            {editErrors.date && <p className="text-sm text-destructive">{editErrors.date.message}</p>}
+                        </div>
+                         <div className="space-y-2">
+                            <Label>Purchase Notes</Label>
+                            <Textarea {...(registerEdit('notes'))} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Purchase Expenses</Label>
+                            <Input type="number" {...(registerEdit('expenses'))} />
+                        </div>
+                    </div>
+                    <Separator/>
+                    <h4 className="text-lg font-medium">Items</h4>
+                    <div className="space-y-4">
+                        {editFields.map((field, index) => (
+                             <Card key={field.id} className="p-4 relative bg-muted/40">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div className="md:col-span-2 space-y-2">
+                                        <Label>Product</Label>
+                                        <Controller name={`items.${index}.productId`} control={controlEdit} render={({ field }) => (
+                                            <Select onValueChange={(val) => { field.onChange(val); handleEditProductChange(index, val); }} value={field.value}>
+                                                <SelectTrigger><SelectValue/></SelectTrigger>
+                                                <SelectContent>
+                                                    {productsLoaded ? products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
+                                                </SelectContent>
+                                            </Select>
+                                        )}/>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Quantity</Label>
+                                        <Input type="number" {...(registerEdit(`items.${index}.quantity`))} step="0.01" onChange={(e) => handleEditQuantityChange(index, +e.target.value)} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Cost / Unit</Label>
+                                        <Input type="number" {...(registerEdit(`items.${index}.costPerUnit`))} step="0.01" onChange={(e) => handleEditCostPerUnitChange(index, +e.target.value)} />
+                                    </div>
+                                </div>
+                                <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 w-6 h-6" onClick={() => removeEdit(index)}><Trash2 className="w-4 h-4" /></Button>
+                            </Card>
+                        ))}
+                    </div>
+                    <Button type="button" variant="outline" onClick={() => appendEdit({ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 })}><PlusCircle /> Add Another Product</Button>
+                </div>
+                <DialogFooter>
+                    <div className="w-full flex justify-between items-center">
+                        <span className="text-xl font-bold">Total: PKR {totalEditCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                        <div>
+                            <Button type="button" variant="outline" onClick={() => setPurchaseToEdit(null)}>Cancel</Button>
+                            <Button type="submit" className="ml-2">Save Changes</Button>
+                        </div>
+                    </div>
                 </DialogFooter>
             </form>
         </DialogContent>
