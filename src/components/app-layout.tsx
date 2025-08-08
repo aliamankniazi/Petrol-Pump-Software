@@ -24,56 +24,56 @@ import { FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, User
 
 
 const navItems = [
-  { href: '/dashboard/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { 
     label: 'Sales & Ledger',
     icon: HandCoins,
     subItems: [
-        { href: '/', label: 'New Sale', icon: Fuel },
-        { href: '/all-transactions/', label: 'All Transactions', icon: Archive },
-        { href: '/partner-ledger/', label: 'Unified Ledger', icon: BookOpen },
-        { href: '/credit-recovery/', label: 'Credit Recovery', icon: BarChartHorizontal },
-        { href: '/cash-advances/', label: 'Cash Advances', icon: ArrowRightLeft },
+        { href: '/sale', label: 'New Sale', icon: Fuel },
+        { href: '/all-transactions', label: 'All Transactions', icon: Archive },
+        { href: '/partner-ledger', label: 'Unified Ledger', icon: BookOpen },
+        { href: '/credit-recovery', label: 'Credit Recovery', icon: BarChartHorizontal },
+        { href: '/cash-advances', label: 'Cash Advances', icon: ArrowRightLeft },
     ]
   },
   {
     label: 'Purchases & Suppliers',
     icon: ShoppingCart,
     subItems: [
-        { href: '/purchases/', label: 'Purchases', icon: ShoppingCart },
-        { href: '/supplier-payments/', label: 'Supplier Payments', icon: Handshake },
-        { href: '/purchase-returns/', label: 'Purchase Returns', icon: Undo2 },
+        { href: '/purchases', label: 'Purchases', icon: ShoppingCart },
+        { href: '/supplier-payments', label: 'Supplier Payments', icon: Handshake },
+        { href: '/purchase-returns', label: 'Purchase Returns', icon: Undo2 },
     ]
   },
   {
     label: 'People & Partners',
     icon: Users,
     subItems: [
-        { href: '/customers/', label: 'Customers & Partners', icon: Users },
-        { href: '/employees/', label: 'Employees', icon: Briefcase },
-        { href: '/investments/', label: 'Partner Investments', icon: PiggyBank },
+        { href: '/customers', label: 'Customers & Partners', icon: Users },
+        { href: '/employees', label: 'Employees', icon: Briefcase },
+        { href: '/investments', label: 'Partner Investments', icon: PiggyBank },
     ]
   },
   { 
     label: 'Inventory',
     icon: Package,
     subItems: [
-        { href: '/inventory/', label: 'Stock Levels', icon: Package },
-        { href: '/tanks/', label: 'Machine Reading', icon: Beaker },
+        { href: '/inventory', label: 'Stock Levels', icon: Package },
+        { href: '/tanks', label: 'Machine Reading', icon: Beaker },
     ]
   },
   {
     label: 'Financials',
     icon: DollarSign,
     subItems: [
-      { href: '/expenses/', label: 'Expenses', icon: Receipt },
-      { href: '/other-incomes/', label: 'Other Incomes', icon: DollarSign },
-      { href: '/bank-management/', label: 'Bank Management', icon: Landmark },
-      { href: '/ledger/', label: 'General Journal', icon: BookOpen },
+      { href: '/expenses', label: 'Expenses', icon: Receipt },
+      { href: '/other-incomes', label: 'Other Incomes', icon: DollarSign },
+      { href: '/bank-management', label: 'Bank Management', icon: Landmark },
+      { href: '/ledger', label: 'General Journal', icon: BookOpen },
     ]
   },
-  { href: '/reports/', label: 'Reports', icon: FileText },
-  { href: '/settings/', label: 'Settings', icon: Settings },
+  { href: '/reports', label: 'Reports', icon: FileText },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 const AppLogo = () => (
