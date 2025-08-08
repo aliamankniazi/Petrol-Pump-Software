@@ -6,8 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Check, X, Minus, Calendar as CalendarIcon, UserCheck, LayoutDashboard, ChevronLeft, ChevronRight } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDaysInMonth, addMonths, subMonths, addDays } from 'date-fns';
+import { Check, X, Minus, Calendar as CalendarIcon, UserCheck, LayoutDashboard, ChevronLeft, ChevronRight, CircleDot } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDaysInMonth, addMonths, subMonths, addDays, getDay, startOfWeek } from 'date-fns';
 import { useEmployees } from '@/hooks/use-employees';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -17,6 +17,56 @@ import { Label } from '@/components/ui/label';
 import type { AttendanceStatus, Employee } from '@/lib/types';
 import { useAttendance } from '@/hooks/use-attendance';
 import Link from 'next/link';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+const CalendarCell = ({ status }: { status?: AttendanceStatus }) => {
+    let styles = "w-4 h-4 rounded-full";
+    let icon = null;
+    let tooltipText = "No Record";
+
+    switch(status) {
+        case 'Present':
+            styles += " bg-green-500";
+            icon = <Check className="w-3 h-3 text-white"/>;
+            tooltipText = "Present";
+            break;
+        case 'Absent':
+            styles += " bg-red-500";
+            icon = <X className="w-3 h-3 text-white"/>;
+            tooltipText = "Absent";
+            break;
+        case 'Half Day':
+            styles += " bg-yellow-500";
+            icon = <Minus className="w-3 h-3 text-white"/>;
+            tooltipText = "Half Day";
+            break;
+        case 'Paid Leave':
+            styles += " bg-blue-500";
+            icon = <Check className="w-3 h-3 text-white"/>;
+            tooltipText = "Paid Leave";
+            break;
+        default:
+            styles += " bg-gray-200 dark:bg-gray-700";
+            break;
+    }
+
+    return (
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <div className={cn("flex items-center justify-center", styles)}>
+                        {icon}
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>{tooltipText}</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    );
+}
 
 export default function AttendancePage() {
   const { employees, isLoaded: employeesLoaded } = useEmployees();
@@ -105,7 +155,7 @@ export default function AttendancePage() {
                     <TableRow>
                         <TableHead>Employee</TableHead>
                         <TableHead>Attendance Status for {format(selectedDate, 'PPP')}</TableHead>
-                        <TableHead className="text-right">Monthly Summary</TableHead>
+                        <TableHead className="text-right">Monthly Attendance</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -113,16 +163,17 @@ export default function AttendancePage() {
                         const attendanceId = `${employee.id}_${format(selectedDate, 'yyyy-MM-dd')}`;
                         const currentStatus = attendanceByDate.get(attendanceId)?.status;
 
-                        const monthAttendance = currentMonthDays.map(day => {
+                        const monthAttendance = new Map<number, AttendanceStatus>();
+                        currentMonthDays.forEach(day => {
                             const id = `${employee.id}_${format(day, 'yyyy-MM-dd')}`;
-                            return attendanceByDate.get(id)?.status;
+                            const record = attendanceByDate.get(id);
+                            if (record) {
+                                monthAttendance.set(day.getDate(), record.status);
+                            }
                         });
 
-                        const presentDays = monthAttendance.filter(s => s === 'Present').length;
-                        const absentDays = monthAttendance.filter(s => s === 'Absent').length;
-                        const halfDays = monthAttendance.filter(s => s === 'Half Day').length;
-                        const paidLeaves = monthAttendance.filter(s => s === 'Paid Leave').length;
-
+                        const firstDayOfMonth = getDay(startOfMonth(selectedDate));
+                        const calendarDays = Array.from({length: firstDayOfMonth}, () => null).concat(currentMonthDays.map(d => d.getDate()));
 
                         return (
                         <TableRow key={employee.id}>
@@ -152,10 +203,19 @@ export default function AttendancePage() {
                                 </RadioGroup>
                             </TableCell>
                             <TableCell className="text-right">
-                                <div className="flex justify-end gap-2 text-xs">
-                                    <span className="text-green-600 font-semibold">P: {presentDays + paidLeaves}</span>
-                                    <span className="text-destructive font-semibold">A: {absentDays}</span>
-                                    <span className="text-yellow-600 font-semibold">H: {halfDays}</span>
+                                <div className="p-2 bg-muted/50 rounded-md">
+                                    <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-muted-foreground">
+                                        {WEEK_DAYS.map(day => <div key={day}>{day}</div>)}
+                                    </div>
+                                    <div className="grid grid-cols-7 gap-1 mt-1">
+                                        {calendarDays.map((day, index) => (
+                                            <div key={index} className="flex justify-center items-center h-6">
+                                                {day ? (
+                                                    <CalendarCell status={monthAttendance.get(day)} />
+                                                ) : <div />}
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </TableCell>
                         </TableRow>
