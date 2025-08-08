@@ -75,10 +75,10 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id' | 'timestamp'>>
       throw new Error("Database not configured.");
     }
     
-    const docRef = docId ? ref(db, `${collectionName}/${docId}`) : push(ref(db, collectionName));
+    const collectionRef = ref(db, collectionName);
+    const docRef = docId ? ref(db, `${collectionName}/${docId}`) : push(collectionRef);
     const newId = docRef.key!;
     
-    // Create a new object to ensure newData is not mutated, and assign the correct ID.
     const docToWrite = { ...newData, id: newId };
     
     await set(docRef, docToWrite);
