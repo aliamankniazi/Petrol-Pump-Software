@@ -227,7 +227,7 @@ export default function LedgerPage() {
 
   return (
     <>
-    <div className="p-4 md:p-8">
+    <div className="p-4 md:p-8 watermark-container">
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">

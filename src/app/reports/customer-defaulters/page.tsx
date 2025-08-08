@@ -59,7 +59,7 @@ export default function CustomerDefaulterReportPage() {
   }, [customers, transactions, customerPayments, cashAdvances, isDataLoaded]);
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="p-4 md:p-8 watermark-container">
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start">

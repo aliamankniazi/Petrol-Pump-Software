@@ -127,7 +127,7 @@ Mianwali Petroleum Service`;
 
 
     return (
-        <div className="p-4 md:p-8 space-y-6">
+        <div className="p-4 md:p-8 space-y-6 watermark-container">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">

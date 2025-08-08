@@ -106,7 +106,7 @@ export default function SummaryPage() {
   const hasTodayTransactions = isLoaded && transactions.some(tx => isToday(new Date(tx.timestamp!)));
 
   return (
-    <div className="p-4 md:p-8 space-y-8">
+    <div className="p-4 md:p-8 space-y-8 watermark-container">
       <Card>
           <CardHeader>
             <div className="flex justify-between items-start">

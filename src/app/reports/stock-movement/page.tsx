@@ -50,7 +50,7 @@ export default function StockMovementPage() {
   }, [isLoaded, purchases, transactions, purchaseReturns, products]);
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="p-4 md:p-8 watermark-container">
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start">
