@@ -25,6 +25,7 @@ import { useCustomers } from '@/hooks/use-customers';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
 import { useAttendance } from '@/hooks/use-attendance';
+import { useCashAdvances } from '@/hooks/use-cash-advances';
 
 
 const employeeSchema = z.object({
@@ -49,6 +50,7 @@ export default function EmployeesPage() {
   const { addExpense } = useExpenses();
   const { addCustomer, updateCustomer } = useCustomers();
   const { attendance } = useAttendance();
+  const { addCashAdvance } = useCashAdvances();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -140,21 +142,32 @@ export default function EmployeesPage() {
 
     const monthName = months.find(m => m.value === selectedMonth)?.label;
     const expenseDescription = `Salary for ${employeeToPay.name} for ${monthName} ${selectedYear}`;
+    const paymentTimestamp = new Date().toISOString();
 
+    // 1. Log the salary as a business expense
     addExpense({
       description: expenseDescription,
       category: 'Salaries',
       amount: salaryCalculation.payableSalary,
-      timestamp: new Date().toISOString(),
+      timestamp: paymentTimestamp,
+    });
+
+    // 2. Log the payment against the employee's ledger as a cash advance (debit)
+    addCashAdvance({
+        customerId: employeeToPay.id,
+        customerName: employeeToPay.name,
+        amount: salaryCalculation.payableSalary,
+        notes: `Salary for ${monthName} ${selectedYear}`,
+        timestamp: paymentTimestamp,
     });
 
     toast({
-      title: 'Salary Expense Recorded',
-      description: `Salary for ${employeeToPay.name} has been logged as a business expense.`,
+      title: 'Salary Paid',
+      description: `Salary for ${employeeToPay.name} has been logged as an expense and debited from their ledger.`,
     });
 
     setEmployeeToPay(null);
-  }, [employeeToPay, selectedMonth, selectedYear, salaryCalculation, addExpense, toast]);
+  }, [employeeToPay, selectedMonth, selectedYear, salaryCalculation, addExpense, addCashAdvance, toast]);
   
   useEffect(() => {
     if (employeeToEdit) {
