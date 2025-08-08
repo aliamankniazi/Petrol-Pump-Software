@@ -77,6 +77,7 @@ export default function PurchasesPage() {
   const [isEditCalendarOpen, setIsEditCalendarOpen] = useState(false);
   const [purchaseToEdit, setPurchaseToEdit] = useState<Purchase | null>(null);
   const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null);
+  const [lastFocused, setLastFocused] = useState<'quantity' | 'amount'>('quantity');
 
   useEffect(() => {
     setIsClient(true);
@@ -144,6 +145,7 @@ export default function PurchasesPage() {
   }, [selectedDate]);
 
   const totalCost = useMemo(() => {
+    if (!watchedItems) return 0;
     return watchedItems.reduce((sum, item) => sum + (item.totalCost || 0), 0);
   }, [watchedItems]);
 
@@ -167,47 +169,51 @@ export default function PurchasesPage() {
     }
   }, [fields.length, append]);
   
-  const createProductChangeHandler = (formControl: typeof setValue | typeof setEditValue, formWatch: typeof watch | typeof watchEdit) => (index: number, productId: string) => {
-    const product = products.find(p => p.id === productId);
-    if (product) {
-        // Find the last purchase for this product
-        const lastPurchaseOfProduct = purchases
-            .filter(p => p.items.some(item => item.productId === productId))
-            .sort((a,b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime())[0];
-        
-        let lastPrice = product.purchasePrice || 0;
-        if(lastPurchaseOfProduct) {
-            const lastItem = lastPurchaseOfProduct.items.find(item => item.productId === productId);
-            if(lastItem) {
-                lastPrice = lastItem.costPerUnit;
+    const handleProductChange = (index: number, productId: string) => {
+        const product = products.find(p => p.id === productId);
+        if (product) {
+            const lastPurchaseOfProduct = purchases
+                .filter(p => p.items.some(item => item.productId === productId))
+                .sort((a,b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime())[0];
+            
+            let lastPrice = product.purchasePrice || 0;
+            if(lastPurchaseOfProduct) {
+                const lastItem = lastPurchaseOfProduct.items.find(item => item.productId === productId);
+                if(lastItem) {
+                    lastPrice = lastItem.costPerUnit;
+                }
+            }
+            
+            setValue(`items.${index}.costPerUnit`, lastPrice, { shouldValidate: true });
+            const quantity = watch(`items.${index}.quantity`);
+            if (quantity > 0) {
+                setValue(`items.${index}.totalCost`, quantity * lastPrice, { shouldValidate: true });
             }
         }
-        
-        formControl(`items.${index}.costPerUnit`, lastPrice, { shouldValidate: true });
-        const quantity = formWatch(`items.${index}.quantity`);
-        if (quantity > 0) {
-            formControl(`items.${index}.totalCost`, quantity * lastPrice, { shouldValidate: true });
+    };
+    
+    const handleQuantityChange = (index: number, quantity: number) => {
+        if (lastFocused !== 'quantity') return;
+        const costPerUnit = watch(`items.${index}.costPerUnit`);
+        setValue(`items.${index}.quantity`, quantity, { shouldValidate: true });
+        if (costPerUnit > 0) {
+            setValue(`items.${index}.totalCost`, quantity * costPerUnit, { shouldValidate: true });
         }
     }
-  };
+    
+    const handleTotalCostChange = (index: number, cost: number) => {
+        if (lastFocused !== 'amount') return;
+        const costPerUnit = watch(`items.${index}.costPerUnit`);
+        setValue(`items.${index}.totalCost`, cost, { shouldValidate: true });
+        if (costPerUnit > 0) {
+            setValue(`items.${index}.quantity`, cost / costPerUnit, { shouldValidate: true });
+        }
+    }
 
-  const createQuantityChangeHandler = (formControl: typeof setValue | typeof setEditValue, formWatch: typeof watch | typeof watchEdit) => (index: number, quantity: number) => {
-    const costPerUnit = formWatch(`items.${index}.costPerUnit`);
-    formControl(`items.${index}.totalCost`, quantity * costPerUnit, { shouldValidate: true });
+  const handleCostPerUnitChange = (index: number, cost: number) => {
+    const quantity = watch(`items.${index}.quantity`);
+    setValue(`items.${index}.totalCost`, quantity * cost, { shouldValidate: true });
   }
-
-  const createCostPerUnitChangeHandler = (formControl: typeof setValue | typeof setEditValue, formWatch: typeof watch | typeof watchEdit) => (index: number, cost: number) => {
-    const quantity = formWatch(`items.${index}.quantity`);
-    formControl(`items.${index}.totalCost`, quantity * cost, { shouldValidate: true });
-  }
-
-  const handleProductChange = createProductChangeHandler(setValue, watch);
-  const handleQuantityChange = createQuantityChangeHandler(setValue, watch);
-  const handleCostPerUnitChange = createCostPerUnitChangeHandler(setValue, watch);
-
-  const handleEditProductChange = createProductChangeHandler(setEditValue, watchEdit);
-  const handleEditQuantityChange = createQuantityChangeHandler(setEditValue, watchEdit);
-  const handleEditCostPerUnitChange = createCostPerUnitChangeHandler(setEditValue, watchEdit);
 
   const onPurchaseSubmit: SubmitHandler<PurchaseFormValues> = (data) => {
     const supplier = suppliers.find(s => s.id === data.supplierId);
@@ -315,7 +321,7 @@ export default function PurchasesPage() {
               <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
                 {fields.map((field, index) => (
                     <Card key={field.id} className="p-4 relative bg-muted/40">
-                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                             <div className="md:col-span-2 space-y-2">
                                 <Label>Product</Label>
                                 <Controller
@@ -337,18 +343,19 @@ export default function PurchasesPage() {
                             </div>
                              <div className="space-y-2">
                               <Label>Quantity</Label>
-                              <Input type="number" {...register(`items.${index}.quantity`)} placeholder="e.g., 5000" step="0.01" onChange={(e) => handleQuantityChange(index, +e.target.value)} />
+                              <Input type="number" {...register(`items.${index}.quantity`)} placeholder="e.g., 5000" step="0.01" onFocus={() => setLastFocused('quantity')} onChange={(e) => handleQuantityChange(index, +e.target.value)} />
                                {errors.items?.[index]?.quantity && <p className="text-sm text-destructive">{errors.items?.[index]?.quantity?.message}</p>}
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Total Cost</Label>
+                              <Input type="number" {...register(`items.${index}.totalCost`)} placeholder="e.g., 250" step="0.01" onFocus={() => setLastFocused('amount')} onChange={(e) => handleTotalCostChange(index, +e.target.value)} />
+                               {errors.items?.[index]?.totalCost && <p className="text-sm text-destructive">{errors.items?.[index]?.totalCost?.message}</p>}
                             </div>
                             <div className="space-y-2">
                               <Label>Cost / Unit</Label>
                               <Input type="number" {...register(`items.${index}.costPerUnit`)} placeholder="e.g., 250" step="0.01" onChange={(e) => handleCostPerUnitChange(index, +e.target.value)} />
                                {errors.items?.[index]?.costPerUnit && <p className="text-sm text-destructive">{errors.items?.[index]?.costPerUnit?.message}</p>}
                             </div>
-                         </div>
-                         <div className="mt-4 text-right">
-                            <Label>Total Cost for Item</Label>
-                            <p className="text-lg font-semibold">PKR {watchedItems[index]?.totalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '0.00'}</p>
                          </div>
                         <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 w-6 h-6" onClick={() => remove(index)}><Trash2 className="w-4 h-4" /></Button>
                     </Card>
@@ -651,7 +658,7 @@ export default function PurchasesPage() {
                                     <div className="md:col-span-2 space-y-2">
                                         <Label>Product</Label>
                                         <Controller name={`items.${index}.productId`} control={controlEdit} render={({ field }) => (
-                                            <Select onValueChange={(val) => { field.onChange(val); handleEditProductChange(index, val); }} value={field.value}>
+                                            <Select onValueChange={(val) => { field.onChange(val); }} value={field.value}>
                                                 <SelectTrigger><SelectValue/></SelectTrigger>
                                                 <SelectContent>
                                                     {productsLoaded ? products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
@@ -661,11 +668,11 @@ export default function PurchasesPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Quantity</Label>
-                                        <Input type="number" {...registerEdit(`items.${index}.quantity`)} step="0.01" onChange={(e) => handleEditQuantityChange(index, +e.target.value)} />
+                                        <Input type="number" {...registerEdit(`items.${index}.quantity`)} step="0.01" onChange={(e) => {}} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Cost / Unit</Label>
-                                        <Input type="number" {...registerEdit(`items.${index}.costPerUnit`)} step="0.01" onChange={(e) => handleEditCostPerUnitChange(index, +e.target.value)} />
+                                        <Input type="number" {...registerEdit(`items.${index}.costPerUnit`)} step="0.01" onChange={(e) => {}} />
                                     </div>
                                 </div>
                                 <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 w-6 h-6" onClick={() => removeEdit(index)}><Trash2 className="w-4 h-4" /></Button>
@@ -707,4 +714,3 @@ export default function PurchasesPage() {
     </>
   );
 }
-
