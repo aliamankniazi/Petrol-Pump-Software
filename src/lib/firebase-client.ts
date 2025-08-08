@@ -4,19 +4,21 @@ import { getDatabase, type Database } from 'firebase/database';
 import { getAuth, type Auth } from 'firebase/auth';
 
 const firebaseConfig = {
-    apiKey: "AIzaSyCXEB6bHuRf7q9wzAGgYDdvLGqbkPVxpDY",
-    authDomain: "pumppal-n1b9n.firebaseapp.com",
-    databaseURL: "https://pumppal-n1b9n-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "pumppal-n1b9n",
-    storageBucket: "pumppal-n1b9n.appspot.com",
-    messagingSenderId: "539336218754",
-    appId: "1:539336218754:web:1e90dd372f7615d3d33c9b",
-    measurementId: "G-N85T634MQ3"
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    databaseURL: "YOUR_DATABASE_URL",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_STORAGE_BUCKET",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID",
+    measurementId: "YOUR_MEASUREMENT_ID"
 };
 
 // This function checks if the Firebase config has been filled out.
 const isFirebaseConfigured = () => {
-    return firebaseConfig && firebaseConfig.projectId && firebaseConfig.apiKey && firebaseConfig.projectId !== 'pumppal-n1b9n-placeholder';
+    // A basic check to see if the config has been populated.
+    // Replace "YOUR_PROJECT_ID" with an actual check against the placeholder value.
+    return firebaseConfig && firebaseConfig.projectId && firebaseConfig.projectId !== 'YOUR_PROJECT_ID';
 };
 
 let app: FirebaseApp;
