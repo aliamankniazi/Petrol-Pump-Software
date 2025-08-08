@@ -23,7 +23,7 @@ export default function LoginPage() {
     e.preventDefault();
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push('/dashboard');
+      router.push('/');
     } catch (error: any) {
       toast({
         variant: 'destructive',
