@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Fuel, PlusCircle, Trash2, Users, CreditCard, Wallet, Smartphone, Bank, Printer, CheckCircle } from 'lucide-react';
+import { Fuel, PlusCircle, Trash2, Users, CreditCard, Wallet, Smartphone, Landmark, Printer, CheckCircle } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomers } from '@/hooks/use-customers';
@@ -46,6 +46,7 @@ export default function SalePage() {
 
   const [formState, setFormState] = useFormState<Partial<SaleFormValues>>('sale-form', {
     paymentMethod: 'On Credit',
+    customerId: 'walk-in',
   });
 
   const { register, handleSubmit, control, watch, setValue, reset, formState: { errors } } = useForm<SaleFormValues>({
@@ -112,7 +113,7 @@ export default function SalePage() {
       paymentMethod: data.paymentMethod,
       timestamp: new Date().toISOString(),
       customerId: isWalkIn ? undefined : data.customerId,
-      customerName: customer?.name,
+      customerName: isWalkIn ? 'Walk-in Customer' : customer?.name,
       bankAccountId: data.bankAccountId,
       bankAccountName: bankAccount?.bankName,
     });
@@ -227,7 +228,7 @@ export default function SalePage() {
                             <SelectContent>
                                 <SelectItem value="On Credit"><CreditCard className="inline-block mr-2"/>On Credit</SelectItem>
                                 <SelectItem value="Cash"><Wallet className="inline-block mr-2"/>Cash</SelectItem>
-                                <SelectItem value="Card"><Bank className="inline-block mr-2"/>Card</SelectItem>
+                                <SelectItem value="Card"><Landmark className="inline-block mr-2"/>Card</SelectItem>
                                 <SelectItem value="Mobile"><Smartphone className="inline-block mr-2"/>Mobile</SelectItem>
                             </SelectContent>
                         </Select>
@@ -278,5 +279,3 @@ export default function SalePage() {
     </div>
   );
 }
-
-    
