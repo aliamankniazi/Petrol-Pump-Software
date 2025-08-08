@@ -77,6 +77,8 @@ export interface Purchase {
   expenses?: number;
   notes?: string;
   timestamp?: string;
+  paymentMethod?: 'On Credit' | 'Cash' | 'Card' | 'Mobile';
+  paidAmount?: number;
   // Legacy fields
   fuelType?: FuelType;
   volume?: number;

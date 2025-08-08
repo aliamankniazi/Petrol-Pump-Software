@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingCart, Package, Truck, Calendar as CalendarIcon, PlusCircle, Trash2, LayoutDashboard, AlertTriangle, Edit } from 'lucide-react';
+import { ShoppingCart, Package, Truck, Calendar as CalendarIcon, PlusCircle, Trash2, LayoutDashboard, AlertTriangle, Edit, Wallet, CreditCard, Smartphone } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePurchases } from '@/hooks/use-purchases';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -52,6 +52,8 @@ const purchaseSchema = z.object({
   expenses: z.coerce.number().optional(),
   notes: z.string().optional(),
   items: z.array(purchaseItemSchema).min(1, 'At least one item is required.'),
+  paymentMethod: z.enum(['On Credit', 'Cash', 'Card', 'Mobile']).default('On Credit'),
+  paidAmount: z.coerce.number().optional(),
 });
 
 type PurchaseFormValues = z.infer<typeof purchaseSchema>;
@@ -83,6 +85,7 @@ export default function PurchasesPage() {
     defaultValues: {
       items: [{ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 }],
       expenses: 0,
+      paymentMethod: 'On Credit'
     }
   });
   
@@ -108,7 +111,9 @@ export default function PurchasesPage() {
         date: new Date(purchaseToEdit.timestamp!),
         expenses: purchaseToEdit.expenses || 0,
         notes: purchaseToEdit.notes || '',
-        items: purchaseToEdit.items.map(item => ({...item}))
+        items: purchaseToEdit.items.map(item => ({...item})),
+        paymentMethod: purchaseToEdit.paymentMethod || 'On Credit',
+        paidAmount: purchaseToEdit.paidAmount || 0,
       });
     }
   }, [purchaseToEdit, resetEdit]);
@@ -131,7 +136,8 @@ export default function PurchasesPage() {
   const watchedEditItems = watchEdit('items');
   const selectedDate = watch('date');
   const watchedSupplierId = watch('supplierId');
-  const watchedExpenses = watch('expenses') || 0;
+  const watchedPaymentMethod = watch('paymentMethod');
+
   const { balance: supplierBalance, isLoaded: balanceLoaded } = useSupplierBalance(watchedSupplierId || null);
 
   useEffect(() => {
@@ -212,7 +218,6 @@ export default function PurchasesPage() {
       supplier: supplier.name, 
       timestamp: data.date.toISOString(),
       totalCost,
-      expenses: data.expenses,
     });
     toast({
       title: 'Purchase Recorded',
@@ -225,6 +230,8 @@ export default function PurchasesPage() {
         date: lastDate,
         expenses: 0,
         notes: '',
+        paymentMethod: 'On Credit',
+        paidAmount: 0
     });
   };
   
@@ -437,7 +444,7 @@ export default function PurchasesPage() {
                           <Separator/>
                            <div className='flex justify-between font-bold text-base'>
                             <span>New Balance:</span>
-                            <span className={cn(supplierBalance + totalCost >= 0 ? 'text-green-600' : 'text-destructive' )}>PKR {(supplierBalance + totalCost).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            <span className={cn(supplierBalance + totalCost >= 0 ? 'text-green-600' : 'text-destructive' )}>PKR {(supplierBalance + totalCost - (watchedPaymentMethod !== 'On Credit' ? (watch('paidAmount') || 0) : 0)).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                           </div>
                          </>
                        ) : <p>Loading balance...</p>}
@@ -450,9 +457,29 @@ export default function PurchasesPage() {
                         <p className="font-semibold text-primary">PKR {totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="expenses">Other Expenses</Label>
+                      <Label htmlFor="expenses">Other Expenses (Not credited to supplier)</Label>
                       <Input id="expenses" type="number" {...register('expenses')} placeholder="e.g., transportation" step="0.01" />
                     </div>
+                     <div className="space-y-2">
+                        <Label>Payment Method</Label>
+                        <Controller name="paymentMethod" control={control} render={({ field }) => (
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <SelectTrigger><SelectValue placeholder="Select payment method" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="On Credit"><CreditCard className="inline-block mr-2"/>On Credit</SelectItem>
+                                    <SelectItem value="Cash"><Wallet className="inline-block mr-2"/>Cash</SelectItem>
+                                    <SelectItem value="Card"><CreditCard className="inline-block mr-2"/>Card</SelectItem>
+                                    <SelectItem value="Mobile"><Smartphone className="inline-block mr-2"/>Mobile</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        )}/>
+                    </div>
+                    {watchedPaymentMethod !== 'On Credit' && (
+                        <div className="space-y-2">
+                            <Label htmlFor="paidAmount">Amount Paid to Supplier</Label>
+                            <Input id="paidAmount" type="number" {...register('paidAmount')} placeholder="e.g., 50000" step="0.01" />
+                        </div>
+                    )}
                     <Separator/>
                     <div className="flex justify-between items-center text-xl font-bold">
                         <span>Amount Credited to Supplier</span>
