@@ -498,7 +498,7 @@ export default function SettingsPage() {
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the product: <br />
               <strong className="font-medium text-foreground">{productToDelete?.name}</strong>
-            </AndroidDescription>
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
