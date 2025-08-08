@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useForm, useFieldArray, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -189,6 +189,12 @@ export default function SalePage() {
     const persistentState = { customerId: data.customerId, paymentMethod: data.paymentMethod, bankAccountId: data.bankAccountId, date: data.date };
     reset({ ...persistentState, notes: '', items: [{ productId: '', quantity: 0, pricePerUnit: 0, totalAmount: 0 }] });
   };
+  
+  useEffect(() => {
+    if (fields.length === 0) {
+      append({ productId: '', quantity: 0, pricePerUnit: 0, totalAmount: 0 });
+    }
+  }, [fields, append]);
 
   return (
     <div className="p-4 md:p-8">
@@ -388,5 +394,3 @@ export default function SalePage() {
     </div>
   );
 }
-
-    
