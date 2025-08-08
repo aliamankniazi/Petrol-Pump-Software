@@ -216,7 +216,7 @@ export default function PurchasesPage() {
     });
     toast({
       title: 'Purchase Recorded',
-      description: `Delivery from ${supplier.name} has been logged.`,
+      description: `Delivery from ${supplier.name} has been logged. Associated expenses also recorded.`,
     });
     const lastDate = watch('date');
     reset({
@@ -436,8 +436,8 @@ export default function PurchasesPage() {
                           </div>
                           <Separator/>
                            <div className='flex justify-between font-bold text-base'>
-                            <span>Total Payable:</span>
-                            <span className={cn(supplierBalance + totalCost + watchedExpenses >= 0 ? 'text-green-600' : 'text-destructive' )}>PKR {(supplierBalance + totalCost + watchedExpenses).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            <span>New Balance:</span>
+                            <span className={cn(supplierBalance + totalCost >= 0 ? 'text-green-600' : 'text-destructive' )}>PKR {(supplierBalance + totalCost).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                           </div>
                          </>
                        ) : <p>Loading balance...</p>}
@@ -450,13 +450,13 @@ export default function PurchasesPage() {
                         <p className="font-semibold text-primary">PKR {totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="expenses">Purchase Expenses (e.g., transportation)</Label>
-                      <Input id="expenses" type="number" {...register('expenses')} placeholder="e.g., 1500" step="0.01" />
+                      <Label htmlFor="expenses">Other Expenses</Label>
+                      <Input id="expenses" type="number" {...register('expenses')} placeholder="e.g., transportation" step="0.01" />
                     </div>
                     <Separator/>
                     <div className="flex justify-between items-center text-xl font-bold">
-                        <span>Total Payable</span>
-                         <span>PKR {(totalCost + watchedExpenses).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span>Amount Credited to Supplier</span>
+                         <span>PKR {totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                  </div>
              </CardContent>
@@ -594,11 +594,11 @@ export default function PurchasesPage() {
                         </div>
                          <div className="space-y-2">
                             <Label>Purchase Notes</Label>
-                            <Textarea {...(registerEdit('notes'))} />
+                            <Textarea {...registerEdit('notes')} />
                         </div>
                         <div className="space-y-2">
                             <Label>Purchase Expenses</Label>
-                            <Input type="number" {...(registerEdit('expenses'))} />
+                            <Input type="number" {...registerEdit('expenses')} />
                         </div>
                     </div>
                     <Separator/>
@@ -620,11 +620,11 @@ export default function PurchasesPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Quantity</Label>
-                                        <Input type="number" {...(registerEdit(`items.${index}.quantity`))} step="0.01" onChange={(e) => handleEditQuantityChange(index, +e.target.value)} />
+                                        <Input type="number" {...registerEdit(`items.${index}.quantity`)} step="0.01" onChange={(e) => handleEditQuantityChange(index, +e.target.value)} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Cost / Unit</Label>
-                                        <Input type="number" {...(registerEdit(`items.${index}.costPerUnit`))} step="0.01" onChange={(e) => handleEditCostPerUnitChange(index, +e.target.value)} />
+                                        <Input type="number" {...registerEdit(`items.${index}.costPerUnit`)} step="0.01" onChange={(e) => handleEditCostPerUnitChange(index, +e.target.value)} />
                                     </div>
                                 </div>
                                 <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 w-6 h-6" onClick={() => removeEdit(index)}><Trash2 className="w-4 h-4" /></Button>
