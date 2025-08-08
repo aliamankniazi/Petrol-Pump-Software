@@ -193,7 +193,7 @@ export default function LedgerPage() {
   };
   
   const isCreditEntry = (type: LedgerEntry['type']) => {
-    return ['Sale', 'Purchase Return', 'Other Income', 'Investment', 'Purchase'].includes(type);
+    return ['Sale', 'Purchase Return', 'Other Income', 'Investment'].includes(type);
   }
   
   const handleDeleteEntry = () => {
@@ -316,7 +316,7 @@ export default function LedgerPage() {
                     <TableCell>
                       <Badge 
                         variant={getBadgeVariant(entry.type)}
-                        className={cn('text-xs', isCreditEntry(entry.type) && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}
+                        className={cn('text-xs', isCreditEntry(entry.type) && entry.type !== 'Purchase' && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}
                       >
                         {entry.type}
                       </Badge>
