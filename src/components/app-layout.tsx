@@ -24,7 +24,7 @@ import { FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, User
 
 
 const navItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { 
     label: 'Sales & Ledger',
     icon: HandCoins,
@@ -80,19 +80,12 @@ const AppLogo = () => (
     <div className="flex items-center gap-2.5">
        <div className="flex items-center justify-center w-10 h-10 bg-primary text-primary-foreground rounded-md">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 22V8"/>
-                <path d="M6 12a6 6 0 0 1 6-6V2"/>
-                <path d="M18 12a6 6 0 0 0-6-6V2"/>
-                <path d="M12 8a6 6 0 0 1 6 4"/>
-                <path d="M12 8a6 6 0 0 0-6 4"/>
-                <path d="M12 22a4 4 0 0 1-4-4"/>
-                <path d="M12 22a4 4 0 0 0 4-4"/>
-                <path d="m15 12-1-1"/>
-                <path d="m9 12 1-1"/>
+                <path d="M14 13.1a2.5 2.5 0 0 0-2-3.1h-1a2.5 2.5 0 0 0-2 3.1"/>
+                <path d="M12 3a8.8 8.8 0 0 0-8.8 8.8c0 4.9 3.9 11.2 8.8 11.2s8.8-6.3 8.8-11.2A8.8 8.8 0 0 0 12 3Z"/>
             </svg>
         </div>
       <div className="flex flex-col">
-        <h2 className="text-sm font-bold tracking-tight text-foreground">Mianwali Petroleum</h2>
+        <h2 className="text-sm font-bold tracking-tight text-foreground">Mianwali Petroleum Service Mianwali</h2>
       </div>
     </div>
 );
@@ -109,7 +102,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       }
     }
     const specialTitles: Record<string, string> = {
-        '/': 'Dashboard',
+        '/dashboard': 'Dashboard',
     };
     return specialTitles[pathname] || 'Page';
   }

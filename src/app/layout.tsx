@@ -28,7 +28,7 @@ export default function RootLayout({
           <ThemeScript />
           <PrintStyles />
       </head>
-      <body className="font-body antialiased">
+      <body>
         <DataProvider key={isFirebaseConfigured() ? 'configured' : 'not-configured'}>
             {children}
         </DataProvider>
