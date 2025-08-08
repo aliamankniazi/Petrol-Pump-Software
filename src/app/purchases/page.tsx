@@ -61,14 +61,18 @@ export default function PurchasesPage() {
   
   const { register, handleSubmit, reset, setValue, control, watch, formState: { errors } } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema),
-    defaultValues: () => {
-      if (typeof window !== 'undefined') {
-        const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-        return { date: storedDate ? new Date(storedDate) : new Date(), items: [] };
-      }
-      return { date: new Date(), items: [] };
+    defaultValues: {
+      date: new Date(), items: []
     }
   });
+
+  useEffect(() => {
+    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if(storedDate) {
+      setValue('date', new Date(storedDate));
+    }
+  }, [setValue]);
+
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -388,3 +392,4 @@ export default function PurchasesPage() {
     </Dialog>
     </>
   );
+}
