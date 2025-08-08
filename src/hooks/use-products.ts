@@ -13,6 +13,11 @@ const DEFAULT_PRODUCTS: Omit<Product, 'id' | 'timestamp' | 'stock'>[] = [
     { name: 'Unleaded', category: 'Fuel', productType: 'Main', unit: 'Litre', purchasePrice: 0, tradePrice: 0, mainUnit: 'Litre' },
     { name: 'Premium', category: 'Fuel', productType: 'Main', unit: 'Litre', purchasePrice: 0, tradePrice: 0, mainUnit: 'Litre' },
     { name: 'Diesel', category: 'Fuel', productType: 'Main', unit: 'Litre', purchasePrice: 0, tradePrice: 0, mainUnit: 'Litre' },
+    { name: 'Open Mobile Oil', category: 'Lubricant', productType: 'Secondary', unit: 'Unit', purchasePrice: 0, tradePrice: 0, mainUnit: 'Unit' },
+    { name: 'SAE 20W-50', category: 'Lubricant', productType: 'Secondary', unit: 'Unit', purchasePrice: 0, tradePrice: 0, mainUnit: 'Unit' },
+    { name: 'SAE 20W-40', category: 'Lubricant', productType: 'Secondary', unit: 'Unit', purchasePrice: 0, tradePrice: 0, mainUnit: 'Unit' },
+    { name: 'HAVOLINE 20W-40 4T', category: 'Lubricant', productType: 'Secondary', unit: 'Unit', purchasePrice: 0, tradePrice: 0, mainUnit: 'Unit' },
+    { name: 'Blaze 4T', category: 'Lubricant', productType: 'Secondary', unit: 'Unit', purchasePrice: 0, tradePrice: 0, mainUnit: 'Unit' },
 ];
 
 export function useProducts() {
@@ -53,3 +58,4 @@ export function useProducts() {
     isLoaded: !loading
   };
 }
+
