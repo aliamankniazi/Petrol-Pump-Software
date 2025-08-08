@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingCart, Package, Truck, Calendar as CalendarIcon, PlusCircle, Trash2, LayoutDashboard, AlertTriangle, Edit, Wallet, CreditCard, Smartphone } from 'lucide-react';
+import { ShoppingCart, Package, Truck, Calendar as CalendarIcon, PlusCircle, Trash2, LayoutDashboard, AlertTriangle, Edit, Wallet, CreditCard, Smartphone, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePurchases } from '@/hooks/use-purchases';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -84,23 +84,26 @@ export default function PurchasesPage() {
     setIsClient(true);
   }, []);
   
-  let defaultDate: Date;
-  if (isClient) {
-    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    defaultDate = storedDate ? new Date(storedDate) : new Date();
-  } else {
-    defaultDate = new Date();
-  }
-
   const { register, handleSubmit, reset, setValue, control, watch, formState: { errors } } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema),
     defaultValues: {
       items: [{ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 }],
       expenses: 0,
       paymentMethod: 'On Credit',
-      date: defaultDate,
+      date: new Date(),
     }
   });
+
+   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (storedDate) {
+        setValue('date', new Date(storedDate));
+      } else {
+        setValue('date', new Date());
+      }
+    }
+  }, [setValue, isClient]);
   
   const { 
       control: controlEdit, 
@@ -170,8 +173,11 @@ export default function PurchasesPage() {
     }
   }, [fields.length, append]);
   
-    const handleProductChange = (index: number, productId: string) => {
+    const handleProductChange = (index: number, productId: string, form: 'main' | 'edit') => {
         const product = products.find(p => p.id === productId);
+        const formSetValue = form === 'main' ? setValue : setEditValue;
+        const formWatch = form === 'main' ? watch : watchEdit;
+
         if (product) {
             const lastPurchaseOfProduct = purchases
                 .filter(p => p.items.some(item => item.productId === productId))
@@ -185,35 +191,43 @@ export default function PurchasesPage() {
                 }
             }
             
-            setValue(`items.${index}.costPerUnit`, lastPrice, { shouldValidate: true });
-            const quantity = watch(`items.${index}.quantity`);
+            formSetValue(`items.${index}.costPerUnit`, lastPrice, { shouldValidate: true });
+            const quantity = formWatch(`items.${index}.quantity`);
             if (quantity > 0) {
-                setValue(`items.${index}.totalCost`, quantity * lastPrice, { shouldValidate: true });
+                formSetValue(`items.${index}.totalCost`, quantity * lastPrice, { shouldValidate: true });
             }
         }
     };
     
-    const handleQuantityChange = (index: number, quantity: number) => {
+    const handleQuantityChange = (index: number, quantity: number, form: 'main' | 'edit') => {
+        const formSetValue = form === 'main' ? setValue : setEditValue;
+        const formWatch = form === 'main' ? watch : watchEdit;
+
         if (lastFocused !== 'quantity') return;
-        const costPerUnit = watch(`items.${index}.costPerUnit`);
-        setValue(`items.${index}.quantity`, quantity, { shouldValidate: true });
+        const costPerUnit = formWatch(`items.${index}.costPerUnit`);
+        formSetValue(`items.${index}.quantity`, quantity, { shouldValidate: true });
         if (costPerUnit > 0) {
-            setValue(`items.${index}.totalCost`, quantity * costPerUnit, { shouldValidate: true });
+            formSetValue(`items.${index}.totalCost`, quantity * costPerUnit, { shouldValidate: true });
         }
     }
     
-    const handleTotalCostChange = (index: number, cost: number) => {
+    const handleTotalCostChange = (index: number, cost: number, form: 'main' | 'edit') => {
+         const formSetValue = form === 'main' ? setValue : setEditValue;
+        const formWatch = form === 'main' ? watch : watchEdit;
         if (lastFocused !== 'amount') return;
-        const costPerUnit = watch(`items.${index}.costPerUnit`);
-        setValue(`items.${index}.totalCost`, cost, { shouldValidate: true });
+        const costPerUnit = formWatch(`items.${index}.costPerUnit`);
+        formSetValue(`items.${index}.totalCost`, cost, { shouldValidate: true });
         if (costPerUnit > 0) {
-            setValue(`items.${index}.quantity`, cost / costPerUnit, { shouldValidate: true });
+            formSetValue(`items.${index}.quantity`, cost / costPerUnit, { shouldValidate: true });
         }
     }
 
-  const handleCostPerUnitChange = (index: number, cost: number) => {
-    const quantity = watch(`items.${index}.quantity`);
-    setValue(`items.${index}.totalCost`, quantity * cost, { shouldValidate: true });
+  const handleCostPerUnitChange = (index: number, cost: number, form: 'main' | 'edit') => {
+    const formSetValue = form === 'main' ? setValue : setEditValue;
+    const formWatch = form === 'main' ? watch : watchEdit;
+
+    const quantity = formWatch(`items.${index}.quantity`);
+    formSetValue(`items.${index}.totalCost`, quantity * cost, { shouldValidate: true });
   }
 
   const onPurchaseSubmit: SubmitHandler<PurchaseFormValues> = (data) => {
@@ -331,7 +345,7 @@ export default function PurchasesPage() {
                                   render={({ field }) => (
                                      <Select onValueChange={(value) => {
                                         field.onChange(value);
-                                        handleProductChange(index, value);
+                                        handleProductChange(index, value, 'main');
                                     }} value={field.value} defaultValue="">
                                       <SelectTrigger><SelectValue placeholder="Select a product" /></SelectTrigger>
                                       <SelectContent>
@@ -344,17 +358,17 @@ export default function PurchasesPage() {
                             </div>
                              <div className="space-y-2">
                               <Label>Quantity</Label>
-                              <Input type="number" {...register(`items.${index}.quantity`)} placeholder="e.g., 5000" step="0.01" onFocus={() => setLastFocused('quantity')} onChange={(e) => handleQuantityChange(index, +e.target.value)} />
+                              <Input type="number" {...register(`items.${index}.quantity`)} placeholder="e.g., 5000" step="0.01" onFocus={() => setLastFocused('quantity')} onChange={(e) => handleQuantityChange(index, +e.target.value, 'main')} />
                                {errors.items?.[index]?.quantity && <p className="text-sm text-destructive">{errors.items?.[index]?.quantity?.message}</p>}
                             </div>
                             <div className="space-y-2">
                               <Label>Total Cost</Label>
-                              <Input type="number" {...register(`items.${index}.totalCost`)} placeholder="e.g., 250" step="0.01" onFocus={() => setLastFocused('amount')} onChange={(e) => handleTotalCostChange(index, +e.target.value)} />
+                              <Input type="number" {...register(`items.${index}.totalCost`)} placeholder="e.g., 250" step="0.01" onFocus={() => setLastFocused('amount')} onChange={(e) => handleTotalCostChange(index, +e.target.value, 'main')} />
                                {errors.items?.[index]?.totalCost && <p className="text-sm text-destructive">{errors.items?.[index]?.totalCost?.message}</p>}
                             </div>
                             <div className="space-y-2">
                               <Label>Cost / Unit</Label>
-                              <Input type="number" {...register(`items.${index}.costPerUnit`)} placeholder="e.g., 250" step="0.01" onChange={(e) => handleCostPerUnitChange(index, +e.target.value)} />
+                              <Input type="number" {...register(`items.${index}.costPerUnit`)} placeholder="e.g., 250" step="0.01" onChange={(e) => handleCostPerUnitChange(index, +e.target.value, 'main')} />
                                {errors.items?.[index]?.costPerUnit && <p className="text-sm text-destructive">{errors.items?.[index]?.costPerUnit?.message}</p>}
                             </div>
                          </div>
@@ -395,7 +409,7 @@ export default function PurchasesPage() {
                           )}
                         />
                         <Button type="button" variant="outline" size="icon" onClick={() => setIsAddSupplierOpen(true)} title="Add new supplier">
-                            <PlusCircle className="h-4 w-4" />
+                            <UserPlus className="h-4 w-4" />
                         </Button>
                     </div>
                     {errors.supplierId && <p className="text-sm text-destructive">{errors.supplierId.message}</p>}
@@ -425,7 +439,7 @@ export default function PurchasesPage() {
                                 mode="single"
                                 selected={field.value}
                                 onSelect={(date) => {
-                                  field.onChange(date);
+                                  if(date) field.onChange(date);
                                   setIsCalendarOpen(false);
                                 }}
                                 initialFocus
@@ -636,7 +650,7 @@ export default function PurchasesPage() {
                             {isClient && <Controller name="date" control={controlEdit} render={({ field }) => (
                                 <Popover open={isEditCalendarOpen} onOpenChange={setIsEditCalendarOpen}>
                                     <PopoverTrigger asChild><Button variant="outline" className={cn("w-full justify-start", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(date) => {field.onChange(date); setIsEditCalendarOpen(false);}} /></PopoverContent>
+                                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(date) => {if(date) field.onChange(date); setIsEditCalendarOpen(false);}} /></PopoverContent>
                                 </Popover>
                             )}/>}
                             {editErrors.date && <p className="text-sm text-destructive">{editErrors.date.message}</p>}
@@ -655,11 +669,11 @@ export default function PurchasesPage() {
                     <div className="space-y-4">
                         {editFields.map((field, index) => (
                              <Card key={field.id} className="p-4 relative bg-muted/40">
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                                     <div className="md:col-span-2 space-y-2">
                                         <Label>Product</Label>
                                         <Controller name={`items.${index}.productId`} control={controlEdit} render={({ field }) => (
-                                            <Select onValueChange={(val) => { field.onChange(val); }} value={field.value}>
+                                            <Select onValueChange={(val) => { field.onChange(val); handleProductChange(index, val, 'edit'); }} value={field.value}>
                                                 <SelectTrigger><SelectValue/></SelectTrigger>
                                                 <SelectContent>
                                                     {productsLoaded ? products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
@@ -669,11 +683,15 @@ export default function PurchasesPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Quantity</Label>
-                                        <Input type="number" {...registerEdit(`items.${index}.quantity`)} step="0.01" onChange={(e) => {}} />
+                                        <Input type="number" {...registerEdit(`items.${index}.quantity`)} step="0.01" onFocus={() => setLastFocused('quantity')} onChange={(e) => handleQuantityChange(index, +e.target.value, 'edit')} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Total Cost</Label>
+                                        <Input type="number" {...registerEdit(`items.${index}.totalCost`)} step="0.01" onFocus={() => setLastFocused('amount')} onChange={(e) => handleTotalCostChange(index, +e.target.value, 'edit')} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Cost / Unit</Label>
-                                        <Input type="number" {...registerEdit(`items.${index}.costPerUnit`)} step="0.01" onChange={(e) => {}} />
+                                        <Input type="number" {...registerEdit(`items.${index}.costPerUnit`)} step="0.01" onChange={(e) => handleCostPerUnitChange(index, +e.target.value, 'edit')} />
                                     </div>
                                 </div>
                                 <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 w-6 h-6" onClick={() => removeEdit(index)}><Trash2 className="w-4 h-4" /></Button>
@@ -715,5 +733,6 @@ export default function PurchasesPage() {
     </>
   );
 }
+
 
 
