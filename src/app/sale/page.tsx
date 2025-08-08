@@ -131,8 +131,10 @@ export default function SalePage() {
   };
 
   const handleQuantityChange = (index: number, quantity: number) => {
+    const roundedQuantity = Math.round(quantity * 100) / 100;
     const pricePerUnit = watch(`items.${index}.pricePerUnit`);
-    setValue(`items.${index}.totalAmount`, quantity * pricePerUnit, { shouldValidate: true });
+    setValue(`items.${index}.quantity`, roundedQuantity, { shouldValidate: true });
+    setValue(`items.${index}.totalAmount`, roundedQuantity * pricePerUnit, { shouldValidate: true });
   }
 
   const handlePriceChange = (index: number, price: number) => {
