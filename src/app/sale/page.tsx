@@ -17,7 +17,6 @@ import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomers } from '@/hooks/use-customers';
 import { useProducts } from '@/hooks/use-products';
 import { useCustomerBalance } from '@/hooks/use-customer-balance';
-import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useBankAccounts } from '@/hooks/use-bank-accounts';
 import { useFormState } from '@/hooks/use-form-state';
@@ -279,3 +278,5 @@ export default function SalePage() {
     </div>
   );
 }
+
+    
