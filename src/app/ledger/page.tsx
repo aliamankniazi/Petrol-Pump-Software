@@ -193,7 +193,7 @@ export default function LedgerPage() {
   };
   
   const isCreditEntry = (type: LedgerEntry['type']) => {
-    return type === 'Sale' || type === 'Purchase Return' || type === 'Other Income' || type === 'Investment';
+    return ['Sale', 'Purchase Return', 'Other Income', 'Investment', 'Purchase'].includes(type);
   }
   
   const handleDeleteEntry = () => {
