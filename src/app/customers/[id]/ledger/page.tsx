@@ -149,7 +149,7 @@ export default function CustomerLedgerPage() {
         supplierPurchases.forEach(p => combined.push({
             id: `pur-${p.id}`,
             timestamp: p.timestamp!,
-            description: p.items.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', '),
+            description: `${p.items.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', ')} ${p.notes ? `- ${p.notes}` : ''}`,
             type: 'Purchase',
             credit: p.totalCost,
             debit: 0,

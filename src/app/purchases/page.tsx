@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { ShoppingCart, Package, Truck, Calendar as CalendarIcon, PlusCircle, Trash2, LayoutDashboard, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -35,6 +34,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useSupplierBalance } from '@/hooks/use-supplier-balance';
+import { Textarea } from '@/components/ui/textarea';
 
 const purchaseItemSchema = z.object({
   productId: z.string().min(1, 'Product is required.'),
@@ -47,6 +47,7 @@ const purchaseSchema = z.object({
   supplierId: z.string().min(1, 'Please select a supplier.'),
   date: z.date({ required_error: "A date is required."}),
   expenses: z.coerce.number().optional(),
+  notes: z.string().optional(),
   items: z.array(purchaseItemSchema).min(1, 'At least one item is required.'),
 });
 
@@ -178,6 +179,7 @@ export default function PurchasesPage() {
         items: [{ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 }],
         date: lastDate,
         expenses: 0,
+        notes: '',
     });
   };
   
@@ -205,6 +207,7 @@ export default function PurchasesPage() {
   return (
     <>
     <div className="p-4 md:p-8 grid gap-8 lg:grid-cols-3">
+     <form onSubmit={handleSubmit(onPurchaseSubmit)} className="lg:col-span-3 grid lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 space-y-8">
         <Card>
            <CardHeader className="flex flex-row justify-between items-start">
@@ -217,7 +220,7 @@ export default function PurchasesPage() {
               </Button>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit(onPurchaseSubmit)} className="space-y-4">
+            <div className="space-y-4">
               <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2">
                 {fields.map((field, index) => (
                     <Card key={field.id} className="p-4 relative bg-muted/40">
@@ -262,7 +265,7 @@ export default function PurchasesPage() {
             </div>
             {errors.items && <p className="text-sm text-destructive">{errors.items.message}</p>}
              <Button type="button" variant="outline" onClick={() => append({ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 })} className="w-full"><PlusCircle /> Add Another Product</Button>
-            </form>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -270,11 +273,10 @@ export default function PurchasesPage() {
       <div className="lg:col-span-1 space-y-8">
         <Card>
             <CardHeader>
-                <CardTitle>Supplier & Date</CardTitle>
+                <CardTitle>Supplier & Details</CardTitle>
             </CardHeader>
-            <CardContent>
-                 <form onSubmit={handleSubmit(onPurchaseSubmit)} className="space-y-4">
-                  <div className="space-y-2">
+            <CardContent className="space-y-4">
+                 <div className="space-y-2">
                     <Label htmlFor="supplierId">Supplier</Label>
                     <div className="flex items-center gap-2">
                         <Controller
@@ -332,7 +334,11 @@ export default function PurchasesPage() {
                       />}
                       {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
                     </div>
-                 </form>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="notes">Purchase Notes</Label>
+                      <Textarea id="notes" {...register('notes')} placeholder="e.g., Delivery vehicle number, etc." />
+                    </div>
             </CardContent>
         </Card>
         
@@ -380,11 +386,11 @@ export default function PurchasesPage() {
                  </div>
              </CardContent>
             <CardFooter>
-                 <Button type="submit" onClick={handleSubmit(onPurchaseSubmit)} className="w-full">Record Purchase</Button>
+                 <Button type="submit" className="w-full">Record Purchase</Button>
             </CardFooter>
         </Card>
       </div>
-      
+      </form>
        <div className="lg:col-span-3">
         <Card>
           <CardHeader className="flex flex-row justify-between items-start">

@@ -75,6 +75,7 @@ export interface Purchase {
   items: PurchaseItem[];
   totalCost: number;
   expenses?: number;
+  notes?: string;
   timestamp?: string;
   // Legacy fields
   fuelType?: FuelType;
