@@ -25,7 +25,7 @@ import { useCustomers } from '@/hooks/use-customers';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
 import { useAttendance } from '@/hooks/use-attendance';
-import { useCashAdvances } from '@/hooks/use-cash-advances';
+import { useCustomerPayments } from '@/hooks/use-customer-payments';
 
 
 const employeeSchema = z.object({
@@ -50,7 +50,7 @@ export default function EmployeesPage() {
   const { addExpense } = useExpenses();
   const { addCustomer, updateCustomer } = useCustomers();
   const { attendance } = useAttendance();
-  const { addCashAdvance } = useCashAdvances();
+  const { addCustomerPayment } = useCustomerPayments();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -152,22 +152,22 @@ export default function EmployeesPage() {
       timestamp: paymentTimestamp,
     });
 
-    // 2. Log the payment against the employee's ledger as a cash advance (debit)
-    addCashAdvance({
+    // 2. Log the payment as a credit against the employee's ledger
+    addCustomerPayment({
         customerId: employeeToPay.id,
         customerName: employeeToPay.name,
         amount: salaryCalculation.payableSalary,
-        notes: `Salary for ${monthName} ${selectedYear}`,
+        paymentMethod: 'Cash', // Assuming salary is paid in cash
         timestamp: paymentTimestamp,
     });
 
     toast({
       title: 'Salary Paid',
-      description: `Salary for ${employeeToPay.name} has been logged as an expense and debited from their ledger.`,
+      description: `Salary for ${employeeToPay.name} has been logged as an expense and credited to their ledger.`,
     });
 
     setEmployeeToPay(null);
-  }, [employeeToPay, selectedMonth, selectedYear, salaryCalculation, addExpense, addCashAdvance, toast]);
+  }, [employeeToPay, selectedMonth, selectedYear, salaryCalculation, addExpense, addCustomerPayment, toast]);
   
   useEffect(() => {
     if (employeeToEdit) {
