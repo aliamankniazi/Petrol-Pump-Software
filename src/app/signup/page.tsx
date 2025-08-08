@@ -11,17 +11,30 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { useCustomers } from '@/hooks/use-customers';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const router = useRouter();
   const { toast } = useToast();
+  const { addCustomerWithId } = useCustomers();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // Create a corresponding customer record
+      await addCustomerWithId(user.uid, {
+          name: name,
+          contact: user.email || '',
+          isPartner: false,
+          isEmployee: false,
+      });
+
       toast({
         title: 'Account Created',
         description: "You have been successfully signed up. Please log in.",
@@ -62,6 +75,17 @@ export default function SignupPage() {
         </CardHeader>
         <form onSubmit={handleSignup}>
           <CardContent className="grid gap-4">
+             <div className="grid gap-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="John Doe"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input

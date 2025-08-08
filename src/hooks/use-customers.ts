@@ -15,6 +15,13 @@ export function useCustomers() {
     const newDoc = await addDoc(dataWithTimestamp, docId);
     return newDoc;
   }, [addDoc]);
+
+  const addCustomerWithId = useCallback(async (id: string, customer: Omit<Customer, 'id' | 'timestamp'>): Promise<Customer> => {
+    const dataWithTimestamp = { ...customer, timestamp: new Date().toISOString() };
+    // This uses the underlying addDoc but provides a specific ID, which is useful for linking to auth users
+    const newDoc = await addDoc(dataWithTimestamp, id);
+    return newDoc;
+  }, [addDoc]);
   
   const updateCustomer = useCallback((id: string, updatedDetails: Partial<Omit<Customer, 'id' | 'timestamp'>>) => {
     updateDoc(id, updatedDetails);
@@ -27,6 +34,7 @@ export function useCustomers() {
   return { 
     customers: customers || [], 
     addCustomer, 
+    addCustomerWithId,
     updateCustomer, 
     deleteCustomer, 
     isLoaded: !loading
