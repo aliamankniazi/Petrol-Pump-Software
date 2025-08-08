@@ -74,6 +74,7 @@ export default function EmployeesPage() {
         name: newEmployee.name,
         contact: newEmployee.mobileNumber || '',
         area: 'Employee',
+        isPartner: false,
         isEmployee: true,
     }, newEmployee.id);
 

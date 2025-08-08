@@ -10,9 +10,9 @@ const COLLECTION_NAME = 'customers';
 export function useCustomers() {
   const { data: customers, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<Customer>(COLLECTION_NAME);
 
-  const addCustomer = useCallback(async (customer: Omit<Customer, 'id' | 'timestamp'>): Promise<Customer> => {
+  const addCustomer = useCallback(async (customer: Omit<Customer, 'id' | 'timestamp'>, docId?: string): Promise<Customer> => {
     const dataWithTimestamp = { ...customer, timestamp: new Date().toISOString() };
-    const newDoc = await addDoc(dataWithTimestamp);
+    const newDoc = await addDoc(dataWithTimestamp, docId);
     return newDoc;
   }, [addDoc]);
   
