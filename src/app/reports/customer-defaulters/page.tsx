@@ -47,7 +47,7 @@ export default function CustomerDefaulterReportPage() {
         const balance = debit - credit;
 
         return {
-          id: customer.id,
+          id: customer.id!,
           name: customer.name,
           contact: customer.contact,
           area: customer.area,

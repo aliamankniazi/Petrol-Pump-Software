@@ -19,10 +19,10 @@ interface DbDoc {
   [key: string]: any;
 }
 
-export function useDatabaseCollection<T extends Omit<DbDoc, 'id' | 'timestamp'>>(
+export function useDatabaseCollection<T extends Omit<DbDoc, 'id'>>(
   collectionName: string,
 ) {
-  const [data, setData] = useState<T[]>([]);
+  const [data, setData] = useState<(T & { id: string })[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -75,9 +75,8 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id' | 'timestamp'>>
       throw new Error("Database not configured.");
     }
     
-    const docRef = docId 
-      ? ref(db, `${collectionName}/${docId}`) 
-      : push(ref(db, collectionName));
+    const collectionRef = ref(db, collectionName);
+    const docRef = docId ? ref(db, `${collectionName}/${docId}`) : push(collectionRef);
       
     const newId = docRef.key!;
     
