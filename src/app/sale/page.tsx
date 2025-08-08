@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -351,7 +352,7 @@ export default function SalePage() {
                     <div className="space-y-1">
                         <Label>Paid (Amount)</Label>
                         <div className="flex gap-2">
-                             <Input type="number" placeholder="RS 0" {...register('paidAmount')} className="hidden" />
+                             <Input type="number" placeholder="RS 0" {...register('paidAmount')} />
                              <Controller name="bankAccountId" control={control} render={({ field }) => (
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <SelectTrigger><SelectValue placeholder="@Bank" /></SelectTrigger>
@@ -396,3 +397,5 @@ export default function SalePage() {
     </div>
   );
 }
+
+    
