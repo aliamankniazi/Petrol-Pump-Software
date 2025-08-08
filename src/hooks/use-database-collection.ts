@@ -80,6 +80,8 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id'>>(
       
     const newId = docRef.key!;
     
+    // The id field is now part of the document itself.
+    // Let's ensure it's set before writing.
     const docToWrite = { ...newData, id: newId };
     
     await set(docRef, docToWrite);

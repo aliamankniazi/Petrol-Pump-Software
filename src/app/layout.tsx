@@ -1,4 +1,6 @@
 
+'use client'; // This is crucial for client-side hooks and providers
+
 import * as React from 'react';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
