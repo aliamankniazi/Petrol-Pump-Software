@@ -11,8 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Fuel, PlusCircle, Trash2, Users, CreditCard, Wallet, Smartphone, Landmark, Printer, CheckCircle, LayoutDashboard } from 'lucide-react';
-import { format, subDays } from 'date-fns';
+import { Fuel, PlusCircle, Trash2, Users, CreditCard, Wallet, Smartphone, Landmark, Printer, CheckCircle, LayoutDashboard, Calendar as CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomers } from '@/hooks/use-customers';
 import { useProducts } from '@/hooks/use-products';
@@ -22,6 +22,8 @@ import { useBankAccounts } from '@/hooks/use-bank-accounts';
 import { useFormState } from '@/hooks/use-form-state';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 
 const saleItemSchema = z.object({
   productId: z.string().min(1, 'Product is required.'),
@@ -35,10 +37,13 @@ const saleSchema = z.object({
   paymentMethod: z.enum(['Cash', 'Card', 'Mobile', 'On Credit']),
   bankAccountId: z.string().optional(),
   notes: z.string().optional(),
+  date: z.date({ required_error: "A date is required."}),
   items: z.array(saleItemSchema).min(1, 'At least one item is required.'),
 });
 
 type SaleFormValues = z.infer<typeof saleSchema>;
+
+const LOCAL_STORAGE_KEY = 'global-transaction-date';
 
 export default function SalePage() {
   const { addTransaction } = useTransactions();
@@ -46,6 +51,11 @@ export default function SalePage() {
   const { products, isLoaded: productsLoaded } = useProducts();
   const { bankAccounts, isLoaded: bankAccountsLoaded } = useBankAccounts();
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const [formState, setFormState] = useFormState<Partial<SaleFormValues>>('sale-form', {
     paymentMethod: 'On Credit',
@@ -54,9 +64,20 @@ export default function SalePage() {
 
   const { register, handleSubmit, control, watch, setValue, reset, formState: { errors } } = useForm<SaleFormValues>({
     resolver: zodResolver(saleSchema),
-    defaultValues: {
-      items: [{ productId: '', quantity: 0, pricePerUnit: 0, totalAmount: 0 }],
-      ...formState
+    defaultValues: () => {
+      if (typeof window !== 'undefined') {
+        const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+        return {
+          ...formState,
+          date: storedDate ? new Date(storedDate) : new Date(),
+          items: [{ productId: '', quantity: 0, pricePerUnit: 0, totalAmount: 0 }],
+        };
+      }
+      return {
+        ...formState,
+        date: new Date(),
+        items: [{ productId: '', quantity: 0, pricePerUnit: 0, totalAmount: 0 }],
+      };
     }
   });
 
@@ -68,6 +89,8 @@ export default function SalePage() {
   const watchedItems = watch('items');
   const watchedCustomerId = watch('customerId');
   const watchedPaymentMethod = watch('paymentMethod');
+  const selectedDate = watch('date');
+
   const { balance: customerBalance, isLoaded: balanceLoaded } = useCustomerBalance(watchedCustomerId === 'walk-in' ? null : watchedCustomerId || null);
 
   useEffect(() => {
@@ -75,6 +98,12 @@ export default function SalePage() {
     return () => subscription.unsubscribe();
   }, [watch, setFormState]);
   
+  useEffect(() => {
+    if (selectedDate && typeof window !== 'undefined') {
+      localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
+    }
+  }, [selectedDate]);
+
   const totalAmount = useMemo(() => {
     return watchedItems.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
   }, [watchedItems]);
@@ -115,7 +144,7 @@ export default function SalePage() {
       totalAmount,
       paymentMethod: data.paymentMethod,
       notes: data.notes,
-      timestamp: new Date().toISOString(),
+      timestamp: data.date.toISOString(),
       customerId: isWalkIn ? undefined : data.customerId,
       customerName: isWalkIn ? 'Walk-in Customer' : customer?.name,
       bankAccountId: data.bankAccountId,
@@ -129,7 +158,7 @@ export default function SalePage() {
     });
     
     // Persist customer and payment method, but clear items.
-    const persistentState = { customerId: data.customerId, paymentMethod: data.paymentMethod, bankAccountId: data.bankAccountId };
+    const persistentState = { customerId: data.customerId, paymentMethod: data.paymentMethod, bankAccountId: data.bankAccountId, date: data.date };
     reset({ ...persistentState, notes: '', items: [{ productId: '', quantity: 0, pricePerUnit: 0, totalAmount: 0 }] });
   };
 
@@ -200,6 +229,38 @@ export default function SalePage() {
                 <CardTitle className="flex items-center gap-2"><Users /> Customer & Payment</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                 <div className="space-y-2">
+                    <Label>Date</Label>
+                    {isClient && <Controller
+                      name="date"
+                      control={control}
+                      render={({ field }) => (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    />}
+                    {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
+                  </div>
                 <div className="space-y-2">
                   <Label>Customer</Label>
                   <Controller name="customerId" control={control} render={({ field }) => (
@@ -279,7 +340,7 @@ export default function SalePage() {
                         <CheckCircle className="mr-2"/> Complete Sale
                     </Button>
                     <Button type="button" variant="outline" className="w-full" onClick={() => {
-                        const persistentState = { customerId: watch('customerId'), paymentMethod: watch('paymentMethod') };
+                        const persistentState = { customerId: watch('customerId'), paymentMethod: watch('paymentMethod'), date: watch('date') };
                         reset({ ...persistentState, items: [{ productId: '', quantity: 0, pricePerUnit: 0, totalAmount: 0 }] });
                     }}>
                         Reset Form

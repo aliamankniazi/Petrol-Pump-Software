@@ -82,10 +82,22 @@ export default function PurchasesPage() {
   
   const { register, handleSubmit, reset, setValue, control, watch, formState: { errors } } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema),
-    defaultValues: {
-      items: [{ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 }],
-      expenses: 0,
-      paymentMethod: 'On Credit'
+    defaultValues: () => {
+      if (typeof window !== 'undefined') {
+        const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+        return {
+          items: [{ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 }],
+          expenses: 0,
+          paymentMethod: 'On Credit',
+          date: storedDate ? new Date(storedDate) : new Date(),
+        };
+      }
+      return {
+        items: [{ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 }],
+        expenses: 0,
+        paymentMethod: 'On Credit',
+        date: new Date(),
+      };
     }
   });
   
@@ -117,20 +129,6 @@ export default function PurchasesPage() {
       });
     }
   }, [purchaseToEdit, resetEdit]);
-
-  useEffect(() => {
-    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if(storedDate && isClient) {
-      const date = new Date(storedDate);
-      setValue('date', date);
-      setEditValue('date', date);
-    } else if(isClient) {
-        const today = new Date();
-        setValue('date', today);
-        setEditValue('date', today);
-    }
-  }, [setValue, setEditValue, isClient]);
-
 
   const watchedItems = watch('items');
   const watchedEditItems = watchEdit('items');
