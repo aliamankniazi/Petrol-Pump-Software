@@ -80,13 +80,19 @@ const AppLogo = () => (
     <div className="flex items-center gap-2.5">
        <div className="flex items-center justify-center w-10 h-10 bg-primary text-primary-foreground rounded-md">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1"/>
-                <path d="M16 3h1a2 2 0 0 1 2 2v5a2 2 0 0 0 2 2 2 2 0 0 0-2 2v5a2 2 0 0 1-2 2h-1"/>
+                <path d="M12 22V8"/>
+                <path d="M6 12a6 6 0 0 1 6-6V2"/>
+                <path d="M18 12a6 6 0 0 0-6-6V2"/>
+                <path d="M12 8a6 6 0 0 1 6 4"/>
+                <path d="M12 8a6 6 0 0 0-6 4"/>
+                <path d="M12 22a4 4 0 0 1-4-4"/>
+                <path d="M12 22a4 4 0 0 0 4-4"/>
+                <path d="m15 12-1-1"/>
+                <path d="m9 12 1-1"/>
             </svg>
         </div>
       <div className="flex flex-col">
-        <h2 className="text-lg font-bold tracking-tight text-foreground">PumpPal</h2>
-        <p className="text-xs text-muted-foreground -mt-1">Management Software</p>
+        <h2 className="text-sm font-bold tracking-tight text-foreground">Mianwali Petroleum</h2>
       </div>
     </div>
 );
@@ -102,7 +108,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         if (subItem) return subItem.label;
       }
     }
-    return 'Dashboard';
+    const specialTitles: Record<string, string> = {
+        '/': 'Dashboard',
+    };
+    return specialTitles[pathname] || 'Page';
   }
   const pageTitle = getPageTitle();
 

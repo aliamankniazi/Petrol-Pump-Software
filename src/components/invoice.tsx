@@ -46,23 +46,17 @@ const companyDetails = {
 }
 
 const InvoiceLogo = () => (
-    <div className="flex items-center justify-center w-16 h-16 bg-green-600 text-white rounded-full">
+    <div className="flex items-center justify-center w-16 h-16 bg-primary text-white rounded-full">
         <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 22V8" stroke="#FFFFFF" strokeWidth="2.5"></path>
-            <path d="M12 8C8 8 6 10 6 12" stroke="#FFFFFF" strokeWidth="2.5"></path>
-            <path d="M12 8C16 8 18 10 18 12" stroke="#FFFFFF" strokeWidth="2.5"></path>
-            <path d="M6 12C4 12 3 14 3 16" stroke="#FFFFFF" strokeWidth="2.5"></path>
-            <path d="M18 12C20 12 21 14 21 16" stroke="#FFFFFF" strokeWidth="2.5"></path>
-            <path d="M4 8S5 6 7 6" stroke="#FFFFFF" strokeWidth="2.5"></path>
-            <path d="M20 8S19 6 17 6" stroke="#FFFFFF" strokeWidth="2.5"></path>
-            <path d="M12 8C10 6 9 4 9 2" stroke="#FFFFFF" strokeWidth="2.5"></path>
-            <path d="M12 8C14 6 15 4 15 2" stroke="#FFFFFF" strokeWidth="2.5"></path>
-            <path d="M9 2C7 2 6 4 6 6" fill="#4CAF50" stroke="#4CAF50" strokeWidth="1"></path>
-            <path d="M15 2C17 2 18 4 18 6" fill="#4CAF50" stroke="#4CAF50" strokeWidth="1"></path>
-            <path d="M7 6C5 6 4 8 4 10" fill="#4CAF50" stroke="#4CAF50" strokeWidth="1"></path>
-            <path d="M17 6C19 6 20 8 20 10" fill="#4CAF50" stroke="#4CAF50" strokeWidth="1"></path>
-            <path d="M3 16C2 16 2 18 3 18" fill="#4CAF50" stroke="#4CAF50" strokeWidth="1"></path>
-            <path d="M21 16C22 16 22 18 21 18" fill="#4CAF50" stroke="#4CAF50" strokeWidth="1"></path>
+            <path d="M12 22V8"/>
+            <path d="M6 12a6 6 0 0 1 6-6V2"/>
+            <path d="M18 12a6 6 0 0 0-6-6V2"/>
+            <path d="M12 8a6 6 0 0 1 6 4"/>
+            <path d="M12 8a6 6 0 0 0-6 4"/>
+            <path d="M12 22a4 4 0 0 1-4-4"/>
+            <path d="M12 22a4 4 0 0 0 4-4"/>
+            <path d="m15 12-1-1"/>
+            <path d="m9 12 1-1"/>
         </svg>
     </div>
 );
@@ -79,7 +73,7 @@ export function Invoice({ data }: { data: InvoiceData }) {
         <div className="flex items-start gap-4">
             <InvoiceLogo />
             <div>
-                <h1 className="text-xl font-bold text-gray-900">{companyDetails.name} Mianwali</h1>
+                <h1 className="text-xl font-bold text-gray-900">{companyDetails.name}</h1>
                 <p>Branch: {companyDetails.branch}</p>
                 <p>Mobile No1: {companyDetails.mobile1}</p>
                 <p>Mobile No2: {companyDetails.mobile2}</p>

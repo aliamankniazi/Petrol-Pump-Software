@@ -69,18 +69,18 @@ export default function CreditRecoveryPage() {
             const rangeEnd = dateRange?.to ? endOfDay(dateRange.to) : new Date();
 
             // Calculate Previous Balance
-            const prevTx = transactions.filter(tx => tx.customerId === customer.id && new Date(tx.timestamp) < rangeStart);
-            const prevPayments = customerPayments.filter(p => p.customerId === customer.id && new Date(p.timestamp) < rangeStart);
-            const prevAdvances = cashAdvances.filter(ca => ca.customerId === customer.id && new Date(ca.timestamp) < rangeStart);
+            const prevTx = transactions.filter(tx => tx.customerId === customer.id && new Date(tx.timestamp!) < rangeStart);
+            const prevPayments = customerPayments.filter(p => p.customerId === customer.id && new Date(p.timestamp!) < rangeStart);
+            const prevAdvances = cashAdvances.filter(ca => ca.customerId === customer.id && new Date(ca.timestamp!) < rangeStart);
             
             const prevDebit = prevTx.reduce((sum, tx) => sum + tx.totalAmount, 0) + prevAdvances.reduce((sum, ca) => sum + ca.amount, 0);
             const prevCredit = prevPayments.reduce((sum, p) => sum + p.amount, 0);
             const previousBalance = prevDebit - prevCredit;
             
             // Calculate Sale and Recovery in date range
-            const rangeTx = transactions.filter(tx => tx.customerId === customer.id && new Date(tx.timestamp) >= rangeStart && new Date(tx.timestamp) <= rangeEnd);
-            const rangePayments = customerPayments.filter(p => p.customerId === customer.id && new Date(p.timestamp) >= rangeStart && new Date(p.timestamp) <= rangeEnd);
-            const rangeAdvances = cashAdvances.filter(ca => ca.customerId === customer.id && new Date(ca.timestamp) >= rangeStart && new Date(ca.timestamp) <= rangeEnd);
+            const rangeTx = transactions.filter(tx => tx.customerId === customer.id && new Date(tx.timestamp!) >= rangeStart && new Date(tx.timestamp!) <= rangeEnd);
+            const rangePayments = customerPayments.filter(p => p.customerId === customer.id && new Date(p.timestamp!) >= rangeStart && new Date(p.timestamp!) <= rangeEnd);
+            const rangeAdvances = cashAdvances.filter(ca => ca.customerId === customer.id && new Date(ca.timestamp!) >= rangeStart && new Date(ca.timestamp!) <= rangeEnd);
 
             const sale = rangeTx.reduce((sum, tx) => sum + tx.totalAmount, 0) + rangeAdvances.reduce((sum, ca) => sum + ca.amount, 0);
             const recovery = rangePayments.reduce((sum, p) => sum + p.amount, 0);
@@ -88,7 +88,7 @@ export default function CreditRecoveryPage() {
             const currentBalance = previousBalance + sale - recovery;
 
             return {
-                id: customer.id,
+                id: customer.id!,
                 customer,
                 previousBalance,
                 sale,
@@ -121,7 +121,7 @@ New Sale Amount: ${row.sale.toLocaleString(undefined, {minimumFractionDigits: 2,
 Paid Amount: ${row.recovery.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
 Now your balance is: ${row.currentBalance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
 Thank You,
-Mianwali Petroleum Service Mianwali`;
+Mianwali Petroleum Service`;
         return encodeURIComponent(message);
     }
 
@@ -147,7 +147,7 @@ Mianwali Petroleum Service Mianwali`;
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Customers</SelectItem>
-                                    {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                    {customers.map(c => <SelectItem key={c.id} value={c.id!}>{c.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -264,4 +264,3 @@ Mianwali Petroleum Service Mianwali`;
         </div>
     );
 }
-
