@@ -513,6 +513,7 @@ export default function PurchasesPage() {
                     <TableHead>Date</TableHead>
                     <TableHead>Supplier</TableHead>
                     <TableHead>Items</TableHead>
+                    <TableHead className="text-right">Expenses</TableHead>
                     <TableHead className="text-right">Total Cost</TableHead>
                     <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
@@ -532,6 +533,7 @@ export default function PurchasesPage() {
                            ))}
                           </ul>
                         </TableCell>
+                        <TableCell className="text-right font-mono">PKR {(p.expenses || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                         <TableCell className="text-right font-mono font-semibold">PKR {p.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                         <TableCell className="text-center space-x-0">
                             <Button variant="ghost" size="icon" title="Edit" onClick={() => setPurchaseToEdit(p)}>
