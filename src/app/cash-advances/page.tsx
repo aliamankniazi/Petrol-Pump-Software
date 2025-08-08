@@ -37,7 +37,6 @@ export default function CashAdvancesPage() {
   const { customers, isLoaded: customersLoaded } = useCustomers();
   const { cashAdvances, addCashAdvance } = useCashAdvances();
   const { toast } = useToast();
-  const [isClient, setIsClient] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const { register, handleSubmit, reset, control, formState: { errors }, watch, setValue } = useForm<CashAdvanceFormValues>({
@@ -46,7 +45,6 @@ export default function CashAdvancesPage() {
   });
 
   useEffect(() => {
-    setIsClient(true);
     const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (storedDate) {
       setValue('date', new Date(storedDate));
@@ -55,10 +53,10 @@ export default function CashAdvancesPage() {
 
   const selectedDate = watch('date');
   useEffect(() => {
-    if (selectedDate && isClient) {
+    if (selectedDate) {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate, isClient]);
+  }, [selectedDate]);
 
   const onSubmit: SubmitHandler<CashAdvanceFormValues> = (data) => {
     const customer = customers.find(c => c.id === data.customerId);

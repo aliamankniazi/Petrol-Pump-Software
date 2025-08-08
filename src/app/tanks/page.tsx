@@ -35,7 +35,6 @@ export default function TankManagementPage() {
   const { tankReadings, addTankReading } = useTankReadings();
   const { products, isLoaded: productsLoaded } = useProducts();
   const { toast } = useToast();
-  const [isClient, setIsClient] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const fuelProducts = useMemo(() => products.filter(p => p.category === 'Fuel'), [products]);
@@ -48,7 +47,6 @@ export default function TankManagementPage() {
   });
 
   useEffect(() => {
-    setIsClient(true);
     const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (storedDate) {
       setValue('date', new Date(storedDate));
@@ -57,10 +55,10 @@ export default function TankManagementPage() {
 
   const selectedDate = watch('date');
   useEffect(() => {
-    if (selectedDate && isClient) {
+    if (selectedDate) {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate, isClient]);
+  }, [selectedDate]);
 
   const onSubmit: SubmitHandler<TankReadingFormValues> = (data) => {
     const product = products.find(p => p.id === data.productId);

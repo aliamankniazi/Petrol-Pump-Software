@@ -42,7 +42,6 @@ export default function InvestmentsPage() {
   const { investments, addInvestment, deleteInvestment, isLoaded: investmentsLoaded } = useInvestments();
   const { customers, isLoaded: partnersLoaded } = useCustomers();
   const [transactionToDelete, setTransactionToDelete] = useState<Investment | null>(null);
-  const [isClient, setIsClient] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const businessPartners = useMemo(() => customers.filter(c => c.isPartner), [customers]);
 
@@ -53,7 +52,6 @@ export default function InvestmentsPage() {
   });
 
   useEffect(() => {
-    setIsClient(true);
     const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (storedDate) {
       setValue('date', new Date(storedDate));
@@ -62,10 +60,10 @@ export default function InvestmentsPage() {
 
   const selectedDate = watch('date');
   useEffect(() => {
-    if (selectedDate && isClient) {
+    if (selectedDate) {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate, isClient]);
+  }, [selectedDate]);
   
   const isLoaded = investmentsLoaded && partnersLoaded;
   

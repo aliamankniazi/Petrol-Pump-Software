@@ -39,7 +39,6 @@ export default function OtherIncomesPage() {
   const { otherIncomes, addOtherIncome, deleteOtherIncome } = useOtherIncomes();
   const { toast } = useToast();
   const [incomeToDelete, setIncomeToDelete] = useState<OtherIncome | null>(null);
-  const [isClient, setIsClient] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const { register, handleSubmit, reset, control, formState: { errors }, watch, setValue } = useForm<IncomeFormValues>({
@@ -48,7 +47,6 @@ export default function OtherIncomesPage() {
   });
 
   useEffect(() => {
-    setIsClient(true);
     const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (storedDate) {
       setValue('date', new Date(storedDate));
@@ -57,10 +55,10 @@ export default function OtherIncomesPage() {
 
   const selectedDate = watch('date');
   useEffect(() => {
-    if (selectedDate && isClient) {
+    if (selectedDate) {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate, isClient]);
+  }, [selectedDate]);
 
   const onSubmit: SubmitHandler<IncomeFormValues> = (data) => {
     addOtherIncome({

@@ -38,7 +38,6 @@ export default function SupplierPaymentsPage() {
   const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
   const { supplierPayments, addSupplierPayment } = useSupplierPayments();
   const { toast } = useToast();
-  const [isClient, setIsClient] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const { register, handleSubmit, control, reset, formState: { errors }, watch, setValue } = useForm<SupplierPaymentFormValues>({
@@ -50,7 +49,6 @@ export default function SupplierPaymentsPage() {
   });
 
   useEffect(() => {
-    setIsClient(true);
     const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (storedDate) {
       setValue('date', new Date(storedDate));
@@ -59,10 +57,10 @@ export default function SupplierPaymentsPage() {
   
   const selectedDate = watch('date');
   useEffect(() => {
-    if (selectedDate && isClient) {
+    if (selectedDate) {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate, isClient]);
+  }, [selectedDate]);
 
   const onSubmit: SubmitHandler<SupplierPaymentFormValues> = useCallback((data) => {
     const supplier = suppliers.find(s => s.id === data.supplierId);

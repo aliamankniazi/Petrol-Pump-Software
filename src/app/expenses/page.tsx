@@ -40,7 +40,6 @@ export default function ExpensesPage() {
   const { expenses, addExpense, deleteExpense } = useExpenses();
   const { toast } = useToast();
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
-  const [isClient, setIsClient] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const { register, handleSubmit, reset, control, formState: { errors }, watch, setValue } = useForm<ExpenseFormValues>({
@@ -49,7 +48,6 @@ export default function ExpensesPage() {
   });
 
   useEffect(() => {
-    setIsClient(true);
     const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (storedDate) {
       setValue('date', new Date(storedDate));
@@ -58,10 +56,10 @@ export default function ExpensesPage() {
   
   const selectedDate = watch('date');
   useEffect(() => {
-    if (selectedDate && isClient) {
+    if (selectedDate) {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate, isClient]);
+  }, [selectedDate]);
 
   const onSubmit: SubmitHandler<ExpenseFormValues> = (data) => {
     addExpense({

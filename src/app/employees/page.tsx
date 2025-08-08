@@ -49,12 +49,7 @@ export default function EmployeesPage() {
   const { addExpense } = useExpenses();
   const { addCustomer, updateCustomer } = useCustomers();
   const { attendance } = useAttendance();
-  const [isClient, setIsClient] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const { toast } = useToast();
   
@@ -206,7 +201,7 @@ export default function EmployeesPage() {
 
                 <div className="space-y-2">
                   <Label>Hire Date</Label>
-                  {isClient && <Controller
+                  <Controller
                     name="hireDate"
                     control={control}
                     render={({ field }) => (
@@ -236,7 +231,7 @@ export default function EmployeesPage() {
                         </PopoverContent>
                       </Popover>
                     )}
-                  />}
+                  />
                   {errors.hireDate && <p className="text-sm text-destructive">{errors.hireDate.message}</p>}
                 </div>
 
@@ -409,7 +404,7 @@ export default function EmployeesPage() {
 
                 <div className="space-y-2">
                   <Label>Hire Date</Label>
-                  {isClient && <Controller
+                  <Controller
                     name="hireDate"
                     control={controlEdit}
                     render={({ field }) => (
@@ -436,7 +431,7 @@ export default function EmployeesPage() {
                         </PopoverContent>
                       </Popover>
                     )}
-                  />}
+                  />
                   {editErrors.hireDate && <p className="text-sm text-destructive">{editErrors.hireDate.message}</p>}
                 </div>
             </div>
