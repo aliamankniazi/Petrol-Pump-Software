@@ -48,14 +48,19 @@ export default function CustomerPaymentsPage() {
     setIsClient(true);
   }, []);
   
+  let defaultDate = new Date();
+  if (typeof window !== 'undefined') {
+    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedDate) {
+      defaultDate = new Date(storedDate);
+    }
+  }
+
   const { register, handleSubmit, control, reset, formState: { errors }, watch } = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
-    defaultValues: () => {
-      if (typeof window !== 'undefined') {
-        const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-        return { date: storedDate ? new Date(storedDate) : new Date(), paymentMethod: 'Cash' };
-      }
-      return { date: new Date(), paymentMethod: 'Cash' };
+    defaultValues: { 
+      date: defaultDate, 
+      paymentMethod: 'Cash' 
     }
   });
 

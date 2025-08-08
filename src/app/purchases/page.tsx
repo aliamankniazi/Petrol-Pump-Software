@@ -80,24 +80,21 @@ export default function PurchasesPage() {
     setIsClient(true);
   }, []);
   
+  let defaultDate = new Date();
+  if (typeof window !== 'undefined') {
+    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedDate) {
+      defaultDate = new Date(storedDate);
+    }
+  }
+
   const { register, handleSubmit, reset, setValue, control, watch, formState: { errors } } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema),
-    defaultValues: () => {
-      if (typeof window !== 'undefined') {
-        const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-        return {
-          items: [{ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 }],
-          expenses: 0,
-          paymentMethod: 'On Credit',
-          date: storedDate ? new Date(storedDate) : new Date(),
-        };
-      }
-      return {
-        items: [{ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 }],
-        expenses: 0,
-        paymentMethod: 'On Credit',
-        date: new Date(),
-      };
+    defaultValues: {
+      items: [{ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 }],
+      expenses: 0,
+      paymentMethod: 'On Credit',
+      date: defaultDate,
     }
   });
   

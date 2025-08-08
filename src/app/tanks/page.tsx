@@ -29,6 +29,8 @@ const tankReadingSchema = z.object({
 
 type TankReadingFormValues = z.infer<typeof tankReadingSchema>;
 
+const LOCAL_STORAGE_KEY = 'global-transaction-date';
+
 export default function TankManagementPage() {
   const { tankReadings, addTankReading } = useTankReadings();
   const { products, isLoaded: productsLoaded } = useProducts();
@@ -41,10 +43,18 @@ export default function TankManagementPage() {
     setIsClient(true);
   }, []);
 
+  let defaultDate = new Date();
+  if (typeof window !== 'undefined') {
+    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedDate) {
+      defaultDate = new Date(storedDate);
+    }
+  }
+
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<TankReadingFormValues>({
     resolver: zodResolver(tankReadingSchema),
     defaultValues: {
-        date: new Date(),
+        date: defaultDate,
     }
   });
 

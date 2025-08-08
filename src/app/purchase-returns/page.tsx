@@ -47,15 +47,17 @@ export default function PurchaseReturnsPage() {
     setIsClient(true);
   }, []);
 
+  let defaultDate = new Date();
+  if (typeof window !== 'undefined') {
+    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedDate) {
+      defaultDate = new Date(storedDate);
+    }
+  }
+
   const { register, handleSubmit, reset, setValue, control, formState: { errors }, watch } = useForm<PurchaseReturnFormValues>({
     resolver: zodResolver(purchaseReturnSchema),
-    defaultValues: () => {
-      if (typeof window !== 'undefined') {
-        const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-        return { date: storedDate ? new Date(storedDate) : new Date() };
-      }
-      return { date: new Date() };
-    }
+    defaultValues: { date: defaultDate }
   });
 
   const selectedDate = watch('date');

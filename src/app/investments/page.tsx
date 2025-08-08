@@ -51,16 +51,18 @@ export default function InvestmentsPage() {
   
   const { toast } = useToast();
   
+  let defaultDate = new Date();
+  if (typeof window !== 'undefined') {
+    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedDate) {
+      defaultDate = new Date(storedDate);
+    }
+  }
+
   // Form for new investments/withdrawals
   const { register: registerInvestment, handleSubmit: handleSubmitInvestment, reset: resetInvestment, control: controlInvestment, formState: { errors: investmentErrors }, watch } = useForm<InvestmentFormValues>({
     resolver: zodResolver(investmentSchema),
-    defaultValues: () => {
-      if (typeof window !== 'undefined') {
-        const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-        return { type: 'Investment', date: storedDate ? new Date(storedDate) : new Date() };
-      }
-      return { type: 'Investment', date: new Date() };
-    }
+    defaultValues: { type: 'Investment', date: defaultDate }
   });
 
   const selectedDate = watch('date');

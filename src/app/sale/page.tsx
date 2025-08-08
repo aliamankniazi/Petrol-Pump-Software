@@ -62,22 +62,20 @@ export default function SalePage() {
     customerId: 'walk-in',
   });
 
+  let defaultDate = new Date();
+  if (typeof window !== 'undefined') {
+    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedDate) {
+      defaultDate = new Date(storedDate);
+    }
+  }
+
   const { register, handleSubmit, control, watch, setValue, reset, formState: { errors } } = useForm<SaleFormValues>({
     resolver: zodResolver(saleSchema),
-    defaultValues: () => {
-      if (typeof window !== 'undefined') {
-        const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-        return {
-          ...formState,
-          date: storedDate ? new Date(storedDate) : new Date(),
-          items: [{ productId: '', quantity: 0, pricePerUnit: 0, totalAmount: 0 }],
-        };
-      }
-      return {
-        ...formState,
-        date: new Date(),
-        items: [{ productId: '', quantity: 0, pricePerUnit: 0, totalAmount: 0 }],
-      };
+    defaultValues: {
+      ...formState,
+      date: defaultDate,
+      items: [{ productId: '', quantity: 0, pricePerUnit: 0, totalAmount: 0 }],
     }
   });
 
