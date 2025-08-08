@@ -37,7 +37,6 @@ export default function CashAdvancesPage() {
   const { customers, isLoaded: customersLoaded } = useCustomers();
   const { cashAdvances, addCashAdvance } = useCashAdvances();
   const { toast } = useToast();
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   
   const [isClient, setIsClient] = useState(false);
 
@@ -54,7 +53,12 @@ export default function CashAdvancesPage() {
     if (isClient) {
       const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (storedDate) {
-        setValue('date', new Date(storedDate));
+        try {
+          setValue('date', new Date(storedDate));
+        } catch (e) {
+            // If the date is invalid, just use today
+            setValue('date', new Date());
+        }
       }
     }
   }, [setValue, isClient]);
@@ -141,7 +145,7 @@ export default function CashAdvancesPage() {
                   name="date"
                   control={control}
                   render={({ field }) => (
-                    <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                    <Popover>
                       <PopoverTrigger asChild>
                         <Button
                           variant={"outline"}
@@ -158,10 +162,7 @@ export default function CashAdvancesPage() {
                         <Calendar
                           mode="single"
                           selected={field.value}
-                          onSelect={(date) => {
-                              if(date) field.onChange(date);
-                              setIsCalendarOpen(false);
-                          }}
+                          onSelect={field.onChange}
                           initialFocus
                         />
                       </PopoverContent>

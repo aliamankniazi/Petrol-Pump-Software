@@ -39,7 +39,6 @@ export default function OtherIncomesPage() {
   const { otherIncomes, addOtherIncome, deleteOtherIncome } = useOtherIncomes();
   const { toast } = useToast();
   const [incomeToDelete, setIncomeToDelete] = useState<OtherIncome | null>(null);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   
   const [isClient, setIsClient] = useState(false);
 
@@ -56,7 +55,11 @@ export default function OtherIncomesPage() {
     if (isClient) {
       const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (storedDate) {
-        setValue('date', new Date(storedDate));
+        try {
+          setValue('date', new Date(storedDate));
+        } catch(e) {
+          setValue('date', new Date());
+        }
       }
     }
   }, [setValue, isClient]);
@@ -147,7 +150,7 @@ export default function OtherIncomesPage() {
                     name="date"
                     control={control}
                     render={({ field }) => (
-                      <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                      <Popover>
                         <PopoverTrigger asChild>
                           <Button
                             variant={"outline"}
@@ -164,10 +167,7 @@ export default function OtherIncomesPage() {
                           <Calendar
                             mode="single"
                             selected={field.value}
-                            onSelect={(date) => {
-                                if(date) field.onChange(date);
-                                setIsCalendarOpen(false);
-                            }}
+                            onSelect={field.onChange}
                             initialFocus
                           />
                         </PopoverContent>

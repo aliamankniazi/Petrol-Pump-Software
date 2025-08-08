@@ -42,7 +42,6 @@ export default function InvestmentsPage() {
   const { investments, addInvestment, deleteInvestment, isLoaded: investmentsLoaded } = useInvestments();
   const { customers, isLoaded: partnersLoaded } = useCustomers();
   const [transactionToDelete, setTransactionToDelete] = useState<Investment | null>(null);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   
   const [isClient, setIsClient] = useState(false);
 
@@ -62,7 +61,11 @@ export default function InvestmentsPage() {
     if (isClient) {
       const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (storedDate) {
-        setValue('date', new Date(storedDate));
+        try {
+          setValue('date', new Date(storedDate));
+        } catch(e) {
+          setValue('date', new Date());
+        }
       }
     }
   }, [setValue, isClient]);
@@ -258,7 +261,7 @@ export default function InvestmentsPage() {
                   name="date"
                   control={controlInvestment}
                   render={({ field }) => (
-                    <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                    <Popover>
                       <PopoverTrigger asChild>
                         <Button
                           variant={"outline"}
@@ -275,10 +278,7 @@ export default function InvestmentsPage() {
                         <Calendar
                           mode="single"
                           selected={field.value}
-                          onSelect={(date) => {
-                            if(date) field.onChange(date);
-                            setIsCalendarOpen(false);
-                          }}
+                          onSelect={field.onChange}
                           initialFocus
                         />
                       </PopoverContent>

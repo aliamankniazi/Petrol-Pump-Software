@@ -49,7 +49,11 @@ export default function EmployeesPage() {
   const { addExpense } = useExpenses();
   const { addCustomer, updateCustomer } = useCustomers();
   const { attendance } = useAttendance();
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const { toast } = useToast();
   
@@ -161,6 +165,10 @@ export default function EmployeesPage() {
       setEditValue('hireDate', new Date(employeeToEdit.hireDate));
     }
   }, [employeeToEdit, setEditValue]);
+  
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <>
@@ -205,7 +213,7 @@ export default function EmployeesPage() {
                     name="hireDate"
                     control={control}
                     render={({ field }) => (
-                      <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                      <Popover>
                         <PopoverTrigger asChild>
                           <Button
                             variant={"outline"}
@@ -222,10 +230,7 @@ export default function EmployeesPage() {
                           <Calendar
                             mode="single"
                             selected={field.value}
-                            onSelect={(date) => {
-                                field.onChange(date);
-                                setIsCalendarOpen(false);
-                            }}
+                            onSelect={field.onChange}
                             initialFocus
                           />
                         </PopoverContent>
