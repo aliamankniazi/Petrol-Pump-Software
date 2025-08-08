@@ -64,7 +64,6 @@ export default function SalePage() {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [isOrderCalendarOpen, setIsOrderCalendarOpen] = useState(false);
   
   // State for the temporary item being added
   const [currentItem, setCurrentItem] = useState({ productId: '', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '' });
@@ -85,13 +84,15 @@ export default function SalePage() {
   });
 
   useEffect(() => {
-    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (storedDate) {
-        setValue('date', new Date(storedDate));
-        setValue('orderDeliveryDate', new Date(storedDate));
-    } else {
-        setValue('date', new Date());
-        setValue('orderDeliveryDate', new Date());
+    if (isClient) {
+        const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (storedDate) {
+            setValue('date', new Date(storedDate));
+            setValue('orderDeliveryDate', new Date(storedDate));
+        } else {
+            setValue('date', new Date());
+            setValue('orderDeliveryDate', new Date());
+        }
     }
   }, [setValue, isClient]);
 
@@ -319,12 +320,12 @@ export default function SalePage() {
                             </Popover>
                         )}/>}
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 hidden">
                         <Label>Order Delivery Date</Label>
                          {isClient && <Controller name="orderDeliveryDate" control={control} render={({ field }) => (
-                            <Popover open={isOrderCalendarOpen} onOpenChange={setIsOrderCalendarOpen}>
+                            <Popover>
                                 <PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
-                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(d) => {field.onChange(d); if(d) setIsOrderCalendarOpen(false);}} initialFocus /></PopoverContent>
+                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(d) => {field.onChange(d);}} initialFocus /></PopoverContent>
                             </Popover>
                         )}/>}
                     </div>
