@@ -222,7 +222,20 @@ export default function SalePage() {
                         </div>
                         <div className="space-y-1">
                             <Label>Unit</Label>
-                            <Input value={products.find(p => p.id === currentItem.productId)?.mainUnit || ''} disabled />
+                            <Input 
+                                value={
+                                    (() => {
+                                        const product = products.find(p => p.id === currentItem.productId);
+                                        if (!product) return '';
+                                        let unitString = product.mainUnit;
+                                        if (product.subUnit) {
+                                            unitString += ` / ${product.subUnit.name}`;
+                                        }
+                                        return unitString;
+                                    })()
+                                } 
+                                disabled 
+                            />
                         </div>
                          <div className="space-y-1">
                             <Label>Enter Qty</Label>
