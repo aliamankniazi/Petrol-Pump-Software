@@ -40,29 +40,25 @@ export default function CashAdvancesPage() {
   const [isClient, setIsClient] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
+  const { register, handleSubmit, reset, control, formState: { errors }, watch, setValue } = useForm<CashAdvanceFormValues>({
+    resolver: zodResolver(cashAdvanceSchema),
+    defaultValues: { date: new Date() }
+  });
+
   useEffect(() => {
     setIsClient(true);
-  }, []);
-
-  let defaultDate: Date;
-  if (isClient) {
     const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    defaultDate = storedDate ? new Date(storedDate) : new Date();
-  } else {
-    defaultDate = new Date();
-  }
-
-  const { register, handleSubmit, reset, control, formState: { errors }, watch } = useForm<CashAdvanceFormValues>({
-    resolver: zodResolver(cashAdvanceSchema),
-    defaultValues: { date: defaultDate }
-  });
+    if (storedDate) {
+      setValue('date', new Date(storedDate));
+    }
+  }, [setValue]);
 
   const selectedDate = watch('date');
   useEffect(() => {
-    if (selectedDate && typeof window !== 'undefined') {
+    if (selectedDate && isClient) {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate]);
+  }, [selectedDate, isClient]);
 
   const onSubmit: SubmitHandler<CashAdvanceFormValues> = (data) => {
     const customer = customers.find(c => c.id === data.customerId);
@@ -131,7 +127,7 @@ export default function CashAdvancesPage() {
               
               <div className="space-y-2">
                 <Label>Date</Label>
-                {isClient && <Controller
+                <Controller
                   name="date"
                   control={control}
                   render={({ field }) => (
@@ -161,7 +157,7 @@ export default function CashAdvancesPage() {
                       </PopoverContent>
                     </Popover>
                   )}
-                />}
+                />
                 {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
               </div>
 

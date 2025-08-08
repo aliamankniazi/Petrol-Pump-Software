@@ -40,24 +40,27 @@ export default function TankManagementPage() {
 
   const fuelProducts = useMemo(() => products.filter(p => p.category === 'Fuel'), [products]);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  let defaultDate: Date;
-  if (isClient) {
-    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    defaultDate = storedDate ? new Date(storedDate) : new Date();
-  } else {
-    defaultDate = new Date();
-  }
-
-  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<TankReadingFormValues>({
+  const { register, handleSubmit, control, reset, formState: { errors }, watch, setValue } = useForm<TankReadingFormValues>({
     resolver: zodResolver(tankReadingSchema),
     defaultValues: {
-        date: defaultDate,
+        date: new Date(),
     }
   });
+
+  useEffect(() => {
+    setIsClient(true);
+    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedDate) {
+      setValue('date', new Date(storedDate));
+    }
+  }, [setValue]);
+
+  const selectedDate = watch('date');
+  useEffect(() => {
+    if (selectedDate && isClient) {
+      localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
+    }
+  }, [selectedDate, isClient]);
 
   const onSubmit: SubmitHandler<TankReadingFormValues> = (data) => {
     const product = products.find(p => p.id === data.productId);
@@ -77,16 +80,6 @@ export default function TankManagementPage() {
     const lastDate = watch('date');
     reset({ productId: '', volume: 0, date: lastDate });
   };
-  
-  const { watch } = useForm<TankReadingFormValues>();
-  const selectedDate = watch('date');
-
-  useEffect(() => {
-    if (selectedDate && typeof window !== 'undefined') {
-      localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
-    }
-  }, [selectedDate]);
-
 
   return (
     <div className="p-4 md:p-8 grid gap-8 lg:grid-cols-3">
@@ -129,7 +122,7 @@ export default function TankManagementPage() {
 
                <div className="space-y-2">
                 <Label>Date</Label>
-                {isClient && <Controller
+                <Controller
                   name="date"
                   control={control}
                   render={({ field }) => (
@@ -159,7 +152,7 @@ export default function TankManagementPage() {
                       </PopoverContent>
                     </Popover>
                   )}
-                />}
+                />
                 {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
               </div>
 

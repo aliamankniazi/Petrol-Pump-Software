@@ -41,32 +41,28 @@ export default function SupplierPaymentsPage() {
   const [isClient, setIsClient] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-  
-  let defaultDate: Date;
-  if (isClient) {
-    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    defaultDate = storedDate ? new Date(storedDate) : new Date();
-  } else {
-    defaultDate = new Date();
-  }
-
-  const { register, handleSubmit, control, reset, formState: { errors }, watch } = useForm<SupplierPaymentFormValues>({
+  const { register, handleSubmit, control, reset, formState: { errors }, watch, setValue } = useForm<SupplierPaymentFormValues>({
     resolver: zodResolver(supplierPaymentSchema),
     defaultValues: {
-      date: defaultDate, 
+      date: new Date(), 
       paymentMethod: 'Cash'
     }
   });
 
+  useEffect(() => {
+    setIsClient(true);
+    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedDate) {
+      setValue('date', new Date(storedDate));
+    }
+  }, [setValue]);
+  
   const selectedDate = watch('date');
   useEffect(() => {
-    if (selectedDate && typeof window !== 'undefined') {
+    if (selectedDate && isClient) {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate]);
+  }, [selectedDate, isClient]);
 
   const onSubmit: SubmitHandler<SupplierPaymentFormValues> = useCallback((data) => {
     const supplier = suppliers.find(s => s.id === data.supplierId);
@@ -84,7 +80,7 @@ export default function SupplierPaymentsPage() {
     });
     const lastDate = watch('date');
     reset({ supplierId: '', amount: 0, date: lastDate, paymentMethod: 'Cash' });
-  }, [suppliers, addSupplierPayment, toast, reset]);
+  }, [suppliers, addSupplierPayment, toast, reset, watch]);
   
   const getBadgeVariant = (method: Omit<PaymentMethod, 'On Credit'>) => {
     switch (method) {
@@ -157,7 +153,7 @@ export default function SupplierPaymentsPage() {
 
                <div className="space-y-2">
                 <Label>Date</Label>
-                {isClient && <Controller
+                <Controller
                   name="date"
                   control={control}
                   render={({ field }) => (
@@ -187,7 +183,7 @@ export default function SupplierPaymentsPage() {
                       </PopoverContent>
                     </Popover>
                   )}
-                />}
+                />
                 {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
               </div>
 

@@ -42,29 +42,25 @@ export default function OtherIncomesPage() {
   const [isClient, setIsClient] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
+  const { register, handleSubmit, reset, control, formState: { errors }, watch, setValue } = useForm<IncomeFormValues>({
+    resolver: zodResolver(incomeSchema),
+    defaultValues: { date: new Date() }
+  });
+
   useEffect(() => {
     setIsClient(true);
-  }, []);
-
-  let defaultDate: Date;
-  if (isClient) {
     const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    defaultDate = storedDate ? new Date(storedDate) : new Date();
-  } else {
-    defaultDate = new Date();
-  }
-
-  const { register, handleSubmit, reset, control, formState: { errors }, watch } = useForm<IncomeFormValues>({
-    resolver: zodResolver(incomeSchema),
-    defaultValues: { date: defaultDate }
-  });
+    if (storedDate) {
+      setValue('date', new Date(storedDate));
+    }
+  }, [setValue]);
 
   const selectedDate = watch('date');
   useEffect(() => {
-    if (selectedDate && typeof window !== 'undefined') {
+    if (selectedDate && isClient) {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate]);
+  }, [selectedDate, isClient]);
 
   const onSubmit: SubmitHandler<IncomeFormValues> = (data) => {
     addOtherIncome({
@@ -137,7 +133,7 @@ export default function OtherIncomesPage() {
               
               <div className="space-y-2">
                   <Label>Date</Label>
-                  {isClient && <Controller
+                  <Controller
                     name="date"
                     control={control}
                     render={({ field }) => (
@@ -167,7 +163,7 @@ export default function OtherIncomesPage() {
                         </PopoverContent>
                       </Popover>
                     )}
-                  />}
+                  />
                   {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
                 </div>
 

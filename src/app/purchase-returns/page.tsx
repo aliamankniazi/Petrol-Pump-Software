@@ -44,29 +44,25 @@ export default function PurchaseReturnsPage() {
   const [isClient, setIsClient] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  let defaultDate: Date;
-  if (isClient) {
-    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    defaultDate = storedDate ? new Date(storedDate) : new Date();
-  } else {
-    defaultDate = new Date();
-  }
-
   const { register, handleSubmit, reset, setValue, control, formState: { errors }, watch } = useForm<PurchaseReturnFormValues>({
     resolver: zodResolver(purchaseReturnSchema),
-    defaultValues: { date: defaultDate }
+    defaultValues: { date: new Date() }
   });
+
+  useEffect(() => {
+    setIsClient(true);
+    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedDate) {
+      setValue('date', new Date(storedDate));
+    }
+  }, [setValue]);
 
   const selectedDate = watch('date');
   useEffect(() => {
-    if (selectedDate && typeof window !== 'undefined') {
+    if (selectedDate && isClient) {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate]);
+  }, [selectedDate, isClient]);
 
   const onSubmit: SubmitHandler<PurchaseReturnFormValues> = (data) => {
     const supplier = suppliers.find(s => s.id === data.supplierId);
@@ -170,7 +166,7 @@ export default function PurchaseReturnsPage() {
               
               <div className="space-y-2">
                   <Label>Date</Label>
-                  {isClient && <Controller
+                  <Controller
                     name="date"
                     control={control}
                     render={({ field }) => (
@@ -200,7 +196,7 @@ export default function PurchaseReturnsPage() {
                         </PopoverContent>
                       </Popover>
                     )}
-                  />}
+                  />
                 </div>
 
               <Button type="submit" className="w-full">Record Return</Button>

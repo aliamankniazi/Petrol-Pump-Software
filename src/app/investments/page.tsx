@@ -46,34 +46,30 @@ export default function InvestmentsPage() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const businessPartners = useMemo(() => customers.filter(c => c.isPartner), [customers]);
 
+  // Form for new investments/withdrawals
+  const { register: registerInvestment, handleSubmit: handleSubmitInvestment, reset: resetInvestment, control: controlInvestment, formState: { errors: investmentErrors }, watch, setValue } = useForm<InvestmentFormValues>({
+    resolver: zodResolver(investmentSchema),
+    defaultValues: { type: 'Investment', date: new Date() }
+  });
+
   useEffect(() => {
     setIsClient(true);
-  }, []);
-  
-  const { toast } = useToast();
-  
-  let defaultDate: Date;
-  if (isClient) {
     const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    defaultDate = storedDate ? new Date(storedDate) : new Date();
-  } else {
-    defaultDate = new Date();
-  }
-
-  // Form for new investments/withdrawals
-  const { register: registerInvestment, handleSubmit: handleSubmitInvestment, reset: resetInvestment, control: controlInvestment, formState: { errors: investmentErrors }, watch } = useForm<InvestmentFormValues>({
-    resolver: zodResolver(investmentSchema),
-    defaultValues: { type: 'Investment', date: defaultDate }
-  });
+    if (storedDate) {
+      setValue('date', new Date(storedDate));
+    }
+  }, [setValue]);
 
   const selectedDate = watch('date');
   useEffect(() => {
-    if (selectedDate && typeof window !== 'undefined') {
+    if (selectedDate && isClient) {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate]);
+  }, [selectedDate, isClient]);
   
   const isLoaded = investmentsLoaded && partnersLoaded;
+  
+  const { toast } = useToast();
   
   const onInvestmentSubmit: SubmitHandler<InvestmentFormValues> = (data) => {
     const partner = businessPartners.find(p => p.id === data.partnerId);
@@ -247,7 +243,7 @@ export default function InvestmentsPage() {
               
               <div className="space-y-2">
                 <Label>Date</Label>
-                {isClient && <Controller
+                <Controller
                   name="date"
                   control={controlInvestment}
                   render={({ field }) => (
@@ -277,7 +273,7 @@ export default function InvestmentsPage() {
                       </PopoverContent>
                     </Popover>
                   )}
-                />}
+                />
                 {investmentErrors.date && <p className="text-sm text-destructive">{investmentErrors.date.message}</p>}
               </div>
 

@@ -44,33 +44,29 @@ export default function CustomerPaymentsPage() {
   const [paymentToDelete, setPaymentToDelete] = useState<CustomerPayment | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-  
-  let defaultDate: Date;
-  if (isClient) {
-    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-    defaultDate = storedDate ? new Date(storedDate) : new Date();
-  } else {
-    defaultDate = new Date();
-  }
 
-  const { register, handleSubmit, control, reset, formState: { errors }, watch } = useForm<PaymentFormValues>({
+  const { register, handleSubmit, control, reset, formState: { errors }, watch, setValue } = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
     defaultValues: { 
-      date: defaultDate, 
+      date: new Date(), 
       paymentMethod: 'Cash' 
     }
   });
+  
+  useEffect(() => {
+    setIsClient(true);
+    const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedDate) {
+      setValue('date', new Date(storedDate));
+    }
+  }, [setValue]);
 
   const selectedDate = watch('date');
   useEffect(() => {
-    if (selectedDate && typeof window !== 'undefined') {
+    if (selectedDate && isClient) {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate]);
+  }, [selectedDate, isClient]);
 
   const watchedCustomerId = watch('customerId');
   const { balance: customerBalance, isLoaded: balanceLoaded } = useCustomerBalance(watchedCustomerId || null);
@@ -191,7 +187,7 @@ export default function CustomerPaymentsPage() {
 
                <div className="space-y-2">
                 <Label>Date</Label>
-                {isClient && <Controller
+                <Controller
                   name="date"
                   control={control}
                   render={({ field }) => (
@@ -221,7 +217,7 @@ export default function CustomerPaymentsPage() {
                       </PopoverContent>
                     </Popover>
                   )}
-                />}
+                />
                 {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
               </div>
 
