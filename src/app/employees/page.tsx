@@ -11,8 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Briefcase, UserPlus, List, Calendar as CalendarIcon, Trash2, AlertTriangle, Edit, LayoutDashboard } from 'lucide-react';
-import { format, getMonth, setMonth } from 'date-fns';
+import { Briefcase, UserPlus, List, Calendar as CalendarIcon, Trash2, AlertTriangle, Edit, LayoutDashboard, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
+import { format, getMonth, setMonth, getDaysInMonth } from 'date-fns';
 import { useEmployees } from '@/hooks/use-employees';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCustomers } from '@/hooks/use-customers';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
+import { useAttendance } from '@/hooks/use-attendance';
 
 
 const employeeSchema = z.object({
@@ -40,11 +41,14 @@ const months = Array.from({ length: 12 }, (_, i) => ({
   value: i.toString(),
   label: format(setMonth(new Date(), i), 'MMMM'),
 }));
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
 export default function EmployeesPage() {
   const { employees, addEmployee, updateEmployee, deleteEmployee, isLoaded } = useEmployees();
   const { addExpense } = useExpenses();
   const { addCustomer, updateCustomer } = useCustomers();
+  const { attendance } = useAttendance();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -57,6 +61,7 @@ export default function EmployeesPage() {
   const [employeeToEdit, setEmployeeToEdit] = useState<Employee | null>(null);
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>(getMonth(new Date()).toString());
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
 
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
@@ -66,6 +71,33 @@ export default function EmployeesPage() {
   const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, setValue: setEditValue, control: controlEdit, formState: { errors: editErrors } } = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
   });
+
+  const salaryCalculation = useMemo(() => {
+    if (!employeeToPay) return null;
+
+    const salaryMonth = setMonth(new Date(selectedYear, 0, 1), parseInt(selectedMonth));
+    const daysInMonth = getDaysInMonth(salaryMonth);
+
+    const employeeAttendance = attendance.filter(a => 
+      a.employeeId === employeeToPay.id && 
+      new Date(a.date).getMonth() === parseInt(selectedMonth) &&
+      new Date(a.date).getFullYear() === selectedYear
+    );
+    
+    const presentDays = employeeAttendance.filter(a => a.status === 'Present' || a.status === 'Paid Leave').length;
+    const halfDays = employeeAttendance.filter(a => a.status === 'Half Day').length;
+
+    const perDaySalary = employeeToPay.salary / daysInMonth;
+    const payableSalary = (presentDays * perDaySalary) + (halfDays * perDaySalary * 0.5);
+
+    return {
+      presentDays: presentDays + halfDays * 0.5,
+      absentDays: daysInMonth - presentDays - halfDays,
+      payableSalary,
+      daysInMonth,
+    };
+
+  }, [employeeToPay, selectedMonth, selectedYear, attendance]);
 
   const onAddSubmit: SubmitHandler<EmployeeFormValues> = useCallback(async (data) => {
     const newEmployee = await addEmployee({ ...data, hireDate: data.hireDate.toISOString() });
@@ -104,15 +136,15 @@ export default function EmployeesPage() {
   }, [employeeToDelete, deleteEmployee, toast]);
 
   const handlePaySalary = useCallback(async () => {
-    if (!employeeToPay) return;
+    if (!employeeToPay || !salaryCalculation) return;
 
     const monthName = months.find(m => m.value === selectedMonth)?.label;
-    const expenseDescription = `Salary for ${employeeToPay.name} for ${monthName}`;
+    const expenseDescription = `Salary for ${employeeToPay.name} for ${monthName} ${selectedYear}`;
 
     addExpense({
       description: expenseDescription,
       category: 'Salaries',
-      amount: employeeToPay.salary,
+      amount: salaryCalculation.payableSalary,
       timestamp: new Date().toISOString(),
     });
 
@@ -122,7 +154,7 @@ export default function EmployeesPage() {
     });
 
     setEmployeeToPay(null);
-  }, [employeeToPay, selectedMonth, addExpense, toast]);
+  }, [employeeToPay, selectedMonth, selectedYear, salaryCalculation, addExpense, toast]);
   
   useEffect(() => {
     if (employeeToEdit) {
@@ -277,25 +309,64 @@ export default function EmployeesPage() {
           <DialogHeader>
             <DialogTitle>Pay Salary for {employeeToPay?.name}</DialogTitle>
             <DialogDescription>
-              Select the month for this salary payment. The amount is fixed at PKR {employeeToPay?.salary.toLocaleString()}. This will be recorded as a business expense.
+              Select the month for this salary payment. The amount is calculated based on attendance.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 py-4">
-            <Label htmlFor="salaryMonth">Salary Month</Label>
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger id="salaryMonth">
-                <SelectValue placeholder="Select a month" />
-              </SelectTrigger>
-              <SelectContent>
-                {months.map(month => (
-                  <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4 py-4">
+             <div className="space-y-2">
+                <Label htmlFor="salaryMonth">Salary Month</Label>
+                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                  <SelectTrigger id="salaryMonth">
+                    <SelectValue placeholder="Select a month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map(month => (
+                      <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="salaryYear">Year</Label>
+                <Select value={selectedYear.toString()} onValueChange={(val) => setSelectedYear(parseInt(val))}>
+                  <SelectTrigger id="salaryYear">
+                    <SelectValue placeholder="Select a year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map(year => (
+                      <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+            </div>
           </div>
+          {salaryCalculation && (
+            <div className='space-y-4 rounded-lg bg-muted p-4'>
+                <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Base Salary</span>
+                    <span className="font-medium">PKR {employeeToPay?.salary.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Working Days in Month</span>
+                    <span className="font-medium">{salaryCalculation.daysInMonth}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground flex items-center gap-1"><TrendingUp className="text-green-500"/> Present / Paid Leaves</span>
+                    <span className="font-medium">{salaryCalculation.presentDays}</span>
+                </div>
+                 <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground flex items-center gap-1"><TrendingDown className="text-destructive"/> Absent</span>
+                    <span className="font-medium">{salaryCalculation.absentDays}</span>
+                </div>
+                <div className="flex justify-between items-center text-lg font-bold border-t pt-2 mt-2">
+                    <span className="flex items-center gap-2"><Wallet/> Payable Salary</span>
+                    <span>PKR {salaryCalculation.payableSalary.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                </div>
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEmployeeToPay(null)}>Cancel</Button>
-            <Button onClick={handlePaySalary}>Confirm Payment</Button>
+            <Button onClick={handlePaySalary} disabled={!salaryCalculation}>Confirm Payment</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

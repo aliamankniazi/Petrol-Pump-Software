@@ -20,7 +20,7 @@ import {
   SidebarMenuSubItem,
   SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
-import { FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, Fuel, DollarSign, Beaker, Handshake, PiggyBank, Archive, BarChartHorizontal } from 'lucide-react';
+import { FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, Fuel, DollarSign, Beaker, Handshake, PiggyBank, Archive, BarChartHorizontal, UserCheck } from 'lucide-react';
 
 
 const navItems = [
@@ -51,6 +51,7 @@ const navItems = [
     subItems: [
         { href: '/customers', label: 'Customers & Partners', icon: Users },
         { href: '/employees', label: 'Employees', icon: Briefcase },
+        { href: '/attendance', label: 'Attendance', icon: UserCheck },
         { href: '/investments', label: 'Partner Investments', icon: PiggyBank },
     ]
   },

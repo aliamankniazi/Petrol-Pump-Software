@@ -197,3 +197,14 @@ export interface Investment {
   notes?: string;
   timestamp?: string;
 }
+
+export type AttendanceStatus = 'Present' | 'Absent' | 'Half Day' | 'Paid Leave';
+
+export interface Attendance {
+  id?: string;
+  employeeId: string;
+  employeeName: string;
+  date: string; // ISO date string YYYY-MM-DD
+  status: AttendanceStatus;
+  timestamp?: string;
+}
