@@ -12,8 +12,8 @@ export function useTransactions() {
   const { data: transactions, addDoc, deleteDoc, loading } = useDatabaseCollection<Transaction>(COLLECTION_NAME);
   const { products, updateProductStock } = useProducts();
 
-  const addTransaction = useCallback((transaction: Omit<Transaction, 'id'>) => {
-    addDoc(transaction);
+  const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id'>): Promise<Transaction | null> => {
+    const newDoc = await addDoc(transaction);
 
     transaction.items.forEach(item => {
         const product = products.find(p => p.id === item.productId);
@@ -23,6 +23,7 @@ export function useTransactions() {
         }
     });
     
+    return newDoc;
   }, [addDoc, products, updateProductStock]);
   
   const deleteTransaction = useCallback((id: string) => {

@@ -26,6 +26,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
+import { useRouter } from 'next/navigation';
 
 const saleItemSchema = z.object({
   productId: z.string().min(1, 'Product is required.'),
@@ -65,6 +66,7 @@ export default function SalePage() {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const router = useRouter();
   
   // State for the temporary item being added
   const [currentItem, setCurrentItem] = useState({ productId: '', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
@@ -166,17 +168,17 @@ export default function SalePage() {
 
   const { subTotal, grandTotal } = useMemo(() => {
     const sub = watchedItems.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
-    const discount = getValues('extraDiscount') || 0;
+    const discount = Number(getValues('extraDiscount')) || 0;
     const grand = sub - discount;
     return { subTotal: sub, grandTotal: grand };
   }, [watchedItems, getValues]);
 
 
-  const onSubmit: SubmitHandler<SaleFormValues> = (data) => {
+  const onSubmit: SubmitHandler<SaleFormValues> = async (data) => {
     const isWalkIn = !data.customerId || data.customerId === 'walk-in';
     const customer = !isWalkIn ? customers.find(c => c.id === data.customerId) : null;
 
-    addTransaction({
+    const newTransaction = await addTransaction({
       ...data,
       totalAmount: grandTotal,
       customerName: isWalkIn ? 'Walk-in Customer' : customer?.name,
@@ -193,6 +195,10 @@ export default function SalePage() {
         paymentMethod: 'On Credit',
         customerId: 'walk-in'
     });
+
+    if (newTransaction?.id) {
+        router.push(`/invoice/sale/${newTransaction.id}`);
+    }
   };
 
   if (!isClient) {
@@ -300,7 +306,7 @@ export default function SalePage() {
                     <div className="p-4 text-right space-y-2">
                         <div className="flex justify-end items-center gap-4">
                             <Label>Extra Discount:</Label>
-                            <Input className="w-24" placeholder="0 %" {...register('extraDiscount')} />
+                            <Input className="w-24" placeholder="0" type="number" {...register('extraDiscount')} />
                         </div>
                          <div className="flex justify-end items-center gap-4 font-bold text-xl">
                             <Label>Grand Total:</Label>
@@ -389,7 +395,7 @@ export default function SalePage() {
 
             </CardContent>
             <CardFooter className="gap-2">
-                 <Button type="submit" size="lg">Save/Submit</Button>
+                 <Button type="submit" size="lg"><Printer className="mr-2"/>Save & Print</Button>
                  <Button type="button" variant="outline" size="lg" onClick={() => reset()}>Discard/Reset</Button>
             </CardFooter>
         </Card>
