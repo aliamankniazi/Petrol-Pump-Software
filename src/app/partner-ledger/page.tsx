@@ -95,7 +95,7 @@ export default function UnifiedLedgerPage() {
           entityName: tx.customerName || 'N/A',
           entityType: entity.type,
           type: 'Sale',
-          description: `${tx.items.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', ')} ${tx.notes ? `- ${tx.notes}` : ''}`,
+          description: `${tx.items?.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', ') || 'Sale'} ${tx.notes ? `- ${tx.notes}` : ''}`,
           debit: tx.totalAmount,
           credit: 0,
         });

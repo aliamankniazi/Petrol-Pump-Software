@@ -89,7 +89,7 @@ export default function CustomerLedgerPage() {
         customerTransactions.forEach(tx => combined.push({
           id: `tx-${tx.id}`,
           timestamp: tx.timestamp!,
-          description: `${tx.items.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', ')} ${tx.notes ? `- ${tx.notes}` : ''}`,
+          description: `${tx.items?.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', ') || 'Sale'} ${tx.notes ? `- ${tx.notes}` : ''}`,
           type: 'Sale',
           debit: tx.totalAmount,
           credit: 0,
