@@ -255,14 +255,20 @@ export default function SettingsPage() {
                                 <div className="grid md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label>Company/Manufacturer</Label>
-                                        <Controller name="companyId" control={controlProduct} render={({ field }) => (
-                                            <Select onValueChange={field.onChange} value={field.value} defaultValue="">
-                                                <SelectTrigger><SelectValue placeholder="Select a company"/></SelectTrigger>
-                                                <SelectContent>
-                                                    {suppliersLoaded ? suppliers.map(s => <SelectItem key={s.id} value={s.id!}>{s.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                                                </SelectContent>
-                                            </Select>
-                                        )}/>
+                                        <div className="flex items-center gap-2">
+                                            <Controller name="companyId" control={controlProduct} render={({ field }) => (
+                                                <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                                                    <SelectTrigger><SelectValue placeholder="Select a company"/></SelectTrigger>
+                                                    <SelectContent>
+                                                    </SelectContent>
+                                                </Select>
+                                            )}/>
+                                            <Button type="button" variant="outline" size="icon" asChild>
+                                                <a href="#supplier-management" title="Add new company">
+                                                    <PlusCircle className="h-4 w-4" />
+                                                </a>
+                                            </Button>
+                                        </div>
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Product Group</Label>
@@ -367,7 +373,7 @@ export default function SettingsPage() {
 
           <Separator />
           
-          <div className="space-y-4">
+          <div className="space-y-4" id="supplier-management">
             <h3 className="text-lg font-medium flex items-center gap-2"><Truck /> Supplier Management</h3>
             <Card>
                 <CardHeader>
