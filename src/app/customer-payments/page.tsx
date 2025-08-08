@@ -44,7 +44,6 @@ export default function CustomerPaymentsPage() {
   const [paymentToDelete, setPaymentToDelete] = useState<CustomerPayment | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
-
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -64,14 +63,14 @@ export default function CustomerPaymentsPage() {
         setValue('date', new Date(storedDate));
       }
     }
-  }, [setValue, isClient]);
+  }, [setValue]);
 
   const selectedDate = watch('date');
   useEffect(() => {
     if (selectedDate && typeof window !== 'undefined') {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate, isClient]);
+  }, [selectedDate]);
 
   const watchedCustomerId = watch('customerId');
   const { balance: customerBalance, isLoaded: balanceLoaded } = useCustomerBalance(watchedCustomerId || null);
@@ -112,6 +111,10 @@ export default function CustomerPaymentsPage() {
       default: return 'default';
     }
   };
+
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <>
@@ -192,7 +195,7 @@ export default function CustomerPaymentsPage() {
 
                <div className="space-y-2">
                 <Label>Date</Label>
-                {isClient && <Controller
+                <Controller
                   name="date"
                   control={control}
                   render={({ field }) => (
@@ -222,7 +225,7 @@ export default function CustomerPaymentsPage() {
                       </PopoverContent>
                     </Popover>
                   )}
-                />}
+                />
                 {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
               </div>
 

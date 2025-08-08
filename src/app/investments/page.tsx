@@ -43,12 +43,13 @@ export default function InvestmentsPage() {
   const { customers, isLoaded: partnersLoaded } = useCustomers();
   const [transactionToDelete, setTransactionToDelete] = useState<Investment | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  
   const [isClient, setIsClient] = useState(false);
-  const businessPartners = useMemo(() => customers.filter(c => c.isPartner), [customers]);
-
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const businessPartners = useMemo(() => customers.filter(c => c.isPartner), [customers]);
 
   // Form for new investments/withdrawals
   const { register: registerInvestment, handleSubmit: handleSubmitInvestment, reset: resetInvestment, control: controlInvestment, formState: { errors: investmentErrors }, watch, setValue } = useForm<InvestmentFormValues>({
@@ -63,14 +64,14 @@ export default function InvestmentsPage() {
         setValue('date', new Date(storedDate));
       }
     }
-  }, [setValue, isClient]);
+  }, [setValue]);
 
   const selectedDate = watch('date');
   useEffect(() => {
     if (selectedDate && typeof window !== 'undefined') {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate, isClient]);
+  }, [selectedDate]);
   
   const isLoaded = investmentsLoaded && partnersLoaded;
   
@@ -129,6 +130,10 @@ export default function InvestmentsPage() {
 
   const totalNetInvestment = useMemo(() => partnerSummary.reduce((sum, p) => sum + p.netInvestment, 0), [partnerSummary]);
   const totalSharePercentage = useMemo(() => businessPartners.reduce((sum, p) => sum + (p.sharePercentage || 0), 0), [businessPartners]);
+
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <>
@@ -248,7 +253,7 @@ export default function InvestmentsPage() {
               
               <div className="space-y-2">
                 <Label>Date</Label>
-                {isClient && <Controller
+                <Controller
                   name="date"
                   control={controlInvestment}
                   render={({ field }) => (
@@ -278,7 +283,7 @@ export default function InvestmentsPage() {
                       </PopoverContent>
                     </Popover>
                   )}
-                />}
+                />
                 {investmentErrors.date && <p className="text-sm text-destructive">{investmentErrors.date.message}</p>}
               </div>
 

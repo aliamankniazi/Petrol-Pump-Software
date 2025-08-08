@@ -36,8 +36,8 @@ export default function TankManagementPage() {
   const { products, isLoaded: productsLoaded } = useProducts();
   const { toast } = useToast();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  
   const [isClient, setIsClient] = useState(false);
-
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -58,14 +58,14 @@ export default function TankManagementPage() {
         setValue('date', new Date(storedDate));
       }
     }
-  }, [setValue, isClient]);
+  }, [setValue]);
 
   const selectedDate = watch('date');
   useEffect(() => {
     if (selectedDate && typeof window !== 'undefined') {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate, isClient]);
+  }, [selectedDate]);
 
   const onSubmit: SubmitHandler<TankReadingFormValues> = (data) => {
     const product = products.find(p => p.id === data.productId);
@@ -85,6 +85,10 @@ export default function TankManagementPage() {
     const lastDate = watch('date');
     reset({ productId: '', volume: 0, date: lastDate });
   };
+
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <div className="p-4 md:p-8 grid gap-8 lg:grid-cols-3">
@@ -127,7 +131,7 @@ export default function TankManagementPage() {
 
                <div className="space-y-2">
                 <Label>Date</Label>
-                {isClient && <Controller
+                <Controller
                   name="date"
                   control={control}
                   render={({ field }) => (
@@ -157,7 +161,7 @@ export default function TankManagementPage() {
                       </PopoverContent>
                     </Popover>
                   )}
-                />}
+                />
                 {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
               </div>
 

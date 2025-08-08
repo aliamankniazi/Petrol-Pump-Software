@@ -42,8 +42,8 @@ export default function PurchaseReturnsPage() {
   const { products, isLoaded: productsLoaded } = useProducts();
   const { toast } = useToast();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  
   const [isClient, setIsClient] = useState(false);
-
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -60,14 +60,14 @@ export default function PurchaseReturnsPage() {
         setValue('date', new Date(storedDate));
       }
     }
-  }, [setValue, isClient]);
+  }, [setValue]);
 
   const selectedDate = watch('date');
   useEffect(() => {
     if (selectedDate && typeof window !== 'undefined') {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate, isClient]);
+  }, [selectedDate]);
 
   const onSubmit: SubmitHandler<PurchaseReturnFormValues> = (data) => {
     const supplier = suppliers.find(s => s.id === data.supplierId);
@@ -95,6 +95,10 @@ export default function PurchaseReturnsPage() {
         date: lastDate,
     });
   };
+
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <div className="p-4 md:p-8 grid gap-8 lg:grid-cols-3">
@@ -171,7 +175,7 @@ export default function PurchaseReturnsPage() {
               
               <div className="space-y-2">
                   <Label>Date</Label>
-                  {isClient && <Controller
+                  <Controller
                     name="date"
                     control={control}
                     render={({ field }) => (
@@ -201,7 +205,7 @@ export default function PurchaseReturnsPage() {
                         </PopoverContent>
                       </Popover>
                     )}
-                  />}
+                  />
                 </div>
 
               <Button type="submit" className="w-full">Record Return</Button>

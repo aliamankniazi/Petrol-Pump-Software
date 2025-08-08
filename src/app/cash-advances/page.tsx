@@ -38,8 +38,8 @@ export default function CashAdvancesPage() {
   const { cashAdvances, addCashAdvance } = useCashAdvances();
   const { toast } = useToast();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  
   const [isClient, setIsClient] = useState(false);
-
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -56,14 +56,14 @@ export default function CashAdvancesPage() {
         setValue('date', new Date(storedDate));
       }
     }
-  }, [setValue, isClient]);
+  }, [setValue]);
 
   const selectedDate = watch('date');
   useEffect(() => {
     if (selectedDate && typeof window !== 'undefined') {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate, isClient]);
+  }, [selectedDate]);
 
   const onSubmit: SubmitHandler<CashAdvanceFormValues> = (data) => {
     const customer = customers.find(c => c.id === data.customerId);
@@ -84,6 +84,10 @@ export default function CashAdvancesPage() {
     const lastDate = watch('date');
     reset({ customerId: '', amount: 0, notes: '', date: lastDate });
   };
+
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <div className="p-4 md:p-8 grid gap-8 lg:grid-cols-3">
@@ -132,7 +136,7 @@ export default function CashAdvancesPage() {
               
               <div className="space-y-2">
                 <Label>Date</Label>
-                {isClient && <Controller
+                <Controller
                   name="date"
                   control={control}
                   render={({ field }) => (
@@ -162,7 +166,7 @@ export default function CashAdvancesPage() {
                       </PopoverContent>
                     </Popover>
                   )}
-                />}
+                />
                 {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
               </div>
 

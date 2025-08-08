@@ -41,8 +41,8 @@ export default function ExpensesPage() {
   const { toast } = useToast();
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  
   const [isClient, setIsClient] = useState(false);
-
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -59,14 +59,14 @@ export default function ExpensesPage() {
         setValue('date', new Date(storedDate));
       }
     }
-  }, [setValue, isClient]);
+  }, [setValue]);
   
   const selectedDate = watch('date');
   useEffect(() => {
     if (selectedDate && typeof window !== 'undefined') {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate, isClient]);
+  }, [selectedDate]);
 
   const onSubmit: SubmitHandler<ExpenseFormValues> = (data) => {
     addExpense({
@@ -90,6 +90,10 @@ export default function ExpensesPage() {
     });
     setExpenseToDelete(null);
   };
+
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <>
@@ -139,7 +143,7 @@ export default function ExpensesPage() {
 
                <div className="space-y-2">
                   <Label>Date</Label>
-                  {isClient && <Controller
+                  <Controller
                     name="date"
                     control={control}
                     render={({ field }) => (
@@ -169,7 +173,7 @@ export default function ExpensesPage() {
                         </PopoverContent>
                       </Popover>
                     )}
-                  />}
+                  />
                   {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
                 </div>
 

@@ -40,8 +40,8 @@ export default function OtherIncomesPage() {
   const { toast } = useToast();
   const [incomeToDelete, setIncomeToDelete] = useState<OtherIncome | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  
   const [isClient, setIsClient] = useState(false);
-
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -58,14 +58,14 @@ export default function OtherIncomesPage() {
         setValue('date', new Date(storedDate));
       }
     }
-  }, [setValue, isClient]);
+  }, [setValue]);
 
   const selectedDate = watch('date');
   useEffect(() => {
     if (selectedDate && typeof window !== 'undefined') {
       localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
     }
-  }, [selectedDate, isClient]);
+  }, [selectedDate]);
 
   const onSubmit: SubmitHandler<IncomeFormValues> = (data) => {
     addOtherIncome({
@@ -89,6 +89,10 @@ export default function OtherIncomesPage() {
     });
     setIncomeToDelete(null);
   };
+
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <>
@@ -138,7 +142,7 @@ export default function OtherIncomesPage() {
               
               <div className="space-y-2">
                   <Label>Date</Label>
-                  {isClient && <Controller
+                  <Controller
                     name="date"
                     control={control}
                     render={({ field }) => (
@@ -168,7 +172,7 @@ export default function OtherIncomesPage() {
                         </PopoverContent>
                       </Popover>
                     )}
-                  />}
+                  />
                   {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
                 </div>
 
