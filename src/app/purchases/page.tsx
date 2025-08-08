@@ -46,6 +46,7 @@ const purchaseItemSchema = z.object({
 const purchaseSchema = z.object({
   supplierId: z.string().min(1, 'Please select a supplier.'),
   date: z.date({ required_error: "A date is required."}),
+  expenses: z.coerce.number().optional(),
   items: z.array(purchaseItemSchema).min(1, 'At least one item is required.'),
 });
 
@@ -76,6 +77,7 @@ export default function PurchasesPage() {
     resolver: zodResolver(purchaseSchema),
     defaultValues: {
       items: [{ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 }],
+      expenses: 0,
       date: new Date()
     }
   });
@@ -96,6 +98,7 @@ export default function PurchasesPage() {
   const watchedItems = watch('items');
   const selectedDate = watch('date');
   const watchedSupplierId = watch('supplierId');
+  const watchedExpenses = watch('expenses') || 0;
   const { balance: supplierBalance, isLoaded: balanceLoaded } = useSupplierBalance(watchedSupplierId || null);
 
   useEffect(() => {
@@ -163,6 +166,7 @@ export default function PurchasesPage() {
       supplier: supplier.name, // Pass the name for display purposes
       timestamp: data.date.toISOString(),
       totalCost,
+      expenses: data.expenses,
     });
     toast({
       title: 'Purchase Recorded',
@@ -173,6 +177,7 @@ export default function PurchasesPage() {
         supplierId: '',
         items: [{ productId: '', quantity: 0, costPerUnit: 0, totalCost: 0 }],
         date: lastDate,
+        expenses: 0,
     });
   };
   
@@ -351,7 +356,7 @@ export default function PurchasesPage() {
                           <Separator/>
                            <div className='flex justify-between font-bold text-base'>
                             <span>Total Payable:</span>
-                            <span className={cn(supplierBalance + totalCost >= 0 ? 'text-green-600' : 'text-destructive' )}>PKR {(supplierBalance + totalCost).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            <span className={cn(supplierBalance + totalCost + watchedExpenses >= 0 ? 'text-green-600' : 'text-destructive' )}>PKR {(supplierBalance + totalCost + watchedExpenses).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                           </div>
                          </>
                        ) : <p>Loading balance...</p>}
@@ -359,9 +364,18 @@ export default function PurchasesPage() {
                   </Card>
                 )}
                  <div className="border-t pt-4 space-y-2">
+                    <div className="flex justify-between items-center text-lg">
+                        <h3 className="font-semibold">Items Total Cost</h3>
+                        <p className="font-semibold text-primary">PKR {totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="expenses">Purchase Expenses (e.g., transportation)</Label>
+                      <Input id="expenses" type="number" {...register('expenses')} placeholder="e.g., 1500" step="0.01" />
+                    </div>
+                    <Separator/>
                     <div className="flex justify-between items-center text-xl font-bold">
-                        <h3 className="text-lg font-semibold">Total Purchase Cost</h3>
-                        <p className="text-2xl font-bold text-primary">PKR {totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        <span>Total Payable</span>
+                         <span>PKR {(totalCost + watchedExpenses).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </div>
                  </div>
              </CardContent>

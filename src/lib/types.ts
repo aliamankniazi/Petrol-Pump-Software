@@ -14,16 +14,16 @@ export interface SubUnit {
 export interface Product {
     id?: string;
     name: string;
-    productCode?: string;
-    barcode?: string;
-    productGroupId?: string;
-    companyId?: string;
+    productCode?: string | null;
+    barcode?: string | null;
+    productGroupId?: string | null;
+    companyId?: string | null;
     mainUnit: string;
     purchasePrice: number;
     tradePrice: number;
     stock: number; // Stock in main units
     subUnitStock?: number; // Stock in sub-units
-    subUnit?: SubUnit;
+    subUnit?: SubUnit | null;
     category: 'Fuel' | 'Lubricant' | 'Other'; // Kept for filtering, can be removed if product groups replace it
     productType: 'Main' | 'Secondary'; // Main or Secondary product
     unit: 'Litre' | 'Unit'; // Simple unit, mainUnit is more specific
@@ -74,6 +74,7 @@ export interface Purchase {
   supplier: string;
   items: PurchaseItem[];
   totalCost: number;
+  expenses?: number;
   timestamp?: string;
   // Legacy fields
   fuelType?: FuelType;

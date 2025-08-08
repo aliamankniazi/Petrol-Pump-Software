@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useParams } from 'next/navigation';
@@ -83,6 +84,7 @@ export default function InvoicePage() {
               }
           }),
           totalAmount: purchase.totalCost,
+          expenses: purchase.expenses,
           paymentMethod: 'Credit', // Purchases are assumed to be on credit
         };
       }

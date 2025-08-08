@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { format } from 'date-fns';
@@ -23,6 +24,7 @@ interface InvoiceData {
   };
   items: InvoiceItem[];
   totalAmount: number;
+  expenses?: number;
   paymentMethod: string;
   bankDetails?: {
     name: string;
@@ -65,7 +67,8 @@ const InvoiceLogo = () => (
 export function Invoice({ data }: { data: InvoiceData }) {
     
   const totalQuantity = data.items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalAmountInWords = numWords(Math.floor(data.totalAmount));
+  const totalAmountWithExpenses = data.totalAmount + (data.expenses || 0);
+  const totalAmountInWords = numWords(Math.floor(totalAmountWithExpenses));
 
   return (
     <div className="font-sans text-xs text-gray-800">
@@ -156,14 +159,20 @@ export function Invoice({ data }: { data: InvoiceData }) {
                     <span>RS {data.totalAmount.toFixed(2)}</span>
                     <span className="font-semibold">Discount:</span>
                     <span>RS 0 (0%)</span>
+                    {data.expenses && data.expenses > 0 && (
+                        <>
+                            <span className="font-semibold">Purchase Expenses:</span>
+                            <span>RS {data.expenses.toFixed(2)}</span>
+                        </>
+                    )}
                     <span className="font-semibold">GST@:</span>
                     <span>0</span>
                     <span className="font-bold text-lg border-t-2 border-b-2 border-gray-800 py-1">Total Payable:</span>
-                    <span className="font-bold text-lg border-t-2 border-b-2 border-gray-800 py-1">RS {data.totalAmount.toFixed(2)}</span>
+                    <span className="font-bold text-lg border-t-2 border-b-2 border-gray-800 py-1">RS {totalAmountWithExpenses.toFixed(2)}</span>
                     <span className="font-semibold">Paid:</span>
                     <span>RS 0.00</span>
                     <span className="font-semibold">Invoice Balance:</span>
-                    <span>RS {data.totalAmount.toFixed(2)}</span>
+                    <span>RS {totalAmountWithExpenses.toFixed(2)}</span>
                     <span className="font-semibold">Payment Mode:</span>
                     <span>{data.paymentMethod}</span>
                 </div>
