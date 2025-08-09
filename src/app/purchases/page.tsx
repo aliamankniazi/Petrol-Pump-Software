@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
@@ -295,11 +296,11 @@ export default function PurchasesPage() {
                         </div>
                          <div className="space-y-1">
                             <Label>Enter Qty</Label>
-                            <Input type="number" placeholder="0" value={currentItem.quantity} onFocus={() => setLastFocused('quantity')} onChange={e => setCurrentItem(prev => ({...prev, quantity: e.target.value}))}/>
+                            <Input type="number" step="any" placeholder="0" value={currentItem.quantity} onFocus={() => setLastFocused('quantity')} onChange={e => setCurrentItem(prev => ({...prev, quantity: e.target.value}))}/>
                         </div>
                         <div className="space-y-1">
                             <Label>Purchase At</Label>
-                            <Input type="number" placeholder="0.00" value={currentItem.costPerUnit} onChange={e => setCurrentItem(prev => ({...prev, costPerUnit: e.target.value}))} />
+                            <Input type="number" step="any" placeholder="0.00" value={currentItem.costPerUnit} onChange={e => setCurrentItem(prev => ({...prev, costPerUnit: e.target.value}))} />
                         </div>
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
@@ -309,11 +310,11 @@ export default function PurchasesPage() {
                         </div>
                         <div className="space-y-1">
                             <Label>Discount (Amount)</Label>
-                            <Input type="number" placeholder="RS 0" value={currentItem.discountAmount} onChange={e => setCurrentItem(prev => ({...prev, discountAmount: e.target.value}))}/>
+                            <Input type="number" step="any" placeholder="RS 0" value={currentItem.discountAmount} onChange={e => setCurrentItem(prev => ({...prev, discountAmount: e.target.value}))}/>
                         </div>
                         <div className="space-y-1">
                             <Label>Total Value</Label>
-                            <Input type="number" placeholder="0.00" value={currentItem.totalValue} onFocus={() => setLastFocused('total')} onChange={e => setCurrentItem(prev => ({...prev, totalValue: e.target.value}))}/>
+                            <Input type="number" step="any" placeholder="0.00" value={currentItem.totalValue} onFocus={() => setLastFocused('total')} onChange={e => setCurrentItem(prev => ({...prev, totalValue: e.target.value}))}/>
                         </div>
                         <Button type="button" onClick={handleAddItemToPurchase}><PlusCircle/> Add To Purchase</Button>
                     </div>
@@ -355,7 +356,7 @@ export default function PurchasesPage() {
                     <div className="p-4 text-right space-y-2">
                         <div className="flex justify-end items-center gap-4">
                             <Label>Extra Expenses:</Label>
-                            <Input className="w-24" placeholder="RS 0" {...register('expenses')} />
+                            <Input className="w-24" placeholder="RS 0" {...register('expenses')} step="any"/>
                         </div>
                          <div className="flex justify-end items-center gap-4 font-bold text-xl">
                             <Label>Grand Total:</Label>
@@ -406,7 +407,7 @@ export default function PurchasesPage() {
                     <div className="space-y-1">
                         <Label>Paid (Amount)</Label>
                         <div className="flex gap-2">
-                             <Input type="number" placeholder="RS 0" {...register('paidAmount')} />
+                             <Input type="number" placeholder="RS 0" {...register('paidAmount')} step="any" />
                              <Controller name="bankAccountId" control={control} render={({ field }) => (
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <SelectTrigger><SelectValue placeholder="@Bank" /></SelectTrigger>
@@ -466,3 +467,5 @@ export default function PurchasesPage() {
     </>
   );
 }
+
+    

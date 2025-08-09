@@ -132,7 +132,7 @@ export default function TankManagementPage() {
               
               <div className="space-y-2">
                 <Label htmlFor="volume">Current Volume (Litres)</Label>
-                <Input id="volume" type="number" {...register('volume')} placeholder="e.g., 12500" step="0.01" />
+                <Input id="volume" type="number" {...register('volume')} placeholder="e.g., 12500" step="any" />
                 {errors.volume && <p className="text-sm text-destructive">{errors.volume.message}</p>}
               </div>
 
@@ -223,3 +223,5 @@ export default function TankManagementPage() {
     </div>
   );
 }
+
+    

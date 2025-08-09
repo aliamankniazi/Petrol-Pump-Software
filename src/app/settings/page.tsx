@@ -343,12 +343,12 @@ export default function SettingsPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Purchase Price (Main Unit) <span className="text-destructive">*</span></Label>
-                                        <Input type="number" {...registerProduct('purchasePrice')} placeholder="0.00" />
+                                        <Input type="number" {...registerProduct('purchasePrice')} placeholder="0.00" step="any"/>
                                         {productErrors.purchasePrice && <p className="text-sm text-destructive">{productErrors.purchasePrice.message}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Trade Price (Main Unit) <span className="text-destructive">*</span></Label>
-                                        <Input type="number" {...registerProduct('tradePrice')} placeholder="0.00" />
+                                        <Input type="number" {...registerProduct('tradePrice')} placeholder="0.00" step="any"/>
                                         {productErrors.tradePrice && <p className="text-sm text-destructive">{productErrors.tradePrice.message}</p>}
                                     </div>
                                 </div>
@@ -366,7 +366,7 @@ export default function SettingsPage() {
                                         </div>
                                         <div className="space-y-2">
                                             <Label>Conversion (Sub Units per Main Unit)</Label>
-                                            <Input type="number" {...registerProduct('subUnitConversion')} placeholder="e.g., 12"/>
+                                            <Input type="number" {...registerProduct('subUnitConversion')} placeholder="e.g., 12" step="any"/>
                                         </div>
                                     </div>
                                 )}
@@ -379,11 +379,11 @@ export default function SettingsPage() {
                            <div className="grid md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Stock (in Main Units)</Label>
-                                    <Input type="number" {...registerProduct('initialStockMain')} placeholder="0" />
+                                    <Input type="number" {...registerProduct('initialStockMain')} placeholder="0" step="any"/>
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Stock (in Sub Units)</Label>
-                                    <Input type="number" {...registerProduct('initialStockSub')} placeholder="0" disabled={!addSubUnit} />
+                                    <Input type="number" {...registerProduct('initialStockSub')} placeholder="0" disabled={!addSubUnit} step="any"/>
                                 </div>
                            </div>
                         </div>
@@ -538,3 +538,5 @@ export default function SettingsPage() {
     </>
   );
 }
+
+    

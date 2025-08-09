@@ -216,7 +216,7 @@ export default function EmployeesPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="salary">Salary (PKR)</Label>
-                  <Input id="salary" type="number" {...register('salary')} placeholder="e.g., 25000" step="100" />
+                  <Input id="salary" type="number" {...register('salary')} placeholder="e.g., 25000" step="0.01" />
                   {errors.salary && <p className="text-sm text-destructive">{errors.salary.message}</p>}
                 </div>
 
@@ -361,7 +361,7 @@ export default function EmployeesPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="edit-salary">Salary (PKR)</Label>
-                  <Input id="edit-salary" type="number" {...registerEdit('salary')} step="100" />
+                  <Input id="edit-salary" type="number" {...registerEdit('salary')} step="0.01" />
                   {editErrors.salary && <p className="text-sm text-destructive">{editErrors.salary.message}</p>}
                 </div>
 
@@ -518,3 +518,5 @@ export default function EmployeesPage() {
     </>
   );
 }
+
+    
