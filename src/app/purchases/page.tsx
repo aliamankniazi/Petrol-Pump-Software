@@ -468,5 +468,3 @@ export default function PurchasesPage() {
     </>
   );
 }
-
-    

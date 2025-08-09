@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
@@ -43,11 +42,11 @@ const purchaseSchema = z.object({
   supplierId: z.string().min(1, 'Please select a supplier.'),
   date: z.date({ required_error: "A date is required."}),
   orderDeliveryDate: z.date().optional(),
-  expenses: z.coerce.number().optional(),
+  expenses: z.coerce.number().optional().default(0),
   notes: z.string().optional(),
   items: z.array(purchaseItemSchema).min(1, 'At least one item is required.'),
   paymentMethod: z.enum(['On Credit', 'Cash', 'Card', 'Mobile']).default('On Credit'),
-  paidAmount: z.coerce.number().optional(),
+  paidAmount: z.coerce.number().optional().default(0),
   bankAccountId: z.string().optional(),
   referenceNo: z.string().optional(),
 });
@@ -72,7 +71,7 @@ export default function PurchasesPage() {
   const [isClient, setIsClient] = useState(false);
   const [lastFocused, setLastFocused] = useState<'quantity' | 'total'>('quantity');
   
-  const [currentItem, setCurrentItem] = useState({ productId: '', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
+  const [currentItem, setCurrentItem] = useState({ productId: 'placeholder', selectedUnit: '...', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
 
   useEffect(() => {
     setIsClient(true);
@@ -84,6 +83,10 @@ export default function PurchasesPage() {
       items: [],
       expenses: 0,
       paymentMethod: 'On Credit',
+      paidAmount: 0,
+      bankAccountId: '',
+      referenceNo: '',
+      notes: '',
     }
   });
 
@@ -110,10 +113,10 @@ export default function PurchasesPage() {
         if (discountAmount > 0) {
             total -= discountAmount;
         }
-        setCurrentItem(prev => ({...prev, totalValue: total.toFixed(2)}));
+        setCurrentItem(prev => ({...prev, totalValue: total > 0 ? total.toFixed(2) : ''}));
     } else if (lastFocused === 'total' && price > 0) {
         let calculatedQty = totalValue / price;
-        setCurrentItem(prev => ({...prev, quantity: calculatedQty.toFixed(2)}));
+        setCurrentItem(prev => ({...prev, quantity: calculatedQty > 0 ? calculatedQty.toFixed(2) : ''}));
     }
 
   }, [currentItem.quantity, currentItem.costPerUnit, currentItem.discountAmount, currentItem.totalValue, lastFocused, products]);
@@ -135,13 +138,38 @@ export default function PurchasesPage() {
     const handleCurrentProductChange = (productId: string) => {
         const product = products.find(p => p.id === productId);
         if(product) {
-            setCurrentItem(prev => ({...prev, productId, costPerUnit: product.purchasePrice?.toString() || '0' }));
+            setCurrentItem(prev => ({
+                ...prev, 
+                productId, 
+                costPerUnit: product.purchasePrice?.toString() || '0',
+                selectedUnit: product.mainUnit,
+            }));
         }
+    }
+
+    const handleUnitChange = (unitName: string) => {
+      const product = products.find(p => p.id === currentItem.productId);
+      if (!product) return;
+      
+      let newPrice = product.purchasePrice || 0;
+      if (unitName !== product.mainUnit && product.subUnit && product.subUnit.name === unitName) {
+          if (product.subUnit.purchasePrice) {
+              newPrice = product.subUnit.purchasePrice;
+          } else if(product.subUnit.conversionRate) {
+              newPrice = (product.purchasePrice || 0) / product.subUnit.conversionRate;
+          }
+      }
+
+      setCurrentItem(prev => ({
+          ...prev,
+          selectedUnit: unitName,
+          costPerUnit: newPrice.toFixed(2),
+      }))
     }
   
     const handleAddItemToPurchase = () => {
         const product = products.find(p => p.id === currentItem.productId);
-        if (!product) {
+        if (!product || currentItem.productId === 'placeholder') {
             toast({ variant: 'destructive', title: 'Error', description: 'Please select a product.'});
             return;
         }
@@ -154,11 +182,16 @@ export default function PurchasesPage() {
         const costPerUnit = parseFloat(currentItem.costPerUnit);
         const discount = parseFloat(currentItem.discountAmount) || 0;
         const totalCost = parseFloat(currentItem.totalValue);
+
+        if (!totalCost || totalCost <= 0) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Total value must be greater than zero.'});
+            return;
+        }
     
         append({
             productId: product.id!,
             productName: product.name,
-            unit: product.mainUnit,
+            unit: currentItem.selectedUnit,
             quantity: quantity,
             costPerUnit: costPerUnit,
             totalCost: totalCost,
@@ -167,13 +200,13 @@ export default function PurchasesPage() {
         });
         
         // Reset temporary item form
-        setCurrentItem({ productId: '', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
+        setCurrentItem({ productId: 'placeholder', selectedUnit: '...', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
     }
   
     const { subTotal, grandTotal } = useMemo(() => {
         const sub = watchedItems.reduce((sum, item) => sum + (item.totalCost || 0), 0);
-        const discount = getValues('expenses') || 0; // In purchases, extra discount seems to be expenses
-        const grand = sub + discount;
+        const expenses = Number(getValues('expenses')) || 0;
+        const grand = sub + expenses;
         return { subTotal: sub, grandTotal: grand };
       }, [watchedItems, getValues]);
 
@@ -200,7 +233,9 @@ export default function PurchasesPage() {
         expenses: 0,
         notes: '',
         paymentMethod: 'On Credit',
-        paidAmount: 0
+        paidAmount: 0,
+        bankAccountId: '',
+        referenceNo: '',
     });
   };
   
@@ -213,6 +248,8 @@ export default function PurchasesPage() {
     resetSupplier();
     setIsAddSupplierOpen(false);
   }, [addSupplier, toast, resetSupplier]);
+
+  const selectedProduct = products.find(p => p.id === currentItem.productId);
 
 
   if (!isClient) {
@@ -238,13 +275,23 @@ export default function PurchasesPage() {
                             <Select onValueChange={handleCurrentProductChange} value={currentItem.productId}>
                                 <SelectTrigger><SelectValue placeholder="Select Product" /></SelectTrigger>
                                 <SelectContent>
+                                    <SelectItem value="placeholder" disabled>Select Product</SelectItem>
                                     {productsLoaded ? products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>) : <SelectItem value='loading' disabled>Loading...</SelectItem>}
                                 </SelectContent>
                             </Select>
                         </div>
                         <div className="space-y-1">
                             <Label>Unit</Label>
-                            <Input value={products.find(p => p.id === currentItem.productId)?.mainUnit || ''} disabled />
+                             <Select onValueChange={handleUnitChange} value={currentItem.selectedUnit}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Unit"/>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="..." disabled>...</SelectItem>
+                                    {selectedProduct && <SelectItem key={selectedProduct.mainUnit} value={selectedProduct.mainUnit}>{selectedProduct.mainUnit}</SelectItem>}
+                                    {selectedProduct?.subUnit && <SelectItem key={selectedProduct.subUnit.name} value={selectedProduct.subUnit.name}>{selectedProduct.subUnit.name}</SelectItem>}
+                                </SelectContent>
+                             </Select>
                         </div>
                          <div className="space-y-1">
                             <Label>Enter Qty</Label>
@@ -419,5 +466,3 @@ export default function PurchasesPage() {
     </>
   );
 }
-
-    
