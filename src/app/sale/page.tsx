@@ -395,7 +395,7 @@ export default function SalePage() {
 
             </CardContent>
             <CardFooter className="gap-2">
-                 <Button type="submit" size="lg"><Printer className="mr-2"/>Save & Print</Button>
+                 <Button type="submit" size="lg"><Printer className="mr-2"/>Save &amp; Go to Invoice</Button>
                  <Button type="button" variant="outline" size="lg" onClick={() => reset()}>Discard/Reset</Button>
             </CardFooter>
         </Card>
@@ -403,5 +403,3 @@ export default function SalePage() {
     </div>
   );
 }
-
-    
