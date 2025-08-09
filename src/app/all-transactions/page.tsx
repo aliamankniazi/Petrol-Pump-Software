@@ -66,38 +66,44 @@ export default function AllTransactionsPage() {
   const combinedEntries = useMemo(() => {
     if (!isLoaded) return [];
 
-    const sales: CombinedEntry[] = transactions.map(tx => ({
-      id: `sale-${tx.id}`,
-      originalId: tx.id!,
-      timestamp: tx.timestamp!,
-      type: 'Sale',
-      partner: tx.customerName || 'Walk-in Customer',
-      details: tx.items.map(item => `${item.quantity.toFixed(2)} units of ${item.productName}`).join(', '),
-      amount: tx.totalAmount,
-      original: tx,
-    }));
+    const sales: CombinedEntry[] = transactions
+      .filter(tx => tx.timestamp)
+      .map(tx => ({
+        id: `sale-${tx.id}`,
+        originalId: tx.id!,
+        timestamp: tx.timestamp!,
+        type: 'Sale',
+        partner: tx.customerName || 'Walk-in Customer',
+        details: tx.items.map(item => `${item.quantity.toFixed(2)} units of ${item.productName}`).join(', '),
+        amount: tx.totalAmount,
+        original: tx,
+      }));
 
-    const allPurchases: CombinedEntry[] = purchases.map(p => ({
-      id: `purchase-${p.id}`,
-      originalId: p.id!,
-      timestamp: p.timestamp!,
-      type: 'Purchase',
-      partner: p.supplier,
-      details: p.items.map(item => `${item.quantity.toFixed(2)} units of ${item.productName}`).join(', '),
-      amount: p.totalCost,
-      original: p,
-    }));
+    const allPurchases: CombinedEntry[] = purchases
+      .filter(p => p.timestamp)
+      .map(p => ({
+        id: `purchase-${p.id}`,
+        originalId: p.id!,
+        timestamp: p.timestamp!,
+        type: 'Purchase',
+        partner: p.supplier,
+        details: p.items.map(item => `${item.quantity.toFixed(2)} units of ${item.productName}`).join(', '),
+        amount: p.totalCost,
+        original: p,
+      }));
 
-    const returns: CombinedEntry[] = purchaseReturns.map(pr => ({
-      id: `return-${pr.id}`,
-      originalId: pr.id!,
-      timestamp: pr.timestamp!,
-      type: 'Purchase Return',
-      partner: pr.supplier,
-      details: `${pr.volume.toFixed(2)} units of ${pr.productName}`,
-      amount: pr.totalRefund,
-      original: pr,
-    }));
+    const returns: CombinedEntry[] = purchaseReturns
+      .filter(pr => pr.timestamp)
+      .map(pr => ({
+        id: `return-${pr.id}`,
+        originalId: pr.id!,
+        timestamp: pr.timestamp!,
+        type: 'Purchase Return',
+        partner: pr.supplier,
+        details: `${pr.volume.toFixed(2)} units of ${pr.productName}`,
+        amount: pr.totalRefund,
+        original: pr,
+      }));
 
     return [...sales, ...allPurchases, ...returns].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [isLoaded, transactions, purchases, purchaseReturns]);
