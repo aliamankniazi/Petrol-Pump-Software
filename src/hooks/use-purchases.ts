@@ -23,6 +23,7 @@ export function usePurchases() {
     }
     addDoc(purchaseWithTimestamp);
 
+    // Update product stock based on purchased items
     purchase.items.forEach(item => {
         const product = products.find(p => p.id === item.productId);
         if (product) {
@@ -31,6 +32,7 @@ export function usePurchases() {
         }
     });
 
+    // If there are extra expenses, log them as a separate expense record
     if (purchase.expenses && purchase.expenses > 0) {
         addExpense({
             description: `Expenses for purchase from ${purchase.supplier}`,
@@ -40,6 +42,7 @@ export function usePurchases() {
         });
     }
 
+    // If a payment was made at the time of purchase, create a supplier payment record
     if (purchase.paidAmount && purchase.paidAmount > 0 && purchase.paymentMethod && purchase.paymentMethod !== 'On Credit') {
         addSupplierPayment({
             supplierId: purchase.supplierId,
@@ -53,6 +56,7 @@ export function usePurchases() {
   }, [addDoc, products, updateProductStock, addExpense, addSupplierPayment]);
   
   const updatePurchase = useCallback((id: string, originalPurchase: Purchase, updatedPurchase: Partial<Omit<Purchase, 'id'>>) => {
+      // Revert stock from original purchase
       originalPurchase.items.forEach(item => {
           const product = products.find(p => p.id === item.productId);
           if (product) {
@@ -61,6 +65,7 @@ export function usePurchases() {
           }
       });
       
+      // Add stock from updated purchase
       updatedPurchase.items?.forEach(item => {
         const product = products.find(p => p.id === item.productId);
         if (product) {
@@ -78,6 +83,7 @@ export function usePurchases() {
     const purchaseToDelete = purchases.find(p => p.id === purchaseId);
     if (!purchaseToDelete) return;
 
+    // Revert stock changes from the deleted purchase
     purchaseToDelete.items.forEach(item => {
         const product = products.find(p => p.id === item.productId);
         if (product) {
