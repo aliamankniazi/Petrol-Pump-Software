@@ -170,13 +170,7 @@ export default function CustomerLedgerPage() {
 
     let runningBalance = 0;
     const entriesWithBalance: LedgerEntry[] = combined.map(entry => {
-      // For partners/suppliers, a positive balance means the business owes them (net investment/credit).
-      // For customers/employees, a positive balance means they owe the business.
-      if (entityType === 'Partner' || entityType === 'Supplier') {
-          runningBalance += entry.credit - entry.debit;
-      } else {
-          runningBalance += entry.debit - entry.credit;
-      }
+      runningBalance += entry.debit - entry.credit;
       return { ...entry, balance: runningBalance };
     });
 
@@ -262,7 +256,7 @@ export default function CustomerLedgerPage() {
       if (entityType === 'Partner' || entityType === 'Supplier') {
           // For partners/suppliers, positive balance means the business owes them (net investment/credit).
           // But visually, it's conventional for credit balance (money owed to them) to be green.
-          return finalBalance >= 0 ? 'text-green-600' : 'text-destructive';
+          return finalBalance <= 0 ? 'text-green-600' : 'text-destructive';
       }
       // For customers/employees, positive balance means they owe us (bad), negative means we owe them (good)
       return finalBalance > 0 ? 'text-destructive' : 'text-green-600';
@@ -270,7 +264,7 @@ export default function CustomerLedgerPage() {
 
   const rowBalanceColorClass = (balance: number) => {
     if (entityType === 'Partner' || entityType === 'Supplier') {
-        return balance >= 0 ? 'text-green-600' : 'text-destructive';
+        return balance <= 0 ? 'text-green-600' : 'text-destructive';
     }
     return balance > 0 ? 'text-destructive' : 'text-green-600';
   }
@@ -367,7 +361,7 @@ export default function CustomerLedgerPage() {
                         {entry.credit > 0 ? entry.credit.toFixed(2) : '-'}
                     </TableCell>
                      <TableCell className={cn("text-right font-semibold font-mono", rowBalanceColorClass(entry.balance))}>
-                        {entry.balance.toFixed(2)}
+                        {Math.abs(entry.balance).toFixed(2)}
                     </TableCell>
                      <TableCell className="text-center print:hidden">
                         <Button 
@@ -392,7 +386,7 @@ export default function CustomerLedgerPage() {
         <CardFooter className="flex justify-end bg-muted/50 p-4 rounded-b-lg">
             <div className="text-right">
                 <p className="text-sm text-muted-foreground">Final Balance</p>
-                <p className={cn("text-2xl font-bold", balanceColorClass())}>PKR {finalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className={cn("text-2xl font-bold", balanceColorClass())}>PKR {Math.abs(finalBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             </div>
         </CardFooter>
       </Card>
