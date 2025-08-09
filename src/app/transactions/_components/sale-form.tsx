@@ -374,7 +374,7 @@ export function SaleForm() {
                         </Popover>
                     )}/>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 hidden">
                     <Label>Paid (Amount)</Label>
                     <div className="flex gap-2">
                          <Input type="number" placeholder="RS 0" {...register('paidAmount')} step="any" />
