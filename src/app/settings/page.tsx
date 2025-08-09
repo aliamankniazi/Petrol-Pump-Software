@@ -204,16 +204,14 @@ export default function SettingsPage() {
 
   const handleDeleteProduct = () => {
     if (!productToDelete) return;
-     // Safeguard: Check for dependencies
-    const hasTransactions = transactions.some(tx => tx.items.some(item => item.productId === productToDelete.id)) ||
-                            purchases.some(p => p.items.some(item => item.productId === productToDelete.id)) ||
-                            purchaseReturns.some(pr => pr.productId === productToDelete.id);
+     // Safeguard: Check for sales dependencies
+    const hasSales = transactions.some(tx => tx.items.some(item => item.productId === productToDelete.id));
 
-    if (hasTransactions) {
+    if (hasSales) {
         toast({
             variant: 'destructive',
             title: 'Deletion Prevented',
-            description: `${productToDelete.name} is used in existing transactions and cannot be deleted.`,
+            description: `${productToDelete.name} has been sold and cannot be deleted to preserve historical sales records.`,
         });
         setProductToDelete(null);
         return;
