@@ -184,7 +184,7 @@ export default function SettingsPage() {
     setProductValue('purchasePrice', product.purchasePrice || 0);
     setProductValue('tradePrice', product.tradePrice || 0);
     setProductValue('initialStockMain', product.stock || 0);
-    setProductValue('initialStockSub', product.subUnitStock || 0);
+    setProductValue('subUnitStock', product.subUnitStock || 0);
 
     // Set legacy fields
     setProductValue('category', product.category || 'Other');

@@ -380,7 +380,7 @@ export default function PurchasesPage() {
                                 <Select onValueChange={field.onChange} value={field.value}>
                                 <SelectTrigger><SelectValue placeholder="Select Supplier" /></SelectTrigger>
                                 <SelectContent>
-                                    {suppliersLoaded ? suppliers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
+                                    {suppliersLoaded ? suppliers.map(c => <SelectItem key={c.id} value={c.id!}>{c.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
                                 </SelectContent>
                                 </Select>
                             )} />
@@ -409,7 +409,7 @@ export default function PurchasesPage() {
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <SelectTrigger><SelectValue placeholder="@Bank" /></SelectTrigger>
                                     <SelectContent>
-                                        {bankAccountsLoaded ? bankAccounts.map(b => <SelectItem key={b.id} value={b.id}>{b.bankName}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
+                                        {bankAccountsLoaded ? bankAccounts.map(b => <SelectItem key={b.id!} value={b.id!}>{b.bankName}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
                                     </SelectContent>
                                 </Select>
                              )}/>
