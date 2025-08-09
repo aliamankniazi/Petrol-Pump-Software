@@ -71,7 +71,7 @@ export default function CustomersPage() {
 
 
   const onAddSubmit: SubmitHandler<CustomerFormValues> = useCallback((data) => {
-    addCustomer({ ...data, isEmployee: false });
+    addCustomer(data);
     toast({
       title: 'Record Added',
       description: `${data.name} has been added to your records.`,
