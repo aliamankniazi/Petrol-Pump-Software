@@ -277,7 +277,7 @@ export default function PurchasesPage() {
                                 <SelectTrigger><SelectValue placeholder="Select Product" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="placeholder" disabled>Select Product</SelectItem>
-                                    {productsLoaded ? products.map(p => <SelectItem key={p.id} value={p.id!}>{p.name}</SelectItem>) : <SelectItem value='loading' disabled>Loading...</SelectItem>}
+                                    {productsLoaded ? products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>) : <SelectItem value='loading' disabled>Loading...</SelectItem>}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -375,7 +375,7 @@ export default function PurchasesPage() {
                                 <Select onValueChange={field.onChange} value={field.value}>
                                 <SelectTrigger><SelectValue placeholder="Select Supplier" /></SelectTrigger>
                                 <SelectContent>
-                                    {suppliersLoaded ? suppliers.map(c => <SelectItem key={c.id} value={c.id!}>{c.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
+                                    {suppliersLoaded ? suppliers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
                                 </SelectContent>
                                 </Select>
                             )} />
