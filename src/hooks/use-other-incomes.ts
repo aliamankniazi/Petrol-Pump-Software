@@ -11,7 +11,11 @@ export function useOtherIncomes() {
   const { data: otherIncomes, addDoc, deleteDoc, loading } = useDatabaseCollection<OtherIncome>(COLLECTION_NAME);
 
   const addOtherIncome = useCallback((income: Omit<OtherIncome, 'id'>) => {
-    addDoc(income);
+    const incomeWithTimestamp = {
+      ...income,
+      timestamp: income.timestamp || new Date().toISOString(),
+    }
+    addDoc(incomeWithTimestamp);
   }, [addDoc]);
 
   const deleteOtherIncome = useCallback((id: string) => {

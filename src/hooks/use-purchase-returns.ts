@@ -13,7 +13,11 @@ export function usePurchaseReturns() {
   const { products, updateProductStock } = useProducts();
 
   const addPurchaseReturn = useCallback((purchaseReturn: Omit<PurchaseReturn, 'id'>) => {
-    addDoc(purchaseReturn);
+    const returnWithTimestamp = {
+      ...purchaseReturn,
+      timestamp: purchaseReturn.timestamp || new Date().toISOString(),
+    }
+    addDoc(returnWithTimestamp);
 
     const product = products.find(p => p.id === purchaseReturn.productId);
     if(product) {

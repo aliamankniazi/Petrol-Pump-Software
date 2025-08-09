@@ -62,7 +62,7 @@ export default function LedgerPage() {
 
     let combined: Omit<LedgerEntry, 'balance'>[] = [];
 
-    transactions.forEach(tx => combined.push({
+    transactions.filter(tx => tx.timestamp).forEach(tx => combined.push({
       id: `tx-${tx.id}`,
       timestamp: tx.timestamp!,
       description: `Sale to ${tx.customerName || 'Walk-in'}: ${tx.items.length} item(s) ${tx.notes ? `- ${tx.notes}` : ''}`,
@@ -71,7 +71,7 @@ export default function LedgerPage() {
       credit: tx.totalAmount,
     }));
 
-    purchases.forEach(p => combined.push({
+    purchases.filter(p => p.timestamp).forEach(p => combined.push({
       id: `pur-${p.id}`,
       timestamp: p.timestamp!,
       description: `Purchase from ${p.supplier}: ${p.items.length} item(s)`,
@@ -80,7 +80,7 @@ export default function LedgerPage() {
       credit: p.totalCost,
     }));
 
-    expenses.forEach(e => combined.push({
+    expenses.filter(e => e.timestamp).forEach(e => combined.push({
         id: `exp-${e.id}`,
         timestamp: e.timestamp!,
         description: `Expense: ${e.description}`,
@@ -89,7 +89,7 @@ export default function LedgerPage() {
         credit: 0,
     }));
       
-    purchaseReturns.forEach(pr => combined.push({
+    purchaseReturns.filter(pr => pr.timestamp).forEach(pr => combined.push({
         id: `pr-${pr.id}`,
         timestamp: pr.timestamp!,
         description: `Return to ${pr.supplier}: ${pr.volume.toFixed(2)}L of ${pr.productName}`,
@@ -98,7 +98,7 @@ export default function LedgerPage() {
         credit: pr.totalRefund,
     }));
 
-    otherIncomes.forEach(oi => combined.push({
+    otherIncomes.filter(oi => oi.timestamp).forEach(oi => combined.push({
         id: `oi-${oi.id}`,
         timestamp: oi.timestamp!,
         description: `Income: ${oi.description}`,
@@ -107,7 +107,7 @@ export default function LedgerPage() {
         credit: oi.amount,
     }));
 
-    supplierPayments.forEach(sp => combined.push({
+    supplierPayments.filter(sp => sp.timestamp).forEach(sp => combined.push({
       id: `sp-${sp.id}`,
       timestamp: sp.timestamp!,
       description: `Payment to ${sp.supplierName}`,
@@ -116,7 +116,7 @@ export default function LedgerPage() {
       credit: 0,
     }));
 
-    investments.forEach(inv => {
+    investments.filter(inv => inv.timestamp).forEach(inv => {
         if (inv.type === 'Investment') {
             combined.push({
                 id: `inv-${inv.id}`,
