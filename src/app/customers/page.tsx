@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { useForm, type SubmitHandler } from 'react-hook-form';
+import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -71,7 +71,14 @@ export default function CustomersPage() {
 
 
   const onAddSubmit: SubmitHandler<CustomerFormValues> = useCallback((data) => {
-    addCustomer(data);
+    addCustomer({
+        name: data.name,
+        contact: data.contact,
+        vehicleNumber: data.vehicleNumber,
+        area: data.area,
+        isPartner: data.isPartner,
+        sharePercentage: data.sharePercentage,
+    });
     toast({
       title: 'Record Added',
       description: `${data.name} has been added to your records.`,
@@ -81,7 +88,7 @@ export default function CustomersPage() {
   
   const onEditSubmit: SubmitHandler<CustomerFormValues> = useCallback((data) => {
     if (!customerToEdit) return;
-    updateCustomer(customerToEdit.id, data);
+    updateCustomer(customerToEdit.id!, data);
     toast({
         title: 'Record Updated',
         description: "The record's details have been saved."
@@ -107,7 +114,7 @@ export default function CustomersPage() {
         return;
     }
 
-    deleteCustomer(customerToDelete.id);
+    deleteCustomer(customerToDelete.id!);
     toast({
         title: 'Record Deleted',
         description: `${customerToDelete.name} has been removed.`,
@@ -228,7 +235,7 @@ export default function CustomersPage() {
                           <div className="text-xs text-muted-foreground">Added: {c.timestamp ? format(new Date(c.timestamp), 'PP') : 'N/A'}</div>
                         </TableCell>
                         <TableCell>
-                          <Barcode value={c.id} height={40} width={1.5} fontSize={10} margin={2} />
+                          {c.id && <Barcode value={c.id} height={40} width={1.5} fontSize={10} margin={2} />}
                         </TableCell>
                         <TableCell className="text-center space-x-0">
                            <Button asChild variant="ghost" size="icon" title="View Ledger">
@@ -310,7 +317,13 @@ export default function CustomersPage() {
                         <Input id="edit-area" {...registerEdit('area')} />
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Checkbox id="edit-isPartner" {...registerEdit('isPartner')} checked={isPartnerEdit} onCheckedChange={(checked) => setEditValue('isPartner', !!checked)} />
+                      <Controller
+                        name="isPartner"
+                        control={controlEdit}
+                        render={({ field }) => (
+                           <Checkbox id="edit-isPartner" checked={field.value} onCheckedChange={field.onChange} />
+                        )}
+                      />
                       <label htmlFor="edit-isPartner" className="text-sm font-medium leading-none">
                         This is a Business Partner
                       </label>
@@ -352,3 +365,5 @@ export default function CustomersPage() {
     </>
   );
 }
+
+    
