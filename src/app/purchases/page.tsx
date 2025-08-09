@@ -98,7 +98,6 @@ export default function PurchasesPage() {
       const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
       const defaultDate = storedDate ? new Date(storedDate) : new Date();
       setValue('date', defaultDate);
-      setValue('orderDeliveryDate', defaultDate);
     }
   }, [setValue, isClient]);
   
@@ -238,7 +237,6 @@ export default function PurchasesPage() {
         supplierId: '',
         items: [],
         date: defaultDate,
-        orderDeliveryDate: defaultDate,
         expenses: 0,
         notes: '',
         paymentMethod: 'On Credit',
