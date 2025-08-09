@@ -23,6 +23,7 @@ import Link from 'next/link';
 import { useInvestments } from '@/hooks/use-investments';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useExpenses } from '@/hooks/use-expenses';
 
 
 type EntityType = 'Customer' | 'Supplier' | 'Partner' | 'Employee';
@@ -33,7 +34,7 @@ type CombinedEntry = {
   entityId: string;
   entityName: string;
   entityType: EntityType;
-  type: 'Sale' | 'Payment' | 'Cash Advance' | 'Purchase' | 'Supplier Payment' | 'Investment' | 'Withdrawal';
+  type: 'Sale' | 'Payment' | 'Cash Advance' | 'Purchase' | 'Supplier Payment' | 'Investment' | 'Withdrawal' | 'Salary';
   description: string;
   debit: number;
   credit: number;
@@ -49,13 +50,14 @@ export default function UnifiedLedgerPage() {
   const { purchases, deletePurchase, isLoaded: purchasesLoaded } = usePurchases();
   const { supplierPayments, deleteSupplierPayment, isLoaded: supplierPaymentsLoaded } = useSupplierPayments();
   const { investments, deleteInvestment, isLoaded: investmentsLoaded } = useInvestments();
+  const { expenses, deleteExpense, isLoaded: expensesLoaded } = useExpenses();
   
   const [selectedEntityId, setSelectedEntityId] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [entryToDelete, setEntryToDelete] = useState<CombinedEntry | null>(null);
   const { toast } = useToast();
 
-  const isLoaded = paymentsLoaded && customersLoaded && transactionsLoaded && advancesLoaded && suppliersLoaded && purchasesLoaded && supplierPaymentsLoaded && investmentsLoaded;
+  const isLoaded = paymentsLoaded && customersLoaded && transactionsLoaded && advancesLoaded && suppliersLoaded && purchasesLoaded && supplierPaymentsLoaded && investmentsLoaded && expensesLoaded;
 
   const entities = useMemo(() => {
     if (!isLoaded) return [];
@@ -177,6 +179,23 @@ export default function UnifiedLedgerPage() {
             credit: inv.type === 'Investment' ? inv.amount : 0,
         });
     });
+    
+    // Salary Expenses
+    expenses.filter(e => e.category === 'Salaries' && e.employeeId).forEach(exp => {
+      const entity = entities.find(e => e.id === exp.employeeId);
+      if (!entity) return;
+        combined.push({
+            id: `exp-${exp.id}`,
+            timestamp: exp.timestamp!,
+            entityId: exp.employeeId!,
+            entityName: entity.name,
+            entityType: 'Employee',
+            type: 'Salary',
+            description: exp.description,
+            debit: 0, // For employee ledger, this is a credit
+            credit: exp.amount,
+        });
+    });
 
 
     combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
@@ -252,7 +271,7 @@ export default function UnifiedLedgerPage() {
         finalBalance: runningBalance,
         specialReport: reportData,
     };
-  }, [customerPayments, transactions, cashAdvances, purchases, supplierPayments, investments, selectedEntityId, selectedDate, isLoaded, entities]);
+  }, [customerPayments, transactions, cashAdvances, purchases, supplierPayments, investments, expenses, selectedEntityId, selectedDate, isLoaded, entities]);
   
   const getBadgeVariant = (type: CombinedEntry['type']) => {
     switch (type) {
@@ -264,6 +283,7 @@ export default function UnifiedLedgerPage() {
       case 'Payment':
       case 'Purchase':
       case 'Investment':
+      case 'Salary':
         return 'outline';
       default:
         return 'default';
@@ -271,7 +291,7 @@ export default function UnifiedLedgerPage() {
   };
 
   const isCreditType = (type: CombinedEntry['type']) => {
-    return ['Payment', 'Purchase', 'Investment'].includes(type);
+    return ['Payment', 'Purchase', 'Investment', 'Salary'].includes(type);
   }
 
   const clearFilters = useCallback(() => {
@@ -291,6 +311,7 @@ export default function UnifiedLedgerPage() {
           case 'pay': deleteCustomerPayment(id); break;
           case 'adv': deleteCashAdvance(id); break;
           case 'spay': deleteSupplierPayment(id); break;
+          case 'exp': deleteExpense(id); break;
           case 'inv':
           case 'wdr': deleteInvestment(id); break;
           default:

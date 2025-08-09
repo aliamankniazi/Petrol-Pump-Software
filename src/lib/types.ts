@@ -104,6 +104,7 @@ export interface Expense {
   category: ExpenseCategory;
   amount: number;
   timestamp?: string;
+  employeeId?: string; // Link to employee for salary payments
 }
 
 export type OtherIncomeCategory = 'Service Station' | 'Tire Shop' | 'Tuck Shop' | 'Other';
