@@ -142,8 +142,11 @@ export default function SalePage() {
             ...prev, 
             productId, 
             pricePerUnit: product.tradePrice?.toString() || '0',
-            selectedUnit: product.mainUnit || '',
+            selectedUnit: product.mainUnit,
         }));
+    } else {
+        // Reset if product is deselected
+        setCurrentItem({ productId: '', selectedUnit: '', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
     }
   }
 
@@ -279,11 +282,12 @@ export default function SalePage() {
                         </div>
                         <div className="space-y-1">
                             <Label>Unit</Label>
-                             <Select onValueChange={handleUnitChange} value={currentItem.selectedUnit} disabled={!selectedProduct}>
+                             <Select onValueChange={handleUnitChange} value={currentItem.selectedUnit || ''} disabled={!selectedProduct}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select Unit"/>
                                 </SelectTrigger>
                                 <SelectContent>
+                                    {!selectedProduct && <SelectItem key="placeholder" value="" disabled>...</SelectItem>}
                                     {selectedProduct && <SelectItem key={selectedProduct.mainUnit} value={selectedProduct.mainUnit}>{selectedProduct.mainUnit}</SelectItem>}
                                     {selectedProduct?.subUnit && <SelectItem key={selectedProduct.subUnit.name} value={selectedProduct.subUnit.name}>{selectedProduct.subUnit.name}</SelectItem>}
                                 </SelectContent>
