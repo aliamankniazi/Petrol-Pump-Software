@@ -277,7 +277,7 @@ export default function PurchasesPage() {
                                 <SelectTrigger><SelectValue placeholder="Select Product" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="placeholder" disabled>Select Product</SelectItem>
-                                    {productsLoaded ? products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>) : <SelectItem value='loading' disabled>Loading...</SelectItem>}
+                                    {productsLoaded ? products.map(p => <SelectItem key={p.id} value={p.id!}>{p.name}</SelectItem>) : <SelectItem value='loading' disabled>Loading...</SelectItem>}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -395,15 +395,7 @@ export default function PurchasesPage() {
                             </Popover>
                         )}/>
                     </div>
-                    <div className="space-y-1">
-                        <Label>Order Delivery Date</Label>
-                         <Controller name="orderDeliveryDate" control={control} render={({ field }) => (
-                            <Popover>
-                                <PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
-                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(d) => {if (d) field.onChange(d);}} initialFocus /></PopoverContent>
-                            </Popover>
-                        )}/>
-                    </div>
+                    
                     <div className="space-y-1">
                         <Label>Paid (Amount)</Label>
                         <div className="flex gap-2">
