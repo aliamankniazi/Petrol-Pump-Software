@@ -176,10 +176,10 @@ export default function SettingsPage() {
   const handleEditProduct = (product: Product) => {
     setProductToEdit(product);
     setProductValue('name', product.name);
-    setProductValue('companyId', product.companyId);
-    setProductValue('productGroupId', product.productGroupId);
-    setProductValue('productCode', product.productCode);
-    setProductValue('barcode', product.barcode);
+    setProductValue('companyId', product.companyId || '');
+    setProductValue('productGroupId', product.productGroupId || '');
+    setProductValue('productCode', product.productCode || '');
+    setProductValue('barcode', product.barcode || '');
     setProductValue('mainUnit', product.mainUnit);
     setProductValue('purchasePrice', product.purchasePrice);
     setProductValue('tradePrice', product.tradePrice);
@@ -278,7 +278,6 @@ export default function SettingsPage() {
                                                 <Select onValueChange={field.onChange} value={field.value || ''} >
                                                     <SelectTrigger><SelectValue placeholder="Select a company"/></SelectTrigger>
                                                     <SelectContent>
-                                                      <SelectItem value="" disabled>Select a company</SelectItem>
                                                       {suppliersLoaded ? suppliers.map(s => (
                                                         <SelectItem key={s.id} value={s.id!}>{s.name}</SelectItem>
                                                       )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
@@ -298,7 +297,6 @@ export default function SettingsPage() {
                                             <Select onValueChange={field.onChange} value={field.value || ''}>
                                                 <SelectTrigger><SelectValue placeholder="Select a group"/></SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="" disabled>Select a group</SelectItem>
                                                     <SelectItem key="fuel" value="fuel">Fuel</SelectItem>
                                                     <SelectItem key="lubricant" value="lubricant">Lubricant</SelectItem>
                                                     <SelectItem key="other" value="other">Other</SelectItem>
