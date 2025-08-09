@@ -42,7 +42,6 @@ const purchaseItemSchema = z.object({
 const purchaseSchema = z.object({
   supplierId: z.string().min(1, 'Please select a supplier.'),
   date: z.date({ required_error: "A date is required."}),
-  orderDeliveryDate: z.date().optional(),
   expenses: z.coerce.number().optional().default(0),
   notes: z.string().optional(),
   items: z.array(purchaseItemSchema).min(1, 'At least one item is required.'),
