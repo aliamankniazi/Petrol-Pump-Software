@@ -73,7 +73,7 @@ export default function PurchasesPage() {
   const [isClient, setIsClient] = useState(false);
   const [lastFocused, setLastFocused] = useState<'quantity' | 'total'>('quantity');
   
-  const [currentItem, setCurrentItem] = useState({ productId: 'placeholder', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
+  const [currentItem, setCurrentItem] = useState({ productId: 'placeholder', selectedUnit: '...', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
 
   useEffect(() => {
     setIsClient(true);
@@ -140,13 +140,38 @@ export default function PurchasesPage() {
     const handleCurrentProductChange = (productId: string) => {
         const product = products.find(p => p.id === productId);
         if(product) {
-            setCurrentItem(prev => ({...prev, productId, costPerUnit: product.purchasePrice?.toString() || '0' }));
+            setCurrentItem(prev => ({
+                ...prev, 
+                productId, 
+                costPerUnit: product.purchasePrice?.toString() || '0',
+                selectedUnit: product.mainUnit,
+            }));
         }
+    }
+
+    const handleUnitChange = (unitName: string) => {
+      const product = products.find(p => p.id === currentItem.productId);
+      if (!product) return;
+      
+      let newPrice = product.purchasePrice || 0;
+      if (unitName !== product.mainUnit && product.subUnit && product.subUnit.name === unitName) {
+          if (product.subUnit.purchasePrice) {
+              newPrice = product.subUnit.purchasePrice;
+          } else if(product.subUnit.conversionRate) {
+              newPrice = (product.purchasePrice || 0) / product.subUnit.conversionRate;
+          }
+      }
+
+      setCurrentItem(prev => ({
+          ...prev,
+          selectedUnit: unitName,
+          costPerUnit: newPrice.toFixed(2),
+      }))
     }
   
     const handleAddItemToPurchase = () => {
         const product = products.find(p => p.id === currentItem.productId);
-        if (!product) {
+        if (!product || currentItem.productId === 'placeholder') {
             toast({ variant: 'destructive', title: 'Error', description: 'Please select a product.'});
             return;
         }
@@ -168,7 +193,7 @@ export default function PurchasesPage() {
         append({
             productId: product.id!,
             productName: product.name,
-            unit: product.mainUnit,
+            unit: currentItem.selectedUnit,
             quantity: quantity,
             costPerUnit: costPerUnit,
             totalCost: totalCost,
@@ -177,7 +202,7 @@ export default function PurchasesPage() {
         });
         
         // Reset temporary item form
-        setCurrentItem({ productId: 'placeholder', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
+        setCurrentItem({ productId: 'placeholder', selectedUnit: '...', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
     }
   
     const { subTotal, grandTotal } = useMemo(() => {
@@ -226,6 +251,8 @@ export default function PurchasesPage() {
     setIsAddSupplierOpen(false);
   }, [addSupplier, toast, resetSupplier]);
 
+  const selectedProduct = products.find(p => p.id === currentItem.productId);
+
 
   if (!isClient) {
       return null;
@@ -257,7 +284,16 @@ export default function PurchasesPage() {
                         </div>
                         <div className="space-y-1">
                             <Label>Unit</Label>
-                            <Input value={products.find(p => p.id === currentItem.productId)?.mainUnit || ''} disabled />
+                             <Select onValueChange={handleUnitChange} value={currentItem.selectedUnit}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Unit"/>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="..." disabled>...</SelectItem>
+                                    {selectedProduct && <SelectItem key={selectedProduct.mainUnit} value={selectedProduct.mainUnit}>{selectedProduct.mainUnit}</SelectItem>}
+                                    {selectedProduct?.subUnit && <SelectItem key={selectedProduct.subUnit.name} value={selectedProduct.subUnit.name}>{selectedProduct.subUnit.name}</SelectItem>}
+                                </SelectContent>
+                             </Select>
                         </div>
                          <div className="space-y-1">
                             <Label>Enter Qty</Label>
