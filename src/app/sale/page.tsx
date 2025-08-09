@@ -262,8 +262,8 @@ export default function SalePage() {
                                     <SelectValue placeholder="Select Unit"/>
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {selectedProduct && <SelectItem value={selectedProduct.mainUnit}>{selectedProduct.mainUnit}</SelectItem>}
-                                    {selectedProduct?.subUnit && <SelectItem value={selectedProduct.subUnit.name}>{selectedProduct.subUnit.name}</SelectItem>}
+                                    {selectedProduct && <SelectItem key={selectedProduct.mainUnit} value={selectedProduct.mainUnit}>{selectedProduct.mainUnit}</SelectItem>}
+                                    {selectedProduct?.subUnit && <SelectItem key={selectedProduct.subUnit.name} value={selectedProduct.subUnit.name}>{selectedProduct.subUnit.name}</SelectItem>}
                                 </SelectContent>
                              </Select>
                         </div>
