@@ -30,12 +30,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { useCustomerPayments } from '@/hooks/use-customer-payments';
 
 type LedgerEntry = {
   id: string;
   timestamp: string;
   description: string;
-  type: 'Sale' | 'Purchase' | 'Expense' | 'Purchase Return' | 'Other Income' | 'Supplier Payment' | 'Investment' | 'Withdrawal';
+  type: 'Sale' | 'Purchase' | 'Expense' | 'Purchase Return' | 'Other Income' | 'Supplier Payment' | 'Investment' | 'Withdrawal' | 'Customer Payment';
   debit: number;
   credit: number;
   balance: number;
@@ -47,6 +48,7 @@ export default function LedgerPage() {
   const { expenses, deleteExpense, isLoaded: expensesLoaded } = useExpenses();
   const { purchaseReturns, deletePurchaseReturn, isLoaded: purchaseReturnsLoaded } = usePurchaseReturns();
   const { otherIncomes, deleteOtherIncome, isLoaded: otherIncomesLoaded } = useOtherIncomes();
+  const { customerPayments, deleteCustomerPayment, isLoaded: customerPaymentsLoaded } = useCustomerPayments();
   const { supplierPayments, deleteSupplierPayment, isLoaded: supplierPaymentsLoaded } = useSupplierPayments();
   const { investments, deleteInvestment, isLoaded: investmentsLoaded } = useInvestments();
   
@@ -55,13 +57,14 @@ export default function LedgerPage() {
   const [entryToDelete, setEntryToDelete] = useState<LedgerEntry | null>(null);
   const { toast } = useToast();
 
-  const isLoaded = transactionsLoaded && purchasesLoaded && expensesLoaded && purchaseReturnsLoaded && otherIncomesLoaded && supplierPaymentsLoaded && investmentsLoaded;
+  const isLoaded = transactionsLoaded && purchasesLoaded && expensesLoaded && purchaseReturnsLoaded && otherIncomesLoaded && customerPaymentsLoaded && supplierPaymentsLoaded && investmentsLoaded;
 
   const { entries, finalBalance, openingBalance, totals } = useMemo(() => {
     if (!isLoaded) return { entries: [], finalBalance: 0, openingBalance: 0, totals: { debit: 0, credit: 0 } };
 
     let combined: Omit<LedgerEntry, 'balance'>[] = [];
 
+    // Credits (Money In)
     transactions.filter(tx => tx.timestamp).forEach(tx => combined.push({
       id: `tx-${tx.id}`,
       timestamp: tx.timestamp!,
@@ -71,40 +74,59 @@ export default function LedgerPage() {
       credit: tx.totalAmount,
     }));
 
+    purchaseReturns.filter(pr => pr.timestamp).forEach(pr => combined.push({
+      id: `pr-${pr.id}`,
+      timestamp: pr.timestamp!,
+      description: `Return to ${pr.supplier}: ${pr.volume.toFixed(2)}L of ${pr.productName}`,
+      type: 'Purchase Return',
+      debit: 0,
+      credit: pr.totalRefund,
+    }));
+
+    otherIncomes.filter(oi => oi.timestamp).forEach(oi => combined.push({
+      id: `oi-${oi.id}`,
+      timestamp: oi.timestamp!,
+      description: `Income: ${oi.description}`,
+      type: 'Other Income',
+      debit: 0,
+      credit: oi.amount,
+    }));
+    
+    customerPayments.filter(cp => cp.timestamp).forEach(cp => combined.push({
+      id: `cp-${cp.id}`,
+      timestamp: cp.timestamp!,
+      description: `Payment from ${cp.customerName}`,
+      type: 'Customer Payment',
+      debit: 0,
+      credit: cp.amount,
+    }));
+
+    investments.filter(inv => inv.timestamp && inv.type === 'Investment').forEach(inv => combined.push({
+      id: `inv-${inv.id}`,
+      timestamp: inv.timestamp!,
+      description: `Investment from ${inv.partnerName}`,
+      type: 'Investment',
+      debit: 0,
+      credit: inv.amount,
+    }));
+
+    // Debits (Money Out)
     purchases.filter(p => p.timestamp).forEach(p => combined.push({
       id: `pur-${p.id}`,
       timestamp: p.timestamp!,
       description: `Purchase from ${p.supplier}: ${p.items.length} item(s)`,
       type: 'Purchase',
-      debit: 0,
-      credit: p.totalCost,
+      debit: p.totalCost,
+      credit: 0,
     }));
 
     expenses.filter(e => e.timestamp).forEach(e => combined.push({
-        id: `exp-${e.id}`,
-        timestamp: e.timestamp!,
-        description: `Expense: ${e.description}`,
-        type: 'Expense',
-        debit: e.amount,
-        credit: 0,
-    }));
-      
-    purchaseReturns.filter(pr => pr.timestamp).forEach(pr => combined.push({
-        id: `pr-${pr.id}`,
-        timestamp: pr.timestamp!,
-        description: `Return to ${pr.supplier}: ${pr.volume.toFixed(2)}L of ${pr.productName}`,
-        type: 'Purchase Return',
-        debit: 0,
-        credit: pr.totalRefund,
-    }));
-
-    otherIncomes.filter(oi => oi.timestamp).forEach(oi => combined.push({
-        id: `oi-${oi.id}`,
-        timestamp: oi.timestamp!,
-        description: `Income: ${oi.description}`,
-        type: 'Other Income',
-        debit: 0,
-        credit: oi.amount,
+      id: `exp-${e.id}`,
+      timestamp: e.timestamp!,
+      description: `Expense: ${e.description}`,
+      type: 'Expense',
+      debit: e.amount,
+      credit: 0,
     }));
 
     supplierPayments.filter(sp => sp.timestamp).forEach(sp => combined.push({
@@ -115,28 +137,16 @@ export default function LedgerPage() {
       debit: sp.amount,
       credit: 0,
     }));
+    
+    investments.filter(inv => inv.timestamp && inv.type === 'Withdrawal').forEach(inv => combined.push({
+      id: `wdr-${inv.id}`,
+      timestamp: inv.timestamp!,
+      description: `Withdrawal by ${inv.partnerName}`,
+      type: 'Withdrawal',
+      debit: inv.amount,
+      credit: 0,
+    }));
 
-    investments.filter(inv => inv.timestamp).forEach(inv => {
-        if (inv.type === 'Investment') {
-            combined.push({
-                id: `inv-${inv.id}`,
-                timestamp: inv.timestamp!,
-                description: `Investment from ${inv.partnerName}`,
-                type: 'Investment',
-                debit: 0,
-                credit: inv.amount,
-            });
-        } else {
-            combined.push({
-                id: `wdr-${inv.id}`,
-                timestamp: inv.timestamp!,
-                description: `Withdrawal by ${inv.partnerName}`,
-                type: 'Withdrawal',
-                debit: inv.amount,
-                credit: 0,
-            });
-        }
-    });
     
     combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
@@ -173,7 +183,7 @@ export default function LedgerPage() {
         totals: calculatedTotals,
     };
 
-  }, [transactions, purchases, expenses, purchaseReturns, otherIncomes, supplierPayments, investments, isLoaded, selectedDate]);
+  }, [transactions, purchases, expenses, purchaseReturns, otherIncomes, customerPayments, supplierPayments, investments, isLoaded, selectedDate]);
 
   const getBadgeVariant = (type: LedgerEntry['type']) => {
     switch (type) {
@@ -186,6 +196,7 @@ export default function LedgerPage() {
       case 'Purchase Return': 
       case 'Other Income':
       case 'Investment':
+      case 'Customer Payment':
         return 'outline';
       default: 
         return 'default';
@@ -193,7 +204,7 @@ export default function LedgerPage() {
   };
   
   const isCreditEntry = (type: LedgerEntry['type']) => {
-    return ['Sale', 'Purchase Return', 'Other Income', 'Investment', 'Purchase'].includes(type);
+    return ['Sale', 'Purchase Return', 'Other Income', 'Investment', 'Customer Payment'].includes(type);
   }
   
   const handleDeleteEntry = () => {
@@ -207,6 +218,7 @@ export default function LedgerPage() {
         case 'exp': deleteExpense(id); break;
         case 'pr': deletePurchaseReturn(id); break;
         case 'oi': deleteOtherIncome(id); break;
+        case 'cp': deleteCustomerPayment(id); break;
         case 'sp': deleteSupplierPayment(id); break;
         case 'inv': deleteInvestment(id); break;
         case 'wdr': deleteInvestment(id); break; // Both use same hook
