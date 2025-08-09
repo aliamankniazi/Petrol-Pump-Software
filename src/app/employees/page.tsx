@@ -25,7 +25,6 @@ import { useCustomers } from '@/hooks/use-customers';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
 import { useAttendance } from '@/hooks/use-attendance';
-import { useCustomerPayments } from '@/hooks/use-customer-payments';
 
 
 const employeeSchema = z.object({
@@ -46,11 +45,10 @@ const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
 export default function EmployeesPage() {
-  const { employees, addEmployee, updateEmployee, deleteEmployee, isLoaded } = useEmployees();
+  const { employees, addEmployee, updateEmployee, deleteEmployee, paySalary, isLoaded } = useEmployees();
   const { addExpense } = useExpenses();
   const { updateCustomer } = useCustomers();
   const { attendance } = useAttendance();
-  const { addCustomerPayment } = useCustomerPayments();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -136,24 +134,12 @@ export default function EmployeesPage() {
     if (!employeeToPay || !salaryCalculation) return;
 
     const monthName = months.find(m => m.value === selectedMonth)?.label;
-    const expenseDescription = `Salary for ${employeeToPay.name} for ${monthName} ${selectedYear}`;
-    const paymentTimestamp = postingDate.toISOString();
 
-    // 1. Log the salary as a business expense (debit)
-    addExpense({
-      description: expenseDescription,
-      category: 'Salaries',
+    await paySalary({
+      employee: employeeToPay,
       amount: salaryCalculation.payableSalary,
-      timestamp: paymentTimestamp,
-    });
-
-    // 2. Log the payment as a credit against the employee's ledger
-    addCustomerPayment({
-        customerId: employeeToPay.id,
-        customerName: employeeToPay.name,
-        amount: salaryCalculation.payableSalary,
-        paymentMethod: 'Cash', // Assuming salary is paid in cash
-        timestamp: paymentTimestamp,
+      postingDate: postingDate,
+      period: `${monthName} ${selectedYear}`
     });
 
     toast({
@@ -162,7 +148,7 @@ export default function EmployeesPage() {
     });
 
     setEmployeeToPay(null);
-  }, [employeeToPay, selectedMonth, selectedYear, salaryCalculation, addExpense, addCustomerPayment, toast, postingDate]);
+  }, [employeeToPay, selectedMonth, selectedYear, salaryCalculation, paySalary, toast, postingDate]);
   
   useEffect(() => {
     if (employeeToEdit) {
