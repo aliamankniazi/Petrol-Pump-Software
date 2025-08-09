@@ -54,7 +54,8 @@ export interface Transaction {
   customerId?: string;
   customerName?: string;
   bankAccountId?: string;
-  bankAccountName?: string;
+  paidAmount?: number;
+  expenseAmount?: number;
   // Legacy fields for dashboard compatibility
   fuelType?: FuelType;
   volume?: number;

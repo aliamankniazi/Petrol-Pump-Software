@@ -79,7 +79,7 @@ export default function CustomerLedgerPage() {
   }, [entityId, customers, suppliers, isLoaded]);
 
   const { entries, finalBalance } = useMemo(() => {
-    if (!entity) return { entries: [], finalBalance: 0 };
+    if (!isLoaded || !entity) return { entries: [], finalBalance: 0 };
 
     const combined: Omit<LedgerEntry, 'balance'>[] = [];
 
@@ -198,16 +198,20 @@ export default function CustomerLedgerPage() {
 
     let runningBalance = 0;
     const entriesWithBalance: LedgerEntry[] = combined.map(entry => {
-      if (entityType === 'Partner' || entityType === 'Supplier') {
+      if (entityType === 'Supplier') {
           runningBalance += entry.credit - entry.debit;
-      } else { // For customers and employees, debit increases their balance (they owe the business more)
+      } else if (entityType === 'Partner') {
+          // For partners, investment is a credit to them, withdrawal is a debit from their capital
+          runningBalance += entry.credit - entry.debit;
+      }
+      else { // For customers and employees, debit increases their balance (they owe the business more)
           runningBalance += entry.debit - entry.credit;
       }
       return { ...entry, balance: runningBalance };
     });
 
     return { entries: entriesWithBalance.reverse(), finalBalance: runningBalance };
-  }, [entity, entityType, transactions, customerPayments, cashAdvances, purchases, supplierPayments, investments, expenses, entityId]);
+  }, [isLoaded, entity, entityType, transactions, customerPayments, cashAdvances, purchases, supplierPayments, investments, expenses, entityId]);
 
   const handleDeleteEntry = () => {
     if (!entryToDelete) return;
@@ -267,10 +271,10 @@ export default function CustomerLedgerPage() {
   if (!entity) {
     return (
       <div className="p-4 md:p-8 text-center">
-        <h2 className="text-2xl font-bold text-destructive">Partner Not Found</h2>
-        <p className="text-muted-foreground">The partner with the specified ID could not be found.</p>
+        <h2 className="text-2xl font-bold text-destructive">Entity Not Found</h2>
+        <p className="text-muted-foreground">The customer, supplier, or partner with the specified ID could not be found.</p>
         <Button asChild className="mt-4">
-          <Link href="/partner-ledger"><ArrowLeft className="mr-2 h-4 w-4" />Back to Partner Ledger</Link>
+          <Link href="/partner-ledger"><ArrowLeft className="mr-2 h-4 w-4" />Back to Unified Ledger</Link>
         </Button>
       </div>
     );
@@ -466,5 +470,3 @@ export default function CustomerLedgerPage() {
     </div>
   );
 }
-
-    

@@ -97,5 +97,3 @@ export function usePurchases() {
     isLoaded: !loading 
   };
 }
-
-    

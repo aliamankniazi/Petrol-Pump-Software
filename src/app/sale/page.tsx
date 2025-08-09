@@ -466,5 +466,3 @@ export default function SalePage() {
     </div>
   );
 }
-
-    
