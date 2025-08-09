@@ -192,7 +192,7 @@ export default function CustomersPage() {
           <CardHeader className="flex flex-row justify-between items-start">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <List /> Customer Employee & Partner Ledger
+                <List /> Customer, Employee & Partner Ledger
               </CardTitle>
               <CardDescription>
                 A record of all your customers, employees, and business partners.
@@ -213,13 +213,14 @@ export default function CustomersPage() {
               </TableHeader>
               <TableBody>
                 {isLoaded ? (
-                  customers.filter(c => !c.isEmployee).length > 0 ? (
-                    customers.filter(c => !c.isEmployee).map(c => (
+                  customers.length > 0 ? (
+                    customers.map(c => (
                       <TableRow key={c.id}>
                         <TableCell>
                           <div className="font-medium flex items-center gap-2">
                             {c.name}
                             {c.isPartner && <Badge variant="secondary">Partner</Badge>}
+                            {c.isEmployee && <Badge>Employee</Badge>}
                           </div>
                           <div className="text-sm text-muted-foreground">{c.contact}</div>
                            <div className="text-xs text-muted-foreground">{c.area || 'N/A'}</div>
