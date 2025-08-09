@@ -429,7 +429,7 @@ export default function CustomerLedgerPage() {
         <CardFooter className="flex justify-end bg-muted/50 p-4 rounded-b-lg">
             <div className="text-right">
                 <p className="text-sm text-muted-foreground">Final Balance</p>
-                <p className={cn("text-2xl font-bold", balanceColorClass())}>PKR {finalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className={cn("text-2xl font-bold", balanceColorClass())}>PKR {Math.abs(finalBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             </div>
         </CardFooter>
       </Card>
