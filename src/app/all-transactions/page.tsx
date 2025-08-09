@@ -4,9 +4,9 @@
 import { useMemo, useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format } from 'date-fns';
+import { format, startOfDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { Archive, XCircle, Printer, Trash2, AlertTriangle, LayoutDashboard } from 'lucide-react';
+import { Archive, XCircle, Printer, Trash2, AlertTriangle, LayoutDashboard, Calendar as CalendarIcon, X } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
 import { usePurchases } from '@/hooks/use-purchases';
 import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
@@ -27,6 +27,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { DateRange } from 'react-day-picker';
 
 
 type CombinedEntry = {
@@ -60,6 +63,7 @@ export default function AllTransactionsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [entryToDelete, setEntryToDelete] = useState<CombinedEntry | null>(null);
   const { toast } = useToast();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const isLoaded = transactionsLoaded && purchasesLoaded && purchaseReturnsLoaded && customersLoaded;
 
@@ -109,13 +113,29 @@ export default function AllTransactionsPage() {
   }, [isLoaded, transactions, purchases, purchaseReturns]);
 
   const filteredEntries = useMemo(() => {
-    if (!searchTerm) return combinedEntries;
-    return combinedEntries.filter(entry =>
-      entry.partner.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      entry.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      entry.details.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [combinedEntries, searchTerm]);
+    return combinedEntries.filter(entry => {
+      const entryDate = new Date(entry.timestamp);
+      
+      const isInDateRange = !dateRange?.from || (
+          entryDate >= startOfDay(dateRange.from) &&
+          (!dateRange.to || entryDate <= startOfDay(dateRange.to))
+      );
+
+      if (!isInDateRange) {
+        return false;
+      }
+      
+      if (!searchTerm) {
+          return true;
+      }
+
+      return (
+        entry.partner.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        entry.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        entry.details.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    });
+  }, [combinedEntries, searchTerm, dateRange]);
 
   const getBadgeVariant = (type: CombinedEntry['type']) => {
     switch (type) {
@@ -186,13 +206,53 @@ export default function AllTransactionsPage() {
                 </CardTitle>
                 <CardDescription>A unified record of all sales, purchases, and returns.</CardDescription>
             </div>
-            <div className='flex gap-2 items-center'>
+            <div className='flex flex-wrap items-center justify-end gap-2'>
                  <Input 
                     placeholder="Search by partner, type, details..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="max-w-sm"
+                    className="max-w-xs"
                 />
+                 <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant={"outline"}
+                            className={cn(
+                                "w-[280px] justify-start text-left font-normal",
+                                !dateRange && "text-muted-foreground"
+                            )}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {dateRange?.from ? (
+                                dateRange.to ? (
+                                    <>
+                                        {format(dateRange.from, "LLL dd, y")} -{" "}
+                                        {format(dateRange.to, "LLL dd, y")}
+                                    </>
+                                ) : (
+                                    format(dateRange.from, "LLL dd, y")
+                                )
+                            ) : (
+                                <span>Pick a date range</span>
+                            )}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                        <Calendar
+                            initialFocus
+                            mode="range"
+                            defaultMonth={dateRange?.from}
+                            selected={dateRange}
+                            onSelect={setDateRange}
+                            numberOfMonths={2}
+                        />
+                    </PopoverContent>
+                </Popover>
+                 {dateRange && (
+                    <Button variant="ghost" size="icon" onClick={() => setDateRange(undefined)}>
+                        <X className="h-4 w-4" />
+                    </Button>
+                 )}
                 <Button asChild variant="outline">
                     <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
                 </Button>
@@ -265,9 +325,9 @@ export default function AllTransactionsPage() {
               <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
                 <XCircle className="w-16 h-16" />
                 <h3 className="text-xl font-semibold">
-                  {searchTerm ? 'No Matching Transactions' : 'Not showing any details'}
+                  {searchTerm || dateRange ? 'No Matching Transactions' : 'Not showing any details'}
                 </h3>
-                <p>{searchTerm ? 'Try a different search term.' : ''}</p>
+                <p>{searchTerm || dateRange ? 'Try a different search term or date range.' : ''}</p>
               </div>
             )
           ) : (
