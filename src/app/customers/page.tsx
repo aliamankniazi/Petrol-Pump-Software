@@ -192,10 +192,10 @@ export default function CustomersPage() {
           <CardHeader className="flex flex-row justify-between items-start">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <List /> Customer & Partner List
+                <List /> Customer Employee & Partner Ledger
               </CardTitle>
               <CardDescription>
-                A record of all your customers and business partners.
+                A record of all your customers, employees, and business partners.
               </CardDescription>
             </div>
              <Button asChild variant="outline">
