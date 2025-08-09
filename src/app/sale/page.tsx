@@ -69,7 +69,7 @@ export default function SalePage() {
   const router = useRouter();
   
   // State for the temporary item being added
-  const [currentItem, setCurrentItem] = useState({ productId: '', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
+  const [currentItem, setCurrentItem] = useState({ productId: '', selectedUnit: '', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
   const [lastFocused, setLastFocused] = useState<'quantity' | 'total'>('quantity');
 
   useEffect(() => {
@@ -120,10 +120,10 @@ export default function SalePage() {
             if (discountAmount > 0) {
                 total -= discountAmount;
             }
-            setCurrentItem(prev => ({...prev, totalValue: total.toFixed(2)}));
+            setCurrentItem(prev => ({...prev, totalValue: total > 0 ? total.toFixed(2) : ''}));
         } else if (lastFocused === 'total' && price > 0) {
             let calculatedQty = totalValue / price;
-            setCurrentItem(prev => ({...prev, quantity: calculatedQty.toFixed(2)}));
+             setCurrentItem(prev => ({...prev, quantity: calculatedQty > 0 ? calculatedQty.toFixed(2) : ''}));
         }
     
     }, [currentItem.quantity, currentItem.pricePerUnit, currentItem.discountAmount, currentItem.totalValue, lastFocused, products]);
@@ -131,8 +131,33 @@ export default function SalePage() {
   const handleCurrentProductChange = (productId: string) => {
     const product = products.find(p => p.id === productId);
     if(product) {
-        setCurrentItem(prev => ({...prev, productId, pricePerUnit: product.tradePrice?.toString() || '0' }));
+        setCurrentItem(prev => ({
+            ...prev, 
+            productId, 
+            pricePerUnit: product.tradePrice?.toString() || '0',
+            selectedUnit: product.mainUnit,
+        }));
     }
+  }
+
+  const handleUnitChange = (unitName: string) => {
+      const product = products.find(p => p.id === currentItem.productId);
+      if (!product) return;
+      
+      let newPrice = product.tradePrice || 0;
+      if (unitName !== product.mainUnit && product.subUnit && product.subUnit.name === unitName) {
+          if (product.subUnit.tradePrice) {
+              newPrice = product.subUnit.tradePrice;
+          } else if(product.subUnit.conversionRate) {
+              newPrice = (product.tradePrice || 0) / product.subUnit.conversionRate;
+          }
+      }
+
+      setCurrentItem(prev => ({
+          ...prev,
+          selectedUnit: unitName,
+          pricePerUnit: newPrice.toFixed(2),
+      }))
   }
   
   const handleAddItemToSale = () => {
@@ -154,7 +179,7 @@ export default function SalePage() {
     append({
         productId: product.id!,
         productName: product.name,
-        unit: product.mainUnit,
+        unit: currentItem.selectedUnit,
         quantity: quantity,
         pricePerUnit: pricePerUnit,
         totalAmount: totalAmount,
@@ -163,7 +188,7 @@ export default function SalePage() {
     });
     
     // Reset temporary item form
-    setCurrentItem({ productId: '', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
+    setCurrentItem({ productId: '', selectedUnit: '', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
   }
 
   const { subTotal, grandTotal } = useMemo(() => {
@@ -201,6 +226,9 @@ export default function SalePage() {
     }
   };
 
+  const selectedProduct = products.find(p => p.id === currentItem.productId);
+
+
   if (!isClient) {
     return null;
   }
@@ -229,20 +257,15 @@ export default function SalePage() {
                         </div>
                         <div className="space-y-1">
                             <Label>Unit</Label>
-                            <Input 
-                                value={
-                                    (() => {
-                                        const product = products.find(p => p.id === currentItem.productId);
-                                        if (!product) return '';
-                                        let unitString = product.mainUnit;
-                                        if (product.subUnit) {
-                                            unitString += ` / ${product.subUnit.name}`;
-                                        }
-                                        return unitString;
-                                    })()
-                                } 
-                                disabled 
-                            />
+                             <Select onValueChange={handleUnitChange} value={currentItem.selectedUnit} disabled={!selectedProduct}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Unit"/>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {selectedProduct && <SelectItem value={selectedProduct.mainUnit}>{selectedProduct.mainUnit}</SelectItem>}
+                                    {selectedProduct?.subUnit && <SelectItem value={selectedProduct.subUnit.name}>{selectedProduct.subUnit.name}</SelectItem>}
+                                </SelectContent>
+                             </Select>
                         </div>
                          <div className="space-y-1">
                             <Label>Enter Qty</Label>
