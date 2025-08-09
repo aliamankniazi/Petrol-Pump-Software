@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
@@ -425,3 +426,5 @@ export default function PurchasesPage() {
     </>
   );
 }
+
+    

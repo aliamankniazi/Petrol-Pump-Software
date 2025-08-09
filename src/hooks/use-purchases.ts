@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useCallback } from 'react';
@@ -70,7 +71,8 @@ export function usePurchases() {
 
   }, [products, updateDoc, updateProductStock]);
 
-  const deletePurchase = useCallback((purchaseToDelete: Purchase) => {
+  const deletePurchase = useCallback((purchaseId: string) => {
+    const purchaseToDelete = purchases.find(p => p.id === purchaseId);
     if (!purchaseToDelete) return;
 
     purchaseToDelete.items.forEach(item => {
@@ -82,7 +84,7 @@ export function usePurchases() {
     });
     
     deleteDoc(purchaseToDelete.id!);
-  }, [deleteDoc, products, updateProductStock]);
+  }, [deleteDoc, purchases, products, updateProductStock]);
   
   return { 
     purchases: purchases || [], 

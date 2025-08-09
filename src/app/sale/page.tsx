@@ -81,7 +81,14 @@ export default function SalePage() {
     defaultValues: {
       items: [],
       paymentMethod: 'On Credit',
-      customerId: 'walk-in'
+      customerId: 'walk-in',
+      bankAccountId: '',
+      notes: '',
+      extraDiscount: 0,
+      paidAmount: 0,
+      expenseAmount: 0,
+      expenseBankAccountId: '',
+      referenceNo: '',
     }
   });
 
@@ -215,10 +222,20 @@ export default function SalePage() {
       action: <CheckCircle className="text-green-500" />
     });
     
+    const defaultDate = isClient && localStorage.getItem(LOCAL_STORAGE_KEY) ? new Date(localStorage.getItem(LOCAL_STORAGE_KEY)!) : new Date();
     reset({ 
         items: [],
         paymentMethod: 'On Credit',
-        customerId: 'walk-in'
+        customerId: 'walk-in',
+        date: defaultDate,
+        orderDeliveryDate: defaultDate,
+        bankAccountId: '',
+        notes: '',
+        extraDiscount: 0,
+        paidAmount: 0,
+        expenseAmount: 0,
+        expenseBankAccountId: '',
+        referenceNo: '',
     });
 
     if (newTransaction?.id) {
