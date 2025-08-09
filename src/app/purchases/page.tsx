@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
@@ -111,10 +110,10 @@ export default function PurchasesPage() {
         if (discountAmount > 0) {
             total -= discountAmount;
         }
-        setCurrentItem(prev => ({...prev, totalValue: total.toFixed(2)}));
+        setCurrentItem(prev => ({...prev, totalValue: total > 0 ? total.toFixed(2) : ''}));
     } else if (lastFocused === 'total' && price > 0) {
         let calculatedQty = totalValue / price;
-        setCurrentItem(prev => ({...prev, quantity: calculatedQty.toFixed(2)}));
+        setCurrentItem(prev => ({...prev, quantity: calculatedQty > 0 ? calculatedQty.toFixed(2) : ''}));
     }
 
   }, [currentItem.quantity, currentItem.costPerUnit, currentItem.discountAmount, currentItem.totalValue, lastFocused, products]);
@@ -173,8 +172,8 @@ export default function PurchasesPage() {
   
     const { subTotal, grandTotal } = useMemo(() => {
         const sub = watchedItems.reduce((sum, item) => sum + (item.totalCost || 0), 0);
-        const discount = getValues('expenses') || 0; // In purchases, extra discount seems to be expenses
-        const grand = sub + discount;
+        const expenses = Number(getValues('expenses')) || 0;
+        const grand = sub + expenses;
         return { subTotal: sub, grandTotal: grand };
       }, [watchedItems, getValues]);
 
