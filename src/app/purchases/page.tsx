@@ -43,11 +43,11 @@ const purchaseSchema = z.object({
   supplierId: z.string().min(1, 'Please select a supplier.'),
   date: z.date({ required_error: "A date is required."}),
   orderDeliveryDate: z.date().optional(),
-  expenses: z.coerce.number().optional(),
+  expenses: z.coerce.number().optional().default(0),
   notes: z.string().optional(),
   items: z.array(purchaseItemSchema).min(1, 'At least one item is required.'),
   paymentMethod: z.enum(['On Credit', 'Cash', 'Card', 'Mobile']).default('On Credit'),
-  paidAmount: z.coerce.number().optional(),
+  paidAmount: z.coerce.number().optional().default(0),
   bankAccountId: z.string().optional(),
   referenceNo: z.string().optional(),
 });
@@ -84,6 +84,10 @@ export default function PurchasesPage() {
       items: [],
       expenses: 0,
       paymentMethod: 'On Credit',
+      paidAmount: 0,
+      bankAccountId: '',
+      referenceNo: '',
+      notes: '',
     }
   });
 
@@ -421,7 +425,3 @@ export default function PurchasesPage() {
     </>
   );
 }
-
-    
-
-    
