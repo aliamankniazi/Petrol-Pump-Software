@@ -304,7 +304,7 @@ export default function SalePage() {
                         </TableBody>
                     </Table>
                     <div className="p-4 text-right space-y-2">
-                        <div className="flex justify-end items-center gap-4">
+                        <div className="flex justify-end items-center gap-4 hidden">
                             <Label>Extra Discount:</Label>
                             <Input className="w-24" placeholder="0" type="number" {...register('extraDiscount')} />
                         </div>
@@ -395,7 +395,7 @@ export default function SalePage() {
 
             </CardContent>
             <CardFooter className="gap-2">
-                 <Button type="submit" size="lg"><Printer className="mr-2"/>Save &amp; Go to Invoice</Button>
+                 <Button type="submit" size="lg">Save & Go to Invoice</Button>
                  <Button type="button" variant="outline" size="lg" onClick={() => reset()}>Discard/Reset</Button>
             </CardFooter>
         </Card>
