@@ -51,8 +51,9 @@ export default function CustomerPaymentsPage() {
   const { register, handleSubmit, control, reset, formState: { errors }, watch, setValue } = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
     defaultValues: { 
-      date: new Date(), 
-      paymentMethod: 'Cash' 
+      paymentMethod: 'Cash',
+      customerId: '',
+      amount: 0,
     }
   });
   
@@ -65,6 +66,8 @@ export default function CustomerPaymentsPage() {
         } catch (e) {
             setValue('date', new Date());
         }
+      } else {
+        setValue('date', new Date());
       }
     }
   }, [setValue, isClient]);

@@ -48,7 +48,10 @@ export default function OtherIncomesPage() {
 
   const { register, handleSubmit, reset, control, formState: { errors }, watch, setValue } = useForm<IncomeFormValues>({
     resolver: zodResolver(incomeSchema),
-    defaultValues: { date: new Date() }
+    defaultValues: {
+      description: '',
+      amount: 0,
+    }
   });
   
   useEffect(() => {
@@ -60,6 +63,8 @@ export default function OtherIncomesPage() {
         } catch(e) {
           setValue('date', new Date());
         }
+      } else {
+        setValue('date', new Date());
       }
     }
   }, [setValue, isClient]);

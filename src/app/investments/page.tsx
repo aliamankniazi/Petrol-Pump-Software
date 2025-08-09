@@ -54,7 +54,7 @@ export default function InvestmentsPage() {
   // Form for new investments/withdrawals
   const { register: registerInvestment, handleSubmit: handleSubmitInvestment, reset: resetInvestment, control: controlInvestment, formState: { errors: investmentErrors }, watch, setValue } = useForm<InvestmentFormValues>({
     resolver: zodResolver(investmentSchema),
-    defaultValues: { type: 'Investment', date: new Date() }
+    defaultValues: { type: 'Investment', partnerId: '', amount: 0, notes: '' }
   });
 
   useEffect(() => {
@@ -66,6 +66,8 @@ export default function InvestmentsPage() {
         } catch(e) {
           setValue('date', new Date());
         }
+      } else {
+        setValue('date', new Date());
       }
     }
   }, [setValue, isClient]);

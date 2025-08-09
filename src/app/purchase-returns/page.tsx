@@ -50,7 +50,13 @@ export default function PurchaseReturnsPage() {
 
   const { register, handleSubmit, reset, setValue, control, formState: { errors }, watch } = useForm<PurchaseReturnFormValues>({
     resolver: zodResolver(purchaseReturnSchema),
-    defaultValues: { date: new Date() }
+    defaultValues: {
+      supplierId: '',
+      productId: '',
+      volume: 0,
+      totalRefund: 0,
+      reason: ''
+    }
   });
 
   useEffect(() => {
@@ -62,6 +68,8 @@ export default function PurchaseReturnsPage() {
         } catch(e) {
           setValue('date', new Date());
         }
+      } else {
+        setValue('date', new Date());
       }
     }
   }, [setValue, isClient]);

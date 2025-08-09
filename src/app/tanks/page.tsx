@@ -47,7 +47,8 @@ export default function TankManagementPage() {
   const { register, handleSubmit, control, reset, formState: { errors }, watch, setValue } = useForm<TankReadingFormValues>({
     resolver: zodResolver(tankReadingSchema),
     defaultValues: {
-        date: new Date(),
+        productId: '',
+        volume: 0,
     }
   });
   
@@ -60,6 +61,8 @@ export default function TankManagementPage() {
         } catch(e) {
             setValue('date', new Date());
         }
+      } else {
+        setValue('date', new Date());
       }
     }
   }, [setValue, isClient]);

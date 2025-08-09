@@ -46,7 +46,7 @@ export default function CashAdvancesPage() {
 
   const { register, handleSubmit, reset, control, formState: { errors }, watch, setValue } = useForm<CashAdvanceFormValues>({
     resolver: zodResolver(cashAdvanceSchema),
-    defaultValues: { date: new Date() }
+    defaultValues: { date: new Date(), notes: '', customerId: '', amount: 0 }
   });
 
   useEffect(() => {

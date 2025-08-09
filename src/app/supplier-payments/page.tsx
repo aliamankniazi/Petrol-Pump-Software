@@ -48,8 +48,9 @@ export default function SupplierPaymentsPage() {
   const { register, handleSubmit, control, reset, formState: { errors }, watch, setValue } = useForm<SupplierPaymentFormValues>({
     resolver: zodResolver(supplierPaymentSchema),
     defaultValues: {
-      date: new Date(), 
-      paymentMethod: 'Cash'
+      paymentMethod: 'Cash',
+      supplierId: '',
+      amount: 0,
     }
   });
   
@@ -62,6 +63,8 @@ export default function SupplierPaymentsPage() {
         } catch(e) {
             setValue('date', new Date());
         }
+      } else {
+        setValue('date', new Date());
       }
     }
   }, [setValue, isClient]);
