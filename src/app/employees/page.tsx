@@ -64,6 +64,8 @@ export default function EmployeesPage() {
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>(getMonth(new Date()).toString());
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const [postingDate, setPostingDate] = useState(new Date());
+
 
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
@@ -135,7 +137,7 @@ export default function EmployeesPage() {
 
     const monthName = months.find(m => m.value === selectedMonth)?.label;
     const expenseDescription = `Salary for ${employeeToPay.name} for ${monthName} ${selectedYear}`;
-    const paymentTimestamp = new Date().toISOString();
+    const paymentTimestamp = postingDate.toISOString();
 
     // 1. Log the salary as a business expense
     addExpense({
@@ -161,7 +163,7 @@ export default function EmployeesPage() {
     });
 
     setEmployeeToPay(null);
-  }, [employeeToPay, selectedMonth, selectedYear, salaryCalculation, addExpense, addCustomerPayment, toast]);
+  }, [employeeToPay, selectedMonth, selectedYear, salaryCalculation, addExpense, addCustomerPayment, toast, postingDate]);
   
   useEffect(() => {
     if (employeeToEdit) {
@@ -325,7 +327,7 @@ export default function EmployeesPage() {
           <DialogHeader>
             <DialogTitle>Pay Salary for {employeeToPay?.name}</DialogTitle>
             <DialogDescription>
-              Select the month for this salary payment. The amount is calculated based on attendance.
+              Select the month and posting date for this salary payment. The amount is calculated based on attendance.
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-4">
@@ -355,6 +357,31 @@ export default function EmployeesPage() {
                   </SelectContent>
                 </Select>
             </div>
+             <div className="space-y-2 col-span-2">
+                  <Label>Posting Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !postingDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {postingDate ? format(postingDate, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={postingDate}
+                          onSelect={(date) => date && setPostingDate(date)}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                </div>
           </div>
           {salaryCalculation && (
             <div className='space-y-4 rounded-lg bg-muted p-4'>
