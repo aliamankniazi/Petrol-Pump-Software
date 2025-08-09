@@ -374,10 +374,9 @@ export function SaleForm() {
                         </Popover>
                     )}/>
                 </div>
-                <div className="space-y-1 hidden">
-                    <Label>Paid (Amount)</Label>
+                <div className="space-y-1">
+                    <Label>Payment</Label>
                     <div className="flex gap-2">
-                         <Input type="number" placeholder="RS 0" {...register('paidAmount')} step="any" />
                          <Controller name="paymentMethod" control={control} render={({ field }) => (
                             <Select onValueChange={field.onChange} value={field.value}>
                                 <SelectTrigger><SelectValue placeholder="Method" /></SelectTrigger>
@@ -386,6 +385,14 @@ export function SaleForm() {
                                     <SelectItem value="Card">Card</SelectItem>
                                     <SelectItem value="Mobile">Mobile</SelectItem>
                                     <SelectItem value="On Credit">On Credit</SelectItem>
+                                </SelectContent>
+                            </Select>
+                         )}/>
+                         <Controller name="bankAccountId" control={control} render={({ field }) => (
+                            <Select onValueChange={field.onChange} value={field.value}>
+                                <SelectTrigger><SelectValue placeholder="@Bank" /></SelectTrigger>
+                                <SelectContent>
+                                    {bankAccountsLoaded ? bankAccounts.map(b => <SelectItem key={b.id} value={b.id}>{b.bankName}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
                                 </SelectContent>
                             </Select>
                          )}/>
