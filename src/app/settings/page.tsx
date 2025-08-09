@@ -54,11 +54,6 @@ const productSchema = z.object({
 
   initialStockMain: z.coerce.number().min(0).default(0),
   initialStockSub: z.coerce.number().min(0).default(0),
-
-  // Legacy fields that need to be populated for type-safety
-  category: z.enum(['Fuel', 'Lubricant', 'Other']).default('Other'),
-  productType: z.enum(['Main', 'Secondary']).default('Main'),
-  unit: z.enum(['Litre', 'Unit']).default('Unit'),
 });
 type ProductFormValues = z.infer<typeof productSchema>;
 
@@ -142,10 +137,10 @@ export default function SettingsPage() {
         subUnit: data.addSubUnit && data.subUnitName && data.subUnitConversion 
             ? { name: data.subUnitName, conversionRate: data.subUnitConversion }
             : null,
-        // Legacy fields
-        category: 'Other',
+        // Legacy fields for compatibility - can be removed later
+        category: 'Other', 
         productType: 'Main',
-        unit: 'Unit'
+        unit: 'Unit',
     };
 
     if (productToEdit) {
@@ -185,12 +180,6 @@ export default function SettingsPage() {
     setProductValue('tradePrice', product.tradePrice || 0);
     setProductValue('initialStockMain', product.stock || 0);
     setProductValue('subUnitStock', product.subUnitStock || 0);
-
-    // Set legacy fields
-    setProductValue('category', product.category || 'Other');
-    setProductValue('productType', product.productType || 'Main');
-    setProductValue('unit', product.unit || 'Unit');
-
     if (product.subUnit) {
         setProductValue('addSubUnit', true);
         setProductValue('subUnitName', product.subUnit.name);
@@ -203,21 +192,19 @@ export default function SettingsPage() {
   }
 
   const handleDeleteProduct = () => {
-    if (!productToDelete) return;
-     // Safeguard: Check for sales dependencies
+    if (!productToDelete || !productToDelete.id) return;
+    
     const hasSales = transactions.some(tx => tx.items.some(item => item.productId === productToDelete.id));
-
     if (hasSales) {
         toast({
             variant: 'destructive',
             title: 'Deletion Prevented',
             description: `${productToDelete.name} has been sold and cannot be deleted to preserve historical sales records.`,
         });
-        setProductToDelete(null);
-        return;
+    } else {
+        deleteProduct(productToDelete.id);
+        toast({ title: 'Product Deleted', description: `${productToDelete.name} has been removed.` });
     }
-    deleteProduct(productToDelete.id!);
-    toast({ title: 'Product Deleted', description: `${productToDelete.name} has been removed.` });
     setProductToDelete(null);
   }
 
@@ -231,8 +218,8 @@ export default function SettingsPage() {
   }, [addSupplier, toast, resetSupplier]);
 
   const handleDeleteSupplier = React.useCallback(() => {
-    if (!supplierToDelete) return;
-    deleteSupplier(supplierToDelete.id!);
+    if (!supplierToDelete || !supplierToDelete.id) return;
+    deleteSupplier(supplierToDelete.id);
     setSupplierToDelete(null);
   }, [supplierToDelete, deleteSupplier]);
 
@@ -536,5 +523,3 @@ export default function SettingsPage() {
     </>
   );
 }
-
-    
