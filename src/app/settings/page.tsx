@@ -181,9 +181,9 @@ export default function SettingsPage() {
     setProductValue('productCode', product.productCode || '');
     setProductValue('barcode', product.barcode || '');
     setProductValue('mainUnit', product.mainUnit);
-    setProductValue('purchasePrice', product.purchasePrice);
-    setProductValue('tradePrice', product.tradePrice);
-    setProductValue('initialStockMain', product.stock);
+    setProductValue('purchasePrice', product.purchasePrice || 0);
+    setProductValue('tradePrice', product.tradePrice || 0);
+    setProductValue('initialStockMain', product.stock || 0);
     setProductValue('initialStockSub', product.subUnitStock || 0);
 
     // Set legacy fields
