@@ -11,20 +11,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Briefcase, UserPlus, List, Calendar as CalendarIcon, Trash2, AlertTriangle, Edit, LayoutDashboard, Wallet, TrendingUp, TrendingDown, BookText } from 'lucide-react';
+import { Briefcase, UserPlus, List, Calendar as CalendarIcon, Trash2, AlertTriangle, Edit, LayoutDashboard, Wallet, TrendingUp, TrendingDown, BookText, ArrowRightLeft } from 'lucide-react';
 import { format, getMonth, setMonth, getDaysInMonth } from 'date-fns';
 import { useEmployees } from '@/hooks/use-employees';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { useExpenses } from '@/hooks/use-expenses';
 import type { Employee } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCustomers } from '@/hooks/use-customers';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
-import { useAttendance } from '@/hooks/use-attendance';
 
 
 const employeeSchema = z.object({
@@ -37,18 +34,10 @@ const employeeSchema = z.object({
 
 type EmployeeFormValues = z.infer<typeof employeeSchema>;
 
-const months = Array.from({ length: 12 }, (_, i) => ({
-  value: i.toString(),
-  label: format(setMonth(new Date(), i), 'MMMM'),
-}));
-const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
 export default function EmployeesPage() {
-  const { employees, addEmployee, updateEmployee, deleteEmployee, paySalary, isLoaded } = useEmployees();
-  const { addExpense } = useExpenses();
+  const { employees, addEmployee, updateEmployee, deleteEmployee, isLoaded } = useEmployees();
   const { updateCustomer } = useCustomers();
-  const { attendance } = useAttendance();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -57,12 +46,8 @@ export default function EmployeesPage() {
 
   const { toast } = useToast();
   
-  const [employeeToPay, setEmployeeToPay] = useState<Employee | null>(null);
   const [employeeToEdit, setEmployeeToEdit] = useState<Employee | null>(null);
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState<string>(getMonth(new Date()).toString());
-  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
-  const [postingDate, setPostingDate] = useState(new Date());
 
 
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<EmployeeFormValues>({
@@ -74,34 +59,6 @@ export default function EmployeesPage() {
     resolver: zodResolver(employeeSchema),
   });
 
-  const salaryCalculation = useMemo(() => {
-    if (!employeeToPay) return null;
-
-    const salaryMonth = setMonth(new Date(selectedYear, 0, 1), parseInt(selectedMonth));
-    const daysInMonth = getDaysInMonth(salaryMonth);
-    
-    const employeeAttendance = attendance.filter(a => 
-      a.employeeId === employeeToPay.id && 
-      new Date(a.date).getMonth() === parseInt(selectedMonth) &&
-      new Date(a.date).getFullYear() === selectedYear
-    );
-    
-    const presentDays = employeeAttendance.filter(a => a.status === 'Present' || a.status === 'Paid Leave').length;
-    const halfDays = employeeAttendance.filter(a => a.status === 'Half Day').length;
-    const absentDays = employeeAttendance.filter(a => a.status === 'Absent').length;
-
-    const perDaySalary = employeeToPay.salary / daysInMonth;
-    const payableSalary = (presentDays * perDaySalary) + (halfDays * perDaySalary * 0.5);
-    const totalPresentDays = presentDays + (halfDays * 0.5);
-
-    return {
-      presentDays: totalPresentDays,
-      absentDays: absentDays + (halfDays * 0.5),
-      payableSalary,
-      daysInMonth: daysInMonth,
-    };
-
-  }, [employeeToPay, selectedMonth, selectedYear, attendance]);
 
   const onAddSubmit: SubmitHandler<EmployeeFormValues> = useCallback(async (data) => {
     await addEmployee({ ...data, hireDate: data.hireDate.toISOString() });
@@ -130,25 +87,6 @@ export default function EmployeesPage() {
     setEmployeeToDelete(null);
   }, [employeeToDelete, deleteEmployee, toast]);
 
-  const handlePaySalary = useCallback(async () => {
-    if (!employeeToPay || !salaryCalculation) return;
-
-    const monthName = months.find(m => m.value === selectedMonth)?.label;
-
-    await paySalary({
-      employee: employeeToPay,
-      amount: salaryCalculation.payableSalary,
-      postingDate: postingDate,
-      period: `${monthName} ${selectedYear}`
-    });
-
-    toast({
-      title: 'Salary Paid',
-      description: `Salary for ${employeeToPay.name} has been logged as an expense and credited to their ledger.`,
-    });
-
-    setEmployeeToPay(null);
-  }, [employeeToPay, selectedMonth, selectedYear, salaryCalculation, paySalary, toast, postingDate]);
   
   useEffect(() => {
     if (employeeToEdit) {
@@ -251,9 +189,14 @@ export default function EmployeesPage() {
                   A record of all your current employees.
                 </CardDescription>
               </div>
-               <Button asChild variant="outline">
-                  <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
-              </Button>
+               <div className="flex gap-2">
+                 <Button asChild variant="secondary">
+                    <Link href="/transactions"><ArrowRightLeft className="mr-2 h-4 w-4" />Go to Transactions</Link>
+                </Button>
+                 <Button asChild variant="outline">
+                    <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
+                </Button>
+               </div>
             </CardHeader>
             <CardContent>
               {employees.length > 0 ? (
@@ -278,7 +221,6 @@ export default function EmployeesPage() {
                           <TableCell>{e.position}</TableCell>
                           <TableCell className="text-right">{e.salary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                           <TableCell className="text-center space-x-0">
-                            <Button size="sm" onClick={() => setEmployeeToPay(e)}>Pay Salary</Button>
                             <Button asChild variant="ghost" size="icon" title="View Ledger">
                               <Link href={`/customers/${e.id}/ledger`}>
                                 <BookText className="w-4 h-4" />
@@ -307,98 +249,6 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      <Dialog open={!!employeeToPay} onOpenChange={(isOpen) => !isOpen && setEmployeeToPay(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Pay Salary for {employeeToPay?.name}</DialogTitle>
-            <DialogDescription>
-              Select the month and posting date for this salary payment. The amount is calculated based on attendance.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid grid-cols-2 gap-4 py-4">
-             <div className="space-y-2">
-                <Label htmlFor="salaryMonth">Salary Month</Label>
-                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                  <SelectTrigger id="salaryMonth">
-                    <SelectValue placeholder="Select a month" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {months.map(month => (
-                      <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-            </div>
-             <div className="space-y-2">
-                <Label htmlFor="salaryYear">Year</Label>
-                <Select value={selectedYear.toString()} onValueChange={(val) => setSelectedYear(parseInt(val))}>
-                  <SelectTrigger id="salaryYear">
-                    <SelectValue placeholder="Select a year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {years.map(year => (
-                      <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-            </div>
-             <div className="space-y-2 col-span-2">
-                  <Label>Posting Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !postingDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {postingDate ? format(postingDate, "PPP") : <span>Pick a date</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={postingDate}
-                          onSelect={(date) => date && setPostingDate(date)}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                </div>
-          </div>
-          {salaryCalculation && (
-            <div className='space-y-4 rounded-lg bg-muted p-4'>
-                <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Base Salary</span>
-                    <span className="font-medium">PKR {employeeToPay?.salary.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Days In Month</span>
-                    <span className="font-medium">{salaryCalculation.daysInMonth}</span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground flex items-center gap-1"><TrendingUp className="text-green-500"/> Present Days</span>
-                    <span className="font-medium">{salaryCalculation.presentDays}</span>
-                </div>
-                 <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground flex items-center gap-1"><TrendingDown className="text-destructive"/> Absent Days</span>
-                    <span className="font-medium">{salaryCalculation.absentDays}</span>
-                </div>
-                <div className="flex justify-between items-center text-lg font-bold border-t pt-2 mt-2">
-                    <span className="flex items-center gap-2"><Wallet/> Payable Salary</span>
-                    <span>PKR {salaryCalculation.payableSalary.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEmployeeToPay(null)}>Cancel</Button>
-            <Button onClick={handlePaySalary} disabled={!salaryCalculation}>Confirm Payment</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
       <Dialog open={!!employeeToEdit} onOpenChange={(isOpen) => !isOpen && setEmployeeToEdit(null)}>
         <DialogContent>
           <form onSubmit={handleSubmitEdit(onEditSubmit)}>
