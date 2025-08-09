@@ -12,7 +12,7 @@ export function useTransactions() {
   const { data: transactions, addDoc, deleteDoc, loading } = useDatabaseCollection<Transaction>(COLLECTION_NAME);
   const { products, updateProductStock } = useProducts();
 
-  const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id'>): Promise<Transaction | null> => {
+  const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id'>): Promise<Transaction> => {
     // Ensure timestamp exists
     const transactionWithTimestamp = {
       ...transaction,
