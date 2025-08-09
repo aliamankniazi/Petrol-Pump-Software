@@ -86,8 +86,8 @@ export default function UnifiedLedgerPage() {
     const combined: Omit<CombinedEntry, 'balance'>[] = [];
 
     // Customer and Partner related transactions
-    transactions.filter(tx => tx.timestamp).forEach(tx => {
-      if (tx.customerId) {
+    transactions.forEach(tx => {
+      if (tx.customerId && tx.timestamp) {
         const entity = entities.find(e => e.id === tx.customerId);
         if (!entity) return;
         combined.push({
@@ -104,40 +104,45 @@ export default function UnifiedLedgerPage() {
       }
     });
 
-    customerPayments.filter(p => p.timestamp).forEach(p => {
-       const entity = entities.find(e => e.id === p.customerId);
-       if (!entity) return;
-       combined.push({
-        id: `pay-${p.id}`,
-        timestamp: p.timestamp!,
-        entityId: p.customerId,
-        entityName: p.customerName,
-        entityType: entity.type,
-        type: 'Payment',
-        description: `Payment Received (${p.paymentMethod})`,
-        debit: 0,
-        credit: p.amount,
-      });
+    customerPayments.forEach(p => {
+       if(p.timestamp) {
+         const entity = entities.find(e => e.id === p.customerId);
+         if (!entity) return;
+         combined.push({
+          id: `pay-${p.id}`,
+          timestamp: p.timestamp!,
+          entityId: p.customerId,
+          entityName: p.customerName,
+          entityType: entity.type,
+          type: 'Payment',
+          description: `Payment Received (${p.paymentMethod})`,
+          debit: 0,
+          credit: p.amount,
+        });
+       }
     });
 
-    cashAdvances.filter(ca => ca.timestamp).forEach(ca => {
-       const entity = entities.find(e => e.id === ca.customerId);
-       if (!entity) return;
-       combined.push({
-        id: `adv-${ca.id}`,
-        timestamp: ca.timestamp!,
-        entityId: ca.customerId,
-        entityName: ca.customerName,
-        entityType: entity.type,
-        type: 'Cash Advance',
-        description: ca.notes || 'Cash Advance',
-        debit: ca.amount,
-        credit: 0,
-      });
+    cashAdvances.forEach(ca => {
+      if (ca.timestamp) {
+        const entity = entities.find(e => e.id === ca.customerId);
+        if (!entity) return;
+        combined.push({
+          id: `adv-${ca.id}`,
+          timestamp: ca.timestamp!,
+          entityId: ca.customerId,
+          entityName: ca.customerName,
+          entityType: entity.type,
+          type: 'Cash Advance',
+          description: ca.notes || 'Cash Advance',
+          debit: ca.amount,
+          credit: 0,
+        });
+      }
     });
     
     // Supplier transactions
-    purchases.filter(p => p.timestamp).forEach(p => {
+    purchases.forEach(p => {
+      if(p.timestamp) {
         const entity = entities.find(e => e.id === p.supplierId);
         if (!entity) return;
         combined.push({
@@ -151,9 +156,11 @@ export default function UnifiedLedgerPage() {
             debit: 0,
             credit: p.totalCost,
         });
+      }
     });
 
-    supplierPayments.filter(sp => sp.timestamp).forEach(sp => {
+    supplierPayments.forEach(sp => {
+      if(sp.timestamp){
         const entity = entities.find(e => e.id === sp.supplierId);
         if (!entity) return;
         combined.push({
@@ -167,10 +174,12 @@ export default function UnifiedLedgerPage() {
             debit: sp.amount,
             credit: 0,
         });
+      }
     });
     
     // Partner-specific transactions
-    investments.filter(inv => inv.timestamp).forEach(inv => {
+    investments.forEach(inv => {
+      if (inv.timestamp) {
         const entity = entities.find(e => e.id === inv.partnerId);
         if (!entity) return;
         combined.push({
@@ -184,11 +193,12 @@ export default function UnifiedLedgerPage() {
             debit: inv.type === 'Withdrawal' ? inv.amount : 0,
             credit: inv.type === 'Investment' ? inv.amount : 0,
         });
+      }
     });
 
     // Employee Salaries
-    expenses.filter(exp => exp.timestamp).forEach(exp => {
-        if(exp.category === 'Salaries' && exp.employeeId) {
+    expenses.forEach(exp => {
+        if(exp.category === 'Salaries' && exp.employeeId && exp.timestamp) {
             const entity = entities.find(e => e.id === exp.employeeId);
             if (!entity) return;
             combined.push({
@@ -564,3 +574,5 @@ export default function UnifiedLedgerPage() {
     </>
   );
 }
+
+    

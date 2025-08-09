@@ -98,30 +98,35 @@ export default function CustomerLedgerPage() {
         }));
 
         customerPaymentsReceived.forEach(p => {
-            combined.push({
-              id: `pay-${p.id}`,
-              timestamp: p.timestamp!,
-              description: `Payment Received (${p.paymentMethod})`,
-              type: 'Payment',
-              debit: 0,
-              credit: p.amount,
-            })
+            if(p.timestamp) {
+              combined.push({
+                id: `pay-${p.id}`,
+                timestamp: p.timestamp!,
+                description: `Payment Received (${p.paymentMethod})`,
+                type: 'Payment',
+                debit: 0,
+                credit: p.amount,
+              })
+            }
         });
         
         customerCashAdvances.forEach(ca => {
-            combined.push({
-              id: `adv-${ca.id}`,
-              timestamp: ca.timestamp!,
-              description: ca.notes || 'Cash Advance',
-              type: 'Cash Advance',
-              debit: ca.amount,
-              credit: 0,
-            })
+            if (ca.timestamp) {
+              combined.push({
+                id: `adv-${ca.id}`,
+                timestamp: ca.timestamp!,
+                description: ca.notes || 'Cash Advance',
+                type: 'Cash Advance',
+                debit: ca.amount,
+                credit: 0,
+              })
+            }
         });
         
         if (entityType === 'Employee') {
             const employeeSalaries = expenses.filter(exp => exp.employeeId === entityId && exp.category === 'Salaries' && exp.timestamp);
             employeeSalaries.forEach(exp => {
+              if (exp.timestamp) {
                 combined.push({
                     id: `exp-${exp.id}`,
                     timestamp: exp.timestamp!,
@@ -130,30 +135,33 @@ export default function CustomerLedgerPage() {
                     debit: 0,
                     credit: exp.amount,
                 });
+              }
             });
         }
         
         if (entityType === 'Partner') {
             const partnerInvestments = investments.filter(inv => inv.partnerId === entityId && inv.timestamp);
             partnerInvestments.forEach(inv => {
-                if (inv.type === 'Investment') {
-                    combined.push({
-                        id: `inv-${inv.id}`,
-                        timestamp: inv.timestamp!,
-                        description: inv.notes || 'Investment',
-                        type: 'Investment',
-                        credit: inv.amount,
-                        debit: 0,
-                    });
-                } else {
-                    combined.push({
-                        id: `wdr-${inv.id}`,
-                        timestamp: inv.timestamp!,
-                        description: inv.notes || 'Withdrawal',
-                        type: 'Withdrawal',
-                        debit: inv.amount,
-                        credit: 0,
-                    });
+                if(inv.timestamp) {
+                  if (inv.type === 'Investment') {
+                      combined.push({
+                          id: `inv-${inv.id}`,
+                          timestamp: inv.timestamp!,
+                          description: inv.notes || 'Investment',
+                          type: 'Investment',
+                          credit: inv.amount,
+                          debit: 0,
+                      });
+                  } else {
+                      combined.push({
+                          id: `wdr-${inv.id}`,
+                          timestamp: inv.timestamp!,
+                          description: inv.notes || 'Withdrawal',
+                          type: 'Withdrawal',
+                          debit: inv.amount,
+                          credit: 0,
+                      });
+                  }
                 }
             });
         }
@@ -171,14 +179,18 @@ export default function CustomerLedgerPage() {
             debit: 0,
         }));
 
-        supplierPaymentsMade.forEach(sp => combined.push({
-            id: `spay-${sp.id}`,
-            timestamp: sp.timestamp!,
-            description: `Payment Made (${sp.paymentMethod})`,
-            type: 'Supplier Payment',
-            debit: sp.amount,
-            credit: 0,
-        }));
+        supplierPaymentsMade.forEach(sp => {
+            if (sp.timestamp) {
+              combined.push({
+                  id: `spay-${sp.id}`,
+                  timestamp: sp.timestamp!,
+                  description: `Payment Made (${sp.paymentMethod})`,
+                  type: 'Supplier Payment',
+                  debit: sp.amount,
+                  credit: 0,
+              });
+            }
+        });
     }
 
 
@@ -454,3 +466,5 @@ export default function CustomerLedgerPage() {
     </div>
   );
 }
+
+    
