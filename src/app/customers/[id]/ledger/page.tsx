@@ -186,7 +186,6 @@ export default function CustomerLedgerPage() {
 
     let runningBalance = 0;
     const entriesWithBalance: LedgerEntry[] = combined.map(entry => {
-      // For partners and suppliers, credit increases their balance (business owes them more)
       if (entityType === 'Partner' || entityType === 'Supplier') {
           runningBalance += entry.credit - entry.debit;
       } else { // For customers and employees, debit increases their balance (they owe the business more)
@@ -196,7 +195,7 @@ export default function CustomerLedgerPage() {
     });
 
     return { entries: entriesWithBalance.reverse(), finalBalance: runningBalance };
-  }, [entity, entityType, transactions, customerPayments, cashAdvances, purchases, supplierPayments, investments, expenses]);
+  }, [entity, entityType, transactions, customerPayments, cashAdvances, purchases, supplierPayments, investments, expenses, entityId]);
 
   const handleDeleteEntry = () => {
     if (!entryToDelete) return;
@@ -364,7 +363,7 @@ export default function CustomerLedgerPage() {
              <div className="flex gap-2 print:hidden">
                 <Button variant="outline" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4"/>Print</Button>
                 <Button asChild variant="outline">
-                    <Link href="/partner-ledger"><ArrowLeft className="mr-2 h-4 w-4" />Back to Partner Ledger</Link>
+                    <Link href="/partner-ledger"><ArrowLeft className="mr-2 h-4 w-4" />Back to Unified Ledger</Link>
                 </Button>
              </div>
           </div>
@@ -455,5 +454,3 @@ export default function CustomerLedgerPage() {
     </div>
   );
 }
-
-    

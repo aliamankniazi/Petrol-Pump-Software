@@ -68,11 +68,11 @@ export default function UnifiedLedgerPage() {
       let type: EntityType = 'Customer';
       if (c.isPartner) type = 'Partner';
       else if (c.isEmployee) type = 'Employee';
-      entityMap.set(c.id, { id: c.id, name: c.name, type: type });
+      entityMap.set(c.id!, { id: c.id!, name: c.name, type: type });
     });
 
     suppliers.forEach(s => {
-      entityMap.set(s.id, { id: s.id, name: s.name, type: 'Supplier' });
+      entityMap.set(s.id!, { id: s.id!, name: s.name, type: 'Supplier' });
     });
 
     const allEntities = Array.from(entityMap.values());
@@ -240,7 +240,7 @@ export default function UnifiedLedgerPage() {
             return acc + (entry.debit - entry.credit);
         }, 0);
 
-      entriesForDisplay = entityFilteredEntries.filter(entry => isSameDay(new Date(entry.timestamp), selectedDate));
+      entriesForDisplay = entityFilteredEntries.filter(entry => isSameDay(new Date(entry.timestamp), selectedDate!));
     }
 
     let runningBalance = openingBalance;
@@ -556,5 +556,3 @@ export default function UnifiedLedgerPage() {
     </>
   );
 }
-
-    
