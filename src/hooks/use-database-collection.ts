@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -85,7 +86,7 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id'>>(
     const docToWrite = { ...newData, id: newId };
     
     await set(docRef, docToWrite);
-    return docToWrite;
+    return docToWrite as (T & { id: string });
 
   }, [collectionName]);
   

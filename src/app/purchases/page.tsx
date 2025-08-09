@@ -73,7 +73,7 @@ export default function PurchasesPage() {
   const [isClient, setIsClient] = useState(false);
   const [lastFocused, setLastFocused] = useState<'quantity' | 'total'>('quantity');
   
-  const [currentItem, setCurrentItem] = useState({ productId: '', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
+  const [currentItem, setCurrentItem] = useState({ productId: 'placeholder', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
 
   useEffect(() => {
     setIsClient(true);
