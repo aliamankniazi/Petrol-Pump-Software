@@ -20,20 +20,19 @@ import {
   SidebarMenuSubItem,
   SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
-import { FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, Fuel, DollarSign, Beaker, Handshake, PiggyBank, Archive, BarChartHorizontal, UserCheck } from 'lucide-react';
+import { FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, Fuel, DollarSign, Beaker, Handshake, PiggyBank, Archive, BarChartHorizontal, UserCheck, ArrowRightLeftIcon } from 'lucide-react';
 
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/transactions', label: 'Transactions', icon: ArrowRightLeftIcon },
   { 
-    label: 'Sales & Ledger',
+    label: 'Ledgers & Recovery',
     icon: HandCoins,
     subItems: [
-        { href: '/sale', label: 'New Sale', icon: Fuel },
         { href: '/all-transactions', label: 'All Transactions', icon: Archive },
         { href: '/partner-ledger', label: 'Unified Ledger', icon: BookOpen },
         { href: '/credit-recovery', label: 'Credit Recovery', icon: BarChartHorizontal },
-        { href: '/cash-advances', label: 'Cash Advances', icon: ArrowRightLeft },
     ]
   },
   {
@@ -41,7 +40,6 @@ const navItems = [
     icon: ShoppingCart,
     subItems: [
         { href: '/purchases', label: 'Purchases', icon: ShoppingCart },
-        { href: '/supplier-payments', label: 'Supplier Payments', icon: Handshake },
         { href: '/purchase-returns', label: 'Purchase Returns', icon: Undo2 },
     ]
   },
