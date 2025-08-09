@@ -22,6 +22,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useCustomers } from '@/hooks/use-customers';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
+import { useAttendance } from '@/hooks/use-attendance';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 
 const employeeSchema = z.object({
@@ -34,9 +36,25 @@ const employeeSchema = z.object({
 
 type EmployeeFormValues = z.infer<typeof employeeSchema>;
 
+const salaryPaymentSchema = z.object({
+  month: z.string().min(1, 'Please select a month.'),
+  year: z.coerce.number(),
+  postingDate: z.date({ required_error: "A posting date is required."}),
+});
+
+type SalaryPaymentFormValues = z.infer<typeof salaryPaymentSchema>;
+
+const months = Array.from({ length: 12 }, (_, i) => ({
+  value: i.toString(),
+  label: format(setMonth(new Date(), i), 'MMMM'),
+}));
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+
 
 export default function EmployeesPage() {
-  const { employees, addEmployee, updateEmployee, deleteEmployee, isLoaded } = useEmployees();
+  const { employees, addEmployee, updateEmployee, deleteEmployee, paySalary, isLoaded } = useEmployees();
+  const { attendance, isLoaded: attendanceLoaded } = useAttendance();
   const { updateCustomer } = useCustomers();
   const [isClient, setIsClient] = useState(false);
 
@@ -48,6 +66,7 @@ export default function EmployeesPage() {
   
   const [employeeToEdit, setEmployeeToEdit] = useState<Employee | null>(null);
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
+  const [employeeToPay, setEmployeeToPay] = useState<Employee | null>(null);
 
 
   const { register, handleSubmit, reset, control, formState: { errors } } = useForm<EmployeeFormValues>({
@@ -58,6 +77,47 @@ export default function EmployeesPage() {
   const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, setValue: setEditValue, control: controlEdit, formState: { errors: editErrors } } = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
   });
+
+  const { control: controlSalary, handleSubmit: handleSubmitSalary, watch: watchSalary, reset: resetSalary } = useForm<SalaryPaymentFormValues>({
+    resolver: zodResolver(salaryPaymentSchema),
+    defaultValues: {
+      month: getMonth(new Date()).toString(),
+      year: currentYear,
+      postingDate: new Date(),
+    }
+  });
+  
+  const selectedSalaryMonth = watchSalary('month');
+  const selectedSalaryYear = watchSalary('year');
+
+  const salaryCalculation = useMemo(() => {
+    if (!employeeToPay || !attendanceLoaded) return null;
+
+    const salaryMonth = setMonth(new Date(selectedSalaryYear, 0, 1), parseInt(selectedSalaryMonth));
+    const daysInMonth = getDaysInMonth(salaryMonth);
+    
+    const employeeAttendance = attendance.filter(a => 
+      a.employeeId === employeeToPay.id && 
+      new Date(a.date).getMonth() === parseInt(selectedSalaryMonth) &&
+      new Date(a.date).getFullYear() === selectedSalaryYear
+    );
+    
+    const presentDays = employeeAttendance.filter(a => a.status === 'Present' || a.status === 'Paid Leave').length;
+    const halfDays = employeeAttendance.filter(a => a.status === 'Half Day').length;
+    const absentDays = employeeAttendance.filter(a => a.status === 'Absent').length;
+
+    const perDaySalary = employeeToPay.salary / daysInMonth;
+    const payableSalary = (presentDays * perDaySalary) + (halfDays * perDaySalary * 0.5);
+    const totalPresentDays = presentDays + (halfDays * 0.5);
+
+    return {
+      presentDays: totalPresentDays,
+      absentDays: absentDays + (halfDays * 0.5),
+      payableSalary,
+      daysInMonth: daysInMonth,
+    };
+
+  }, [employeeToPay, selectedSalaryMonth, selectedSalaryYear, attendance, attendanceLoaded]);
 
 
   const onAddSubmit: SubmitHandler<EmployeeFormValues> = useCallback(async (data) => {
@@ -86,6 +146,27 @@ export default function EmployeesPage() {
     toast({ title: 'Employee Deleted', description: `${employeeToDelete.name} has been removed.` });
     setEmployeeToDelete(null);
   }, [employeeToDelete, deleteEmployee, toast]);
+
+  const onPaySalarySubmit: SubmitHandler<SalaryPaymentFormValues> = useCallback(async (data) => {
+    if (!employeeToPay || !salaryCalculation) return;
+
+    const monthName = months.find(m => m.value === data.month)?.label;
+
+    await paySalary({
+      employee: employeeToPay,
+      amount: salaryCalculation.payableSalary,
+      postingDate: data.postingDate,
+      period: `${monthName} ${data.year}`
+    });
+
+    toast({
+      title: 'Salary Paid',
+      description: `Salary for ${employeeToPay.name} has been logged as an expense and credited to their ledger.`,
+    });
+    
+    setEmployeeToPay(null);
+
+  }, [employeeToPay, salaryCalculation, paySalary, toast]);
 
   
   useEffect(() => {
@@ -226,6 +307,9 @@ export default function EmployeesPage() {
                                 <BookText className="w-4 h-4" />
                               </Link>
                            </Button>
+                            <Button variant="ghost" size="icon" title="Pay Salary" onClick={() => setEmployeeToPay(e)}>
+                              <Wallet className="w-4 h-4 text-green-600" />
+                            </Button>
                             <Button variant="ghost" size="icon" title="Edit" onClick={() => setEmployeeToEdit(e)}>
                               <Edit className="w-4 h-4" />
                             </Button>
@@ -340,6 +424,97 @@ export default function EmployeesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!employeeToPay} onOpenChange={(isOpen) => !isOpen && setEmployeeToPay(null)}>
+        <DialogContent>
+            <form onSubmit={handleSubmitSalary(onPaySalarySubmit)}>
+                <DialogHeader>
+                    <DialogTitle>Pay Salary: {employeeToPay?.name}</DialogTitle>
+                    <DialogDescription>Calculate and post salary for the selected period.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="salaryMonth">Salary Month</Label>
+                            <Controller
+                                name="month"
+                                control={controlSalary}
+                                render={({ field }) => (
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <SelectTrigger id="salaryMonth"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            {months.map(month => <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="salaryYear">Year</Label>
+                            <Controller
+                                name="year"
+                                control={controlSalary}
+                                render={({ field }) => (
+                                    <Select onValueChange={(val) => field.onChange(parseInt(val))} value={field.value.toString()}>
+                                        <SelectTrigger id="salaryYear"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            {years.map(year => <SelectItem key={year} value={year.toString()}>{year}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                        </div>
+                    </div>
+                     <div className="space-y-2">
+                        <Label>Posting Date</Label>
+                        <Controller
+                            name="postingDate"
+                            control={controlSalary}
+                            render={({ field }) => (
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal",!field.value && "text-muted-foreground")}>
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
+                                </Popover>
+                            )}
+                        />
+                    </div>
+                     {salaryCalculation && employeeToPay && (
+                        <div className='space-y-4 rounded-lg bg-muted p-4'>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">Base Salary</span>
+                                <span className="font-medium">PKR {employeeToPay.salary.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">Days In Month</span>
+                                <span className="font-medium">{salaryCalculation.daysInMonth}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground flex items-center gap-1"><TrendingUp className="text-green-500"/> Present Days</span>
+                                <span className="font-medium">{salaryCalculation.presentDays}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground flex items-center gap-1"><TrendingDown className="text-destructive"/> Absent Days</span>
+                                <span className="font-medium">{salaryCalculation.absentDays}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-lg font-bold border-t pt-2 mt-2">
+                                <span className="flex items-center gap-2"><Wallet/> Payable Salary</span>
+                                <span>PKR {salaryCalculation.payableSalary.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setEmployeeToPay(null)}>Cancel</Button>
+                    <Button type="submit" disabled={!salaryCalculation}>Confirm Payment</Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
