@@ -4,7 +4,7 @@
 import { useMemo, useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format, startOfDay } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Archive, XCircle, Printer, Trash2, AlertTriangle, LayoutDashboard, Calendar as CalendarIcon, X } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
@@ -118,7 +118,7 @@ export default function AllTransactionsPage() {
       
       const isInDateRange = !dateRange?.from || (
           entryDate >= startOfDay(dateRange.from) &&
-          (!dateRange.to || entryDate <= startOfDay(dateRange.to))
+          (!dateRange.to || entryDate <= endOfDay(dateRange.to))
       );
 
       if (!isInDateRange) {
