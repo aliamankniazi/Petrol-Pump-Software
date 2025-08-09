@@ -183,6 +183,11 @@ export default function SalePage() {
     const discount = parseFloat(currentItem.discountAmount) || 0;
     const totalAmount = parseFloat(currentItem.totalValue);
 
+    if (!totalAmount || totalAmount <= 0) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Total value must be greater than zero.' });
+        return;
+    }
+
     append({
         productId: product.id!,
         productName: product.name,
