@@ -6,6 +6,7 @@ import type { Employee, Expense } from '@/lib/types';
 import { useDatabaseCollection } from './use-database-collection';
 import { useCustomers } from './use-customers';
 import { useExpenses } from './use-expenses';
+import { useSupplierPayments } from './use-supplier-payments';
 
 const COLLECTION_NAME = 'employees';
 
@@ -20,6 +21,7 @@ export function useEmployees() {
   const { data: employees, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<Employee>(COLLECTION_NAME);
   const { addCustomer } = useCustomers();
   const { addExpense } = useExpenses();
+  const { addSupplierPayment } = useSupplierPayments();
 
   const addEmployee = useCallback(async (employee: Omit<Employee, 'id' | 'timestamp'>): Promise<Employee> => {
     const dataWithTimestamp = { ...employee, timestamp: new Date().toISOString() };
@@ -59,8 +61,20 @@ export function useEmployees() {
     };
     
     await addExpense(expense);
+    
+    // Add a corresponding "payment" to the employee's ledger to ensure it updates in real-time
+    // We use a supplier payment here as a trick to trigger the ledger update
+    await addSupplierPayment({
+        supplierId: employee.id,
+        supplierName: employee.name,
+        amount: amount,
+        paymentMethod: 'Cash', // This is just a placeholder
+        timestamp: paymentTimestamp,
+        isSalary: true, // Custom flag
+    });
 
-  }, [addExpense]);
+
+  }, [addExpense, addSupplierPayment]);
 
 
   return { 

@@ -170,6 +170,7 @@ export interface SupplierPayment {
   amount: number;
   paymentMethod: Omit<PaymentMethod, 'On Credit'>;
   timestamp?: string;
+  isSalary?: boolean; // Custom flag to identify salary payments
 }
 
 export interface CashAdvance {
