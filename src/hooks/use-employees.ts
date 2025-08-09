@@ -66,7 +66,7 @@ export function useEmployees() {
       category: 'Salaries',
       amount: amount,
       timestamp: paymentTimestamp,
-      employeeId: employee.id, // Link the expense to the employee
+      employeeId: employee.id!, // Explicitly link the expense to the employee
     };
     
     await addExpense(expense);
