@@ -66,7 +66,7 @@ export default function LedgerPage() {
 
     let combined: Omit<LedgerEntry, 'balance'>[] = [];
 
-    // Credits (Money In to the business)
+    // Credits (Money In or Liability Increase)
     transactions.filter(tx => tx.timestamp).forEach(tx => combined.push({
       id: `tx-${tx.id}`,
       timestamp: tx.timestamp!,
@@ -74,6 +74,15 @@ export default function LedgerPage() {
       type: 'Sale',
       debit: 0,
       credit: tx.totalAmount,
+    }));
+
+    purchases.filter(p => p.timestamp).forEach(p => combined.push({
+        id: `pur-${p.id}`,
+        timestamp: p.timestamp!,
+        description: `Purchase from ${p.supplier}: ${p.items.length} item(s)`,
+        type: 'Purchase',
+        debit: 0, // A purchase on credit increases liability (Accounts Payable), which is a credit.
+        credit: p.totalCost,
     }));
 
     purchaseReturns.filter(pr => pr.timestamp).forEach(pr => combined.push({
@@ -112,16 +121,7 @@ export default function LedgerPage() {
       credit: inv.amount,
     }));
 
-    // Debits (Money Out from the business)
-    purchases.filter(p => p.timestamp).forEach(p => combined.push({
-      id: `pur-${p.id}`,
-      timestamp: p.timestamp!,
-      description: `Purchase from ${p.supplier}: ${p.items.length} item(s)`,
-      type: 'Purchase',
-      debit: p.totalCost,
-      credit: 0,
-    }));
-
+    // Debits (Money Out or Asset Increase/Liability Decrease)
     expenses.filter(e => e.timestamp).forEach(e => combined.push({
       id: `exp-${e.id}`,
       timestamp: e.timestamp!,
@@ -158,8 +158,6 @@ export default function LedgerPage() {
         credit: 0,
     }));
 
-
-    
     combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
     let calculatedOpeningBalance = 0;
@@ -199,13 +197,13 @@ export default function LedgerPage() {
 
   const getBadgeVariant = (type: LedgerEntry['type']) => {
     switch (type) {
-      case 'Purchase':
       case 'Expense': 
       case 'Supplier Payment':
       case 'Withdrawal':
       case 'Cash Advance':
         return 'destructive';
       case 'Sale':
+      case 'Purchase':
       case 'Purchase Return': 
       case 'Other Income':
       case 'Investment':
@@ -217,7 +215,7 @@ export default function LedgerPage() {
   };
   
   const isCreditEntry = (type: LedgerEntry['type']) => {
-    return ['Sale', 'Purchase Return', 'Other Income', 'Investment', 'Customer Payment'].includes(type);
+    return ['Sale', 'Purchase', 'Purchase Return', 'Other Income', 'Investment', 'Customer Payment'].includes(type);
   }
   
   const handleDeleteEntry = () => {
@@ -430,5 +428,3 @@ export default function LedgerPage() {
     </>
   );
 }
-
-    
