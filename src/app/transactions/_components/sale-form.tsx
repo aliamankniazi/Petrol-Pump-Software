@@ -405,5 +405,3 @@ export function SaleForm() {
       </form>
   );
 }
-
-    
