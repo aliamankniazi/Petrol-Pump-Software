@@ -92,7 +92,7 @@ export default function UnifiedLedgerPage() {
         if (!entity) return;
         combined.push({
           id: `tx-${tx.id}`,
-          timestamp: tx.timestamp!,
+          timestamp: tx.timestamp,
           entityId: tx.customerId,
           entityName: tx.customerName || 'N/A',
           entityType: entity.type,
@@ -110,7 +110,7 @@ export default function UnifiedLedgerPage() {
          if (!entity) return;
          combined.push({
           id: `pay-${p.id}`,
-          timestamp: p.timestamp!,
+          timestamp: p.timestamp,
           entityId: p.customerId,
           entityName: p.customerName,
           entityType: entity.type,
@@ -128,7 +128,7 @@ export default function UnifiedLedgerPage() {
         if (!entity) return;
         combined.push({
           id: `adv-${ca.id}`,
-          timestamp: ca.timestamp!,
+          timestamp: ca.timestamp,
           entityId: ca.customerId,
           entityName: ca.customerName,
           entityType: entity.type,
@@ -147,7 +147,7 @@ export default function UnifiedLedgerPage() {
         if (!entity) return;
         combined.push({
             id: `pur-${p.id}`,
-            timestamp: p.timestamp!,
+            timestamp: p.timestamp,
             entityId: p.supplierId,
             entityName: p.supplier,
             entityType: 'Supplier',
@@ -165,7 +165,7 @@ export default function UnifiedLedgerPage() {
         if (!entity) return;
         combined.push({
             id: `spay-${sp.id}`,
-            timestamp: sp.timestamp!,
+            timestamp: sp.timestamp,
             entityId: sp.supplierId,
             entityName: sp.supplierName,
             entityType: 'Supplier',
@@ -184,7 +184,7 @@ export default function UnifiedLedgerPage() {
         if (!entity) return;
         combined.push({
             id: `inv-${inv.id}`,
-            timestamp: inv.timestamp!,
+            timestamp: inv.timestamp,
             entityId: inv.partnerId,
             entityName: inv.partnerName,
             entityType: 'Partner',
@@ -203,7 +203,7 @@ export default function UnifiedLedgerPage() {
             if (!entity) return;
             combined.push({
                 id: `exp-${exp.id}`,
-                timestamp: exp.timestamp!,
+                timestamp: exp.timestamp,
                 entityId: exp.employeeId,
                 entityName: entity.name,
                 entityType: 'Employee',
@@ -576,4 +576,3 @@ export default function UnifiedLedgerPage() {
     </>
   );
 }
-
