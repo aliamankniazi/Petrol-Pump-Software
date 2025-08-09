@@ -200,7 +200,9 @@ export default function PurchasesPage() {
         expenses: 0,
         notes: '',
         paymentMethod: 'On Credit',
-        paidAmount: 0
+        paidAmount: 0,
+        bankAccountId: '',
+        referenceNo: '',
     });
   };
   
