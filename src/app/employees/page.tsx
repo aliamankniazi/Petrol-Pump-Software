@@ -119,7 +119,7 @@ export default function EmployeesPage() {
     if (!employeeToEdit) return;
     updateEmployee(employeeToEdit.id, { ...data, hireDate: data.hireDate.toISOString() });
     // Also update the associated customer record for name/contact changes
-    updateCustomer(employeeToEdit.id, { name: data.name, contact: data.mobileNumber });
+    updateCustomer(employeeToEdit.id, { name: data.name, contact: data.mobileNumber || '' });
     toast({ title: 'Employee Updated', description: "The employee's details have been saved." });
     setEmployeeToEdit(null);
   }, [employeeToEdit, updateEmployee, updateCustomer, toast]);
@@ -139,7 +139,7 @@ export default function EmployeesPage() {
     const expenseDescription = `Salary for ${employeeToPay.name} for ${monthName} ${selectedYear}`;
     const paymentTimestamp = postingDate.toISOString();
 
-    // 1. Log the salary as a business expense
+    // 1. Log the salary as a business expense (debit)
     addExpense({
       description: expenseDescription,
       category: 'Salaries',
@@ -148,7 +148,6 @@ export default function EmployeesPage() {
     });
 
     // 2. Log the payment as a credit against the employee's ledger
-    // We use the customer payment hook which correctly creates a credit entry.
     addCustomerPayment({
         customerId: employeeToPay.id,
         customerName: employeeToPay.name,
@@ -168,7 +167,7 @@ export default function EmployeesPage() {
   useEffect(() => {
     if (employeeToEdit) {
       setEditValue('name', employeeToEdit.name);
-      setEditValue('mobileNumber', employeeToEdit.mobileNumber);
+      setEditValue('mobileNumber', employeeToEdit.mobileNumber || '');
       setEditValue('position', employeeToEdit.position);
       setEditValue('salary', employeeToEdit.salary);
       setEditValue('hireDate', new Date(employeeToEdit.hireDate));
