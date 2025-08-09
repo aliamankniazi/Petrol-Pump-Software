@@ -86,7 +86,7 @@ export default function UnifiedLedgerPage() {
     const combined: Omit<CombinedEntry, 'balance'>[] = [];
 
     // Customer and Partner related transactions
-    transactions.forEach(tx => {
+    transactions.filter(tx => tx.timestamp).forEach(tx => {
       if (tx.customerId) {
         const entity = entities.find(e => e.id === tx.customerId);
         if (!entity) return;
@@ -104,7 +104,7 @@ export default function UnifiedLedgerPage() {
       }
     });
 
-    customerPayments.forEach(p => {
+    customerPayments.filter(p => p.timestamp).forEach(p => {
        const entity = entities.find(e => e.id === p.customerId);
        if (!entity) return;
        combined.push({
@@ -120,7 +120,7 @@ export default function UnifiedLedgerPage() {
       });
     });
 
-    cashAdvances.forEach(ca => {
+    cashAdvances.filter(ca => ca.timestamp).forEach(ca => {
        const entity = entities.find(e => e.id === ca.customerId);
        if (!entity) return;
        combined.push({
@@ -137,7 +137,7 @@ export default function UnifiedLedgerPage() {
     });
     
     // Supplier transactions
-    purchases.forEach(p => {
+    purchases.filter(p => p.timestamp).forEach(p => {
         const entity = entities.find(e => e.id === p.supplierId);
         if (!entity) return;
         combined.push({
@@ -153,7 +153,7 @@ export default function UnifiedLedgerPage() {
         });
     });
 
-    supplierPayments.forEach(sp => {
+    supplierPayments.filter(sp => sp.timestamp).forEach(sp => {
         const entity = entities.find(e => e.id === sp.supplierId);
         if (!entity) return;
         combined.push({
@@ -170,7 +170,7 @@ export default function UnifiedLedgerPage() {
     });
     
     // Partner-specific transactions
-    investments.forEach(inv => {
+    investments.filter(inv => inv.timestamp).forEach(inv => {
         const entity = entities.find(e => e.id === inv.partnerId);
         if (!entity) return;
         combined.push({
@@ -187,7 +187,7 @@ export default function UnifiedLedgerPage() {
     });
 
     // Employee Salaries
-    expenses.forEach(exp => {
+    expenses.filter(exp => exp.timestamp).forEach(exp => {
         if(exp.category === 'Salaries' && exp.employeeId) {
             const entity = entities.find(e => e.id === exp.employeeId);
             if (!entity) return;

@@ -11,7 +11,11 @@ export function useCustomerPayments() {
   const { data: customerPayments, addDoc, deleteDoc, loading } = useDatabaseCollection<CustomerPayment>(COLLECTION_NAME);
 
   const addCustomerPayment = useCallback((payment: Omit<CustomerPayment, 'id'>) => {
-    addDoc(payment);
+    const paymentWithTimestamp = {
+      ...payment,
+      timestamp: payment.timestamp || new Date().toISOString(),
+    };
+    addDoc(paymentWithTimestamp);
   }, [addDoc]);
   
   const deleteCustomerPayment = useCallback((id: string) => {

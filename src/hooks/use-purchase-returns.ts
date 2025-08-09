@@ -21,8 +21,8 @@ export function usePurchaseReturns() {
 
     const product = products.find(p => p.id === purchaseReturn.productId);
     if(product) {
-        const newStock = product.stock - purchaseReturn.volume;
-        updateProductStock(product.id, newStock);
+        const newStock = (product.stock || 0) - purchaseReturn.volume;
+        updateProductStock(product.id!, newStock);
     }
 
   }, [addDoc, products, updateProductStock]);
@@ -33,8 +33,8 @@ export function usePurchaseReturns() {
 
     const product = products.find(p => p.id === returnToDelete.productId);
     if(product) {
-        const newStock = product.stock + returnToDelete.volume;
-        updateProductStock(product.id, newStock);
+        const newStock = (product.stock || 0) + returnToDelete.volume;
+        updateProductStock(product.id!, newStock);
     }
     
     deleteDoc(id);

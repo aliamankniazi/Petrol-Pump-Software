@@ -84,9 +84,9 @@ export default function CustomerLedgerPage() {
     const combined: Omit<LedgerEntry, 'balance'>[] = [];
 
     if (entityType === 'Customer' || entityType === 'Partner' || entityType === 'Employee') {
-        const customerTransactions = transactions.filter(tx => tx.customerId === entityId);
-        const customerPaymentsReceived = customerPayments.filter(p => p.customerId === entityId);
-        const customerCashAdvances = cashAdvances.filter(ca => ca.customerId === entityId);
+        const customerTransactions = transactions.filter(tx => tx.customerId === entityId && tx.timestamp);
+        const customerPaymentsReceived = customerPayments.filter(p => p.customerId === entityId && p.timestamp);
+        const customerCashAdvances = cashAdvances.filter(ca => ca.customerId === entityId && ca.timestamp);
 
         customerTransactions.forEach(tx => combined.push({
           id: `tx-${tx.id}`,
@@ -120,7 +120,7 @@ export default function CustomerLedgerPage() {
         });
         
         if (entityType === 'Employee') {
-            const employeeSalaries = expenses.filter(exp => exp.employeeId === entityId && exp.category === 'Salaries');
+            const employeeSalaries = expenses.filter(exp => exp.employeeId === entityId && exp.category === 'Salaries' && exp.timestamp);
             employeeSalaries.forEach(exp => {
                 combined.push({
                     id: `exp-${exp.id}`,
@@ -134,7 +134,7 @@ export default function CustomerLedgerPage() {
         }
         
         if (entityType === 'Partner') {
-            const partnerInvestments = investments.filter(inv => inv.partnerId === entityId);
+            const partnerInvestments = investments.filter(inv => inv.partnerId === entityId && inv.timestamp);
             partnerInvestments.forEach(inv => {
                 if (inv.type === 'Investment') {
                     combined.push({
@@ -159,8 +159,8 @@ export default function CustomerLedgerPage() {
         }
 
     } else if (entityType === 'Supplier') {
-        const supplierPurchases = purchases.filter(p => p.supplierId === entityId);
-        const supplierPaymentsMade = supplierPayments.filter(sp => sp.supplierId === entityId);
+        const supplierPurchases = purchases.filter(p => p.supplierId === entityId && p.timestamp);
+        const supplierPaymentsMade = supplierPayments.filter(sp => sp.supplierId === entityId && sp.timestamp);
 
         supplierPurchases.forEach(p => combined.push({
             id: `pur-${p.id}`,

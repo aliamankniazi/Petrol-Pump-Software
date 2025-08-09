@@ -11,7 +11,11 @@ export function useCashAdvances() {
   const { data: cashAdvances, addDoc, deleteDoc, loading } = useDatabaseCollection<CashAdvance>(COLLECTION_NAME);
 
   const addCashAdvance = useCallback((advance: Omit<CashAdvance, 'id'>) => {
-    addDoc(advance);
+    const advanceWithTimestamp = {
+      ...advance,
+      timestamp: advance.timestamp || new Date().toISOString(),
+    };
+    addDoc(advanceWithTimestamp);
   }, [addDoc]);
   
   const deleteCashAdvance = useCallback((id: string) => {
