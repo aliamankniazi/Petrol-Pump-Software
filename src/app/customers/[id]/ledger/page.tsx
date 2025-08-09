@@ -88,20 +88,24 @@ export default function CustomerLedgerPage() {
         const customerPaymentsReceived = customerPayments.filter(p => p.customerId === entityId && p.timestamp);
         const customerCashAdvances = cashAdvances.filter(ca => ca.customerId === entityId && ca.timestamp);
 
-        customerTransactions.forEach(tx => combined.push({
-          id: `tx-${tx.id}`,
-          timestamp: tx.timestamp!,
-          description: `${tx.items?.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', ') || 'Sale'} ${tx.notes ? `- ${tx.notes}` : ''}`,
-          type: 'Sale',
-          debit: tx.totalAmount,
-          credit: 0,
-        }));
+        customerTransactions.forEach(tx => {
+            if (tx.timestamp) {
+              combined.push({
+                id: `tx-${tx.id}`,
+                timestamp: tx.timestamp,
+                description: `${tx.items?.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', ') || 'Sale'} ${tx.notes ? `- ${tx.notes}` : ''}`,
+                type: 'Sale',
+                debit: tx.totalAmount,
+                credit: 0,
+              });
+            }
+        });
 
         customerPaymentsReceived.forEach(p => {
             if(p.timestamp) {
               combined.push({
                 id: `pay-${p.id}`,
-                timestamp: p.timestamp!,
+                timestamp: p.timestamp,
                 description: `Payment Received (${p.paymentMethod})`,
                 type: 'Payment',
                 debit: 0,
@@ -114,7 +118,7 @@ export default function CustomerLedgerPage() {
             if (ca.timestamp) {
               combined.push({
                 id: `adv-${ca.id}`,
-                timestamp: ca.timestamp!,
+                timestamp: ca.timestamp,
                 description: ca.notes || 'Cash Advance',
                 type: 'Cash Advance',
                 debit: ca.amount,
@@ -130,7 +134,7 @@ export default function CustomerLedgerPage() {
               if (exp.timestamp) {
                 combined.push({
                     id: `exp-${exp.id}`,
-                    timestamp: exp.timestamp!,
+                    timestamp: exp.timestamp,
                     description: exp.description,
                     type: 'Salary',
                     debit: 0, // Salary payment reduces what the employee owes us (or increases what we owe them)
@@ -147,7 +151,7 @@ export default function CustomerLedgerPage() {
                   if (inv.type === 'Investment') {
                       combined.push({
                           id: `inv-${inv.id}`,
-                          timestamp: inv.timestamp!,
+                          timestamp: inv.timestamp,
                           description: inv.notes || 'Investment',
                           type: 'Investment',
                           credit: inv.amount,
@@ -156,7 +160,7 @@ export default function CustomerLedgerPage() {
                   } else {
                       combined.push({
                           id: `wdr-${inv.id}`,
-                          timestamp: inv.timestamp!,
+                          timestamp: inv.timestamp,
                           description: inv.notes || 'Withdrawal',
                           type: 'Withdrawal',
                           debit: inv.amount,
@@ -172,21 +176,25 @@ export default function CustomerLedgerPage() {
         const supplierPaymentsMade = supplierPayments.filter(sp => sp.supplierId === entityId && sp.timestamp);
 
         // A purchase is a credit to the supplier's account (the business owes them more)
-        supplierPurchases.forEach(p => combined.push({
-            id: `pur-${p.id}`,
-            timestamp: p.timestamp!,
-            description: `${p.items.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', ')} ${p.notes ? `- ${p.notes}` : ''}`,
-            type: 'Purchase',
-            credit: p.totalCost,
-            debit: 0,
-        }));
+        supplierPurchases.forEach(p => {
+            if (p.timestamp) {
+              combined.push({
+                id: `pur-${p.id}`,
+                timestamp: p.timestamp,
+                description: `${p.items.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', ')} ${p.notes ? `- ${p.notes}` : ''}`,
+                type: 'Purchase',
+                credit: p.totalCost,
+                debit: 0,
+              });
+            }
+        });
 
         // A payment to a supplier is a debit from their account (the business owes them less)
         supplierPaymentsMade.forEach(sp => {
             if (sp.timestamp) {
               combined.push({
                   id: `spay-${sp.id}`,
-                  timestamp: sp.timestamp!,
+                  timestamp: sp.timestamp,
                   description: `Payment Made (${sp.paymentMethod})`,
                   type: 'Supplier Payment',
                   debit: sp.amount,
