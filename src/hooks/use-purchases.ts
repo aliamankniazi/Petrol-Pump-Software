@@ -27,7 +27,7 @@ export function usePurchases() {
     purchase.items.forEach(item => {
         const product = products.find(p => p.id === item.productId);
         if (product) {
-            const newStock = (product.stock || 0) + item.quantity;
+            const newStock = (product.stock || 0) + item.quantity + (item.bonus || 0);
             updateProductStock(item.productId, newStock);
         }
     });
@@ -60,7 +60,7 @@ export function usePurchases() {
       originalPurchase.items.forEach(item => {
           const product = products.find(p => p.id === item.productId);
           if (product) {
-              const revertedStock = (product.stock || 0) - item.quantity;
+              const revertedStock = (product.stock || 0) - item.quantity - (item.bonus || 0);
               updateProductStock(item.productId, revertedStock);
           }
       });
@@ -70,7 +70,7 @@ export function usePurchases() {
         const product = products.find(p => p.id === item.productId);
         if (product) {
             const currentProduct = products.find(p => p.id === item.productId);
-            const newStock = (currentProduct?.stock || 0) + item.quantity;
+            const newStock = (currentProduct?.stock || 0) + item.quantity + (item.bonus || 0);
             updateProductStock(item.productId, newStock);
         }
       });
@@ -87,7 +87,7 @@ export function usePurchases() {
     purchaseToDelete.items.forEach(item => {
         const product = products.find(p => p.id === item.productId);
         if (product) {
-            const newStock = (product.stock || 0) - item.quantity;
+            const newStock = (product.stock || 0) - item.quantity - (item.bonus || 0);
             updateProductStock(item.productId, newStock);
         }
     });
