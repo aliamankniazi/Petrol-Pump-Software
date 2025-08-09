@@ -245,7 +245,7 @@ export default function UnifiedLedgerPage() {
 
     let runningBalance = openingBalance;
     const entriesWithBalance: CombinedEntry[] = entriesForDisplay.map(entry => {
-        const entityType = entities.find(e => e.id === entry.entityId)?.type;
+        const entityType = entry.entityType;
         if(entityType === 'Partner' || entityType === 'Supplier'){
             runningBalance += entry.credit - entry.debit;
         }
@@ -509,7 +509,7 @@ export default function UnifiedLedgerPage() {
                 </TableRow>
                 <TableRow>
                   <TableCell colSpan={5} className="font-bold text-right">Closing Balance for Period</TableCell>
-                  <TableCell colSpan={3} className={`text-right font-bold text-lg font-mono ${finalBalance > 0 ? 'text-destructive' : 'text-green-600'}`}>
+                  <TableCell colSpan={3} className={`text-right font-bold text-lg font-mono ${finalBalance >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                     PKR {finalBalance.toFixed(2)}
                   </TableCell>
                 </TableRow>
@@ -556,3 +556,5 @@ export default function UnifiedLedgerPage() {
     </>
   );
 }
+
+    
