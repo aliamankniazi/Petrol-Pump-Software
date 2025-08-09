@@ -31,12 +31,13 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
+import { useCashAdvances } from '@/hooks/use-cash-advances';
 
 type LedgerEntry = {
   id: string;
   timestamp: string;
   description: string;
-  type: 'Sale' | 'Purchase' | 'Expense' | 'Purchase Return' | 'Other Income' | 'Supplier Payment' | 'Investment' | 'Withdrawal' | 'Customer Payment';
+  type: 'Sale' | 'Purchase' | 'Expense' | 'Purchase Return' | 'Other Income' | 'Supplier Payment' | 'Investment' | 'Withdrawal' | 'Customer Payment' | 'Cash Advance';
   debit: number;
   credit: number;
   balance: number;
@@ -51,13 +52,14 @@ export default function LedgerPage() {
   const { customerPayments, deleteCustomerPayment, isLoaded: customerPaymentsLoaded } = useCustomerPayments();
   const { supplierPayments, deleteSupplierPayment, isLoaded: supplierPaymentsLoaded } = useSupplierPayments();
   const { investments, deleteInvestment, isLoaded: investmentsLoaded } = useInvestments();
+  const { cashAdvances, deleteCashAdvance, isLoaded: cashAdvancesLoaded } = useCashAdvances();
   
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<LedgerEntry | null>(null);
   const { toast } = useToast();
 
-  const isLoaded = transactionsLoaded && purchasesLoaded && expensesLoaded && purchaseReturnsLoaded && otherIncomesLoaded && customerPaymentsLoaded && supplierPaymentsLoaded && investmentsLoaded;
+  const isLoaded = transactionsLoaded && purchasesLoaded && expensesLoaded && purchaseReturnsLoaded && otherIncomesLoaded && customerPaymentsLoaded && supplierPaymentsLoaded && investmentsLoaded && cashAdvancesLoaded;
 
   const { entries, finalBalance, openingBalance, totals } = useMemo(() => {
     if (!isLoaded) return { entries: [], finalBalance: 0, openingBalance: 0, totals: { debit: 0, credit: 0 } };
@@ -77,7 +79,7 @@ export default function LedgerPage() {
     purchaseReturns.filter(pr => pr.timestamp).forEach(pr => combined.push({
       id: `pr-${pr.id}`,
       timestamp: pr.timestamp!,
-      description: `Return to ${pr.supplier}: ${pr.volume.toFixed(2)}L of ${pr.productName}`,
+      description: `Return from ${pr.supplier}: ${pr.volume.toFixed(2)}L of ${pr.productName}`,
       type: 'Purchase Return',
       debit: 0,
       credit: pr.totalRefund,
@@ -146,6 +148,16 @@ export default function LedgerPage() {
       debit: inv.amount,
       credit: 0,
     }));
+    
+    cashAdvances.filter(ca => ca.timestamp).forEach(ca => combined.push({
+        id: `ca-${ca.id}`,
+        timestamp: ca.timestamp!,
+        description: `Cash advance to ${ca.customerName}`,
+        type: 'Cash Advance',
+        debit: ca.amount,
+        credit: 0,
+    }));
+
 
     
     combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
@@ -183,7 +195,7 @@ export default function LedgerPage() {
         totals: calculatedTotals,
     };
 
-  }, [transactions, purchases, expenses, purchaseReturns, otherIncomes, customerPayments, supplierPayments, investments, isLoaded, selectedDate]);
+  }, [transactions, purchases, expenses, purchaseReturns, otherIncomes, customerPayments, supplierPayments, investments, cashAdvances, isLoaded, selectedDate]);
 
   const getBadgeVariant = (type: LedgerEntry['type']) => {
     switch (type) {
@@ -191,6 +203,7 @@ export default function LedgerPage() {
       case 'Expense': 
       case 'Supplier Payment':
       case 'Withdrawal':
+      case 'Cash Advance':
         return 'destructive';
       case 'Sale':
       case 'Purchase Return': 
@@ -222,6 +235,7 @@ export default function LedgerPage() {
         case 'sp': deleteSupplierPayment(id); break;
         case 'inv': deleteInvestment(id); break;
         case 'wdr': deleteInvestment(id); break; // Both use same hook
+        case 'ca': deleteCashAdvance(id); break;
         default:
             toast({
                 variant: 'destructive',
@@ -416,3 +430,5 @@ export default function LedgerPage() {
     </>
   );
 }
+
+    
