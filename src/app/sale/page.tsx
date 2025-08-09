@@ -69,7 +69,7 @@ export default function SalePage() {
   const router = useRouter();
   
   // State for the temporary item being added
-  const [currentItem, setCurrentItem] = useState({ productId: '', selectedUnit: '', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
+  const [currentItem, setCurrentItem] = useState({ productId: '', selectedUnit: '...', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
   const [lastFocused, setLastFocused] = useState<'quantity' | 'total'>('quantity');
 
   useEffect(() => {
@@ -146,7 +146,7 @@ export default function SalePage() {
         }));
     } else {
         // Reset if product is deselected
-        setCurrentItem({ productId: '', selectedUnit: '', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
+        setCurrentItem({ productId: '', selectedUnit: '...', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
     }
   }
 
@@ -203,7 +203,7 @@ export default function SalePage() {
     });
     
     // Reset temporary item form
-    setCurrentItem({ productId: '', selectedUnit: '', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
+    setCurrentItem({ productId: '', selectedUnit: '...', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
   }
 
   const { subTotal, grandTotal } = useMemo(() => {
@@ -276,18 +276,19 @@ export default function SalePage() {
                             <Select onValueChange={handleCurrentProductChange} value={currentItem.productId}>
                                 <SelectTrigger><SelectValue placeholder="Select Product" /></SelectTrigger>
                                 <SelectContent>
+                                    <SelectItem value="" disabled>Select Product</SelectItem>
                                     {productsLoaded ? products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>) : <SelectItem value='loading' disabled>Loading...</SelectItem>}
                                 </SelectContent>
                             </Select>
                         </div>
                         <div className="space-y-1">
                             <Label>Unit</Label>
-                             <Select onValueChange={handleUnitChange} value={currentItem.selectedUnit || ''} disabled={!selectedProduct}>
+                             <Select onValueChange={handleUnitChange} value={currentItem.selectedUnit}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select Unit"/>
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {!selectedProduct && <SelectItem key="placeholder" value="" disabled>...</SelectItem>}
+                                    <SelectItem value="..." disabled>...</SelectItem>
                                     {selectedProduct && <SelectItem key={selectedProduct.mainUnit} value={selectedProduct.mainUnit}>{selectedProduct.mainUnit}</SelectItem>}
                                     {selectedProduct?.subUnit && <SelectItem key={selectedProduct.subUnit.name} value={selectedProduct.subUnit.name}>{selectedProduct.subUnit.name}</SelectItem>}
                                 </SelectContent>

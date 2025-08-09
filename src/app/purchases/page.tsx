@@ -177,7 +177,7 @@ export default function PurchasesPage() {
         });
         
         // Reset temporary item form
-        setCurrentItem({ productId: '', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
+        setCurrentItem({ productId: 'placeholder', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
     }
   
     const { subTotal, grandTotal } = useMemo(() => {
@@ -250,6 +250,7 @@ export default function PurchasesPage() {
                             <Select onValueChange={handleCurrentProductChange} value={currentItem.productId}>
                                 <SelectTrigger><SelectValue placeholder="Select Product" /></SelectTrigger>
                                 <SelectContent>
+                                    <SelectItem value="placeholder" disabled>Select Product</SelectItem>
                                     {productsLoaded ? products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>) : <SelectItem value='loading' disabled>Loading...</SelectItem>}
                                 </SelectContent>
                             </Select>
