@@ -218,6 +218,7 @@ export default function PurchasesPage() {
       ...data,
       supplier: supplier.name, 
       totalCost: grandTotal,
+      timestamp: data.date.toISOString(),
     });
     toast({
       title: 'Purchase Recorded',
