@@ -309,7 +309,7 @@ export default function PurchasesPage() {
                         </div>
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                         <div className="space-y-1">
+                         <div className="space-y-1 hidden">
                             <Label>Bonus</Label>
                             <Input type="number" placeholder="bonus qty" value={currentItem.bonus} onChange={e => setCurrentItem(prev => ({...prev, bonus: e.target.value}))}/>
                         </div>
