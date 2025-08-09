@@ -139,7 +139,7 @@ export default function CustomersPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <UserPlus /> New Customer or Partner
+              <UserPlus /> Customer, Employee & Partner Ledger
             </CardTitle>
             <CardDescription>Add a new person or business partner to your records.</CardDescription>
           </CardHeader>
