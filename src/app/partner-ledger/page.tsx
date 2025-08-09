@@ -529,7 +529,7 @@ export default function UnifiedLedgerPage() {
                 </TableRow>
                 <TableRow>
                   <TableCell colSpan={5} className="font-bold text-right">Closing Balance for Period</TableCell>
-                  <TableCell colSpan={3} className={`text-right font-bold text-lg font-mono ${finalBalance >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                  <TableCell colSpan={3} className={`text-right font-bold text-lg font-mono ${finalBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>
                     PKR {finalBalance.toFixed(2)}
                   </TableCell>
                 </TableRow>

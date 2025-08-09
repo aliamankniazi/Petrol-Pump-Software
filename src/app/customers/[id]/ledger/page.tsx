@@ -307,14 +307,14 @@ export default function CustomerLedgerPage() {
       }
       // For customers/employees, a positive balance means they owe the business (their debt to us is positive).
       // A negative balance means the business owes them money (e.g., overpayment).
-      return finalBalance > 0 ? 'text-destructive' : 'text-green-600';
+      return finalBalance >= 0 ? 'text-destructive' : 'text-green-600';
   }
 
   const rowBalanceColorClass = (balance: number) => {
     if (entityType === 'Partner' || entityType === 'Supplier') {
         return balance >= 0 ? 'text-green-600' : 'text-destructive';
     }
-    return balance > 0 ? 'text-destructive' : 'text-green-600';
+    return balance >= 0 ? 'text-destructive' : 'text-green-600';
   }
   
   // Determines if the entry is conceptually a "credit" from the business's perspective.
@@ -325,6 +325,8 @@ export default function CustomerLedgerPage() {
         case 'Purchase Return':
         case 'Other Income':
         case 'Investment':
+        case 'Payment': // Customer Payment
+        case 'Salary':
             return true;
         default:
             return false;
@@ -339,6 +341,9 @@ export default function CustomerLedgerPage() {
   const getBadgeClass = (entry: LedgerEntry) => {
      if(isCreditType(entry.type)) {
          return 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700';
+     }
+     if (entry.type === 'Purchase') {
+        return 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-700';
      }
      return '';
   }

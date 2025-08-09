@@ -64,7 +64,7 @@ export default function LedgerPage() {
 
     let combined: Omit<LedgerEntry, 'balance'>[] = [];
 
-    // Credits (Money In)
+    // Credits (Money In to the business)
     transactions.filter(tx => tx.timestamp).forEach(tx => combined.push({
       id: `tx-${tx.id}`,
       timestamp: tx.timestamp!,
@@ -110,7 +110,7 @@ export default function LedgerPage() {
       credit: inv.amount,
     }));
 
-    // Debits (Money Out)
+    // Debits (Money Out from the business)
     purchases.filter(p => p.timestamp).forEach(p => combined.push({
       id: `pur-${p.id}`,
       timestamp: p.timestamp!,
@@ -313,7 +313,7 @@ export default function LedgerPage() {
                 {selectedDate && (
                   <TableRow className="bg-muted/30">
                     <TableCell colSpan={5} className="font-bold text-right">Opening Balance</TableCell>
-                    <TableCell className={`text-right font-semibold font-mono ${openingBalance >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                    <TableCell className={`text-right font-semibold font-mono ${openingBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>
                       {openingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>
                      <TableCell/>
@@ -339,7 +339,7 @@ export default function LedgerPage() {
                     <TableCell className="text-right font-mono text-green-600">
                         {entry.credit > 0 ? entry.credit.toFixed(2) : '-'}
                     </TableCell>
-                    <TableCell className={`text-right font-semibold font-mono ${entry.balance >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                    <TableCell className={`text-right font-semibold font-mono ${entry.balance >= 0 ? 'text-primary' : 'text-destructive'}`}>
                         {entry.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell className="text-center print:hidden">
@@ -389,7 +389,7 @@ export default function LedgerPage() {
            <CardFooter className="flex justify-end bg-muted/50 p-4 rounded-b-lg">
               <div className="text-right">
                   <p className="text-sm text-muted-foreground">Final Closing Balance</p>
-                  <p className={`text-2xl font-bold ${finalBalance >= 0 ? 'text-green-600' : 'text-destructive'}`}>PKR {finalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  <p className={`text-2xl font-bold ${finalBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>PKR {finalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
           </CardFooter>
         )}
