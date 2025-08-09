@@ -436,10 +436,25 @@ export default function SalePage() {
             </CardContent>
             <CardFooter className="gap-2">
                  <Button type="submit" size="lg">Save & Go to Invoice</Button>
-                 <Button type="button" variant="outline" size="lg" onClick={() => reset()}>Discard/Reset</Button>
+                 <Button type="button" variant="outline" size="lg" onClick={() => {
+                     reset({
+                        items: [],
+                        paymentMethod: 'On Credit',
+                        customerId: 'walk-in',
+                        bankAccountId: '',
+                        notes: '',
+                        extraDiscount: 0,
+                        paidAmount: 0,
+                        expenseAmount: 0,
+                        expenseBankAccountId: '',
+                        referenceNo: '',
+                     });
+                 }}>Discard/Reset</Button>
             </CardFooter>
         </Card>
       </form>
     </div>
   );
 }
+
+    
