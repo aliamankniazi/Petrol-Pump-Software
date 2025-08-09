@@ -380,7 +380,7 @@ export default function PurchasesPage() {
                                 </SelectContent>
                                 </Select>
                             )} />
-                             <Button type="button" variant="outline" size="icon" onClick={() => setIsAddSupplierOpen(true)} title="Add new supplier"><UserPlus /></Button>
+                            <Button type="button" variant="outline" size="icon" onClick={() => setIsAddSupplierOpen(true)} title="Add new supplier"><UserPlus /></Button>
                          </div>
                     </div>
                      <div className="space-y-1">
