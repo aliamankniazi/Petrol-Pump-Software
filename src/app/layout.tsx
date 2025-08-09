@@ -1,5 +1,5 @@
 
-'use client'; // This is crucial for client-side hooks and providers
+'use client'; 
 
 import * as React from 'react';
 import './globals.css';
@@ -8,6 +8,8 @@ import { Inter } from 'next/font/google';
 import { ThemeScript } from '@/components/theme-script';
 import { DataProvider } from '@/hooks/use-database';
 import { isFirebaseConfigured } from '@/lib/firebase-client';
+import { AppLayout } from '@/components/app-layout';
+import { usePathname } from 'next/navigation';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -16,6 +18,17 @@ const inter = Inter({
 
 function PrintStyles() {
     return <link rel="stylesheet" href="/print-globals.css" media="print" />;
+}
+
+function LayoutWrapper({ children }: { children: React.ReactNode }) {
+    const pathname = usePathname();
+    const isAuthPage = pathname === '/login' || pathname === '/signup';
+
+    if (isAuthPage) {
+        return <>{children}</>;
+    }
+
+    return <AppLayout>{children}</AppLayout>;
 }
 
 export default function RootLayout({
@@ -32,7 +45,9 @@ export default function RootLayout({
       </head>
       <body>
         <DataProvider key={isFirebaseConfigured() ? 'configured' : 'not-configured'}>
-            {children}
+            <LayoutWrapper>
+                {children}
+            </LayoutWrapper>
         </DataProvider>
         <Toaster />
       </body>
