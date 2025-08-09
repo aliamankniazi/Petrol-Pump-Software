@@ -173,7 +173,7 @@ export default function PurchasesPage() {
   
     const handleAddItemToPurchase = () => {
         const product = products.find(p => p.id === currentItem.productId);
-        if (!product || currentItem.productId === 'placeholder') {
+        if (!product || !product.id || currentItem.productId === 'placeholder') {
             toast({ variant: 'destructive', title: 'Error', description: 'Please select a product.'});
             return;
         }
@@ -193,7 +193,7 @@ export default function PurchasesPage() {
         }
     
         append({
-            productId: product.id!,
+            productId: product.id,
             productName: product.name,
             unit: currentItem.selectedUnit,
             quantity: quantity,
@@ -282,7 +282,7 @@ export default function PurchasesPage() {
                                 <SelectTrigger><SelectValue placeholder="Select Product" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="placeholder" disabled>Select Product</SelectItem>
-                                    {productsLoaded ? products.map(p => <SelectItem key={p.id!} value={p.id!}>{p.name}</SelectItem>) : <SelectItem value='loading' disabled>Loading...</SelectItem>}
+                                    {productsLoaded ? products.map(p => <SelectItem key={p.id} value={p.id!}>{p.name}</SelectItem>) : <SelectItem value='loading' disabled>Loading...</SelectItem>}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -309,10 +309,6 @@ export default function PurchasesPage() {
                         </div>
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                         <div className="space-y-1 hidden">
-                            <Label>Bonus</Label>
-                            <Input type="number" placeholder="bonus qty" value={currentItem.bonus} onChange={e => setCurrentItem(prev => ({...prev, bonus: e.target.value}))}/>
-                        </div>
                         <div className="space-y-1">
                             <Label>Discount (Amount)</Label>
                             <Input type="number" step="any" placeholder="RS 0" value={currentItem.discountAmount} onChange={e => setCurrentItem(prev => ({...prev, discountAmount: e.target.value}))}/>
@@ -359,10 +355,6 @@ export default function PurchasesPage() {
                         </TableBody>
                     </Table>
                     <div className="p-4 text-right space-y-2">
-                        <div className="hidden flex justify-end items-center gap-4">
-                            <Label>Extra Expenses:</Label>
-                            <Input className="w-24" placeholder="RS 0" {...register('expenses')} step="any"/>
-                        </div>
                          <div className="flex justify-end items-center gap-4 font-bold text-xl">
                             <Label>Grand Total:</Label>
                             <span>{grandTotal.toFixed(2)}</span>
@@ -380,7 +372,7 @@ export default function PurchasesPage() {
                                 <Select onValueChange={field.onChange} value={field.value}>
                                 <SelectTrigger><SelectValue placeholder="Select Supplier" /></SelectTrigger>
                                 <SelectContent>
-                                    {suppliersLoaded ? suppliers.map(c => <SelectItem key={c.id} value={c.id!}>{c.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
+                                    {suppliersLoaded ? suppliers.map(s => <SelectItem key={s.id} value={s.id!}>{s.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
                                 </SelectContent>
                                 </Select>
                             )} />
@@ -401,20 +393,6 @@ export default function PurchasesPage() {
                         )}/>
                     </div>
                     
-                    <div className="space-y-1 hidden">
-                        <Label>Paid (Amount)</Label>
-                        <div className="flex gap-2">
-                             <Input type="number" placeholder="RS 0" {...register('paidAmount')} step="any" />
-                             <Controller name="bankAccountId" control={control} render={({ field }) => (
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <SelectTrigger><SelectValue placeholder="@Bank" /></SelectTrigger>
-                                    <SelectContent>
-                                        {bankAccountsLoaded ? bankAccounts.map(b => <SelectItem key={b.id!} value={b.id!}>{b.bankName}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                                    </SelectContent>
-                                </Select>
-                             )}/>
-                        </div>
-                    </div>
                     <div className="space-y-1 lg:col-span-2">
                         <Label>Reference No.</Label>
                         <Input placeholder="e.g. PO-12345" {...register('referenceNo')} />
