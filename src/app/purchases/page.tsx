@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingCart, Package, Truck, Calendar as CalendarIcon, PlusCircle, Trash2, LayoutDashboard, UserPlus, FileText } from 'lucide-react';
+import { ShoppingCart, Truck, Calendar as CalendarIcon, PlusCircle, Trash2, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePurchases } from '@/hooks/use-purchases';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -24,7 +24,6 @@ import { useProducts } from '@/hooks/use-products';
 import Link from 'next/link';
 import { useSupplierBalance } from '@/hooks/use-supplier-balance';
 import { useBankAccounts } from '@/hooks/use-bank-accounts';
-import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 
@@ -35,7 +34,6 @@ const purchaseItemSchema = z.object({
   quantity: z.coerce.number().min(0.01, 'Quantity must be positive.'),
   costPerUnit: z.coerce.number().min(0, "Cost must be non-negative."),
   totalCost: z.coerce.number().min(0.01, 'Cost must be positive.'),
-  bonus: z.coerce.number().default(0),
   discount: z.coerce.number().default(0),
 });
 
@@ -45,7 +43,6 @@ const purchaseSchema = z.object({
   expenses: z.coerce.number().optional().default(0),
   notes: z.string().optional(),
   items: z.array(purchaseItemSchema).min(1, 'At least one item is required.'),
-  paymentMethod: z.enum(['On Credit', 'Cash', 'Card', 'Mobile']).default('On Credit'),
   paidAmount: z.coerce.number().optional().default(0),
   bankAccountId: z.string().optional(),
   referenceNo: z.string().optional(),
@@ -71,7 +68,7 @@ export default function PurchasesPage() {
   const [isClient, setIsClient] = useState(false);
   const [lastFocused, setLastFocused] = useState<'quantity' | 'total'>('quantity');
   
-  const [currentItem, setCurrentItem] = useState({ productId: 'placeholder', selectedUnit: '...', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
+  const [currentItem, setCurrentItem] = useState({ productId: 'placeholder', selectedUnit: '...', quantity: '', costPerUnit: '', discountAmount: '', totalValue: '' });
   const [lastPurchaseRates, setLastPurchaseRates] = useState<Record<string, number>>({});
 
 
@@ -84,7 +81,6 @@ export default function PurchasesPage() {
     defaultValues: {
       items: [],
       expenses: 0,
-      paymentMethod: 'On Credit',
       paidAmount: 0,
       bankAccountId: '',
       referenceNo: '',
@@ -199,19 +195,19 @@ export default function PurchasesPage() {
             costPerUnit: costPerUnit,
             totalCost: totalCost,
             discount: discount,
-            bonus: parseFloat(currentItem.bonus) || 0,
         });
         
         setLastPurchaseRates(prev => ({...prev, [product.id!]: costPerUnit}));
         
-        setCurrentItem({ productId: 'placeholder', selectedUnit: '...', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
+        setCurrentItem({ productId: 'placeholder', selectedUnit: '...', quantity: '', costPerUnit: '', discountAmount: '', totalValue: '' });
     }
   
     const { grandTotal } = useMemo(() => {
         const sub = watchedItems.reduce((sum, item) => sum + (item.totalCost || 0), 0);
-        const grand = sub;
+        const expenses = Number(getValues('expenses')) || 0;
+        const grand = sub + expenses;
         return { grandTotal: grand };
-      }, [watchedItems]);
+      }, [watchedItems, getValues]);
 
   const onPurchaseSubmit: SubmitHandler<PurchaseFormValues> = (data) => {
     const supplier = suppliers.find(s => s.id === data.supplierId);
@@ -234,7 +230,6 @@ export default function PurchasesPage() {
         date: defaultDate,
         expenses: 0,
         notes: '',
-        paymentMethod: 'On Credit',
         paidAmount: 0,
         bankAccountId: '',
         referenceNo: '',
@@ -325,7 +320,6 @@ export default function PurchasesPage() {
                                 <TableHead>Unit</TableHead>
                                 <TableHead>Purchase Price</TableHead>
                                 <TableHead>Purchase Qty</TableHead>
-                                <TableHead>Bonus</TableHead>
                                 <TableHead>Discount</TableHead>
                                 <TableHead>T.Price</TableHead>
                                 <TableHead></TableHead>
@@ -338,7 +332,6 @@ export default function PurchasesPage() {
                                     <TableCell>{field.unit}</TableCell>
                                     <TableCell>{field.costPerUnit.toFixed(2)}</TableCell>
                                     <TableCell>{field.quantity}</TableCell>
-                                    <TableCell>{field.bonus}</TableCell>
                                     <TableCell>{field.discount.toFixed(2)}</TableCell>
                                     <TableCell>{field.totalCost.toFixed(2)}</TableCell>
                                     <TableCell>
@@ -351,6 +344,10 @@ export default function PurchasesPage() {
                         </TableBody>
                     </Table>
                     <div className="p-4 text-right space-y-2">
+                         <div className="flex justify-end items-center gap-4">
+                            <Label>Extra Expenses:</Label>
+                            <Input className="w-24" placeholder="RS 0" {...register('expenses')} />
+                        </div>
                          <div className="flex justify-end items-center gap-4 font-bold text-xl">
                             <Label>Grand Total:</Label>
                             <span>{grandTotal.toFixed(2)}</span>
@@ -438,3 +435,5 @@ export default function PurchasesPage() {
     </>
   );
 }
+
+    

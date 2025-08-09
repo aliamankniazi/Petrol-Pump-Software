@@ -27,7 +27,7 @@ export function usePurchases() {
     purchase.items.forEach(item => {
         const product = products.find(p => p.id === item.productId);
         if (product) {
-            const newStock = (product.stock || 0) + item.quantity + (item.bonus || 0);
+            const newStock = (product.stock || 0) + item.quantity;
             updateProductStock(item.productId, newStock);
         }
     });
@@ -43,12 +43,12 @@ export function usePurchases() {
     }
 
     // If a payment was made at the time of purchase, create a supplier payment record
-    if (purchase.paidAmount && purchase.paidAmount > 0 && purchase.paymentMethod && purchase.paymentMethod !== 'On Credit') {
+    if (purchase.paidAmount && purchase.paidAmount > 0) {
         addSupplierPayment({
             supplierId: purchase.supplierId,
             supplierName: purchase.supplier,
             amount: purchase.paidAmount,
-            paymentMethod: purchase.paymentMethod,
+            paymentMethod: "Cash", // Defaulting to cash, can be expanded later
             timestamp: purchase.timestamp || new Date().toISOString(),
         });
     }
@@ -60,7 +60,7 @@ export function usePurchases() {
       originalPurchase.items.forEach(item => {
           const product = products.find(p => p.id === item.productId);
           if (product) {
-              const revertedStock = (product.stock || 0) - item.quantity - (item.bonus || 0);
+              const revertedStock = (product.stock || 0) - item.quantity;
               updateProductStock(item.productId, revertedStock);
           }
       });
@@ -70,7 +70,7 @@ export function usePurchases() {
         const product = products.find(p => p.id === item.productId);
         if (product) {
             const currentProduct = products.find(p => p.id === item.productId);
-            const newStock = (currentProduct?.stock || 0) + item.quantity + (item.bonus || 0);
+            const newStock = (currentProduct?.stock || 0) + item.quantity;
             updateProductStock(item.productId, newStock);
         }
       });
@@ -87,7 +87,7 @@ export function usePurchases() {
     purchaseToDelete.items.forEach(item => {
         const product = products.find(p => p.id === item.productId);
         if (product) {
-            const newStock = (product.stock || 0) - item.quantity - (item.bonus || 0);
+            const newStock = (product.stock || 0) - item.quantity;
             updateProductStock(item.productId, newStock);
         }
     });
@@ -103,3 +103,5 @@ export function usePurchases() {
     isLoaded: !loading 
   };
 }
+
+    

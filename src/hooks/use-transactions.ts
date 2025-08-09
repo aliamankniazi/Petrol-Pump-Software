@@ -2,7 +2,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import type { Transaction } from '@/lib/types';
+import type { Transaction, SaleItem } from '@/lib/types';
 import { useDatabaseCollection } from './use-database-collection';
 import { useProducts } from './use-products';
 import { useCustomerPayments } from './use-customer-payments';
@@ -24,11 +24,11 @@ export function useTransactions() {
     
     const newDoc = await addDoc(transactionWithTimestamp);
 
-    transaction.items.forEach(item => {
+    transaction.items.forEach((item: SaleItem) => {
         const product = products.find(p => p.id === item.productId);
-        if (product) {
+        if (product && product.id) {
             const newStock = (product.stock || 0) - item.quantity;
-            updateProductStock(item.productId, newStock);
+            updateProductStock(product.id, newStock);
         }
     });
     
@@ -58,11 +58,11 @@ export function useTransactions() {
     const transactionToDelete = transactions.find(t => t.id === id);
     if (!transactionToDelete) return;
     
-    transactionToDelete.items.forEach(item => {
+    transactionToDelete.items.forEach((item: SaleItem) => {
         const product = products.find(p => p.id === item.productId);
-        if (product) {
+        if (product && product.id) {
             const newStock = (product.stock || 0) + item.quantity;
-            updateProductStock(item.productId, newStock);
+            updateProductStock(product.id, newStock);
         }
     });
     
@@ -76,3 +76,5 @@ export function useTransactions() {
     isLoaded: !loading 
   };
 }
+
+    

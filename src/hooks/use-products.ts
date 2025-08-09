@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import type { Product } from '@/lib/types';
 import { useDatabaseCollection } from './use-database-collection';
 
@@ -21,6 +21,7 @@ export function useProducts() {
   }, [updateDoc]);
   
   const updateProductStock = useCallback((id: string, newStock: number) => {
+    if (!id || isNaN(newStock)) return;
     updateDoc(id, { stock: newStock });
   }, [updateDoc]);
 
@@ -37,3 +38,5 @@ export function useProducts() {
     isLoaded: !loading
   };
 }
+
+    

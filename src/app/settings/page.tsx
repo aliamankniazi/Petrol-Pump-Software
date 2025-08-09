@@ -33,8 +33,6 @@ import { useProducts } from '@/hooks/use-products';
 import { format } from 'date-fns';
 import { Switch } from '@/components/ui/switch';
 import { useTransactions } from '@/hooks/use-transactions';
-import { usePurchases } from '@/hooks/use-purchases';
-import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
 
 
 const productSchema = z.object({
@@ -69,8 +67,6 @@ export default function SettingsPage() {
   const { suppliers, addSupplier, deleteSupplier, isLoaded: suppliersLoaded } = useSuppliers();
   const { products, addProduct, updateProduct, deleteProduct, isLoaded: productsLoaded } = useProducts();
   const { transactions } = useTransactions();
-  const { purchases } = usePurchases();
-  const { purchaseReturns } = usePurchaseReturns();
   const { toast } = useToast();
   const [supplierToDelete, setSupplierToDelete] = React.useState<Supplier | null>(null);
   const [productToDelete, setProductToDelete] = React.useState<Product | null>(null);
@@ -137,10 +133,6 @@ export default function SettingsPage() {
         subUnit: data.addSubUnit && data.subUnitName && data.subUnitConversion 
             ? { name: data.subUnitName, conversionRate: data.subUnitConversion }
             : null,
-        // Legacy fields for compatibility - can be removed later
-        category: 'Other', 
-        productType: 'Main',
-        unit: 'Unit',
     };
 
     if (productToEdit) {
@@ -289,9 +281,9 @@ export default function SettingsPage() {
                                             <Select onValueChange={field.onChange} value={field.value || ''}>
                                                 <SelectTrigger><SelectValue placeholder="Select a group"/></SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem key="fuel" value="fuel">Fuel</SelectItem>
-                                                    <SelectItem key="lubricant" value="lubricant">Lubricant</SelectItem>
-                                                    <SelectItem key="other" value="other">Other</SelectItem>
+                                                    <SelectItem key="fuel" value="Fuel">Fuel</SelectItem>
+                                                    <SelectItem key="lubricant" value="Lubricant">Lubricant</SelectItem>
+                                                    <SelectItem key="other" value="Other">Other</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         )}/>
@@ -508,7 +500,7 @@ export default function SettingsPage() {
             <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the product: <br />
-              <strong className="font-medium text-foreground">{productToDelete?.name}</strong>. This is only possible if the product has no transaction history.
+              <strong className="font-medium text-foreground">{productToDelete?.name}</strong>. This is only possible if the product has no sale transaction history.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -523,3 +515,5 @@ export default function SettingsPage() {
     </>
   );
 }
+
+    

@@ -1,5 +1,18 @@
 
 
+// A more specific type for sale items, which may have different properties than purchase items
+export interface SaleItem {
+    productId: string;
+    productName: string;
+    unit: string;
+    quantity: number;
+    pricePerUnit: number;
+    totalAmount: number;
+    discount?: number;
+    bonus?: number;
+    timestamp?: string;
+}
+
 export type FuelType = 'Unleaded' | 'Premium' | 'Diesel';
 
 export type PaymentMethod = 'Cash' | 'Card' | 'Mobile' | 'On Credit';
@@ -16,7 +29,7 @@ export interface Product {
     name: string;
     productCode?: string | null;
     barcode?: string | null;
-    productGroupId?: string | null;
+    productGroupId?: 'Fuel' | 'Lubricant' | 'Other' | null;
     companyId?: string | null;
     mainUnit: string;
     purchasePrice: number;
@@ -24,13 +37,6 @@ export interface Product {
     stock: number; // Stock in main units
     subUnitStock?: number; // Stock in sub-units
     subUnit?: SubUnit | null;
-    category: 'Fuel' | 'Lubricant' | 'Other'; // Kept for filtering, can be removed if product groups replace it
-    productType: 'Main' | 'Secondary'; // Main or Secondary product
-    unit: 'Litre' | 'Unit'; // Simple unit, mainUnit is more specific
-    price?: number; // Selling price (legacy, replaced by tradePrice)
-    cost?: number; // Purchase price (legacy, replaced by purchasePrice)
-    supplierId?: string;
-    location?: string;
     timestamp?: string;
 }
 
@@ -46,7 +52,7 @@ export interface TransactionItem {
 
 export interface Transaction {
   id?: string;
-  items: TransactionItem[];
+  items: SaleItem[];
   totalAmount: number;
   paymentMethod: PaymentMethod;
   notes?: string;
@@ -56,17 +62,16 @@ export interface Transaction {
   bankAccountId?: string;
   paidAmount?: number;
   expenseAmount?: number;
-  // Legacy fields for dashboard compatibility
-  fuelType?: FuelType;
-  volume?: number;
 }
 
 export interface PurchaseItem {
     productId: string;
     productName: string;
+    unit: string;
     quantity: number;
     costPerUnit: number;
     totalCost: number;
+    discount?: number;
 }
 
 export interface Purchase {
@@ -78,11 +83,7 @@ export interface Purchase {
   expenses?: number;
   notes?: string;
   timestamp?: string;
-  paymentMethod?: 'On Credit' | 'Cash' | 'Card' | 'Mobile';
   paidAmount?: number;
-  // Legacy fields
-  fuelType?: FuelType;
-  volume?: number;
 }
 
 export interface PurchaseReturn {
@@ -160,7 +161,7 @@ export interface CustomerPayment {
   customerId: string;
   customerName: string;
   amount: number;
-  paymentMethod: Omit<PaymentMethod, 'On Credit'>;
+  paymentMethod: Extract<PaymentMethod, 'Cash' | 'Card' | 'Mobile'>;
   timestamp?: string;
 }
 
@@ -169,7 +170,7 @@ export interface SupplierPayment {
   supplierId: string;
   supplierName: string;
   amount: number;
-  paymentMethod: Omit<PaymentMethod, 'On Credit'>;
+  paymentMethod: Extract<PaymentMethod, 'Cash' | 'Card' | 'Mobile'>;
   timestamp?: string;
   isSalary?: boolean; // Custom flag to identify salary payments
 }
@@ -211,3 +212,5 @@ export interface Attendance {
   status: AttendanceStatus;
   timestamp?: string;
 }
+
+    
