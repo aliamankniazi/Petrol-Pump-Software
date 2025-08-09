@@ -209,7 +209,7 @@ export default function UnifiedLedgerPage() {
                 entityType: 'Employee',
                 type: 'Salary',
                 description: exp.description,
-                debit: 0,
+                debit: 0, // Salary is a credit to the employee's ledger
                 credit: exp.amount,
             });
         }
@@ -354,9 +354,11 @@ export default function UnifiedLedgerPage() {
   const selectedEntity = entities.find(e => e.id === selectedEntityId);
 
   const getBalanceColor = useCallback((balance: number, type: EntityType) => {
+    // For suppliers & partners, a positive balance means we owe them. (Good for them, so green)
     if (type === 'Partner' || type === 'Supplier') {
         return balance >= 0 ? 'text-green-600' : 'text-destructive';
     }
+    // For customers & employees, a positive balance means they owe us. (Bad for them, so red)
     return balance > 0 ? 'text-destructive' : 'text-green-600';
   }, []);
 
@@ -575,4 +577,3 @@ export default function UnifiedLedgerPage() {
   );
 }
 
-    

@@ -21,6 +21,12 @@ export function useEmployees() {
   const { addCustomer } = useCustomers();
   const { addExpense } = useExpenses();
 
+  /**
+   * Adds a new employee and automatically creates a corresponding 'customer' record
+   * for ledger tracking purposes. The new customer record will have `isEmployee: true`.
+   * @param employee The employee data to add.
+   * @returns The newly created employee object.
+   */
   const addEmployee = useCallback(async (employee: Omit<Employee, 'id' | 'timestamp'>): Promise<Employee> => {
     const dataWithTimestamp = { ...employee, timestamp: new Date().toISOString() };
     const newDoc = await addDoc(dataWithTimestamp);
@@ -45,6 +51,11 @@ export function useEmployees() {
     deleteDoc(id);
   }, [deleteDoc]);
   
+  /**
+   * Pays an employee's salary. This action creates an 'Expense' record of category 'Salaries'
+   * and links it to the employee. This expense will appear as a credit in the employee's ledger.
+   * @param {PaySalaryProps} props The salary payment details.
+   */
   const paySalary = useCallback(async ({ employee, amount, postingDate, period }: PaySalaryProps) => {
     const paymentTimestamp = postingDate.toISOString();
     const expenseDescription = `Salary for ${employee.name} for ${period}`;

@@ -123,6 +123,7 @@ export default function CustomerLedgerPage() {
             }
         });
         
+        // For employees, their salary is a credit to their ledger
         if (entityType === 'Employee') {
             const employeeSalaries = expenses.filter(exp => exp.employeeId === entityId && exp.category === 'Salaries' && exp.timestamp);
             employeeSalaries.forEach(exp => {
@@ -132,7 +133,7 @@ export default function CustomerLedgerPage() {
                     timestamp: exp.timestamp!,
                     description: exp.description,
                     type: 'Salary',
-                    debit: 0,
+                    debit: 0, // Salary payment reduces what the employee owes us (or increases what we owe them)
                     credit: exp.amount,
                 });
               }
@@ -170,6 +171,7 @@ export default function CustomerLedgerPage() {
         const supplierPurchases = purchases.filter(p => p.supplierId === entityId && p.timestamp);
         const supplierPaymentsMade = supplierPayments.filter(sp => sp.supplierId === entityId && sp.timestamp);
 
+        // A purchase is a credit to the supplier's account (the business owes them more)
         supplierPurchases.forEach(p => combined.push({
             id: `pur-${p.id}`,
             timestamp: p.timestamp!,
@@ -179,6 +181,7 @@ export default function CustomerLedgerPage() {
             debit: 0,
         }));
 
+        // A payment to a supplier is a debit from their account (the business owes them less)
         supplierPaymentsMade.forEach(sp => {
             if (sp.timestamp) {
               combined.push({
@@ -198,13 +201,12 @@ export default function CustomerLedgerPage() {
 
     let runningBalance = 0;
     const entriesWithBalance: LedgerEntry[] = combined.map(entry => {
-      if (entityType === 'Supplier') {
-          runningBalance += entry.credit - entry.debit;
-      } else if (entityType === 'Partner') {
-          // For partners, investment is a credit to them, withdrawal is a debit from their capital
+      // For suppliers & partners, a credit increases their balance (we owe them more), a debit decreases it.
+      if (entityType === 'Supplier' || entityType === 'Partner') {
           runningBalance += entry.credit - entry.debit;
       }
-      else { // For customers and employees, debit increases their balance (they owe the business more)
+      // For customers & employees, a debit increases their balance (they owe us more), a credit decreases it.
+      else { 
           runningBalance += entry.debit - entry.credit;
       }
       return { ...entry, balance: runningBalance };
@@ -290,12 +292,13 @@ export default function CustomerLedgerPage() {
 
 
   const balanceColorClass = () => {
-      // For partners/suppliers, positive balance means the business owes them (net investment/credit).
+      // For partners/suppliers, a positive balance means the business owes them (net investment/credit).
       // Visually, a credit balance (money owed to them) is typically green.
       if (entityType === 'Partner' || entityType === 'Supplier') {
           return finalBalance >= 0 ? 'text-green-600' : 'text-destructive';
       }
-      // For customers/employees, positive balance means they owe us (bad, red), negative means we owe them (good, green)
+      // For customers/employees, a positive balance means they owe the business (their debt to us is positive).
+      // A negative balance means the business owes them money (e.g., overpayment).
       return finalBalance > 0 ? 'text-destructive' : 'text-green-600';
   }
 
@@ -305,23 +308,28 @@ export default function CustomerLedgerPage() {
     }
     return balance > 0 ? 'text-destructive' : 'text-green-600';
   }
-
-  const getBadgeType = (entry: LedgerEntry) => {
-    if (entityType === 'Partner' || entityType === 'Supplier') {
-        return entry.credit > 0 ? 'credit' : 'debit';
+  
+  // Determines if the entry is conceptually a "credit" from the business's perspective.
+  // This is used for badge styling.
+  const isCreditType = (entryType: LedgerEntry['type']) => {
+    switch (entryType) {
+        case 'Sale':
+        case 'Purchase Return':
+        case 'Other Income':
+        case 'Investment':
+            return true;
+        default:
+            return false;
     }
-    return entry.debit > 0 ? 'debit' : 'credit';
-  }
+  };
   
   const getBadgeVariant = (entry: LedgerEntry) => {
-     const type = getBadgeType(entry);
-     if (type === 'debit') return 'destructive';
-     return 'outline';
+     if (isCreditType(entry.type)) return 'outline'; // For credits to the business
+     return 'destructive'; // For debits from the business
   }
   
   const getBadgeClass = (entry: LedgerEntry) => {
-     const type = getBadgeType(entry);
-     if(type === 'credit') {
+     if(isCreditType(entry.type)) {
          return 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700';
      }
      return '';
