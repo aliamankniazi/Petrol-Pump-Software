@@ -31,6 +31,7 @@ const navItems = [
     icon: HandCoins,
     subItems: [
         { href: '/all-transactions', label: 'All Transactions', icon: Archive },
+        { href: '/sale-invoices', label: 'Sale Invoices', icon: Receipt },
         { href: '/partner-ledger', label: 'Unified Ledger', icon: BookOpen },
         { href: '/credit-recovery', label: 'Credit Recovery', icon: BarChartHorizontal },
     ]
