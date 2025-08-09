@@ -13,7 +13,13 @@ export function useTransactions() {
   const { products, updateProductStock } = useProducts();
 
   const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id'>): Promise<Transaction | null> => {
-    const newDoc = await addDoc(transaction);
+    // Ensure timestamp exists
+    const transactionWithTimestamp = {
+      ...transaction,
+      timestamp: transaction.timestamp || new Date().toISOString(),
+    };
+    
+    const newDoc = await addDoc(transactionWithTimestamp);
 
     transaction.items.forEach(item => {
         const product = products.find(p => p.id === item.productId);

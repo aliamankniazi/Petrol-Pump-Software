@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -64,8 +65,10 @@ export default function DashboardPage() {
     const salesByDay = useMemo(() => {
         const salesMap = new Map<string, number>();
         transactions.forEach(tx => {
-            const day = format(new Date(tx.timestamp!), 'yyyy-MM-dd');
-            salesMap.set(day, (salesMap.get(day) || 0) + tx.totalAmount);
+            if (tx.timestamp) { // Safeguard against missing timestamps
+                const day = format(new Date(tx.timestamp), 'yyyy-MM-dd');
+                salesMap.set(day, (salesMap.get(day) || 0) + tx.totalAmount);
+            }
         });
         
         const sortedDays = Array.from(salesMap.keys()).sort((a,b) => new Date(a).getTime() - new Date(b).getTime()).slice(-7);
