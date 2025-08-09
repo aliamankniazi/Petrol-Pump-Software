@@ -285,7 +285,7 @@ export default function PurchasesPage() {
                                 <SelectTrigger><SelectValue placeholder="Select Product" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="placeholder" disabled>Select Product</SelectItem>
-                                    {productsLoaded ? products.map(p => <SelectItem key={p.id} value={p.id!}>{p.name}</SelectItem>) : <SelectItem value='loading' disabled>Loading...</SelectItem>}
+                                    {productsLoaded ? products.map(p => <SelectItem key={p.id!} value={p.id!}>{p.name}</SelectItem>) : <SelectItem value='loading' disabled>Loading...</SelectItem>}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -362,7 +362,7 @@ export default function PurchasesPage() {
                         </TableBody>
                     </Table>
                     <div className="p-4 text-right space-y-2">
-                        <div className="flex justify-end items-center gap-4">
+                        <div className="hidden flex justify-end items-center gap-4">
                             <Label>Extra Expenses:</Label>
                             <Input className="w-24" placeholder="RS 0" {...register('expenses')} step="any"/>
                         </div>
