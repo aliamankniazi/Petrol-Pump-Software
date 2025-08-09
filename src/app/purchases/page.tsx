@@ -103,7 +103,6 @@ export default function PurchasesPage() {
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
 
   useEffect(() => {
-    const selectedProduct = products.find(p => p.id === currentItem.productId);
     const quantity = parseFloat(currentItem.quantity) || 0;
     const price = parseFloat(currentItem.costPerUnit) || 0;
     const discountAmount = parseFloat(currentItem.discountAmount) || 0;
@@ -120,7 +119,7 @@ export default function PurchasesPage() {
         setCurrentItem(prev => ({...prev, quantity: calculatedQty > 0 ? calculatedQty.toFixed(2) : ''}));
     }
 
-  }, [currentItem.quantity, currentItem.costPerUnit, currentItem.discountAmount, currentItem.totalValue, lastFocused, products]);
+  }, [currentItem.quantity, currentItem.costPerUnit, currentItem.discountAmount, currentItem.totalValue, lastFocused]);
 
   const watchedItems = watch('items');
   const watchedSupplierId = watch('supplierId');
@@ -203,19 +202,16 @@ export default function PurchasesPage() {
             bonus: parseFloat(currentItem.bonus) || 0,
         });
         
-        // Remember this price for next time
         setLastPurchaseRates(prev => ({...prev, [product.id!]: costPerUnit}));
         
-        // Reset temporary item form
         setCurrentItem({ productId: 'placeholder', selectedUnit: '...', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
     }
   
-    const { subTotal, grandTotal } = useMemo(() => {
+    const { grandTotal } = useMemo(() => {
         const sub = watchedItems.reduce((sum, item) => sum + (item.totalCost || 0), 0);
-        const expenses = Number(getValues('expenses')) || 0;
-        const grand = sub + expenses;
-        return { subTotal: sub, grandTotal: grand };
-      }, [watchedItems, getValues]);
+        const grand = sub;
+        return { grandTotal: grand };
+      }, [watchedItems]);
 
   const onPurchaseSubmit: SubmitHandler<PurchaseFormValues> = (data) => {
     const supplier = suppliers.find(s => s.id === data.supplierId);
