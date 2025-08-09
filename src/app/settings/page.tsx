@@ -275,9 +275,10 @@ export default function SettingsPage() {
                                         <Label>Company/Manufacturer</Label>
                                         <div className="flex items-center gap-2">
                                             <Controller name="companyId" control={controlProduct} render={({ field }) => (
-                                                <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                                                <Select onValueChange={field.onChange} value={field.value || ''} >
                                                     <SelectTrigger><SelectValue placeholder="Select a company"/></SelectTrigger>
                                                     <SelectContent>
+                                                      <SelectItem value="" disabled>Select a company</SelectItem>
                                                       {suppliersLoaded ? suppliers.map(s => (
                                                         <SelectItem key={s.id} value={s.id!}>{s.name}</SelectItem>
                                                       )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
@@ -294,12 +295,13 @@ export default function SettingsPage() {
                                     <div className="space-y-2">
                                         <Label>Product Group</Label>
                                         <Controller name="productGroupId" control={controlProduct} render={({ field }) => (
-                                            <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                                            <Select onValueChange={field.onChange} value={field.value || ''}>
                                                 <SelectTrigger><SelectValue placeholder="Select a group"/></SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="fuel">Fuel</SelectItem>
-                                                    <SelectItem value="lubricant">Lubricant</SelectItem>
-                                                    <SelectItem value="other">Other</SelectItem>
+                                                    <SelectItem value="" disabled>Select a group</SelectItem>
+                                                    <SelectItem key="fuel" value="fuel">Fuel</SelectItem>
+                                                    <SelectItem key="lubricant" value="lubricant">Lubricant</SelectItem>
+                                                    <SelectItem key="other" value="other">Other</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         )}/>
