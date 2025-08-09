@@ -27,9 +27,10 @@ export interface SubUnit {
 export interface Product {
     id?: string;
     name: string;
+    category?: 'Fuel' | 'Lubricant' | 'Other' | null;
     productCode?: string | null;
     barcode?: string | null;
-    productGroupId?: 'Fuel' | 'Lubricant' | 'Other' | null;
+    productGroupId?: string | null;
     companyId?: string | null;
     mainUnit: string;
     purchasePrice: number;
@@ -212,5 +213,3 @@ export interface Attendance {
   status: AttendanceStatus;
   timestamp?: string;
 }
-
-    

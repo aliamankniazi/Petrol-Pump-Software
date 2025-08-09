@@ -68,6 +68,7 @@ export default function SettingsPage() {
   const { products, addProduct, updateProduct, deleteProduct, isLoaded: productsLoaded } = useProducts();
   const { transactions } = useTransactions();
   const { toast } = useToast();
+  const [isClearDataOpen, setIsClearDataOpen] = React.useState(false);
   const [supplierToDelete, setSupplierToDelete] = React.useState<Supplier | null>(null);
   const [productToDelete, setProductToDelete] = React.useState<Product | null>(null);
   const [productToEdit, setProductToEdit] = React.useState<Product | null>(null);
@@ -115,14 +116,16 @@ export default function SettingsPage() {
           title: "Error",
           description: error.message || "Failed to clear data.",
         });
+    } finally {
+        setIsClearDataOpen(false);
     }
   }, [clearAllData, toast]);
 
   const onProductSubmit: SubmitHandler<ProductFormValues> = React.useCallback((data) => {
     const productData: Omit<Product, 'id' | 'timestamp'> = {
         name: data.name,
+        category: data.productGroupId || null,
         companyId: data.companyId || null,
-        productGroupId: data.productGroupId || null,
         productCode: data.productCode || null,
         barcode: data.barcode || null,
         mainUnit: data.mainUnit,
@@ -164,7 +167,7 @@ export default function SettingsPage() {
     setProductToEdit(product);
     setProductValue('name', product.name);
     setProductValue('companyId', product.companyId || '');
-    setProductValue('productGroupId', product.productGroupId || '');
+    setProductValue('productGroupId', product.category || '');
     setProductValue('productCode', product.productCode || '');
     setProductValue('barcode', product.barcode || '');
     setProductValue('mainUnit', product.mainUnit);
@@ -281,9 +284,9 @@ export default function SettingsPage() {
                                             <Select onValueChange={field.onChange} value={field.value || ''}>
                                                 <SelectTrigger><SelectValue placeholder="Select a group"/></SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem key="fuel" value="Fuel">Fuel</SelectItem>
-                                                    <SelectItem key="lubricant" value="Lubricant">Lubricant</SelectItem>
-                                                    <SelectItem key="other" value="Other">Other</SelectItem>
+                                                    <SelectItem key="Fuel" value="Fuel">Fuel</SelectItem>
+                                                    <SelectItem key="Lubricant" value="Lubricant">Lubricant</SelectItem>
+                                                    <SelectItem key="Other" value="Other">Other</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         )}/>
@@ -484,9 +487,39 @@ export default function SettingsPage() {
           </div>
           
           <Separator />
+
+           <div className="space-y-4">
+            <h3 className="text-lg font-medium text-destructive">Danger Zone</h3>
+            <Card className="border-destructive">
+                <CardHeader>
+                    <CardTitle className="text-destructive">Clear All Data</CardTitle>
+                    <CardDescription>
+                        This action is irreversible. It will permanently delete all transactions, customers, products, and other records from the database.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button variant="destructive" onClick={() => setIsClearDataOpen(true)}>Clear All Application Data</Button>
+                </CardContent>
+            </Card>
+          </div>
         </CardContent>
       </Card>
       
+      <AlertDialog open={isClearDataOpen} onOpenChange={setIsClearDataOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete all data. Please type 'DELETE' to confirm.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleClearData}>Delete Data</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={!!supplierToDelete} onOpenChange={(isOpen) => !isOpen && setSupplierToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone. This will permanently delete the supplier: <br /><strong className="font-medium text-foreground">{supplierToDelete?.name}</strong>. This is only possible if the supplier has no transaction history.</AlertDialogDescription></AlertDialogHeader>
@@ -515,5 +548,3 @@ export default function SettingsPage() {
     </>
   );
 }
-
-    
