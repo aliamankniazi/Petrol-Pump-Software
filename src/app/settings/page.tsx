@@ -229,7 +229,7 @@ export default function SettingsPage() {
     if (!supplierToDelete) return;
     deleteSupplier(supplierToDelete.id!);
     setSupplierToDelete(null);
-  }, [supplierToDelete, deleteSupplier, toast]);
+  }, [supplierToDelete, deleteSupplier]);
 
   return (
     <>
@@ -278,6 +278,9 @@ export default function SettingsPage() {
                                                 <Select onValueChange={field.onChange} value={field.value} defaultValue="">
                                                     <SelectTrigger><SelectValue placeholder="Select a company"/></SelectTrigger>
                                                     <SelectContent>
+                                                      {suppliersLoaded ? suppliers.map(s => (
+                                                        <SelectItem key={s.id} value={s.id!}>{s.name}</SelectItem>
+                                                      )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
                                                     </SelectContent>
                                                 </Select>
                                             )}/>
