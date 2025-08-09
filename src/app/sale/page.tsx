@@ -135,7 +135,7 @@ export default function SalePage() {
             ...prev, 
             productId, 
             pricePerUnit: product.tradePrice?.toString() || '0',
-            selectedUnit: product.mainUnit,
+            selectedUnit: product.mainUnit || '',
         }));
     }
   }
@@ -269,11 +269,11 @@ export default function SalePage() {
                         </div>
                          <div className="space-y-1">
                             <Label>Enter Qty</Label>
-                            <Input type="number" step="0.01" placeholder="0" value={currentItem.quantity} onFocus={() => setLastFocused('quantity')} onChange={e => setCurrentItem(prev => ({...prev, quantity: e.target.value}))}/>
+                            <Input type="number" step="any" placeholder="0" value={currentItem.quantity} onFocus={() => setLastFocused('quantity')} onChange={e => setCurrentItem(prev => ({...prev, quantity: e.target.value}))}/>
                         </div>
                         <div className="space-y-1">
                             <Label>Sale At</Label>
-                            <Input type="number" step="0.01" placeholder="0.00" value={currentItem.pricePerUnit} onChange={e => setCurrentItem(prev => ({...prev, pricePerUnit: e.target.value}))} />
+                            <Input type="number" step="any" placeholder="0.00" value={currentItem.pricePerUnit} onChange={e => setCurrentItem(prev => ({...prev, pricePerUnit: e.target.value}))} />
                         </div>
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
@@ -287,7 +287,7 @@ export default function SalePage() {
                         </div>
                         <div className="space-y-1">
                             <Label>Total Value</Label>
-                            <Input type="number" step="0.01" placeholder="0.00" value={currentItem.totalValue} onFocus={() => setLastFocused('total')} onChange={e => setCurrentItem(prev => ({...prev, totalValue: e.target.value}))} />
+                            <Input type="number" step="any" placeholder="0.00" value={currentItem.totalValue} onFocus={() => setLastFocused('total')} onChange={e => setCurrentItem(prev => ({...prev, totalValue: e.target.value}))} />
                         </div>
                         <Button type="button" onClick={handleAddItemToSale}><PlusCircle/> Add To Sale</Button>
                     </div>
