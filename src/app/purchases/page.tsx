@@ -73,6 +73,8 @@ export default function PurchasesPage() {
   const [lastFocused, setLastFocused] = useState<'quantity' | 'total'>('quantity');
   
   const [currentItem, setCurrentItem] = useState({ productId: 'placeholder', selectedUnit: '...', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
+  const [lastPurchaseRates, setLastPurchaseRates] = useState<Record<string, number>>({});
+
 
   useEffect(() => {
     setIsClient(true);
@@ -139,10 +141,13 @@ export default function PurchasesPage() {
     const handleCurrentProductChange = (productId: string) => {
         const product = products.find(p => p.id === productId);
         if(product) {
+            const rememberedPrice = lastPurchaseRates[productId];
+            const purchasePrice = rememberedPrice !== undefined ? rememberedPrice : (product.purchasePrice || 0);
+            
             setCurrentItem(prev => ({
                 ...prev, 
                 productId, 
-                costPerUnit: product.purchasePrice?.toString() || '0',
+                costPerUnit: purchasePrice.toString(),
                 selectedUnit: product.mainUnit,
             }));
         }
@@ -199,6 +204,9 @@ export default function PurchasesPage() {
             discount: discount,
             bonus: parseFloat(currentItem.bonus) || 0,
         });
+        
+        // Remember this price for next time
+        setLastPurchaseRates(prev => ({...prev, [product.id!]: costPerUnit}));
         
         // Reset temporary item form
         setCurrentItem({ productId: 'placeholder', selectedUnit: '...', quantity: '', costPerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
@@ -404,6 +412,7 @@ export default function PurchasesPage() {
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <SelectTrigger><SelectValue placeholder="Method" /></SelectTrigger>
                                     <SelectContent>
+                                        <SelectItem value="On Credit">On Credit</SelectItem>
                                         <SelectItem value="Cash">Cash</SelectItem>
                                         <SelectItem value="Card">Card</SelectItem>
                                         <SelectItem value="Mobile">Mobile</SelectItem>
