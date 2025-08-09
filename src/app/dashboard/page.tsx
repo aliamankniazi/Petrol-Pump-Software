@@ -81,37 +81,46 @@ export default function DashboardPage() {
     }, [transactions]);
     
     const recentActivity = useMemo((): RecentActivity[] => {
-        const sales: RecentActivity[] = transactions.slice(0, 3).map(tx => ({
-            id: `sale-${tx.id}`,
-            type: 'Sale',
-            description: `${tx.customerName || 'Walk-in'} - ${tx.items.length} item(s)`,
-            amount: tx.totalAmount,
-            timestamp: tx.timestamp!,
-            icon: Fuel,
-            color: 'text-green-500',
-        }));
+        const validSales: RecentActivity[] = transactions
+            .filter(tx => tx.timestamp)
+            .slice(0, 3)
+            .map(tx => ({
+                id: `sale-${tx.id}`,
+                type: 'Sale',
+                description: `${tx.customerName || 'Walk-in'} - ${tx.items.length} item(s)`,
+                amount: tx.totalAmount,
+                timestamp: tx.timestamp!,
+                icon: Fuel,
+                color: 'text-green-500',
+            }));
 
-        const recentPurchases: RecentActivity[] = purchases.slice(0, 2).map(p => ({
-            id: `purchase-${p.id}`,
-            type: 'Purchase',
-            description: `From ${p.supplier} - ${p.items.length} item(s)`,
-            amount: -p.totalCost,
-            timestamp: p.timestamp!,
-            icon: ShoppingCart,
-            color: 'text-blue-500',
-        }));
+        const validPurchases: RecentActivity[] = purchases
+            .filter(p => p.timestamp)
+            .slice(0, 2)
+            .map(p => ({
+                id: `purchase-${p.id}`,
+                type: 'Purchase',
+                description: `From ${p.supplier} - ${p.items.length} item(s)`,
+                amount: -p.totalCost,
+                timestamp: p.timestamp!,
+                icon: ShoppingCart,
+                color: 'text-blue-500',
+            }));
 
-        const recentExpenses: RecentActivity[] = expenses.slice(0, 2).map(ex => ({
-            id: `expense-${ex.id}`,
-            type: 'Expense',
-            description: `${ex.category} - ${ex.description}`,
-            amount: -ex.amount,
-            timestamp: ex.timestamp!,
-            icon: Receipt,
-            color: 'text-red-500',
-        }));
+        const validExpenses: RecentActivity[] = expenses
+            .filter(ex => ex.timestamp)
+            .slice(0, 2)
+            .map(ex => ({
+                id: `expense-${ex.id}`,
+                type: 'Expense',
+                description: `${ex.category} - ${ex.description}`,
+                amount: -ex.amount,
+                timestamp: ex.timestamp!,
+                icon: Receipt,
+                color: 'text-red-500',
+            }));
 
-        return [...sales, ...recentPurchases, ...recentExpenses]
+        return [...validSales, ...validPurchases, ...validExpenses]
             .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
             .slice(0, 5);
     }, [transactions, purchases, expenses]);
@@ -280,3 +289,5 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    

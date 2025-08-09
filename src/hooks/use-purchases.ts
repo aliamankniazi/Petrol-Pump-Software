@@ -17,7 +17,11 @@ export function usePurchases() {
   const { addSupplierPayment } = useSupplierPayments();
 
   const addPurchase = useCallback((purchase: Omit<Purchase, 'id'>) => {
-    addDoc(purchase);
+    const purchaseWithTimestamp = {
+      ...purchase,
+      timestamp: purchase.timestamp || new Date().toISOString(),
+    }
+    addDoc(purchaseWithTimestamp);
 
     purchase.items.forEach(item => {
         const product = products.find(p => p.id === item.productId);
@@ -93,3 +97,5 @@ export function usePurchases() {
     isLoaded: !loading 
   };
 }
+
+    

@@ -16,7 +16,7 @@ export function useTransactions() {
     // Ensure timestamp exists
     const transactionWithTimestamp = {
       ...transaction,
-      timestamp: transaction.timestamp || new Date().toISOString(),
+      timestamp: transaction.timestamp ? transaction.timestamp.toISOString() : new Date().toISOString(),
     };
     
     const newDoc = await addDoc(transactionWithTimestamp);
@@ -54,3 +54,5 @@ export function useTransactions() {
     isLoaded: !loading 
   };
 }
+
+    

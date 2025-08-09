@@ -11,7 +11,11 @@ export function useExpenses() {
   const { data: expenses, addDoc, deleteDoc, loading } = useDatabaseCollection<Expense>(COLLECTION_NAME);
 
   const addExpense = useCallback((expense: Omit<Expense, 'id'>) => {
-    addDoc(expense);
+    const expenseWithTimestamp = {
+      ...expense,
+      timestamp: expense.timestamp || new Date().toISOString(),
+    }
+    addDoc(expenseWithTimestamp);
   }, [addDoc]);
   
   const deleteExpense = useCallback((id: string) => {
@@ -25,3 +29,5 @@ export function useExpenses() {
     isLoaded: !loading 
   };
 }
+
+    
