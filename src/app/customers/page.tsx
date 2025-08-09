@@ -21,6 +21,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import type { Customer } from '@/lib/types';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useTransactions } from '@/hooks/use-transactions';
+import { useCustomerPayments } from '@/hooks/use-customer-payments';
+import { useCashAdvances } from '@/hooks/use-cash-advances';
 
 
 const customerSchema = z.object({
@@ -47,6 +50,9 @@ const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 export default function CustomersPage() {
   const { customers, addCustomer, updateCustomer, deleteCustomer, isLoaded } = useCustomers();
+  const { transactions } = useTransactions();
+  const { customerPayments } = useCustomerPayments();
+  const { cashAdvances } = useCashAdvances();
   const { toast } = useToast();
   
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
@@ -85,13 +91,29 @@ export default function CustomersPage() {
 
   const handleDeleteCustomer = useCallback(() => {
     if (!customerToDelete) return;
+    
+    // Safeguard: Check if customer has any associated transactions
+    const hasTransactions = transactions.some(tx => tx.customerId === customerToDelete.id) ||
+                            customerPayments.some(p => p.customerId === customerToDelete.id) ||
+                            cashAdvances.some(ca => ca.customerId === customerToDelete.id);
+
+    if (hasTransactions) {
+        toast({
+            variant: 'destructive',
+            title: 'Deletion Prevented',
+            description: `${customerToDelete.name} has existing transactions and cannot be deleted.`,
+        });
+        setCustomerToDelete(null);
+        return;
+    }
+
     deleteCustomer(customerToDelete.id);
     toast({
         title: 'Record Deleted',
         description: `${customerToDelete.name} has been removed.`,
     });
     setCustomerToDelete(null);
-  }, [customerToDelete, deleteCustomer, toast]);
+  }, [customerToDelete, deleteCustomer, toast, transactions, customerPayments, cashAdvances]);
   
   useEffect(() => {
       if (customerToEdit) {
@@ -315,7 +337,7 @@ export default function CustomersPage() {
           <AlertDialogDescription>
             This action cannot be undone. This will permanently delete the record for: <br />
             <strong className="font-medium text-foreground">{customerToDelete?.name}</strong>.
-            All their associated transactions will remain but will no longer be linked to them.
+            This is only possible if the customer has no transaction history.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

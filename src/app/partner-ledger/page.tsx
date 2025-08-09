@@ -138,6 +138,8 @@ export default function UnifiedLedgerPage() {
     
     // Supplier transactions
     purchases.forEach(p => {
+        const entity = entities.find(e => e.id === p.supplierId);
+        if (!entity) return;
         combined.push({
             id: `pur-${p.id}`,
             timestamp: p.timestamp!,
@@ -154,36 +156,23 @@ export default function UnifiedLedgerPage() {
     supplierPayments.forEach(sp => {
         const entity = entities.find(e => e.id === sp.supplierId);
         if (!entity) return;
-
-        if (sp.isSalary) {
-             combined.push({
-                id: `spay-${sp.id}`,
-                timestamp: sp.timestamp!,
-                entityId: sp.supplierId, // This is the employee ID
-                entityName: sp.supplierName, // This is the employee name
-                entityType: 'Employee',
-                type: 'Salary',
-                description: `Salary Payment`,
-                debit: 0,
-                credit: sp.amount,
-            });
-        } else {
-            combined.push({
-                id: `spay-${sp.id}`,
-                timestamp: sp.timestamp!,
-                entityId: sp.supplierId,
-                entityName: sp.supplierName,
-                entityType: 'Supplier',
-                type: 'Supplier Payment',
-                description: `Payment Made (${sp.paymentMethod})`,
-                debit: sp.amount,
-                credit: 0,
-            });
-        }
+        combined.push({
+            id: `spay-${sp.id}`,
+            timestamp: sp.timestamp!,
+            entityId: sp.supplierId,
+            entityName: sp.supplierName,
+            entityType: 'Supplier',
+            type: 'Supplier Payment',
+            description: `Payment Made (${sp.paymentMethod})`,
+            debit: sp.amount,
+            credit: 0,
+        });
     });
     
     // Partner-specific transactions
     investments.forEach(inv => {
+        const entity = entities.find(e => e.id === inv.partnerId);
+        if (!entity) return;
         combined.push({
             id: `inv-${inv.id}`,
             timestamp: inv.timestamp!,
@@ -195,6 +184,25 @@ export default function UnifiedLedgerPage() {
             debit: inv.type === 'Withdrawal' ? inv.amount : 0,
             credit: inv.type === 'Investment' ? inv.amount : 0,
         });
+    });
+
+    // Employee Salaries
+    expenses.forEach(exp => {
+        if(exp.category === 'Salaries' && exp.employeeId) {
+            const entity = entities.find(e => e.id === exp.employeeId);
+            if (!entity) return;
+            combined.push({
+                id: `exp-${exp.id}`,
+                timestamp: exp.timestamp!,
+                entityId: exp.employeeId,
+                entityName: entity.name,
+                entityType: 'Employee',
+                type: 'Salary',
+                description: exp.description,
+                debit: 0,
+                credit: exp.amount,
+            });
+        }
     });
 
 

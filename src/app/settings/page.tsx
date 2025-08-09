@@ -32,6 +32,9 @@ import Link from 'next/link';
 import { useProducts } from '@/hooks/use-products';
 import { format } from 'date-fns';
 import { Switch } from '@/components/ui/switch';
+import { useTransactions } from '@/hooks/use-transactions';
+import { usePurchases } from '@/hooks/use-purchases';
+import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
 
 
 const productSchema = z.object({
@@ -70,6 +73,9 @@ export default function SettingsPage() {
   const { clearAllData } = useSettings();
   const { suppliers, addSupplier, deleteSupplier, isLoaded: suppliersLoaded } = useSuppliers();
   const { products, addProduct, updateProduct, deleteProduct, isLoaded: productsLoaded } = useProducts();
+  const { transactions } = useTransactions();
+  const { purchases } = usePurchases();
+  const { purchaseReturns } = usePurchaseReturns();
   const { toast } = useToast();
   const [supplierToDelete, setSupplierToDelete] = React.useState<Supplier | null>(null);
   const [productToDelete, setProductToDelete] = React.useState<Product | null>(null);
@@ -191,6 +197,20 @@ export default function SettingsPage() {
 
   const handleDeleteProduct = () => {
     if (!productToDelete) return;
+     // Safeguard: Check for dependencies
+    const hasTransactions = transactions.some(tx => tx.items.some(item => item.productId === productToDelete.id)) ||
+                            purchases.some(p => p.items.some(item => item.productId === productToDelete.id)) ||
+                            purchaseReturns.some(pr => pr.productId === productToDelete.id);
+
+    if (hasTransactions) {
+        toast({
+            variant: 'destructive',
+            title: 'Deletion Prevented',
+            description: `${productToDelete.name} is used in existing transactions and cannot be deleted.`,
+        });
+        setProductToDelete(null);
+        return;
+    }
     deleteProduct(productToDelete.id!);
     toast({ title: 'Product Deleted', description: `${productToDelete.name} has been removed.` });
     setProductToDelete(null);
@@ -208,10 +228,6 @@ export default function SettingsPage() {
   const handleDeleteSupplier = React.useCallback(() => {
     if (!supplierToDelete) return;
     deleteSupplier(supplierToDelete.id!);
-    toast({
-        title: "Supplier Deleted",
-        description: `${supplierToDelete.name} has been removed from your list.`,
-    });
     setSupplierToDelete(null);
   }, [supplierToDelete, deleteSupplier, toast]);
 
@@ -486,7 +502,7 @@ export default function SettingsPage() {
       
       <AlertDialog open={!!supplierToDelete} onOpenChange={(isOpen) => !isOpen && setSupplierToDelete(null)}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone. This will permanently delete the supplier: <br /><strong className="font-medium text-foreground">{supplierToDelete?.name}</strong></AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone. This will permanently delete the supplier: <br /><strong className="font-medium text-foreground">{supplierToDelete?.name}</strong>. This is only possible if the supplier has no transaction history.</AlertDialogDescription></AlertDialogHeader>
           <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDeleteSupplier} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Yes, delete supplier</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -497,7 +513,7 @@ export default function SettingsPage() {
             <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the product: <br />
-              <strong className="font-medium text-foreground">{productToDelete?.name}</strong>
+              <strong className="font-medium text-foreground">{productToDelete?.name}</strong>. This is only possible if the product has no transaction history.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
