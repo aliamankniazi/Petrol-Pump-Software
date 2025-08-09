@@ -258,7 +258,7 @@ export default function SalePage() {
                             <Label>Bonus</Label>
                             <Input type="number" placeholder="bonus qty" value={currentItem.bonus} onChange={e => setCurrentItem(prev => ({...prev, bonus: e.target.value}))}/>
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-1 hidden">
                             <Label>Discount (Amount)</Label>
                             <Input type="number" placeholder="RS 0" value={currentItem.discountAmount} onChange={e => setCurrentItem(prev => ({...prev, discountAmount: e.target.value}))}/>
                         </div>
