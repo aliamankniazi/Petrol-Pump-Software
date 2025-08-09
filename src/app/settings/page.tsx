@@ -186,12 +186,19 @@ export default function SettingsPage() {
     setProductValue('initialStockMain', product.stock);
     setProductValue('initialStockSub', product.subUnitStock || 0);
 
+    // Set legacy fields
+    setProductValue('category', product.category || 'Other');
+    setProductValue('productType', product.productType || 'Main');
+    setProductValue('unit', product.unit || 'Unit');
+
     if (product.subUnit) {
         setProductValue('addSubUnit', true);
         setProductValue('subUnitName', product.subUnit.name);
         setProductValue('subUnitConversion', product.subUnit.conversionRate);
     } else {
         setProductValue('addSubUnit', false);
+        setProductValue('subUnitName', '');
+        setProductValue('subUnitConversion', 0);
     }
   }
 
