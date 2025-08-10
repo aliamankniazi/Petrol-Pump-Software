@@ -61,7 +61,7 @@ export function useEmployees() {
     const expenseDescription = `Salary for ${employee.name} for ${period}`;
 
     // Log the salary as a business expense, and tag it with the employee's ID
-    const expense: Omit<Expense, 'id'> = {
+    const expense: Omit<Expense, 'id' | 'date'> = {
       description: expenseDescription,
       category: 'Salaries',
       amount: amount,

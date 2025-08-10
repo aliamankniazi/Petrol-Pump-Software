@@ -218,9 +218,9 @@ export default function ExpensesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {expenses.map(e => (
+                  {expenses.filter(e => e.timestamp).map(e => (
                       <TableRow key={e.id}>
-                        <TableCell className="font-medium">{format(new Date(e.timestamp), 'PP')}</TableCell>
+                        <TableCell className="font-medium">{format(new Date(e.timestamp!), 'PP')}</TableCell>
                         <TableCell>{e.description}</TableCell>
                         <TableCell>{e.category}</TableCell>
                         <TableCell className="text-right">PKR {e.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
