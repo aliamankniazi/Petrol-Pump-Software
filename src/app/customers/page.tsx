@@ -77,7 +77,7 @@ export default function CustomersPage() {
         vehicleNumber: data.vehicleNumber,
         area: data.area,
         isPartner: data.isPartner,
-        sharePercentage: data.sharePercentage,
+        sharePercentage: data.isPartner ? data.sharePercentage : 0,
     });
     toast({
       title: 'Record Added',
@@ -175,7 +175,17 @@ export default function CustomersPage() {
               </div>
 
               <div className="flex items-center space-x-2">
-                <Checkbox id="isPartner" {...register('isPartner')} />
+                <Controller
+                  name="isPartner"
+                  control={control}
+                  render={({ field }) => (
+                    <Checkbox
+                      id="isPartner"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
                 <label htmlFor="isPartner" className="text-sm font-medium leading-none">
                   This is a Business Partner
                 </label>
