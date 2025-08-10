@@ -20,12 +20,14 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useCustomers } from '@/hooks/use-customers';
 import { useCustomerBalance } from '@/hooks/use-customer-balance';
+import { Textarea } from '@/components/ui/textarea';
 
 const paymentSchema = z.object({
   customerId: z.string().min(1, 'Please select a customer.'),
   amount: z.coerce.number().min(0.01, 'Amount must be greater than 0'),
   paymentMethod: z.enum(['Cash', 'Card', 'Mobile'], { required_error: 'Please select a payment method.' }),
   date: z.date({ required_error: "A date is required."}),
+  notes: z.string().optional(),
 });
 
 type PaymentFormValues = z.infer<typeof paymentSchema>;
@@ -49,6 +51,7 @@ export function CustomerPaymentForm() {
       paymentMethod: 'Cash',
       customerId: '',
       amount: 0,
+      notes: '',
     }
   });
   
@@ -78,7 +81,7 @@ export function CustomerPaymentForm() {
       description: `Payment of PKR ${data.amount} from ${customer.name} has been logged.`,
     });
     const lastDate = watch('date');
-    reset({ customerId: '', amount: 0, date: lastDate, paymentMethod: 'Cash' });
+    reset({ customerId: '', amount: 0, date: lastDate, paymentMethod: 'Cash', notes: '' });
   };
 
   if (!isClient) {
@@ -150,6 +153,11 @@ export function CustomerPaymentForm() {
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="notes">Notes (Optional)</Label>
+          <Textarea id="notes" {...register('notes')} placeholder="e.g., Payment for last week's fuel" />
+        </div>
+
+        <div className="space-y-2">
         <Label>Date</Label>
         <Controller
             name="date"
@@ -186,4 +194,3 @@ export function CustomerPaymentForm() {
     </form>
   );
 }
-

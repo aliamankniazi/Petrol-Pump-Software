@@ -106,7 +106,7 @@ export default function LedgerPage() {
     customerPayments.forEach(cp => combined.push({
       id: `cp-${cp.id}`,
       timestamp: cp.timestamp!,
-      description: `Payment from ${cp.customerName}`,
+      description: `Payment from ${cp.customerName} ${cp.notes ? `- ${cp.notes}` : ''}`,
       type: 'Customer Payment',
       debit: 0,
       credit: cp.amount,
@@ -152,7 +152,7 @@ export default function LedgerPage() {
     cashAdvances.forEach(ca => combined.push({
         id: `ca-${ca.id}`,
         timestamp: ca.timestamp!,
-        description: `Cash advance to ${ca.customerName}`,
+        description: `Cash advance to ${ca.customerName} ${ca.notes ? `- ${ca.notes}` : ''}`,
         type: 'Cash Advance',
         debit: ca.amount,
         credit: 0,
@@ -431,5 +431,3 @@ export default function LedgerPage() {
     </>
   );
 }
-
-    

@@ -164,6 +164,7 @@ export interface CustomerPayment {
   amount: number;
   paymentMethod: Extract<PaymentMethod, 'Cash' | 'Card' | 'Mobile'>;
   timestamp?: string;
+  notes?: string;
 }
 
 export interface SupplierPayment {
