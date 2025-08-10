@@ -10,10 +10,10 @@ const COLLECTION_NAME = 'investments';
 export function useInvestments() {
   const { data: investments, addDoc, deleteDoc, loading } = useDatabaseCollection<Investment>(COLLECTION_NAME);
 
-  const addInvestment = useCallback((investment: Omit<Investment, 'id'>) => {
+  const addInvestment = useCallback((investment: Omit<Investment, 'id' | 'timestamp'>) => {
     const investmentWithTimestamp = {
       ...investment,
-      timestamp: investment.timestamp || new Date().toISOString(),
+      timestamp: investment.date,
     }
     addDoc(investmentWithTimestamp);
   }, [addDoc]);
@@ -29,3 +29,4 @@ export function useInvestments() {
     isLoaded: !loading 
   };
 }
+

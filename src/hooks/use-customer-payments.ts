@@ -10,10 +10,10 @@ const COLLECTION_NAME = 'customer-payments';
 export function useCustomerPayments() {
   const { data: customerPayments, addDoc, deleteDoc, loading } = useDatabaseCollection<CustomerPayment>(COLLECTION_NAME);
 
-  const addCustomerPayment = useCallback((payment: Omit<CustomerPayment, 'id'>) => {
+  const addCustomerPayment = useCallback((payment: Omit<CustomerPayment, 'id' | 'timestamp'>) => {
     const paymentWithTimestamp = {
       ...payment,
-      timestamp: payment.timestamp || new Date().toISOString(),
+      timestamp: payment.date,
     };
     addDoc(paymentWithTimestamp);
   }, [addDoc]);
@@ -29,3 +29,4 @@ export function useCustomerPayments() {
     isLoaded: !loading
   };
 }
+

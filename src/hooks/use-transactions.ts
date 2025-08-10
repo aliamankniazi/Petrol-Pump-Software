@@ -16,10 +16,10 @@ export function useTransactions() {
   const { addCustomerPayment } = useCustomerPayments();
   const { addExpense } = useExpenses();
 
-  const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id'>): Promise<Transaction> => {
+  const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id' | 'timestamp'>): Promise<Transaction> => {
     const transactionWithTimestamp = {
       ...transaction,
-      timestamp: transaction.timestamp || new Date().toISOString(),
+      timestamp: transaction.date,
     };
     
     const newDoc = await addDoc(transactionWithTimestamp);
@@ -37,8 +37,8 @@ export function useTransactions() {
             customerId: transaction.customerId,
             customerName: transaction.customerName,
             amount: transaction.paidAmount,
-            paymentMethod: transaction.paymentMethod,
-            timestamp: transaction.timestamp || new Date().toISOString(),
+            paymentMethod: transaction.paymentMethod as 'Cash' | 'Card' | 'Mobile',
+            date: transaction.date,
         });
     }
     
@@ -47,7 +47,7 @@ export function useTransactions() {
             description: `Expense from sale to ${transaction.customerName || 'Walk-in'}`,
             category: 'Other',
             amount: transaction.expenseAmount,
-            timestamp: transaction.timestamp || new Date().toISOString(),
+            date: transaction.date,
         });
     }
 

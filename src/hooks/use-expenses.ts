@@ -10,10 +10,10 @@ const COLLECTION_NAME = 'expenses';
 export function useExpenses() {
   const { data: expenses, addDoc, deleteDoc, loading } = useDatabaseCollection<Expense>(COLLECTION_NAME);
 
-  const addExpense = useCallback((expense: Omit<Expense, 'id'>) => {
+  const addExpense = useCallback((expense: Omit<Expense, 'id' | 'timestamp'>) => {
     const expenseWithTimestamp = {
       ...expense,
-      timestamp: expense.timestamp || new Date().toISOString(),
+      timestamp: expense.date,
     }
     addDoc(expenseWithTimestamp);
   }, [addDoc]);

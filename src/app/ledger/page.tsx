@@ -67,54 +67,54 @@ export default function LedgerPage() {
     let combined: Omit<LedgerEntry, 'balance'>[] = [];
 
     // Credits (Money In or Liability Increase)
-    transactions.filter(tx => tx.timestamp).forEach(tx => combined.push({
+    transactions.forEach(tx => combined.push({
       id: `tx-${tx.id}`,
-      timestamp: tx.timestamp!,
+      timestamp: tx.date,
       description: `Sale to ${tx.customerName || 'Walk-in'}: ${tx.items.length} item(s) ${tx.notes ? `- ${tx.notes}` : ''}`,
       type: 'Sale',
       debit: 0,
       credit: tx.totalAmount,
     }));
 
-    purchases.filter(p => p.timestamp).forEach(p => combined.push({
+    purchases.forEach(p => combined.push({
         id: `pur-${p.id}`,
-        timestamp: p.timestamp!,
+        timestamp: p.date,
         description: `Purchase from ${p.supplier}: ${p.items.length} item(s)`,
         type: 'Purchase',
         debit: 0, // A purchase on credit increases liability (Accounts Payable), which is a credit.
         credit: p.totalCost,
     }));
 
-    purchaseReturns.filter(pr => pr.timestamp).forEach(pr => combined.push({
+    purchaseReturns.forEach(pr => combined.push({
       id: `pr-${pr.id}`,
-      timestamp: pr.timestamp!,
+      timestamp: pr.date,
       description: `Return from ${pr.supplier}: ${pr.volume.toFixed(2)}L of ${pr.productName}`,
       type: 'Purchase Return',
       debit: 0,
       credit: pr.totalRefund,
     }));
 
-    otherIncomes.filter(oi => oi.timestamp).forEach(oi => combined.push({
+    otherIncomes.forEach(oi => combined.push({
       id: `oi-${oi.id}`,
-      timestamp: oi.timestamp!,
+      timestamp: oi.date,
       description: `Income: ${oi.description}`,
       type: 'Other Income',
       debit: 0,
       credit: oi.amount,
     }));
     
-    customerPayments.filter(cp => cp.timestamp).forEach(cp => combined.push({
+    customerPayments.forEach(cp => combined.push({
       id: `cp-${cp.id}`,
-      timestamp: cp.timestamp!,
+      timestamp: cp.date,
       description: `Payment from ${cp.customerName}`,
       type: 'Customer Payment',
       debit: 0,
       credit: cp.amount,
     }));
 
-    investments.filter(inv => inv.timestamp && inv.type === 'Investment').forEach(inv => combined.push({
+    investments.filter(inv => inv.type === 'Investment').forEach(inv => combined.push({
       id: `inv-${inv.id}`,
-      timestamp: inv.timestamp!,
+      timestamp: inv.date,
       description: `Investment from ${inv.partnerName}`,
       type: 'Investment',
       debit: 0,
@@ -122,36 +122,36 @@ export default function LedgerPage() {
     }));
 
     // Debits (Money Out or Asset Increase/Liability Decrease)
-    expenses.filter(e => e.timestamp).forEach(e => combined.push({
+    expenses.forEach(e => combined.push({
       id: `exp-${e.id}`,
-      timestamp: e.timestamp!,
+      timestamp: e.date,
       description: `Expense: ${e.description}`,
       type: 'Expense',
       debit: e.amount,
       credit: 0,
     }));
 
-    supplierPayments.filter(sp => sp.timestamp).forEach(sp => combined.push({
+    supplierPayments.forEach(sp => combined.push({
       id: `sp-${sp.id}`,
-      timestamp: sp.timestamp!,
+      timestamp: sp.date,
       description: `Payment to ${sp.supplierName}`,
       type: 'Supplier Payment',
       debit: sp.amount,
       credit: 0,
     }));
     
-    investments.filter(inv => inv.timestamp && inv.type === 'Withdrawal').forEach(inv => combined.push({
+    investments.filter(inv => inv.type === 'Withdrawal').forEach(inv => combined.push({
       id: `wdr-${inv.id}`,
-      timestamp: inv.timestamp!,
+      timestamp: inv.date,
       description: `Withdrawal by ${inv.partnerName}`,
       type: 'Withdrawal',
       debit: inv.amount,
       credit: 0,
     }));
     
-    cashAdvances.filter(ca => ca.timestamp).forEach(ca => combined.push({
+    cashAdvances.forEach(ca => combined.push({
         id: `ca-${ca.id}`,
-        timestamp: ca.timestamp!,
+        timestamp: ca.date,
         description: `Cash advance to ${ca.customerName}`,
         type: 'Cash Advance',
         debit: ca.amount,
@@ -428,6 +428,3 @@ export default function LedgerPage() {
     </>
   );
 }
-
-
-  

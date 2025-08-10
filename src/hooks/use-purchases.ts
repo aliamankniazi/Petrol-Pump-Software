@@ -16,10 +16,10 @@ export function usePurchases() {
   const { addExpense } = useExpenses();
   const { addSupplierPayment } = useSupplierPayments();
 
-  const addPurchase = useCallback((purchase: Omit<Purchase, 'id'>) => {
+  const addPurchase = useCallback((purchase: Omit<Purchase, 'id' | 'timestamp'>) => {
     const purchaseWithTimestamp = {
       ...purchase,
-      timestamp: purchase.timestamp || new Date().toISOString(),
+      timestamp: purchase.date,
     }
     addDoc(purchaseWithTimestamp);
 
@@ -38,7 +38,7 @@ export function usePurchases() {
             description: `Expenses for purchase from ${purchase.supplier}`,
             category: 'Other',
             amount: purchase.expenses,
-            timestamp: purchase.timestamp || new Date().toISOString(),
+            date: purchase.date,
         });
     }
 
@@ -49,13 +49,13 @@ export function usePurchases() {
             supplierName: purchase.supplier,
             amount: purchase.paidAmount,
             paymentMethod: "Cash", // Defaulting to cash, can be expanded later
-            timestamp: purchase.timestamp || new Date().toISOString(),
+            date: purchase.date,
         });
     }
     
   }, [addDoc, products, updateProductStock, addExpense, addSupplierPayment]);
   
-  const updatePurchase = useCallback((id: string, originalPurchase: Purchase, updatedPurchase: Partial<Omit<Purchase, 'id'>>) => {
+  const updatePurchase = useCallback((id: string, originalPurchase: Purchase, updatedPurchase: Partial<Omit<Purchase, 'id' | 'timestamp'>>) => {
       // Revert stock from original purchase
       originalPurchase.items.forEach(item => {
           const product = products.find(p => p.id === item.productId);

@@ -10,10 +10,10 @@ const COLLECTION_NAME = 'cash-advances';
 export function useCashAdvances() {
   const { data: cashAdvances, addDoc, deleteDoc, loading } = useDatabaseCollection<CashAdvance>(COLLECTION_NAME);
 
-  const addCashAdvance = useCallback((advance: Omit<CashAdvance, 'id'>) => {
+  const addCashAdvance = useCallback((advance: Omit<CashAdvance, 'id' | 'timestamp'>) => {
     const advanceWithTimestamp = {
       ...advance,
-      timestamp: advance.timestamp || new Date().toISOString(),
+      timestamp: advance.date,
     };
     addDoc(advanceWithTimestamp);
   }, [addDoc]);
@@ -29,3 +29,4 @@ export function useCashAdvances() {
     isLoaded: !loading 
   };
 }
+
