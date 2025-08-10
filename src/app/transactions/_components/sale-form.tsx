@@ -58,7 +58,7 @@ type SaleFormValues = z.infer<typeof saleSchema>;
 const LOCAL_STORAGE_KEY = 'global-transaction-date';
 
 export function SaleForm() {
-  const { addTransaction } = useTransactions();
+  const { addTransaction, transactions } = useTransactions();
   const { customers, isLoaded: customersLoaded } = useCustomers();
   const { products, isLoaded: productsLoaded } = useProducts();
   const { bankAccounts, isLoaded: bankAccountsLoaded } = useBankAccounts();
@@ -69,7 +69,6 @@ export function SaleForm() {
   
   const [currentItem, setCurrentItem] = useState({ productId: 'placeholder', selectedUnit: '...', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
   const [lastFocused, setLastFocused] = useState<'quantity' | 'total'>('quantity');
-  const [lastSaleRates, setLastSaleRates] = useState<Record<string, number>>({});
 
   useEffect(() => {
     setIsClient(true);
@@ -136,8 +135,14 @@ export function SaleForm() {
   const handleCurrentProductChange = (productId: string) => {
     const product = products.find(p => p.id === productId);
     if(product) {
-        const rememberedPrice = lastSaleRates[productId];
-        const salePrice = rememberedPrice !== undefined ? rememberedPrice : (product.tradePrice || 0);
+        // Find the most recent transaction for this product to get the last sale price
+        const lastSaleOfProduct = transactions
+            .flatMap(tx => tx.items.map(item => ({...item, timestamp: tx.timestamp})))
+            .filter(item => item.productId === productId && item.timestamp)
+            .sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime())
+            [0];
+
+        const salePrice = lastSaleOfProduct ? lastSaleOfProduct.pricePerUnit : (product.tradePrice || 0);
 
         setCurrentItem(prev => ({
             ...prev, 
@@ -202,8 +207,6 @@ export function SaleForm() {
         bonus: parseFloat(currentItem.bonus) || 0,
     });
     
-    setLastSaleRates(prev => ({...prev, [product.id!]: pricePerUnit}));
-
     setCurrentItem({ productId: 'placeholder', selectedUnit: '...', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
   }
 
