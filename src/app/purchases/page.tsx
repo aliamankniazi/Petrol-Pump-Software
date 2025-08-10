@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { ShoppingCart, Truck, Calendar as CalendarIcon, PlusCircle, Trash2, UserPlus, ChevronsUpDown, Check } from 'lucide-react';
 import { format } from 'date-fns';
@@ -26,6 +25,7 @@ import { useSupplierBalance } from '@/hooks/use-supplier-balance';
 import { useBankAccounts } from '@/hooks/use-bank-accounts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 const purchaseItemSchema = z.object({
@@ -253,14 +253,16 @@ export default function PurchasesPage() {
   const selectedProduct = products.find(p => p.id === currentItem.productId);
   
   const filteredProducts = useMemo(() => {
+    if (!productsLoaded) return [];
     if (!productSearch) return products;
     return products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
-  }, [products, productSearch]);
+  }, [products, productSearch, productsLoaded]);
 
   const filteredSuppliers = useMemo(() => {
+    if (!suppliersLoaded) return [];
     if (!supplierSearch) return suppliers;
     return suppliers.filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase()));
-  }, [suppliers, supplierSearch]);
+  }, [suppliers, supplierSearch, suppliersLoaded]);
 
 
   if (!isClient) {
@@ -290,7 +292,7 @@ export default function PurchasesPage() {
                                     role="combobox"
                                     className="w-full justify-between"
                                     >
-                                    {currentItem.productId !== 'placeholder'
+                                    {currentItem.productId !== 'placeholder' && productsLoaded
                                         ? products.find((p) => p.id === currentItem.productId)?.name
                                         : "Select Product"}
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -417,7 +419,7 @@ export default function PurchasesPage() {
                                             role="combobox"
                                             className="w-full justify-between"
                                         >
-                                            {field.value
+                                            {field.value && suppliersLoaded
                                                 ? suppliers.find((s) => s.id === field.value)?.name
                                                 : "Select Supplier"}
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
