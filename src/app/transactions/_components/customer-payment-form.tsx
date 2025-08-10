@@ -112,15 +112,15 @@ export function CustomerPaymentForm() {
 
         {watchedCustomerId && (
             <Card className="bg-muted/40 p-4">
-            <CardHeader className="p-0 pb-2">
-                <CardTitle className="text-md">Customer Balance</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-                <p className={cn("text-xl font-bold", customerBalance > 0 ? 'text-destructive' : 'text-green-600')}>
-                PKR {customerBalance.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                </p>
-                <p className="text-xs text-muted-foreground">Current outstanding balance.</p>
-            </CardContent>
+                <CardHeader className="p-0 pb-2">
+                    <CardTitle className="text-md">Previous Balance</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <p className={cn("text-xl font-bold", customerBalance >= 0 ? 'text-destructive' : 'text-green-600')}>
+                        PKR {Math.abs(customerBalance).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{customerBalance >= 0 ? 'Receivable' : 'Payable'}</p>
+                </CardContent>
             </Card>
         )}
 
