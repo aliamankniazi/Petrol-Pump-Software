@@ -68,6 +68,7 @@ export function SaleForm() {
   
   const [currentItem, setCurrentItem] = useState({ productId: 'placeholder', selectedUnit: '...', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
   const [lastFocused, setLastFocused] = useState<'quantity' | 'total'>('quantity');
+  const [lastSaleRates, setLastSaleRates] = useState<Record<string, number>>({});
 
   useEffect(() => {
     setIsClient(true);
@@ -134,10 +135,13 @@ export function SaleForm() {
   const handleCurrentProductChange = (productId: string) => {
     const product = products.find(p => p.id === productId);
     if(product) {
+        const rememberedPrice = lastSaleRates[productId];
+        const salePrice = rememberedPrice !== undefined ? rememberedPrice : (product.tradePrice || 0);
+
         setCurrentItem(prev => ({
             ...prev, 
             productId, 
-            pricePerUnit: product.tradePrice?.toString() || '0',
+            pricePerUnit: salePrice.toString(),
             selectedUnit: product.mainUnit,
         }));
     } else {
@@ -167,7 +171,7 @@ export function SaleForm() {
   
   const handleAddItemToSale = () => {
     const product = products.find(p => p.id === currentItem.productId);
-    if (!product || product.id === 'placeholder') {
+    if (!product || !product.id || currentItem.productId === 'placeholder') {
         toast({ variant: 'destructive', title: 'Error', description: 'Please select a product.'});
         return;
     }
@@ -197,6 +201,8 @@ export function SaleForm() {
         bonus: parseFloat(currentItem.bonus) || 0,
     });
     
+    setLastSaleRates(prev => ({...prev, [product.id!]: pricePerUnit}));
+
     setCurrentItem({ productId: 'placeholder', selectedUnit: '...', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
   }
 
