@@ -18,6 +18,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { useCustomerBalance } from '@/hooks/use-customer-balance';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 const cashAdvanceSchema = z.object({
   customerId: z.string().min(1, 'Please select a customer or employee.'),
@@ -45,6 +47,9 @@ export function CashAdvanceForm() {
     resolver: zodResolver(cashAdvanceSchema),
     defaultValues: { date: new Date(), notes: '', customerId: '', amount: 0 }
   });
+
+  const watchedCustomerId = watch('customerId');
+  const { balance: customerBalance } = useCustomerBalance(watchedCustomerId || null);
 
   useEffect(() => {
     if (isClient) {
@@ -100,6 +105,20 @@ export function CashAdvanceForm() {
         />
         {errors.customerId && <p className="text-sm text-destructive">{errors.customerId.message}</p>}
         </div>
+
+        {watchedCustomerId && (
+            <Card className="bg-muted/40 p-4">
+                <CardHeader className="p-0 pb-2">
+                    <CardTitle className="text-md">Previous Balance</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <p className={cn("text-xl font-bold", customerBalance >= 0 ? 'text-destructive' : 'text-green-600')}>
+                        PKR {Math.abs(customerBalance).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{customerBalance >= 0 ? 'Receivable' : 'Payable'}</p>
+                </CardContent>
+            </Card>
+        )}
 
         <div className="space-y-2">
         <Label htmlFor="amount">Amount (PKR)</Label>

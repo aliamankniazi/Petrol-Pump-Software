@@ -17,6 +17,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useSuppliers } from '@/hooks/use-suppliers';
+import { useSupplierBalance } from '@/hooks/use-supplier-balance';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 const supplierPaymentSchema = z.object({
   supplierId: z.string().min(1, 'Please select a supplier.'),
@@ -49,6 +51,9 @@ export function SupplierPaymentForm() {
     }
   });
   
+  const watchedSupplierId = watch('supplierId');
+  const { balance: supplierBalance } = useSupplierBalance(watchedSupplierId || null);
+
   useEffect(() => {
     if (isClient) {
       const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -100,6 +105,20 @@ export function SupplierPaymentForm() {
         />
         {errors.supplierId && <p className="text-sm text-destructive">{errors.supplierId.message}</p>}
         </div>
+
+        {watchedSupplierId && (
+            <Card className="bg-muted/40 p-4">
+                <CardHeader className="p-0 pb-2">
+                    <CardTitle className="text-md">Previous Balance</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <p className={cn("text-xl font-bold", supplierBalance >= 0 ? 'text-destructive' : 'text-green-600')}>
+                        PKR {Math.abs(supplierBalance).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{supplierBalance >= 0 ? 'Payable' : 'Receivable'}</p>
+                </CardContent>
+            </Card>
+        )}
 
         <div className="space-y-2">
         <Label htmlFor="amount">Amount (PKR)</Label>
