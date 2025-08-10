@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingCart, Truck, Calendar as CalendarIcon, PlusCircle, Trash2, UserPlus } from 'lucide-react';
+import { ShoppingCart, Truck, Calendar as CalendarIcon, PlusCircle, Trash2, UserPlus, ChevronsUpDown, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePurchases } from '@/hooks/use-purchases';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -25,6 +25,7 @@ import Link from 'next/link';
 import { useSupplierBalance } from '@/hooks/use-supplier-balance';
 import { useBankAccounts } from '@/hooks/use-bank-accounts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 
 const purchaseItemSchema = z.object({
@@ -70,6 +71,9 @@ export default function PurchasesPage() {
   
   const [currentItem, setCurrentItem] = useState({ productId: 'placeholder', selectedUnit: '...', quantity: '', costPerUnit: '', discountAmount: '', totalValue: '' });
   const [lastPurchaseRates, setLastPurchaseRates] = useState<Record<string, number>>({});
+  
+  const [productSearch, setProductSearch] = useState('');
+  const [supplierSearch, setSupplierSearch] = useState('');
 
 
   useEffect(() => {
@@ -247,6 +251,16 @@ export default function PurchasesPage() {
   }, [addSupplier, toast, resetSupplier]);
 
   const selectedProduct = products.find(p => p.id === currentItem.productId);
+  
+  const filteredProducts = useMemo(() => {
+    if (!productSearch) return products;
+    return products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
+  }, [products, productSearch]);
+
+  const filteredSuppliers = useMemo(() => {
+    if (!supplierSearch) return suppliers;
+    return suppliers.filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase()));
+  }, [suppliers, supplierSearch]);
 
 
   if (!isClient) {
@@ -269,13 +283,47 @@ export default function PurchasesPage() {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="space-y-1">
                             <Label>Product</Label>
-                            <Select onValueChange={handleCurrentProductChange} value={currentItem.productId}>
-                                <SelectTrigger><SelectValue placeholder="Select Product" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="placeholder" disabled>Select Product</SelectItem>
-                                    {productsLoaded ? products.map(p => <SelectItem key={p.id} value={p.id!}>{p.name}</SelectItem>) : <SelectItem value='loading' disabled>Loading...</SelectItem>}
-                                </SelectContent>
-                            </Select>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    className="w-full justify-between"
+                                    >
+                                    {currentItem.productId !== 'placeholder'
+                                        ? products.find((p) => p.id === currentItem.productId)?.name
+                                        : "Select Product"}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                    <Command>
+                                        <CommandInput placeholder="Search product..." onValueChange={setProductSearch}/>
+                                        <CommandList>
+                                            <CommandEmpty>No product found.</CommandEmpty>
+                                            <CommandGroup>
+                                            {filteredProducts.map((p) => (
+                                                <CommandItem
+                                                key={p.id}
+                                                value={p.id}
+                                                onSelect={(currentValue) => {
+                                                    handleCurrentProductChange(currentValue === currentItem.productId ? 'placeholder' : currentValue)
+                                                }}
+                                                >
+                                                <Check
+                                                    className={cn(
+                                                    "mr-2 h-4 w-4",
+                                                    currentItem.productId === p.id ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                />
+                                                {p.name}
+                                                </CommandItem>
+                                            ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
                         </div>
                         <div className="space-y-1">
                             <Label>Unit</Label>
@@ -362,12 +410,47 @@ export default function PurchasesPage() {
                         <Label>Supplier</Label>
                          <div className="flex items-center gap-2">
                             <Controller name="supplierId" control={control} render={({ field }) => (
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                <SelectTrigger><SelectValue placeholder="Select Supplier" /></SelectTrigger>
-                                <SelectContent>
-                                    {suppliersLoaded ? suppliers.map(s => <SelectItem key={s.id} value={s.id!}>{s.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                                </SelectContent>
-                                </Select>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            className="w-full justify-between"
+                                        >
+                                            {field.value
+                                                ? suppliers.find((s) => s.id === field.value)?.name
+                                                : "Select Supplier"}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Search supplier..." onValueChange={setSupplierSearch} />
+                                            <CommandList>
+                                                <CommandEmpty>No supplier found.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {filteredSuppliers.map((s) => (
+                                                        <CommandItem
+                                                            key={s.id}
+                                                            value={s.id}
+                                                            onSelect={(currentValue) => {
+                                                                field.onChange(currentValue === field.value ? '' : currentValue)
+                                                            }}
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    field.value === s.id ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                            />
+                                                            {s.name}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
                             )} />
                              <Button type="button" variant="outline" size="icon" onClick={() => setIsAddSupplierOpen(true)} title="Add new supplier"><UserPlus /></Button>
                          </div>
