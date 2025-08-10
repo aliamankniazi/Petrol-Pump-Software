@@ -299,7 +299,7 @@ export function SaleForm() {
                                 <Command>
                                 <CommandInput placeholder="Search product..." onValueChange={setProductSearch}/>
                                 <CommandList>
-                                    {filteredProducts.length === 0 && <CommandEmpty>No product found.</CommandEmpty>}
+                                    <CommandEmpty>No product found.</CommandEmpty>
                                     <CommandGroup>
                                     {filteredProducts.map((p) => (
                                         <CommandItem
@@ -404,8 +404,8 @@ export function SaleForm() {
             
             <Separator className="my-6" />
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
-                 <div className="space-y-1">
+            <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4 items-start">
+                 <div className="space-y-1 lg:col-span-2">
                     <Label>Customer</Label>
                      <div className="flex items-center gap-2">
                         <Controller name="customerId" control={control} render={({ field }) => (
@@ -426,7 +426,7 @@ export function SaleForm() {
                                     <Command>
                                     <CommandInput placeholder="Search customer..." onValueChange={setCustomerSearch} />
                                     <CommandList>
-                                        {filteredCustomers.length === 0 && <CommandEmpty>No customer found.</CommandEmpty>}
+                                        <CommandEmpty>No customer found.</CommandEmpty>
                                         <CommandGroup>
                                             <CommandItem value="walk-in" onSelect={() => field.onChange('walk-in')}>
                                                 <Check className={cn("mr-2 h-4 w-4", field.value === 'walk-in' ? "opacity-100" : "opacity-0")}/>
@@ -435,7 +435,7 @@ export function SaleForm() {
                                         {filteredCustomers.map((c) => (
                                             <CommandItem
                                             key={c.id}
-                                            value={c.id}
+                                            value={c.id!}
                                             onSelect={(currentValue) => {
                                                 field.onChange(currentValue === field.value ? '' : currentValue)
                                             }}
@@ -495,7 +495,7 @@ export function SaleForm() {
                          )}/>
                     </div>
                 </div>
-                 <div className="space-y-1 lg:col-span-2">
+                 <div className="space-y-1 lg:col-span-full">
                     <Label>Sale Description</Label>
                     <Textarea placeholder="Type sale description or notes..." {...register('notes')} />
                 </div>
