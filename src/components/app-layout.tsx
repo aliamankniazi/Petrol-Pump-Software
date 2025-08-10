@@ -26,14 +26,14 @@ import { FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, User
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/transactions', label: 'Transactions', icon: ArrowRightLeftIcon },
+  { href: '/transactions', label: 'New Transaction', icon: ArrowRightLeftIcon },
   { 
-    label: 'Ledgers & Recovery',
+    label: 'Transactions',
     icon: HandCoins,
     subItems: [
         { href: '/all-transactions', label: 'All Transactions', icon: Archive },
         { href: '/sale-invoices', label: 'Sale Invoices', icon: Receipt },
-        { href: '/partner-ledger', label: 'Unified Ledger', icon: BookOpen },
+        { href: '/ledger', label: 'General Journal', icon: BookOpen },
         { href: '/credit-recovery', label: 'Credit Recovery', icon: BarChartHorizontal },
     ]
   },
@@ -62,7 +62,6 @@ const navItems = [
     subItems: [
         { href: '/inventory', label: 'Stock Levels', icon: Package },
         { href: '/tanks', label: 'Machine Reading', icon: Beaker },
-        { href: '/settings', label: 'Manage Products', icon: Settings },
     ]
   },
   {
@@ -72,7 +71,6 @@ const navItems = [
       { href: '/expenses', label: 'Expenses', icon: Receipt },
       { href: '/other-incomes', label: 'Other Incomes', icon: DollarSign },
       { href: '/bank-management', label: 'Bank Management', icon: Landmark },
-      { href: '/ledger', label: 'General Journal', icon: BookOpen },
     ]
   },
   { href: '/reports', label: 'Reports', icon: FileText },
