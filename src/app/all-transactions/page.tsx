@@ -39,6 +39,7 @@ type CombinedEntry = {
   type: 'Sale' | 'Purchase' | 'Purchase Return';
   partner: string;
   details: string;
+  notes?: string;
   amount: number;
   original: Transaction | Purchase | PurchaseReturn;
 };
@@ -79,6 +80,7 @@ export default function AllTransactionsPage() {
         type: 'Sale',
         partner: tx.customerName || 'Walk-in Customer',
         details: tx.items.map(item => `${item.quantity.toFixed(2)} units of ${item.productName}`).join(', '),
+        notes: tx.notes,
         amount: tx.totalAmount,
         original: tx,
       }));
@@ -92,6 +94,7 @@ export default function AllTransactionsPage() {
         type: 'Purchase',
         partner: p.supplier,
         details: p.items.map(item => `${item.quantity.toFixed(2)} units of ${item.productName}`).join(', '),
+        notes: p.notes,
         amount: p.totalCost,
         original: p,
       }));
@@ -105,6 +108,7 @@ export default function AllTransactionsPage() {
         type: 'Purchase Return',
         partner: pr.supplier,
         details: `${pr.volume.toFixed(2)} units of ${pr.productName}`,
+        notes: pr.reason,
         amount: pr.totalRefund,
         original: pr,
       }));
@@ -129,10 +133,12 @@ export default function AllTransactionsPage() {
           return true;
       }
 
+      const searchLower = searchTerm.toLowerCase();
       return (
-        entry.partner.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        entry.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        entry.details.toLowerCase().includes(searchTerm.toLowerCase())
+        entry.partner.toLowerCase().includes(searchLower) ||
+        entry.type.toLowerCase().includes(searchLower) ||
+        entry.details.toLowerCase().includes(searchLower) ||
+        (entry.notes && entry.notes.toLowerCase().includes(searchLower))
       );
     });
   }, [combinedEntries, searchTerm, dateRange]);
@@ -208,7 +214,7 @@ export default function AllTransactionsPage() {
             </div>
             <div className='flex flex-wrap items-center justify-end gap-2'>
                  <Input 
-                    placeholder="Search by partner, type, details..."
+                    placeholder="Search transactions..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="max-w-xs"
@@ -269,6 +275,7 @@ export default function AllTransactionsPage() {
                     <TableHead>Type</TableHead>
                     <TableHead>Partner</TableHead>
                     <TableHead>Details</TableHead>
+                    <TableHead>Notes</TableHead>
                     <TableHead className="text-right">Amount (PKR)</TableHead>
                     <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
@@ -290,6 +297,7 @@ export default function AllTransactionsPage() {
                       </TableCell>
                       <TableCell>{entry.partner}</TableCell>
                       <TableCell>{entry.details}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{entry.notes || 'N/A'}</TableCell>
                       <TableCell className={cn("text-right font-semibold font-mono", getAmountClass(entry.type))}>
                           {entry.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
