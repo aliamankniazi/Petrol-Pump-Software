@@ -213,7 +213,7 @@ export function SaleForm() {
     });
     
     setCurrentItem({ productId: 'placeholder', selectedUnit: '...', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
-  }
+  };
 
   const { grandTotal } = useMemo(() => {
     const sub = watchedItems.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
@@ -260,6 +260,16 @@ export function SaleForm() {
   };
 
   const selectedProduct = products.find(p => p.id === currentItem.productId);
+  
+  const filteredProducts = useMemo(() => {
+    if (!productSearch) return products;
+    return products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
+  }, [products, productSearch]);
+
+  const filteredCustomers = useMemo(() => {
+      if (!customerSearch) return customers;
+      return customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()));
+  }, [customers, customerSearch]);
 
 
   if (!isClient) {
@@ -289,9 +299,9 @@ export function SaleForm() {
                                 <Command>
                                 <CommandInput placeholder="Search product..." onValueChange={setProductSearch}/>
                                 <CommandList>
-                                    <CommandEmpty>No product found.</CommandEmpty>
+                                    {filteredProducts.length === 0 && <CommandEmpty>No product found.</CommandEmpty>}
                                     <CommandGroup>
-                                    {products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).map((p) => (
+                                    {filteredProducts.map((p) => (
                                         <CommandItem
                                         key={p.id}
                                         value={p.id}
@@ -416,13 +426,13 @@ export function SaleForm() {
                                     <Command>
                                     <CommandInput placeholder="Search customer..." onValueChange={setCustomerSearch} />
                                     <CommandList>
-                                        <CommandEmpty>No customer found.</CommandEmpty>
+                                        {filteredCustomers.length === 0 && <CommandEmpty>No customer found.</CommandEmpty>}
                                         <CommandGroup>
                                             <CommandItem value="walk-in" onSelect={() => field.onChange('walk-in')}>
                                                 <Check className={cn("mr-2 h-4 w-4", field.value === 'walk-in' ? "opacity-100" : "opacity-0")}/>
                                                 Walk-in Customer
                                             </CommandItem>
-                                        {customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase())).map((c) => (
+                                        {filteredCustomers.map((c) => (
                                             <CommandItem
                                             key={c.id}
                                             value={c.id}
