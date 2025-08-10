@@ -69,7 +69,7 @@ export default function LedgerPage() {
     // Credits (Money In or Liability Increase)
     transactions.forEach(tx => combined.push({
       id: `tx-${tx.id}`,
-      timestamp: tx.date,
+      timestamp: tx.timestamp!,
       description: `Sale to ${tx.customerName || 'Walk-in'}: ${tx.items.length} item(s) ${tx.notes ? `- ${tx.notes}` : ''}`,
       type: 'Sale',
       debit: 0,
@@ -78,7 +78,7 @@ export default function LedgerPage() {
 
     purchases.forEach(p => combined.push({
         id: `pur-${p.id}`,
-        timestamp: p.date,
+        timestamp: p.timestamp!,
         description: `Purchase from ${p.supplier}: ${p.items.length} item(s)`,
         type: 'Purchase',
         debit: 0, // A purchase on credit increases liability (Accounts Payable), which is a credit.
@@ -87,7 +87,7 @@ export default function LedgerPage() {
 
     purchaseReturns.forEach(pr => combined.push({
       id: `pr-${pr.id}`,
-      timestamp: pr.date,
+      timestamp: pr.timestamp!,
       description: `Return from ${pr.supplier}: ${pr.volume.toFixed(2)}L of ${pr.productName}`,
       type: 'Purchase Return',
       debit: 0,
@@ -96,7 +96,7 @@ export default function LedgerPage() {
 
     otherIncomes.forEach(oi => combined.push({
       id: `oi-${oi.id}`,
-      timestamp: oi.date,
+      timestamp: oi.timestamp!,
       description: `Income: ${oi.description}`,
       type: 'Other Income',
       debit: 0,
@@ -105,7 +105,7 @@ export default function LedgerPage() {
     
     customerPayments.forEach(cp => combined.push({
       id: `cp-${cp.id}`,
-      timestamp: cp.date,
+      timestamp: cp.timestamp!,
       description: `Payment from ${cp.customerName}`,
       type: 'Customer Payment',
       debit: 0,
@@ -114,7 +114,7 @@ export default function LedgerPage() {
 
     investments.filter(inv => inv.type === 'Investment').forEach(inv => combined.push({
       id: `inv-${inv.id}`,
-      timestamp: inv.date,
+      timestamp: inv.timestamp!,
       description: `Investment from ${inv.partnerName}`,
       type: 'Investment',
       debit: 0,
@@ -124,7 +124,7 @@ export default function LedgerPage() {
     // Debits (Money Out or Asset Increase/Liability Decrease)
     expenses.forEach(e => combined.push({
       id: `exp-${e.id}`,
-      timestamp: e.date,
+      timestamp: e.timestamp!,
       description: `Expense: ${e.description}`,
       type: 'Expense',
       debit: e.amount,
@@ -133,7 +133,7 @@ export default function LedgerPage() {
 
     supplierPayments.forEach(sp => combined.push({
       id: `sp-${sp.id}`,
-      timestamp: sp.date,
+      timestamp: sp.timestamp!,
       description: `Payment to ${sp.supplierName}`,
       type: 'Supplier Payment',
       debit: sp.amount,
@@ -142,7 +142,7 @@ export default function LedgerPage() {
     
     investments.filter(inv => inv.type === 'Withdrawal').forEach(inv => combined.push({
       id: `wdr-${inv.id}`,
-      timestamp: inv.date,
+      timestamp: inv.timestamp!,
       description: `Withdrawal by ${inv.partnerName}`,
       type: 'Withdrawal',
       debit: inv.amount,
@@ -151,24 +151,27 @@ export default function LedgerPage() {
     
     cashAdvances.forEach(ca => combined.push({
         id: `ca-${ca.id}`,
-        timestamp: ca.date,
+        timestamp: ca.timestamp!,
         description: `Cash advance to ${ca.customerName}`,
         type: 'Cash Advance',
         debit: ca.amount,
         credit: 0,
     }));
 
-    combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    // Filter out any entries with an invalid or missing timestamp
+    const validCombined = combined.filter(entry => entry.timestamp && !isNaN(new Date(entry.timestamp).getTime()));
+
+    validCombined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
     let calculatedOpeningBalance = 0;
-    let entriesForDisplay = combined;
+    let entriesForDisplay = validCombined;
 
     if (selectedDate) {
-      calculatedOpeningBalance = combined
+      calculatedOpeningBalance = validCombined
         .filter(entry => new Date(entry.timestamp) < startOfDay(selectedDate))
         .reduce((acc, entry) => acc + entry.credit - entry.debit, 0);
       
-      entriesForDisplay = combined.filter(entry => isSameDay(new Date(entry.timestamp), selectedDate));
+      entriesForDisplay = validCombined.filter(entry => isSameDay(new Date(entry.timestamp), selectedDate));
     }
     
     let runningBalance = calculatedOpeningBalance;
@@ -428,3 +431,5 @@ export default function LedgerPage() {
     </>
   );
 }
+
+    
