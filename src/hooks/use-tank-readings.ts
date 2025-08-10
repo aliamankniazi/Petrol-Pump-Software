@@ -10,7 +10,7 @@ const COLLECTION_NAME = 'tank-readings';
 
 export function useTankReadings() {
   const { data: tankReadings, addDoc, loading } = useDatabaseCollection<TankReading>(COLLECTION_NAME);
-  const { updateProductStock } = useProducts();
+  const { products, updateProductStock } = useProducts();
 
   const addTankReading = useCallback((reading: Omit<TankReading, 'id'>) => {
     addDoc(reading);
