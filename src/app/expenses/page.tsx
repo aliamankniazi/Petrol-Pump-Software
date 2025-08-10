@@ -11,15 +11,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Receipt, ListChecks, WalletCards, Calendar as CalendarIcon, Trash2, AlertTriangle, LayoutDashboard } from 'lucide-react';
+import { Receipt, ListChecks, WalletCards, Calendar as CalendarIcon, Trash2, AlertTriangle, LayoutDashboard, X } from 'lucide-react';
 import type { ExpenseCategory, Expense } from '@/lib/types';
-import { format } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 import { useExpenses } from '@/hooks/use-expenses';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 
 
@@ -40,6 +40,7 @@ export default function ExpensesPage() {
   const { expenses, addExpense, deleteExpense } = useExpenses();
   const { toast } = useToast();
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
+  const [selectedDateFilter, setSelectedDateFilter] = useState<Date | undefined>();
   
   const [isClient, setIsClient] = useState(false);
 
@@ -99,6 +100,16 @@ export default function ExpensesPage() {
     });
     setExpenseToDelete(null);
   };
+  
+  const filteredExpenses = useMemo(() => {
+    if (!selectedDateFilter) {
+      return expenses;
+    }
+    return expenses.filter(expense => 
+      expense.timestamp && isSameDay(new Date(expense.timestamp), selectedDateFilter)
+    );
+  }, [expenses, selectedDateFilter]);
+
 
   if (!isClient) {
     return null;
@@ -192,21 +203,52 @@ export default function ExpensesPage() {
 
       <div className="lg:col-span-2">
         <Card>
-          <CardHeader className="flex flex-row justify-between items-start">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Receipt /> Expense History
-              </CardTitle>
-              <CardDescription>
-                A record of all business expenses.
-              </CardDescription>
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Receipt /> Expense History
+                </CardTitle>
+                <CardDescription>
+                  A record of all business expenses.
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                 <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant={"outline"}
+                            className={cn(
+                                "w-[240px] justify-start text-left font-normal",
+                                !selectedDateFilter && "text-muted-foreground"
+                            )}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {selectedDateFilter ? format(selectedDateFilter, "PPP") : <span>Filter by date...</span>}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                        <Calendar
+                            mode="single"
+                            selected={selectedDateFilter}
+                            onSelect={setSelectedDateFilter}
+                            initialFocus
+                        />
+                    </PopoverContent>
+                 </Popover>
+                  {selectedDateFilter && (
+                    <Button variant="ghost" size="icon" onClick={() => setSelectedDateFilter(undefined)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                 <Button asChild variant="outline">
+                    <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
+                </Button>
+              </div>
             </div>
-             <Button asChild variant="outline">
-                <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
-            </Button>
           </CardHeader>
           <CardContent>
-            {expenses.length > 0 ? (
+            {filteredExpenses.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -218,7 +260,7 @@ export default function ExpensesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {expenses.filter(e => e.timestamp).map(e => (
+                  {filteredExpenses.map(e => (
                       <TableRow key={e.id}>
                         <TableCell className="font-medium">{format(new Date(e.timestamp!), 'PP')}</TableCell>
                         <TableCell>{e.description}</TableCell>
@@ -236,8 +278,12 @@ export default function ExpensesPage() {
             ) : (
               <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
                 <ListChecks className="w-16 h-16" />
-                <h3 className="text-xl font-semibold">No Expenses Recorded</h3>
-                <p>Use the form to log your first business expense.</p>
+                <h3 className="text-xl font-semibold">
+                    {selectedDateFilter ? 'No Expenses Found' : 'No Expenses Recorded'}
+                </h3>
+                <p>
+                    {selectedDateFilter ? 'There are no expenses for the selected date.' : 'Use the form to log your first business expense.'}
+                </p>
               </div>
             )}
           </CardContent>
