@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Trash2, Calendar as CalendarIcon, ShoppingCart, UserPlus } from 'lucide-react';
+import { PlusCircle, Trash2, Calendar as CalendarIcon, ShoppingCart, UserPlus, Check, ChevronsUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomers } from '@/hooks/use-customers';
@@ -26,6 +26,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Separator } from '@/components/ui/separator';
 import { useRouter } from 'next/navigation';
 import { Textarea } from '@/components/ui/textarea';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+
 
 const saleItemSchema = z.object({
   productId: z.string().min(1, 'Product is required.'),
@@ -69,6 +71,9 @@ export function SaleForm() {
   
   const [currentItem, setCurrentItem] = useState({ productId: 'placeholder', selectedUnit: '...', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
   const [lastFocused, setLastFocused] = useState<'quantity' | 'total'>('quantity');
+  
+  const [productSearch, setProductSearch] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
 
   useEffect(() => {
     setIsClient(true);
@@ -267,13 +272,47 @@ export function SaleForm() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-1">
                         <Label>Product</Label>
-                        <Select onValueChange={handleCurrentProductChange} value={currentItem.productId}>
-                            <SelectTrigger><SelectValue placeholder="Select Product" /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="placeholder" disabled>Select Product</SelectItem>
-                                {productsLoaded ? products.map(p => <SelectItem key={p.id} value={p.id!}>{p.name}</SelectItem>) : <SelectItem value='loading' disabled>Loading...</SelectItem>}
-                            </SelectContent>
-                        </Select>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                variant="outline"
+                                role="combobox"
+                                className="w-full justify-between"
+                                >
+                                {currentItem.productId !== 'placeholder'
+                                    ? products.find((p) => p.id === currentItem.productId)?.name
+                                    : "Select Product"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                <Command>
+                                <CommandInput placeholder="Search product..." onValueChange={setProductSearch}/>
+                                <CommandList>
+                                    <CommandEmpty>No product found.</CommandEmpty>
+                                    <CommandGroup>
+                                    {products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).map((p) => (
+                                        <CommandItem
+                                        key={p.id}
+                                        value={p.id}
+                                        onSelect={(currentValue) => {
+                                            handleCurrentProductChange(currentValue === currentItem.productId ? 'placeholder' : currentValue)
+                                        }}
+                                        >
+                                        <Check
+                                            className={cn(
+                                            "mr-2 h-4 w-4",
+                                            currentItem.productId === p.id ? "opacity-100" : "opacity-0"
+                                            )}
+                                        />
+                                        {p.name}
+                                        </CommandItem>
+                                    ))}
+                                    </CommandGroup>
+                                </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
                     </div>
                     <div className="space-y-1">
                         <Label>Unit</Label>
@@ -360,13 +399,51 @@ export function SaleForm() {
                     <Label>Customer</Label>
                      <div className="flex items-center gap-2">
                         <Controller name="customerId" control={control} render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value}>
-                            <SelectTrigger><SelectValue placeholder="Select Customer" /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="walk-in">Walk-in Customer</SelectItem>
-                                {customersLoaded ? customers.map(c => <SelectItem key={c.id} value={c.id!}>{c.name}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                            </SelectContent>
-                            </Select>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    className="w-full justify-between"
+                                    >
+                                    {field.value && field.value !== 'walk-in'
+                                        ? customers.find((c) => c.id === field.value)?.name
+                                        : "Walk-in Customer"}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                    <Command>
+                                    <CommandInput placeholder="Search customer..." onValueChange={setCustomerSearch} />
+                                    <CommandList>
+                                        <CommandEmpty>No customer found.</CommandEmpty>
+                                        <CommandGroup>
+                                            <CommandItem value="walk-in" onSelect={() => field.onChange('walk-in')}>
+                                                <Check className={cn("mr-2 h-4 w-4", field.value === 'walk-in' ? "opacity-100" : "opacity-0")}/>
+                                                Walk-in Customer
+                                            </CommandItem>
+                                        {customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase())).map((c) => (
+                                            <CommandItem
+                                            key={c.id}
+                                            value={c.id}
+                                            onSelect={(currentValue) => {
+                                                field.onChange(currentValue === field.value ? '' : currentValue)
+                                            }}
+                                            >
+                                            <Check
+                                                className={cn(
+                                                "mr-2 h-4 w-4",
+                                                field.value === c.id ? "opacity-100" : "opacity-0"
+                                                )}
+                                            />
+                                            {c.name}
+                                            </CommandItem>
+                                        ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
                         )} />
                          <Button type="button" variant="outline" size="icon" asChild><Link href="/customers" title="Add new customer"><UserPlus /></Link></Button>
                      </div>
