@@ -25,6 +25,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { useRouter } from 'next/navigation';
+import { Textarea } from '@/components/ui/textarea';
 
 const saleItemSchema = z.object({
   productId: z.string().min(1, 'Product is required.'),
@@ -403,6 +404,10 @@ export function SaleForm() {
                             </Select>
                          )}/>
                     </div>
+                </div>
+                 <div className="space-y-1 lg:col-span-2">
+                    <Label>Sale Description</Label>
+                    <Textarea placeholder="Type sale description or notes..." {...register('notes')} />
                 </div>
             </div>
             <div className="mt-4">
