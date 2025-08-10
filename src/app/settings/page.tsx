@@ -486,7 +486,7 @@ export default function SettingsPage() {
             </div>
           </div>
           
-          <Separator />
+          {/* <Separator />
 
            <div className="space-y-4">
             <h3 className="text-lg font-medium text-destructive">Danger Zone</h3>
@@ -501,7 +501,7 @@ export default function SettingsPage() {
                     <Button variant="destructive" onClick={() => setIsClearDataOpen(true)}>Clear All Application Data</Button>
                 </CardContent>
             </Card>
-          </div>
+          </div> */}
         </CardContent>
       </Card>
       
