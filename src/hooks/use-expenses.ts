@@ -10,12 +10,10 @@ const COLLECTION_NAME = 'expenses';
 export function useExpenses() {
   const { data: expenses, addDoc, deleteDoc, loading } = useDatabaseCollection<Expense>(COLLECTION_NAME);
 
-  const addExpense = useCallback((expense: Omit<Expense, 'id' | 'timestamp'>) => {
-    const expenseWithTimestamp = {
-      ...expense,
-      timestamp: expense.date,
-    }
-    addDoc(expenseWithTimestamp);
+  const addExpense = useCallback((expense: Omit<Expense, 'id'>) => {
+    // The timestamp is already part of the expense object when this is called.
+    // No need to re-create it.
+    addDoc(expense);
   }, [addDoc]);
   
   const deleteExpense = useCallback((id: string) => {
