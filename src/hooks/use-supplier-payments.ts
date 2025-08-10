@@ -13,9 +13,9 @@ export function useSupplierPayments() {
   const addSupplierPayment = useCallback((payment: Omit<SupplierPayment, 'id' | 'timestamp'>) => {
     const paymentWithTimestamp = {
       ...payment,
-      timestamp: payment.date,
+      timestamp: payment.date.toISOString(),
     }
-    addDoc(paymentWithTimestamp);
+    addDoc(paymentWithTimestamp as SupplierPayment);
   }, [addDoc]);
 
   const deleteSupplierPayment = useCallback((id: string) => {
@@ -29,4 +29,3 @@ export function useSupplierPayments() {
     isLoaded: !loading
   };
 }
-

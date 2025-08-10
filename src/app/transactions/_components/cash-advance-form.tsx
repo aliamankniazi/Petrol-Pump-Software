@@ -63,7 +63,7 @@ export function CashAdvanceForm() {
       customerName: customer.name,
       amount: data.amount,
       notes: data.notes,
-      timestamp: data.date.toISOString(),
+      date: data.date,
     });
     
     toast({
@@ -150,4 +150,3 @@ export function CashAdvanceForm() {
     </form>
   );
 }
-

@@ -64,7 +64,6 @@ export function SupplierPaymentForm() {
     addSupplierPayment({ 
       ...data,
       supplierName: supplier.name,
-      timestamp: data.date.toISOString(),
     });
     
     toast({

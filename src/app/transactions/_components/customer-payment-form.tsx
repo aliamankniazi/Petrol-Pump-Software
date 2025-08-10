@@ -73,7 +73,6 @@ export function CustomerPaymentForm() {
     addCustomerPayment({ 
       ...data,
       customerName: customer.name,
-      timestamp: data.date.toISOString(),
     });
     
     toast({

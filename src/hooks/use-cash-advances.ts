@@ -15,7 +15,7 @@ export function useCashAdvances() {
       ...advance,
       timestamp: advance.date.toISOString(),
     };
-    addDoc(advanceWithTimestamp);
+    addDoc(advanceWithTimestamp as CashAdvance);
   }, [addDoc]);
   
   const deleteCashAdvance = useCallback((id: string) => {

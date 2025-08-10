@@ -15,7 +15,7 @@ export function useCustomerPayments() {
       ...payment,
       timestamp: payment.date.toISOString(),
     };
-    addDoc(paymentWithTimestamp);
+    addDoc(paymentWithTimestamp as CustomerPayment);
   }, [addDoc]);
   
   const deleteCustomerPayment = useCallback((id: string) => {
