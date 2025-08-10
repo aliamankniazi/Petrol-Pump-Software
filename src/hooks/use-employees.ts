@@ -57,16 +57,15 @@ export function useEmployees() {
    * @param {PaySalaryProps} props The salary payment details.
    */
   const paySalary = useCallback(async ({ employee, amount, postingDate, period }: PaySalaryProps) => {
-    const paymentTimestamp = postingDate.toISOString();
     const expenseDescription = `Salary for ${employee.name} for ${period}`;
 
     // Log the salary as a business expense, and tag it with the employee's ID
-    const expense: Omit<Expense, 'id' | 'date'> = {
+    const expense: Omit<Expense, 'id' | 'timestamp'> & { date: Date } = {
       description: expenseDescription,
       category: 'Salaries',
       amount: amount,
-      timestamp: paymentTimestamp,
       employeeId: employee.id!, // Explicitly link the expense to the employee
+      date: postingDate,
     };
     
     await addExpense(expense);

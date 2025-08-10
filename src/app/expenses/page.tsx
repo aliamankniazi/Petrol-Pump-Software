@@ -81,7 +81,6 @@ export default function ExpensesPage() {
   const onSubmit: SubmitHandler<ExpenseFormValues> = (data) => {
     addExpense({
       ...data,
-      timestamp: data.date.toISOString(),
     });
     toast({
       title: 'Expense Recorded',
@@ -102,11 +101,14 @@ export default function ExpensesPage() {
   };
   
   const filteredExpenses = useMemo(() => {
+    // Filter out any expenses that have an invalid timestamp first.
+    const validExpenses = expenses.filter(expense => expense.timestamp && !isNaN(new Date(expense.timestamp).getTime()));
+
     if (!selectedDateFilter) {
-      return expenses;
+      return validExpenses;
     }
-    return expenses.filter(expense => 
-      expense.timestamp && isSameDay(new Date(expense.timestamp), selectedDateFilter)
+    return validExpenses.filter(expense => 
+      isSameDay(new Date(expense.timestamp!), selectedDateFilter)
     );
   }, [expenses, selectedDateFilter]);
 
