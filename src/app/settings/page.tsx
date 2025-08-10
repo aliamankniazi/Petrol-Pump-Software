@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Settings, Trash2, AlertTriangle, Droplets, Package, Edit, Truck, UserPlus, BookText, PlusCircle, LayoutDashboard } from 'lucide-react';
+import { Settings, Trash2, AlertTriangle, Package, Edit, PlusCircle, LayoutDashboard } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,9 +23,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
-import type { Supplier, Product } from '@/lib/types';
+import type { Product } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useSettings } from '@/hooks/use-settings';
 import { useSuppliers } from '@/hooks/use-suppliers';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Link from 'next/link';
@@ -55,21 +54,12 @@ const productSchema = z.object({
 });
 type ProductFormValues = z.infer<typeof productSchema>;
 
-const supplierSchema = z.object({
-  name: z.string().min(1, 'Supplier name is required'),
-  contact: z.string().optional(),
-});
-type SupplierFormValues = z.infer<typeof supplierSchema>;
-
 
 export default function SettingsPage() {
-  const { clearAllData } = useSettings();
-  const { suppliers, addSupplier, deleteSupplier, isLoaded: suppliersLoaded } = useSuppliers();
+  const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
   const { products, addProduct, updateProduct, deleteProduct, isLoaded: productsLoaded } = useProducts();
   const { transactions } = useTransactions();
   const { toast } = useToast();
-  const [isClearDataOpen, setIsClearDataOpen] = React.useState(false);
-  const [supplierToDelete, setSupplierToDelete] = React.useState<Supplier | null>(null);
   const [productToDelete, setProductToDelete] = React.useState<Product | null>(null);
   const [productToEdit, setProductToEdit] = React.useState<Product | null>(null);
   const [showAdditionalDetails, setShowAdditionalDetails] = React.useState(false);
@@ -94,37 +84,11 @@ export default function SettingsPage() {
   
   const addSubUnit = watch('addSubUnit');
 
-  const {
-    register: registerSupplier,
-    handleSubmit: handleSubmitSupplier,
-    reset: resetSupplier,
-    formState: { errors: supplierErrors }
-  } = useForm<SupplierFormValues>({
-    resolver: zodResolver(supplierSchema)
-  });
-
-  const handleClearData = React.useCallback(async () => {
-    try {
-        await clearAllData();
-        toast({
-          title: "Data Cleared",
-          description: "All application data has been removed.",
-        });
-    } catch (error: any) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: error.message || "Failed to clear data.",
-        });
-    } finally {
-        setIsClearDataOpen(false);
-    }
-  }, [clearAllData, toast]);
 
   const onProductSubmit: SubmitHandler<ProductFormValues> = React.useCallback((data) => {
     const productData: Omit<Product, 'id' | 'timestamp'> = {
         name: data.name,
-        category: data.productGroupId || null,
+        category: data.productGroupId as any || null,
         companyId: data.companyId || null,
         productCode: data.productCode || null,
         barcode: data.barcode || null,
@@ -203,21 +167,6 @@ export default function SettingsPage() {
     setProductToDelete(null);
   }
 
-  const onSupplierSubmit: SubmitHandler<SupplierFormValues> = React.useCallback((data) => {
-    addSupplier(data);
-    toast({
-      title: 'Supplier Added',
-      description: `${data.name} has been added to your supplier list.`,
-    });
-    resetSupplier();
-  }, [addSupplier, toast, resetSupplier]);
-
-  const handleDeleteSupplier = React.useCallback(() => {
-    if (!supplierToDelete || !supplierToDelete.id) return;
-    deleteSupplier(supplierToDelete.id);
-    setSupplierToDelete(null);
-  }, [supplierToDelete, deleteSupplier]);
-
   return (
     <>
     <div className="p-4 md:p-8">
@@ -272,9 +221,9 @@ export default function SettingsPage() {
                                                 </Select>
                                             )}/>
                                             <Button type="button" variant="outline" size="icon" asChild>
-                                                <a href="#supplier-management" title="Add new company">
+                                                <Link href="/suppliers" title="Add new company">
                                                     <PlusCircle className="h-4 w-4" />
-                                                </a>
+                                                </Link>
                                             </Button>
                                         </div>
                                     </div>
@@ -430,53 +379,6 @@ export default function SettingsPage() {
           </div>
 
           <Separator />
-          
-          <div className="space-y-4" id="supplier-management">
-            <h3 className="text-lg font-medium flex items-center gap-2"><Truck /> Supplier Management</h3>
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-xl flex items-center gap-2"><UserPlus /> Add New Supplier</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleSubmitSupplier(onSupplierSubmit)} className="space-y-4">
-                        <div className="grid sm:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="supplierName">Supplier Name</Label>
-                                <Input id="supplierName" {...registerSupplier('name')} placeholder="e.g., PSO" />
-                                {supplierErrors.name && <p className="text-sm text-destructive">{supplierErrors.name.message}</p>}
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="supplierContact">Contact (Optional)</Label>
-                                <Input id="supplierContact" {...registerSupplier('contact')} placeholder="e.g., 0300-1234567" />
-                                {supplierErrors.contact && <p className="text-sm text-destructive">{supplierErrors.contact.message}</p>}
-                            </div>
-                        </div>
-                        <Button type="submit">Add Supplier</Button>
-                    </form>
-                    <Separator className="my-6" />
-                    <h4 className="text-md font-medium mb-4">Existing Suppliers</h4>
-                    <div className="rounded-md border">
-                        <Table>
-                            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Contact</TableHead><TableHead className="text-center">Actions</TableHead></TableRow></TableHeader>
-                            <TableBody>
-                                {suppliersLoaded && suppliers.length > 0 ? suppliers.map(s => (
-                                    <TableRow key={s.id}>
-                                        <TableCell className="font-medium">{s.name}</TableCell>
-                                        <TableCell>{s.contact || 'N/A'}</TableCell>
-                                        <TableCell className="text-center">
-                                            <Button asChild variant="ghost" size="icon" title="View Ledger"><Link href={`/customers/${s.id}/ledger`}><BookText className="w-5 h-5" /></Link></Button>
-                                            <Button variant="ghost" size="icon" title="Delete Supplier" onClick={() => setSupplierToDelete(s)}><Trash2 className="w-5 h-5 text-destructive" /></Button>
-                                        </TableCell>
-                                    </TableRow>
-                                )) : <TableRow><TableCell colSpan={3} className="h-24 text-center">{suppliersLoaded ? 'No suppliers added yet.' : 'Loading suppliers...'}</TableCell></TableRow>}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </CardContent>
-            </Card>
-          </div>
-
-          <Separator />
 
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Appearance</h3>
@@ -485,48 +387,9 @@ export default function SettingsPage() {
               <ThemeToggle />
             </div>
           </div>
-          
-          {/* <Separator />
-
-           <div className="space-y-4">
-            <h3 className="text-lg font-medium text-destructive">Danger Zone</h3>
-            <Card className="border-destructive">
-                <CardHeader>
-                    <CardTitle className="text-destructive">Clear All Data</CardTitle>
-                    <CardDescription>
-                        This action is irreversible. It will permanently delete all transactions, customers, products, and other records from the database.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button variant="destructive" onClick={() => setIsClearDataOpen(true)}>Clear All Application Data</Button>
-                </CardContent>
-            </Card>
-          </div> */}
         </CardContent>
       </Card>
       
-      <AlertDialog open={isClearDataOpen} onOpenChange={setIsClearDataOpen}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete all data. Please type 'DELETE' to confirm.
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleClearData}>Delete Data</AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={!!supplierToDelete} onOpenChange={(isOpen) => !isOpen && setSupplierToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone. This will permanently delete the supplier: <br /><strong className="font-medium text-foreground">{supplierToDelete?.name}</strong>. This is only possible if the supplier has no transaction history.</AlertDialogDescription></AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={handleDeleteSupplier} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Yes, delete supplier</AlertDialogAction></AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       <AlertDialog open={!!productToDelete} onOpenChange={(isOpen) => !isOpen && setProductToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
