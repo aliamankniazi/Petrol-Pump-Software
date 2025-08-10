@@ -15,7 +15,7 @@ export function usePurchaseReturns() {
   const addPurchaseReturn = useCallback((purchaseReturn: Omit<PurchaseReturn, 'id'>) => {
     const returnWithTimestamp = {
       ...purchaseReturn,
-      timestamp: purchaseReturn.timestamp || new Date().toISOString(),
+      timestamp: purchaseReturn.date.toISOString(),
     }
     addDoc(returnWithTimestamp);
 

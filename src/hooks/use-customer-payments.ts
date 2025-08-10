@@ -13,7 +13,7 @@ export function useCustomerPayments() {
   const addCustomerPayment = useCallback((payment: Omit<CustomerPayment, 'id' | 'timestamp'>) => {
     const paymentWithTimestamp = {
       ...payment,
-      timestamp: payment.date,
+      timestamp: payment.date.toISOString(),
     };
     addDoc(paymentWithTimestamp);
   }, [addDoc]);

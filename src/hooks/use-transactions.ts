@@ -19,7 +19,7 @@ export function useTransactions() {
   const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id' | 'timestamp'>): Promise<Transaction> => {
     const transactionWithTimestamp = {
       ...transaction,
-      timestamp: transaction.date,
+      timestamp: transaction.date.toISOString(),
     };
     
     const newDoc = await addDoc(transactionWithTimestamp);

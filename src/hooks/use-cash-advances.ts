@@ -13,7 +13,7 @@ export function useCashAdvances() {
   const addCashAdvance = useCallback((advance: Omit<CashAdvance, 'id' | 'timestamp'>) => {
     const advanceWithTimestamp = {
       ...advance,
-      timestamp: advance.date,
+      timestamp: advance.date.toISOString(),
     };
     addDoc(advanceWithTimestamp);
   }, [addDoc]);
@@ -29,4 +29,3 @@ export function useCashAdvances() {
     isLoaded: !loading 
   };
 }
-

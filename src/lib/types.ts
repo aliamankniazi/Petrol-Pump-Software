@@ -63,6 +63,7 @@ export interface Transaction {
   bankAccountId?: string;
   paidAmount?: number;
   expenseAmount?: number;
+  date: Date;
 }
 
 export interface PurchaseItem {
@@ -85,6 +86,7 @@ export interface Purchase {
   notes?: string;
   timestamp?: string;
   paidAmount?: number;
+  date: Date;
 }
 
 export interface PurchaseReturn {
@@ -97,6 +99,7 @@ export interface PurchaseReturn {
   totalRefund: number;
   reason: string;
   timestamp?: string;
+  date: Date;
 }
 
 export type ExpenseCategory = 'Utilities' | 'Salaries' | 'Maintenance' | 'Other';
@@ -108,6 +111,7 @@ export interface Expense {
   amount: number;
   timestamp?: string;
   employeeId?: string; // Link to employee for salary payments
+  date: Date;
 }
 
 export type OtherIncomeCategory = 'Service Station' | 'Tire Shop' | 'Tuck Shop' | 'Other';
@@ -118,6 +122,7 @@ export interface OtherIncome {
     category: OtherIncomeCategory;
     amount: number;
     timestamp?: string;
+    date: Date;
 }
 
 export interface Customer {
@@ -165,6 +170,7 @@ export interface CustomerPayment {
   paymentMethod: Extract<PaymentMethod, 'Cash' | 'Card' | 'Mobile'>;
   timestamp?: string;
   notes?: string;
+  date: Date;
 }
 
 export interface SupplierPayment {
@@ -175,6 +181,7 @@ export interface SupplierPayment {
   paymentMethod: Extract<PaymentMethod, 'Cash' | 'Card' | 'Mobile'>;
   timestamp?: string;
   isSalary?: boolean; // Custom flag to identify salary payments
+  date: Date;
 }
 
 export interface CashAdvance {
@@ -184,6 +191,7 @@ export interface CashAdvance {
   amount: number;
   notes?: string;
   timestamp?: string;
+  date: Date;
 }
 
 export interface TankReading {
@@ -202,6 +210,7 @@ export interface Investment {
   amount: number;
   notes?: string;
   timestamp?: string;
+  date: Date;
 }
 
 export type AttendanceStatus = 'Present' | 'Absent' | 'Half Day' | 'Paid Leave';

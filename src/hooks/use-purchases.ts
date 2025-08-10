@@ -19,7 +19,7 @@ export function usePurchases() {
   const addPurchase = useCallback((purchase: Omit<Purchase, 'id' | 'timestamp'>) => {
     const purchaseWithTimestamp = {
       ...purchase,
-      timestamp: purchase.date,
+      timestamp: purchase.date.toISOString(),
     }
     addDoc(purchaseWithTimestamp);
 
