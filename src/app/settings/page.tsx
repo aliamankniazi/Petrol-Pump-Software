@@ -1,172 +1,19 @@
 
+
 'use client';
 
 import * as React from 'react';
-import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { Settings, Trash2, AlertTriangle, Package, Edit, PlusCircle, LayoutDashboard } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { useToast } from '@/hooks/use-toast';
-import { Separator } from '@/components/ui/separator';
-import type { Product } from '@/lib/types';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useSuppliers } from '@/hooks/use-suppliers';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Settings, LayoutDashboard, Package } from 'lucide-react';
+
 import Link from 'next/link';
-import { useProducts } from '@/hooks/use-products';
-import { format } from 'date-fns';
-import { Switch } from '@/components/ui/switch';
-import { useTransactions } from '@/hooks/use-transactions';
-
-
-const productSchema = z.object({
-  name: z.string().min(1, "Product name is required"),
-  companyId: z.string().optional(),
-  productGroupId: z.string().optional(),
-  productCode: z.string().optional(),
-  barcode: z.string().optional(),
-
-  mainUnit: z.string().min(1, "Main unit is required."),
-  purchasePrice: z.coerce.number().min(0, "Purchase price must be non-negative"),
-  tradePrice: z.coerce.number().min(0, "Trade price must be non-negative"),
-  
-  addSubUnit: z.boolean().default(false),
-  subUnitName: z.string().optional(),
-  subUnitConversion: z.coerce.number().optional(),
-
-  initialStockMain: z.coerce.number().min(0).default(0),
-  initialStockSub: z.coerce.number().min(0).default(0),
-});
-type ProductFormValues = z.infer<typeof productSchema>;
 
 
 export default function SettingsPage() {
-  const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
-  const { products, addProduct, updateProduct, deleteProduct, isLoaded: productsLoaded } = useProducts();
-  const { transactions } = useTransactions();
-  const { toast } = useToast();
-  const [productToDelete, setProductToDelete] = React.useState<Product | null>(null);
-  const [productToEdit, setProductToEdit] = React.useState<Product | null>(null);
-  const [showAdditionalDetails, setShowAdditionalDetails] = React.useState(false);
-  const [currentDate, setCurrentDate] = React.useState('');
-
-  React.useEffect(() => {
-    setCurrentDate(format(new Date(), 'dd-MM-yyyy'));
-  }, []);
-
-
-  const {
-    register: registerProduct,
-    handleSubmit: handleSubmitProduct,
-    reset: resetProduct,
-    control: controlProduct,
-    watch,
-    setValue: setProductValue,
-    formState: { errors: productErrors }
-  } = useForm<ProductFormValues>({
-    resolver: zodResolver(productSchema)
-  });
   
-  const addSubUnit = watch('addSubUnit');
-
-
-  const onProductSubmit: SubmitHandler<ProductFormValues> = React.useCallback((data) => {
-    const productData: Omit<Product, 'id' | 'timestamp'> = {
-        name: data.name,
-        category: data.productGroupId as any || null,
-        companyId: data.companyId || null,
-        productCode: data.productCode || null,
-        barcode: data.barcode || null,
-        mainUnit: data.mainUnit,
-        purchasePrice: data.purchasePrice,
-        tradePrice: data.tradePrice,
-        stock: data.initialStockMain,
-        subUnitStock: data.initialStockSub,
-        subUnit: data.addSubUnit && data.subUnitName && data.subUnitConversion 
-            ? { name: data.subUnitName, conversionRate: data.subUnitConversion }
-            : null,
-    };
-
-    if (productToEdit) {
-      updateProduct(productToEdit.id!, productData);
-      toast({ title: 'Product Updated', description: `${productData.name} has been updated.` });
-      setProductToEdit(null);
-    } else {
-      addProduct(productData);
-      toast({ title: 'Product Added', description: `${productData.name} has been added.` });
-    }
-    resetProduct({ 
-        name: '', 
-        companyId: '', 
-        productGroupId: '', 
-        productCode: '', 
-        barcode: '',
-        mainUnit: '',
-        purchasePrice: 0,
-        tradePrice: 0,
-        addSubUnit: false,
-        subUnitName: '',
-        subUnitConversion: 0,
-        initialStockMain: 0,
-        initialStockSub: 0
-    });
-  }, [productToEdit, addProduct, updateProduct, toast, resetProduct]);
-  
-  const handleEditProduct = (product: Product) => {
-    setProductToEdit(product);
-    setProductValue('name', product.name);
-    setProductValue('companyId', product.companyId || '');
-    setProductValue('productGroupId', product.category || '');
-    setProductValue('productCode', product.productCode || '');
-    setProductValue('barcode', product.barcode || '');
-    setProductValue('mainUnit', product.mainUnit);
-    setProductValue('purchasePrice', product.purchasePrice || 0);
-    setProductValue('tradePrice', product.tradePrice || 0);
-    setProductValue('initialStockMain', product.stock || 0);
-    setProductValue('subUnitStock', product.subUnitStock || 0);
-    if (product.subUnit) {
-        setProductValue('addSubUnit', true);
-        setProductValue('subUnitName', product.subUnit.name);
-        setProductValue('subUnitConversion', product.subUnit.conversionRate);
-    } else {
-        setProductValue('addSubUnit', false);
-        setProductValue('subUnitName', '');
-        setProductValue('subUnitConversion', 0);
-    }
-  }
-
-  const handleDeleteProduct = () => {
-    if (!productToDelete || !productToDelete.id) return;
-    
-    const hasSales = transactions.some(tx => tx.items.some(item => item.productId === productToDelete.id));
-    if (hasSales) {
-        toast({
-            variant: 'destructive',
-            title: 'Deletion Prevented',
-            description: `${productToDelete.name} has been sold and cannot be deleted to preserve historical sales records.`,
-        });
-    } else {
-        deleteProduct(productToDelete.id);
-        toast({ title: 'Product Deleted', description: `${productToDelete.name} has been removed.` });
-    }
-    setProductToDelete(null);
-  }
-
   return (
     <>
     <div className="p-4 md:p-8">
@@ -183,231 +30,21 @@ export default function SettingsPage() {
           </Button>
         </CardHeader>
         <CardContent className="space-y-8">
-        
+          
           <div className="space-y-4">
-            <h3 className="text-lg font-medium flex items-center gap-2"><Package /> Product Management</h3>
-            <Card>
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <CardTitle className="text-xl flex items-center gap-2">
-                            <PlusCircle /> {productToEdit ? 'Edit Product/Service' : 'New Product/Service Registration'}
-                        </CardTitle>
-                        <span className="text-sm text-muted-foreground">Date: {currentDate}</span>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleSubmitProduct(onProductSubmit)} className="space-y-6">
-                        {/* Section 1: Core Details */}
-                        <div className="p-4 border rounded-lg">
-                           <h4 className="font-semibold text-lg mb-4">1. Core Details</h4>
-                           <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="productName">Product Name <span className="text-destructive">*</span></Label>
-                                    <Input id="productName" {...registerProduct('name')} placeholder="e.g., Organic Whole Milk" />
-                                    {productErrors.name && <p className="text-sm text-destructive">{productErrors.name.message}</p>}
-                                </div>
-                                <div className="grid md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Company/Manufacturer</Label>
-                                        <div className="flex items-center gap-2">
-                                            <Controller name="companyId" control={controlProduct} render={({ field }) => (
-                                                <Select onValueChange={field.onChange} value={field.value || ''} >
-                                                    <SelectTrigger><SelectValue placeholder="Select a company"/></SelectTrigger>
-                                                    <SelectContent>
-                                                      {suppliersLoaded ? suppliers.map(s => (
-                                                        <SelectItem key={s.id} value={s.id!}>{s.name}</SelectItem>
-                                                      )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                                                    </SelectContent>
-                                                </Select>
-                                            )}/>
-                                            <Button type="button" variant="outline" size="icon" asChild>
-                                                <Link href="/suppliers" title="Add new company">
-                                                    <PlusCircle className="h-4 w-4" />
-                                                </Link>
-                                            </Button>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Product Group</Label>
-                                        <Controller name="productGroupId" control={controlProduct} render={({ field }) => (
-                                            <Select onValueChange={field.onChange} value={field.value || ''}>
-                                                <SelectTrigger><SelectValue placeholder="Select a group"/></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem key="Fuel" value="Fuel">Fuel</SelectItem>
-                                                    <SelectItem key="Lubricant" value="Lubricant">Lubricant</SelectItem>
-                                                    <SelectItem key="Other" value="Other">Other</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        )}/>
-                                    </div>
-                                </div>
-                                <div className="flex items-center space-x-2 pt-2">
-                                    <Switch id="showAdditional" checked={showAdditionalDetails} onCheckedChange={setShowAdditionalDetails} />
-                                    <Label htmlFor="showAdditional">Show Additional Details (Code, Barcode...)</Label>
-                                </div>
-                                {showAdditionalDetails && (
-                                    <div className="grid md:grid-cols-2 gap-4 pt-2">
-                                        <div className="space-y-2">
-                                            <Label>Product Code</Label>
-                                            <Input {...registerProduct('productCode')} placeholder="e.g., SKU-123"/>
-                                        </div>
-                                         <div className="space-y-2">
-                                            <Label>Barcode</Label>
-                                            <Input {...registerProduct('barcode')} placeholder="e.g., 8964000123456"/>
-                                        </div>
-                                    </div>
-                                )}
-                           </div>
-                        </div>
-
-                        {/* Section 2: Units & Pricing */}
-                        <div className="p-4 border rounded-lg">
-                           <h4 className="font-semibold text-lg mb-4">2. Units & Pricing</h4>
-                           <div className="space-y-4">
-                                <div className="grid md:grid-cols-3 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Main Unit <span className="text-destructive">*</span></Label>
-                                        <Input {...registerProduct('mainUnit')} placeholder="e.g., Carton" />
-                                        {productErrors.mainUnit && <p className="text-sm text-destructive">{productErrors.mainUnit.message}</p>}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Purchase Price (Main Unit) <span className="text-destructive">*</span></Label>
-                                        <Input type="number" {...registerProduct('purchasePrice')} placeholder="0.00" step="any"/>
-                                        {productErrors.purchasePrice && <p className="text-sm text-destructive">{productErrors.purchasePrice.message}</p>}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Trade Price (Main Unit) <span className="text-destructive">*</span></Label>
-                                        <Input type="number" {...registerProduct('tradePrice')} placeholder="0.00" step="any"/>
-                                        {productErrors.tradePrice && <p className="text-sm text-destructive">{productErrors.tradePrice.message}</p>}
-                                    </div>
-                                </div>
-                                <div className="flex items-center space-x-2 pt-2">
-                                    <Controller name="addSubUnit" control={controlProduct} render={({ field }) => (
-                                         <Switch id="addSubUnit" checked={field.value} onCheckedChange={field.onChange} />
-                                    )} />
-                                    <Label htmlFor="addSubUnit">Add Sub Unit Details (e.g., pieces in a carton)</Label>
-                                </div>
-                                {addSubUnit && (
-                                    <div className="grid md:grid-cols-2 gap-4 pt-2">
-                                        <div className="space-y-2">
-                                            <Label>Sub Unit Name</Label>
-                                            <Input {...registerProduct('subUnitName')} placeholder="e.g., Piece"/>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Conversion (Sub Units per Main Unit)</Label>
-                                            <Input type="number" {...registerProduct('subUnitConversion')} placeholder="e.g., 12" step="any"/>
-                                        </div>
-                                    </div>
-                                )}
-                           </div>
-                        </div>
-
-                         {/* Section 3: Initial Stock */}
-                         <div className="p-4 border rounded-lg">
-                           <h4 className="font-semibold text-lg mb-4">3. Initial Stock</h4>
-                           <div className="grid md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Stock (in Main Units)</Label>
-                                    <Input type="number" {...registerProduct('initialStockMain')} placeholder="0" step="any"/>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Stock (in Sub Units)</Label>
-                                    <Input type="number" {...registerProduct('initialStockSub')} placeholder="0" disabled={!addSubUnit} step="any"/>
-                                </div>
-                           </div>
-                        </div>
-
-                        <div className="flex gap-2">
-                            <Button type="submit">{productToEdit ? 'Update Product' : 'Save Product'}</Button>
-                            <Button type="button" variant="outline" onClick={() => { setProductToEdit(null); resetProduct(); }}>
-                                {productToEdit ? 'Cancel Edit' : 'Discard/Reset'}
-                            </Button>
-                        </div>
-                    </form>
-                </CardContent>
-            </Card>
-
-            <Separator />
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Product List</CardTitle>
-                <CardDescription>View, edit, or delete existing products.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Product Name</TableHead>
-                                <TableHead>Purchase Price</TableHead>
-                                <TableHead>Trade Price</TableHead>
-                                <TableHead>Stock</TableHead>
-                                <TableHead className="text-center">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {productsLoaded && products.length > 0 ? (
-                                products.map(product => (
-                                    <TableRow key={product.id}>
-                                        <TableCell className="font-medium">{product.name}</TableCell>
-                                        <TableCell>PKR {product.purchasePrice?.toFixed(2) || 'N/A'}</TableCell>
-                                        <TableCell>PKR {product.tradePrice?.toFixed(2) || 'N/A'}</TableCell>
-                                        <TableCell>{product.stock} {product.mainUnit}(s)</TableCell>
-                                        <TableCell className="text-center">
-                                            <Button variant="ghost" size="icon" onClick={() => handleEditProduct(product)}>
-                                                <Edit className="w-4 h-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setProductToDelete(product)}>
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="h-24 text-center">
-                                        {productsLoaded ? 'No products found.' : 'Loading products...'}
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+             <div className="space-y-4">
+                <h3 className="text-lg font-medium">Appearance</h3>
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div><Label>Theme</Label><p className="text-sm text-muted-foreground">Switch between light and dark mode.</p></div>
+                  <ThemeToggle />
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Separator />
-
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Appearance</h3>
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div><Label>Theme</Label><p className="text-sm text-muted-foreground">Switch between light and dark mode.</p></div>
-              <ThemeToggle />
-            </div>
+              </div>
           </div>
         </CardContent>
       </Card>
       
-      <AlertDialog open={!!productToDelete} onOpenChange={(isOpen) => !isOpen && setProductToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the product: <br />
-              <strong className="font-medium text-foreground">{productToDelete?.name}</strong>. This is only possible if the product has no sale transaction history.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteProduct} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Yes, delete product
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
     </>
   );
 }
+

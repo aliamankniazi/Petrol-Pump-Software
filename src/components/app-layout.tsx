@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -61,6 +62,7 @@ const navItems = [
     subItems: [
         { href: '/inventory', label: 'Stock Levels', icon: Package },
         { href: '/tanks', label: 'Machine Reading', icon: Beaker },
+        { href: '/settings', label: 'Manage Products', icon: Settings },
     ]
   },
   {
@@ -161,3 +163,4 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     </SidebarProvider>
   );
 }
+
