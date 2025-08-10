@@ -1,16 +1,15 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Check, ChevronsUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { useCustomers } from '@/hooks/use-customers';
 import { useCashAdvances } from '@/hooks/use-cash-advances';
@@ -20,6 +19,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useCustomerBalance } from '@/hooks/use-customer-balance';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+
 
 const cashAdvanceSchema = z.object({
   customerId: z.string().min(1, 'Please select a customer or employee.'),
@@ -38,6 +39,7 @@ export function CashAdvanceForm() {
   const { toast } = useToast();
   
   const [isClient, setIsClient] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState('');
 
   useEffect(() => {
     setIsClient(true);
@@ -78,6 +80,12 @@ export function CashAdvanceForm() {
     const lastDate = watch('date');
     reset({ customerId: '', amount: 0, notes: '', date: lastDate });
   };
+  
+  const filteredCustomers = useMemo(() => {
+      if (!customersLoaded) return [];
+      if (!customerSearch) return customers;
+      return customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()));
+  }, [customers, customerSearch, customersLoaded]);
 
   if (!isClient) {
     return null;
@@ -86,24 +94,52 @@ export function CashAdvanceForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-xl mx-auto">
         <div className="space-y-2">
-        <Label>Customer / Employee</Label>
-        <Controller
-            name="customerId"
-            control={control}
-            render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value} defaultValue="">
-                <SelectTrigger>
-                <SelectValue placeholder="Select a person" />
-                </SelectTrigger>
-                <SelectContent>
-                {customersLoaded ? customers.map(c => (
-                    <SelectItem key={c.id} value={c.id!}>{c.name}</SelectItem>
-                )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                </SelectContent>
-            </Select>
-            )}
-        />
-        {errors.customerId && <p className="text-sm text-destructive">{errors.customerId.message}</p>}
+            <Label>Customer / Employee</Label>
+            <Controller
+                name="customerId"
+                control={control}
+                render={({ field }) => (
+                <Popover>
+                    <PopoverTrigger asChild>
+                    <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
+                    >
+                        {field.value
+                        ? customers.find((c) => c.id === field.value)?.name
+                        : "Select a person"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                        <CommandInput placeholder="Search person..." onValueChange={setCustomerSearch} />
+                        <CommandList>
+                            <CommandEmpty>No person found.</CommandEmpty>
+                            <CommandGroup>
+                                {filteredCustomers.map((c) => (
+                                <CommandItem
+                                    value={c.id!}
+                                    key={c.id}
+                                    onSelect={() => {
+                                        field.onChange(c.id);
+                                    }}
+                                >
+                                    <Check
+                                    className={cn("mr-2 h-4 w-4", c.id === field.value ? "opacity-100" : "opacity-0")}
+                                    />
+                                    {c.name}
+                                </CommandItem>
+                                ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                    </PopoverContent>
+                </Popover>
+                )}
+            />
+            {errors.customerId && <p className="text-sm text-destructive">{errors.customerId.message}</p>}
         </div>
 
         {watchedCustomerId && (
