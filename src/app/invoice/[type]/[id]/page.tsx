@@ -16,6 +16,10 @@ import { useProducts } from '@/hooks/use-products';
 import { useCustomerBalance } from '@/hooks/use-customer-balance';
 import { useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useCustomerPayments } from '@/hooks/use-customer-payments';
+import { useCashAdvances } from '@/hooks/use-cash-advances';
+import type { LedgerEntry } from '@/lib/types';
+
 
 export default function InvoicePage() {
   const params = useParams();
@@ -28,8 +32,11 @@ export default function InvoicePage() {
   const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
   const { bankAccounts, isLoaded: bankAccountsLoaded } = useBankAccounts();
   const { products, isLoaded: productsLoaded } = useProducts();
+  const { customerPayments, isLoaded: paymentsLoaded } = useCustomerPayments();
+  const { cashAdvances, isLoaded: advancesLoaded } = useCashAdvances();
 
-  const isLoaded = transactionsLoaded && purchasesLoaded && customersLoaded && suppliersLoaded && bankAccountsLoaded && productsLoaded;
+
+  const isLoaded = transactionsLoaded && purchasesLoaded && customersLoaded && suppliersLoaded && bankAccountsLoaded && productsLoaded && paymentsLoaded && advancesLoaded;
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -54,16 +61,47 @@ export default function InvoicePage() {
         const customer = transaction.customerId ? customers.find(c => c.id === transaction.customerId) : null;
         const bankAccount = transaction.bankAccountId ? bankAccounts.find(b => b.id === transaction.bankAccountId) : null;
         
-        const recentTransactions = customer ? transactions
-          .filter(tx => tx.customerId === customer.id)
-          .sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime())
-          .slice(0, 5)
-          .map(tx => ({
-            id: tx.id!,
-            date: tx.timestamp!,
-            type: tx.items.length > 0 ? 'Sale' : 'Payment',
-            amount: tx.totalAmount,
-          })) : [];
+        let recentLedger: LedgerEntry[] = [];
+        if (customer) {
+            const combined: Omit<LedgerEntry, 'balance'>[] = [];
+            const customerTransactions = transactions.filter(tx => tx.customerId === customer.id && tx.timestamp);
+            const customerPaymentsReceived = customerPayments.filter(p => p.customerId === customer.id && p.timestamp);
+            const customerCashAdvances = cashAdvances.filter(ca => ca.customerId === customer.id && ca.timestamp);
+
+            customerTransactions.forEach(tx => combined.push({
+                id: `tx-${tx.id}`,
+                timestamp: tx.timestamp!,
+                description: 'Sale',
+                type: 'Sale',
+                debit: tx.totalAmount,
+                credit: 0,
+            }));
+            customerPaymentsReceived.forEach(p => combined.push({
+                id: `pay-${p.id}`,
+                timestamp: p.timestamp!,
+                description: 'Payment',
+                type: 'Payment',
+                debit: 0,
+                credit: p.amount,
+            }));
+            customerCashAdvances.forEach(ca => combined.push({
+                id: `adv-${ca.id}`,
+                timestamp: ca.timestamp!,
+                description: 'Cash Advance',
+                type: 'Cash Advance',
+                debit: ca.amount,
+                credit: 0,
+            }));
+
+            combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+            
+            let runningBalance = 0;
+            const entriesWithBalance: LedgerEntry[] = combined.map(entry => {
+                runningBalance += entry.debit - entry.credit;
+                return { ...entry, balance: runningBalance };
+            });
+            recentLedger = entriesWithBalance.slice(-10);
+        }
 
         return {
           type: 'Sale',
@@ -87,7 +125,7 @@ export default function InvoicePage() {
           totalAmount: transaction.totalAmount,
           paymentMethod: transaction.paymentMethod,
           bankDetails: bankAccount ? { name: bankAccount.bankName, number: bankAccount.accountNumber } : undefined,
-          recentTransactions: recentTransactions,
+          recentTransactions: recentLedger,
         };
       }
     } else if (type === 'purchase') {
@@ -120,7 +158,7 @@ export default function InvoicePage() {
       }
     }
     return null;
-  }, [isLoaded, type, id, transactions, purchases, customers, suppliers, bankAccounts, products]);
+  }, [isLoaded, type, id, transactions, purchases, customers, suppliers, bankAccounts, products, customerPayments, cashAdvances]);
 
   return (
     <div className="bg-gray-100 dark:bg-gray-800 min-h-screen p-4 sm:p-8">

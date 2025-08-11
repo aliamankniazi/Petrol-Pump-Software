@@ -4,6 +4,7 @@
 
 import { format } from 'date-fns';
 import numWords from 'num-words';
+import type { LedgerEntry } from '@/lib/types';
 
 interface InvoiceItem {
   name: string;
@@ -11,13 +12,6 @@ interface InvoiceItem {
   quantity: number;
   price: number;
   amount: number;
-}
-
-interface RecentTransaction {
-    id: string;
-    date: string;
-    type: string;
-    amount: number;
 }
 
 interface InvoiceData {
@@ -37,7 +31,7 @@ interface InvoiceData {
     name: string;
     number: string;
   }
-  recentTransactions?: RecentTransaction[];
+  recentTransactions?: LedgerEntry[];
 }
 
 const companyDetails = {
@@ -156,22 +150,26 @@ export function Invoice({ data }: { data: InvoiceData }) {
                 <p>Thanks for doing business with us!</p>
             </div>
             {data.recentTransactions && data.recentTransactions.length > 0 && (
-                <div className="print:hidden">
+                <div className="print-only">
                     <h3 className="font-semibold text-gray-500 mb-1">Recent History</h3>
                     <table className="w-full text-xs">
                         <thead>
                             <tr className="bg-gray-50">
                                 <th className="p-1 text-left font-medium">Date</th>
                                 <th className="p-1 text-left font-medium">Type</th>
-                                <th className="p-1 text-right font-medium">Amount</th>
+                                <th className="p-1 text-right font-medium">Sale</th>
+                                <th className="p-1 text-right font-medium">Paid</th>
+                                <th className="p-1 text-right font-medium">Balance</th>
                             </tr>
                         </thead>
                         <tbody>
                             {data.recentTransactions.map(tx => (
                                 <tr key={tx.id} className="border-b">
-                                    <td className="p-1">{format(new Date(tx.date), 'dd-MM-yy')}</td>
+                                    <td className="p-1">{format(new Date(tx.timestamp), 'dd-MM-yy')}</td>
                                     <td className="p-1">{tx.type}</td>
-                                    <td className="p-1 text-right">{tx.amount.toFixed(2)}</td>
+                                    <td className="p-1 text-right">{tx.debit > 0 ? tx.debit.toFixed(2) : '-'}</td>
+                                    <td className="p-1 text-right">{tx.credit > 0 ? tx.credit.toFixed(2) : '-'}</td>
+                                    <td className="p-1 text-right font-semibold">{tx.balance.toFixed(2)}</td>
                                 </tr>
                             ))}
                         </tbody>

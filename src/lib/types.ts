@@ -1,5 +1,15 @@
 
 
+export interface LedgerEntry {
+  id: string;
+  timestamp: string;
+  description: string;
+  type: 'Sale' | 'Payment' | 'Cash Advance' | 'Purchase' | 'Supplier Payment' | 'Investment' | 'Withdrawal' | 'Salary';
+  debit: number;
+  credit: number;
+  balance: number;
+};
+
 // A more specific type for sale items, which may have different properties than purchase items
 export interface SaleItem {
     productId: string;
