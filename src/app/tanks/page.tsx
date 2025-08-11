@@ -8,10 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Fuel, List, PlusCircle, Calendar as CalendarIcon, Beaker, LayoutDashboard } from 'lucide-react';
+import { Fuel, List, PlusCircle, Calendar as CalendarIcon, Beaker, LayoutDashboard, ChevronsUpDown, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTankReadings } from '@/hooks/use-tank-readings';
 import { useProducts } from '@/hooks/use-products';
@@ -20,6 +19,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 const tankReadingSchema = z.object({
   productId: z.string().min(1, 'Please select a tank.'),
@@ -37,12 +37,18 @@ export default function TankManagementPage() {
   const { toast } = useToast();
   
   const [isClient, setIsClient] = useState(false);
+  const [productSearch, setProductSearch] = useState('');
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
   const fuelProducts = useMemo(() => products.filter(p => p.category === 'Fuel'), [products]);
+
+  const filteredProducts = useMemo(() => {
+    if (!productSearch) return fuelProducts;
+    return fuelProducts.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
+  }, [fuelProducts, productSearch]);
 
   const { register, handleSubmit, control, reset, formState: { errors }, watch, setValue } = useForm<TankReadingFormValues>({
     resolver: zodResolver(tankReadingSchema),
@@ -115,16 +121,30 @@ export default function TankManagementPage() {
                   name="productId"
                   control={control}
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue="">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a tank" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {productsLoaded ? fuelProducts.map(fuel => (
-                          <SelectItem key={fuel.id} value={fuel.id}>{fuel.name} Tank</SelectItem>
-                        )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                      </SelectContent>
-                    </Select>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" role="combobox" className="w-full justify-between">
+                                {field.value ? fuelProducts.find(p => p.id === field.value)?.name : "Select a tank"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                            <Command>
+                                <CommandInput placeholder="Search tank..." onValueChange={setProductSearch} />
+                                <CommandList>
+                                    <CommandEmpty>No tank found.</CommandEmpty>
+                                    <CommandGroup>
+                                        {filteredProducts.map(p => (
+                                            <CommandItem key={p.id} value={p.id!} onSelect={currentValue => field.onChange(currentValue === field.value ? "" : currentValue)}>
+                                                <Check className={cn("mr-2 h-4 w-4", field.value === p.id ? "opacity-100" : "opacity-0")} />
+                                                {p.name} Tank
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
                   )}
                 />
                 {errors.productId && <p className="text-sm text-destructive">{errors.productId.message}</p>}
@@ -223,5 +243,3 @@ export default function TankManagementPage() {
     </div>
   );
 }
-
-    

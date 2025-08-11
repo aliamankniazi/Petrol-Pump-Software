@@ -8,10 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Undo2, PackageMinus, ListRestart, Calendar as CalendarIcon, LayoutDashboard } from 'lucide-react';
+import { Undo2, PackageMinus, ListRestart, Calendar as CalendarIcon, LayoutDashboard, ChevronsUpDown, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,9 +18,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useSuppliers } from '@/hooks/use-suppliers';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useProducts } from '@/hooks/use-products';
 import Link from 'next/link';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 const purchaseReturnSchema = z.object({
   supplierId: z.string().min(1, 'Please select a supplier.'),
@@ -43,10 +43,22 @@ export default function PurchaseReturnsPage() {
   const { toast } = useToast();
   
   const [isClient, setIsClient] = useState(false);
+  const [supplierSearch, setSupplierSearch] = useState('');
+  const [productSearch, setProductSearch] = useState('');
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+  
+  const filteredSuppliers = useMemo(() => {
+    if (!supplierSearch) return suppliers;
+    return suppliers.filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase()));
+  }, [suppliers, supplierSearch]);
+
+  const filteredProducts = useMemo(() => {
+    if (!productSearch) return products;
+    return products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
+  }, [products, productSearch]);
 
   const { register, handleSubmit, reset, setValue, control, formState: { errors }, watch } = useForm<PurchaseReturnFormValues>({
     resolver: zodResolver(purchaseReturnSchema),
@@ -130,16 +142,30 @@ export default function PurchaseReturnsPage() {
                   name="supplierId"
                   control={control}
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue="">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a supplier" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {suppliersLoaded ? suppliers.map(s => (
-                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                        )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                      </SelectContent>
-                    </Select>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" role="combobox" className="w-full justify-between">
+                                {field.value ? suppliers.find(s => s.id === field.value)?.name : "Select a supplier"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                            <Command>
+                                <CommandInput placeholder="Search supplier..." onValueChange={setSupplierSearch} />
+                                <CommandList>
+                                    <CommandEmpty>No supplier found.</CommandEmpty>
+                                    <CommandGroup>
+                                        {filteredSuppliers.map(s => (
+                                            <CommandItem key={s.id} value={s.id!} onSelect={currentValue => field.onChange(currentValue === field.value ? "" : currentValue)}>
+                                                <Check className={cn("mr-2 h-4 w-4", field.value === s.id ? "opacity-100" : "opacity-0")} />
+                                                {s.name}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
                   )}
                 />
                 {errors.supplierId && <p className="text-sm text-destructive">{errors.supplierId.message}</p>}
@@ -151,16 +177,30 @@ export default function PurchaseReturnsPage() {
                   name="productId"
                   control={control}
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue="">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a product" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {productsLoaded ? products.map(p => (
-                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                        )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                      </SelectContent>
-                    </Select>
+                     <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" role="combobox" className="w-full justify-between">
+                                {field.value ? products.find(p => p.id === field.value)?.name : "Select a product"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                            <Command>
+                                <CommandInput placeholder="Search product..." onValueChange={setProductSearch} />
+                                <CommandList>
+                                    <CommandEmpty>No product found.</CommandEmpty>
+                                    <CommandGroup>
+                                        {filteredProducts.map(p => (
+                                            <CommandItem key={p.id} value={p.id!} onSelect={currentValue => field.onChange(currentValue === field.value ? "" : currentValue)}>
+                                                <Check className={cn("mr-2 h-4 w-4", field.value === p.id ? "opacity-100" : "opacity-0")} />
+                                                {p.name}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
                   )}
                 />
                 {errors.productId && <p className="text-sm text-destructive">{errors.productId.message}</p>}

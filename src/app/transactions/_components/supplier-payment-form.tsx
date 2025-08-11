@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Wallet, CreditCard, Smartphone, Calendar as CalendarIcon } from 'lucide-react';
+import { Wallet, CreditCard, Smartphone, Calendar as CalendarIcon, ChevronsUpDown, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { useSupplierPayments } from '@/hooks/use-supplier-payments';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { useSuppliers } from '@/hooks/use-suppliers';
 import { useSupplierBalance } from '@/hooks/use-supplier-balance';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 const supplierPaymentSchema = z.object({
   supplierId: z.string().min(1, 'Please select a supplier.'),
@@ -37,10 +38,16 @@ export function SupplierPaymentForm() {
   const { toast } = useToast();
 
   const [isClient, setIsClient] = useState(false);
+  const [supplierSearch, setSupplierSearch] = useState('');
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const filteredSuppliers = useMemo(() => {
+    if (!supplierSearch) return suppliers;
+    return suppliers.filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase()));
+  }, [suppliers, supplierSearch]);
 
   const { register, handleSubmit, control, reset, formState: { errors }, watch, setValue } = useForm<SupplierPaymentFormValues>({
     resolver: zodResolver(supplierPaymentSchema),
@@ -91,16 +98,30 @@ export function SupplierPaymentForm() {
             name="supplierId"
             control={control}
             render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value} defaultValue="">
-                <SelectTrigger>
-                <SelectValue placeholder="Select a supplier" />
-                </SelectTrigger>
-                <SelectContent>
-                {suppliersLoaded ? suppliers.map(s => (
-                    <SelectItem key={s.id} value={s.id!}>{s.name}</SelectItem>
-                )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                </SelectContent>
-            </Select>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" role="combobox" className="w-full justify-between">
+                            {field.value ? suppliers.find(s => s.id === field.value)?.name : "Select a supplier"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command>
+                            <CommandInput placeholder="Search supplier..." onValueChange={setSupplierSearch} />
+                            <CommandList>
+                                <CommandEmpty>No supplier found.</CommandEmpty>
+                                <CommandGroup>
+                                    {filteredSuppliers.map(s => (
+                                        <CommandItem key={s.id} value={s.id!} onSelect={currentValue => field.onChange(currentValue === field.value ? "" : currentValue)}>
+                                            <Check className={cn("mr-2 h-4 w-4", field.value === s.id ? "opacity-100" : "opacity-0")} />
+                                            {s.name}
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            </CommandList>
+                        </Command>
+                    </PopoverContent>
+                </Popover>
             )}
         />
         {errors.supplierId && <p className="text-sm text-destructive">{errors.supplierId.message}</p>}

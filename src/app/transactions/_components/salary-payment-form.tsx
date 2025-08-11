@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar as CalendarIcon, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
+import { Calendar as CalendarIcon, Wallet, TrendingUp, TrendingDown, ChevronsUpDown, Check } from 'lucide-react';
 import { format, getMonth, setMonth, getDaysInMonth } from 'date-fns';
 import { useEmployees } from '@/hooks/use-employees';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -17,6 +17,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import type { Employee } from '@/lib/types';
 import { useAttendance } from '@/hooks/use-attendance';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 const salaryPaymentSchema = z.object({
   employeeId: z.string().min(1, 'Please select an employee.'),
@@ -40,7 +41,13 @@ export function SalaryPaymentForm() {
   const { toast } = useToast();
   
   const [isClient, setIsClient] = useState(false);
+  const [employeeSearch, setEmployeeSearch] = useState('');
   useEffect(() => { setIsClient(true); }, []);
+  
+  const filteredEmployees = useMemo(() => {
+    if (!employeeSearch) return employees;
+    return employees.filter(e => e.name.toLowerCase().includes(employeeSearch.toLowerCase()));
+  }, [employees, employeeSearch]);
 
   const { control, handleSubmit, watch, reset, setValue } = useForm<SalaryPaymentFormValues>({
     resolver: zodResolver(salaryPaymentSchema),
@@ -126,14 +133,30 @@ export function SalaryPaymentForm() {
                 name="employeeId"
                 control={control}
                 render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value} defaultValue="">
-                    <SelectTrigger><SelectValue placeholder="Select an employee" /></SelectTrigger>
-                    <SelectContent>
-                    {employeesLoaded ? employees.map(e => (
-                        <SelectItem key={e.id} value={e.id!}>{e.name}</SelectItem>
-                    )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                    </SelectContent>
-                </Select>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" role="combobox" className="w-full justify-between">
+                                {field.value ? employees.find(e => e.id === field.value)?.name : "Select an employee"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                            <Command>
+                                <CommandInput placeholder="Search employee..." onValueChange={setEmployeeSearch} />
+                                <CommandList>
+                                    <CommandEmpty>No employee found.</CommandEmpty>
+                                    <CommandGroup>
+                                        {filteredEmployees.map(e => (
+                                            <CommandItem key={e.id} value={e.id!} onSelect={currentValue => field.onChange(currentValue === field.value ? "" : currentValue)}>
+                                                <Check className={cn("mr-2 h-4 w-4", field.value === e.id ? "opacity-100" : "opacity-0")} />
+                                                {e.name}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
                 )}
             />
         </div>

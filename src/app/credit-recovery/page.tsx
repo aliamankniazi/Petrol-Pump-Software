@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCustomers } from '@/hooks/use-customers';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
@@ -15,10 +14,11 @@ import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, FileText, Printer, Search, LayoutDashboard } from 'lucide-react';
+import { Calendar as CalendarIcon, FileText, Printer, Search, LayoutDashboard, ChevronsUpDown, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Customer } from '@/lib/types';
 import Link from 'next/link';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -54,8 +54,14 @@ export default function CreditRecoveryPage() {
         to: new Date(),
     });
     const [searchTerm, setSearchTerm] = useState('');
+    const [customerSearch, setCustomerSearch] = useState('');
 
     const isDataLoaded = customersLoaded && txLoaded && paymentsLoaded && advancesLoaded;
+
+    const filteredCustomers = useMemo(() => {
+        if (!customerSearch) return customers;
+        return customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()));
+    }, [customers, customerSearch]);
 
     const reportData = useMemo(() => {
         if (!isDataLoaded) return [];
@@ -149,15 +155,51 @@ Mianwali Petroleum Service`;
                     <div className="bg-muted p-4 rounded-lg flex flex-col md:flex-row items-center gap-4">
                         <div className="w-full md:w-auto flex-1">
                             <label className="text-sm font-medium">Customer</label>
-                            <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a customer" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Customers</SelectItem>
-                                    {customers.map(c => <SelectItem key={c.id} value={c.id!}>{c.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    className="w-full justify-between"
+                                    >
+                                    {selectedCustomerId !== 'all' && customersLoaded
+                                        ? customers.find((c) => c.id === selectedCustomerId)?.name
+                                        : "All Customers"}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                    <Command>
+                                        <CommandInput placeholder="Search customer..." onValueChange={setCustomerSearch}/>
+                                        <CommandList>
+                                            <CommandEmpty>No customer found.</CommandEmpty>
+                                            <CommandGroup>
+                                            <CommandItem value="all" onSelect={() => setSelectedCustomerId('all')}>
+                                                <Check className={cn("mr-2 h-4 w-4", selectedCustomerId === 'all' ? "opacity-100" : "opacity-0")}/>
+                                                All Customers
+                                            </CommandItem>
+                                            {filteredCustomers.map((c) => (
+                                                <CommandItem
+                                                key={c.id}
+                                                value={c.id!}
+                                                onSelect={(currentValue) => {
+                                                    setSelectedCustomerId(currentValue === selectedCustomerId ? 'all' : currentValue)
+                                                }}
+                                                >
+                                                <Check
+                                                    className={cn(
+                                                    "mr-2 h-4 w-4",
+                                                    selectedCustomerId === c.id ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                />
+                                                {c.name}
+                                                </CommandItem>
+                                            ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
                         </div>
                          <div className="w-full md:w-auto flex-1">
                             <label className="text-sm font-medium">Date Range</label>

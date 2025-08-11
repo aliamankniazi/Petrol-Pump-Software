@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Wallet, CreditCard, Smartphone, Calendar as CalendarIcon } from 'lucide-react';
+import { Wallet, CreditCard, Smartphone, Calendar as CalendarIcon, ChevronsUpDown, Check } from 'lucide-react';
 import type { PaymentMethod } from '@/lib/types';
 import { format } from 'date-fns';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { useCustomers } from '@/hooks/use-customers';
 import { useCustomerBalance } from '@/hooks/use-customer-balance';
 import { Textarea } from '@/components/ui/textarea';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 const paymentSchema = z.object({
   customerId: z.string().min(1, 'Please select a customer.'),
@@ -40,10 +41,16 @@ export function CustomerPaymentForm() {
   const { toast } = useToast();
   
   const [isClient, setIsClient] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState('');
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const filteredCustomers = useMemo(() => {
+    if (!customerSearch) return customers;
+    return customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()));
+  }, [customers, customerSearch]);
 
   const { register, handleSubmit, control, reset, formState: { errors }, watch, setValue } = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
@@ -95,16 +102,30 @@ export function CustomerPaymentForm() {
                 name="customerId"
                 control={control}
                 render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value} defaultValue="">
-                    <SelectTrigger>
-                    <SelectValue placeholder="Select a customer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                    {customersLoaded ? customers.map(c => (
-                        <SelectItem key={c.id} value={c.id!}>{c.name}</SelectItem>
-                    )) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                    </SelectContent>
-                </Select>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button variant="outline" role="combobox" className="w-full justify-between">
+                            {field.value ? customers.find(c => c.id === field.value)?.name : "Select a customer"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command>
+                            <CommandInput placeholder="Search customer..." onValueChange={setCustomerSearch}/>
+                            <CommandList>
+                                <CommandEmpty>No customer found.</CommandEmpty>
+                                <CommandGroup>
+                                    {filteredCustomers.map(c => (
+                                        <CommandItem key={c.id} value={c.id!} onSelect={currentValue => field.onChange(currentValue === field.value ? "" : currentValue)}>
+                                            <Check className={cn("mr-2 h-4 w-4", field.value === c.id ? "opacity-100" : "opacity-0")} />
+                                            {c.name}
+                                        </CommandItem>
+                                    ))}
+                                </CommandGroup>
+                            </CommandList>
+                        </Command>
+                    </PopoverContent>
+                </Popover>
                 )}
             />
             {errors.customerId && <p className="text-sm text-destructive">{errors.customerId.message}</p>}

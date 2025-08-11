@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { PiggyBank, PlusCircle, List, TrendingUp, TrendingDown, Calendar as CalendarIcon, Users, Percent, Edit, Trash2, AlertTriangle, BookText, Phone, LayoutDashboard } from 'lucide-react';
+import { PiggyBank, PlusCircle, List, TrendingUp, TrendingDown, Calendar as CalendarIcon, Users, Percent, Edit, Trash2, AlertTriangle, BookText, Phone, LayoutDashboard, ChevronsUpDown, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { useInvestments } from '@/hooks/use-investments';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,6 +24,7 @@ import { useCustomers } from '@/hooks/use-customers';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import type { Investment } from '@/lib/types';
 import Link from 'next/link';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 
 const investmentSchema = z.object({
@@ -44,12 +45,18 @@ export default function InvestmentsPage() {
   const [transactionToDelete, setTransactionToDelete] = useState<Investment | null>(null);
   
   const [isClient, setIsClient] = useState(false);
+  const [partnerSearch, setPartnerSearch] = useState('');
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
   const businessPartners = useMemo(() => customers.filter(c => c.isPartner), [customers]);
+
+  const filteredPartners = useMemo(() => {
+    if (!partnerSearch) return businessPartners;
+    return businessPartners.filter(p => p.name.toLowerCase().includes(partnerSearch.toLowerCase()));
+  }, [businessPartners, partnerSearch]);
 
   // Form for new investments/withdrawals
   const { register: registerInvestment, handleSubmit: handleSubmitInvestment, reset: resetInvestment, control: controlInvestment, formState: { errors: investmentErrors }, watch, setValue } = useForm<InvestmentFormValues>({
@@ -211,16 +218,47 @@ export default function InvestmentsPage() {
                   name="partnerId"
                   control={controlInvestment}
                   render={({ field }) => (
-                     <Select onValueChange={field.onChange} value={field.value} defaultValue="">
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select a partner" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {partnersLoaded ? businessPartners.map(p => (
-                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                            )) : <SelectItem value="loading" disabled>Loading partners...</SelectItem>}
-                        </SelectContent>
-                    </Select>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-full justify-between"
+                            >
+                            {field.value
+                                ? businessPartners.find((p) => p.id === field.value)?.name
+                                : "Select a partner"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                            <Command>
+                                <CommandInput placeholder="Search partner..." onValueChange={setPartnerSearch}/>
+                                <CommandList>
+                                    <CommandEmpty>No partner found.</CommandEmpty>
+                                    <CommandGroup>
+                                    {filteredPartners.map((p) => (
+                                        <CommandItem
+                                        key={p.id}
+                                        value={p.id!}
+                                        onSelect={(currentValue) => {
+                                            field.onChange(currentValue === field.value ? "" : currentValue)
+                                        }}
+                                        >
+                                        <Check
+                                            className={cn(
+                                            "mr-2 h-4 w-4",
+                                            field.value === p.id ? "opacity-100" : "opacity-0"
+                                            )}
+                                        />
+                                        {p.name}
+                                        </CommandItem>
+                                    ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
                   )}
                 />
                 {investmentErrors.partnerId && <p className="text-sm text-destructive">{investmentErrors.partnerId.message}</p>}
