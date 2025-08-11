@@ -307,7 +307,7 @@ export default function PurchasesPage() {
                                             {filteredProducts.map((p) => (
                                                 <CommandItem
                                                 key={p.id}
-                                                value={p.id}
+                                                value={p.id!}
                                                 onSelect={(currentValue) => {
                                                     handleCurrentProductChange(currentValue === currentItem.productId ? 'placeholder' : currentValue)
                                                 }}
@@ -434,7 +434,7 @@ export default function PurchasesPage() {
                                                     {filteredSuppliers.map((s) => (
                                                         <CommandItem
                                                             key={s.id}
-                                                            value={s.id}
+                                                            value={s.id!}
                                                             onSelect={(currentValue) => {
                                                                 field.onChange(currentValue === field.value ? '' : currentValue)
                                                             }}

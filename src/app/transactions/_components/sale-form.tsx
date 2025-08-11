@@ -297,14 +297,14 @@ export function SaleForm() {
                             </PopoverTrigger>
                             <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                 <Command>
-                                <CommandInput placeholder="Search product..." onValueChange={setProductSearch}/>
+                                <CommandInput placeholder="Search product..." onValueChange={setProductSearch} />
                                 <CommandList>
                                     <CommandEmpty>No product found.</CommandEmpty>
                                     <CommandGroup>
                                     {filteredProducts.map((p) => (
                                         <CommandItem
                                         key={p.id}
-                                        value={p.id}
+                                        value={p.id!}
                                         onSelect={(currentValue) => {
                                             handleCurrentProductChange(currentValue === currentItem.productId ? 'placeholder' : currentValue)
                                         }}
