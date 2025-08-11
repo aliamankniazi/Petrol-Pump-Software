@@ -67,18 +67,32 @@ export default function LedgerPage() {
     if (!isLoaded) return { entries: [], finalBalance: 0, openingBalance: 0, totals: { debit: 0, credit: 0 } };
 
     let combined: Omit<LedgerEntry, 'balance'>[] = [];
-
-    // DEBITS (Money Out or Asset Increase)
-    // All sales are debits (either to Accounts Receivable or Cash)
-    transactions.forEach(tx => combined.push({
-      id: `tx-${tx.id}`,
-      timestamp: tx.timestamp!,
-      description: `Sale to ${tx.customerName || 'Walk-in'}: ${tx.items.length} item(s) ${tx.notes ? `- ${tx.notes}` : ''}`,
-      type: 'Sale',
-      debit: tx.totalAmount, // All sales are a debit
-      credit: 0,
-    }));
     
+    // Process transactions based on user's requested logic
+    transactions.forEach(tx => {
+        if (tx.paymentMethod === 'On Credit') {
+            // "On Credit" sales are DEBIT
+            combined.push({
+                id: `tx-${tx.id}`,
+                timestamp: tx.timestamp!,
+                description: `Sale to ${tx.customerName || 'Walk-in'}: ${tx.items.length} item(s) ${tx.notes ? `- ${tx.notes}` : ''}`,
+                type: 'Sale',
+                debit: tx.totalAmount,
+                credit: 0,
+            });
+        } else {
+            // "Cash", "Card", "Mobile" sales are CREDIT
+            combined.push({
+                id: `tx-${tx.id}`,
+                timestamp: tx.timestamp!,
+                description: `Sale to ${tx.customerName || 'Walk-in'}: ${tx.items.length} item(s) ${tx.notes ? `- ${tx.notes}` : ''}`,
+                type: 'Sale',
+                debit: 0,
+                credit: tx.totalAmount,
+            });
+        }
+    });
+
     expenses.forEach(e => combined.push({
       id: `exp-${e.id}`,
       timestamp: e.timestamp!,
@@ -225,7 +239,7 @@ export default function LedgerPage() {
   };
   
   const isCreditEntry = (type: LedgerEntry['type']) => {
-    return ['Purchase', 'Purchase Return', 'Other Income', 'Investment', 'Customer Payment'].includes(type);
+    return ['Purchase', 'Purchase Return', 'Other Income', 'Investment', 'Customer Payment', 'Sale'].includes(type);
   }
   
   const handleDeleteEntry = () => {
