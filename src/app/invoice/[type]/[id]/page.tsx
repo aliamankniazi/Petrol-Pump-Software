@@ -13,6 +13,8 @@ import { useCustomers } from '@/hooks/use-customers';
 import { useSuppliers } from '@/hooks/use-suppliers';
 import { useBankAccounts } from '@/hooks/use-bank-accounts';
 import { useProducts } from '@/hooks/use-products';
+import { useCustomerBalance } from '@/hooks/use-customer-balance';
+import { useMemo } from 'react';
 
 export default function InvoicePage() {
   const params = useParams();
@@ -25,25 +27,36 @@ export default function InvoicePage() {
   const { bankAccounts, isLoaded: bankAccountsLoaded } = useBankAccounts();
   const { products, isLoaded: productsLoaded } = useProducts();
 
-
   const isLoaded = transactionsLoaded && purchasesLoaded && customersLoaded && suppliersLoaded && bankAccountsLoaded && productsLoaded;
 
-  let invoiceData = null;
+  const invoiceData = useMemo(() => {
+    if (!isLoaded) return null;
 
-  if (isLoaded) {
     if (type === 'sale') {
       const transaction = transactions.find(t => t.id === id);
       if (transaction) {
         const customer = transaction.customerId ? customers.find(c => c.id === transaction.customerId) : null;
         const bankAccount = transaction.bankAccountId ? bankAccounts.find(b => b.id === transaction.bankAccountId) : null;
-        invoiceData = {
+        
+        const recentTransactions = customer ? transactions
+          .filter(tx => tx.customerId === customer.id)
+          .sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime())
+          .slice(0, 5)
+          .map(tx => ({
+            id: tx.id!,
+            date: tx.timestamp!,
+            type: tx.items.length > 0 ? 'Sale' : 'Payment',
+            amount: tx.totalAmount,
+          })) : [];
+
+        return {
           type: 'Sale',
           id: transaction.id!,
           date: transaction.timestamp!,
           partner: {
             name: transaction.customerName || 'Walk-in Customer',
             contact: customer?.contact || 'N/A',
-            balance: 0, // Note: Balance calculation would be complex here, so keeping it simple.
+            balance: 0, 
           },
           items: transaction.items.map(item => {
             const product = products.find(p => p.id === item.productId);
@@ -58,13 +71,14 @@ export default function InvoicePage() {
           totalAmount: transaction.totalAmount,
           paymentMethod: transaction.paymentMethod,
           bankDetails: bankAccount ? { name: bankAccount.bankName, number: bankAccount.accountNumber } : undefined,
+          recentTransactions: recentTransactions,
         };
       }
     } else if (type === 'purchase') {
       const purchase = purchases.find(p => p.id === id);
       if (purchase) {
         const supplier = suppliers.find(s => s.id === purchase.supplierId);
-        invoiceData = {
+        return {
           type: 'Purchase',
           id: purchase.id!,
           date: purchase.timestamp!,
@@ -89,7 +103,8 @@ export default function InvoicePage() {
         };
       }
     }
-  }
+    return null;
+  }, [isLoaded, type, id, transactions, purchases, customers, suppliers, bankAccounts, products]);
 
   return (
     <div className="bg-gray-100 dark:bg-gray-800 min-h-screen p-4 sm:p-8">

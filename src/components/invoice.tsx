@@ -13,6 +13,13 @@ interface InvoiceItem {
   amount: number;
 }
 
+interface RecentTransaction {
+    id: string;
+    date: string;
+    type: string;
+    amount: number;
+}
+
 interface InvoiceData {
   type: 'Sale' | 'Purchase';
   id: string;
@@ -30,6 +37,7 @@ interface InvoiceData {
     name: string;
     number: string;
   }
+  recentTransactions?: RecentTransaction[];
 }
 
 const companyDetails = {
@@ -137,8 +145,8 @@ export function Invoice({ data }: { data: InvoiceData }) {
         </table>
       </section>
 
-      <section className="grid grid-cols-2 gap-8">
-        <div className="space-y-4">
+      <section className="grid grid-cols-3 gap-8">
+        <div className="col-span-2 space-y-4">
             <div>
                 <h3 className="font-semibold text-gray-500 mb-1">Amount in Words</h3>
                 <p className="capitalize font-medium">{totalAmountInWords} rupees only.</p>
@@ -147,6 +155,29 @@ export function Invoice({ data }: { data: InvoiceData }) {
                 <h3 className="font-semibold text-gray-500 mb-1">Terms & Conditions</h3>
                 <p>Thanks for doing business with us!</p>
             </div>
+            {data.recentTransactions && data.recentTransactions.length > 0 && (
+                <div className="print:hidden">
+                    <h3 className="font-semibold text-gray-500 mb-1">Recent History</h3>
+                    <table className="w-full text-xs">
+                        <thead>
+                            <tr className="bg-gray-50">
+                                <th className="p-1 text-left font-medium">Date</th>
+                                <th className="p-1 text-left font-medium">Type</th>
+                                <th className="p-1 text-right font-medium">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {data.recentTransactions.map(tx => (
+                                <tr key={tx.id} className="border-b">
+                                    <td className="p-1">{format(new Date(tx.date), 'dd-MM-yy')}</td>
+                                    <td className="p-1">{tx.type}</td>
+                                    <td className="p-1 text-right">{tx.amount.toFixed(2)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
         <div className="text-right">
              <table className="w-full">
@@ -172,7 +203,7 @@ export function Invoice({ data }: { data: InvoiceData }) {
       
        <footer className="mt-16">
         <div className="flex justify-between items-center">
-            <div className="w-1/3">
+            <div className="w-1/3 pt-8">
                 <div className="border-t-2 border-gray-400 pt-1 text-center">
                     <p className="font-semibold">Signature</p>
                 </div>
