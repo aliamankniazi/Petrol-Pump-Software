@@ -512,6 +512,22 @@ export function SaleForm() {
                     <Label>Sale Description</Label>
                     <Textarea placeholder="Type sale description or notes..." {...register('notes')} />
                 </div>
+                <div className="space-y-1">
+                    <Label>Expense Amount</Label>
+                    <Input type="number" step="any" placeholder="RS 0" {...register('expenseAmount')} />
+                </div>
+                <div className="space-y-1">
+                    <Label>Expense From Bank</Label>
+                    <Controller name="expenseBankAccountId" control={control} render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                            <SelectTrigger><SelectValue placeholder="Select Bank..." /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="">Cash</SelectItem>
+                                {bankAccountsLoaded ? bankAccounts.map(b => <SelectItem key={b.id} value={b.id!}>{b.bankName}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
+                            </SelectContent>
+                        </Select>
+                    )}/>
+                </div>
             </div>
             <div className="mt-4">
                  <Button type="submit" size="lg">Save & Go to Invoice</Button>

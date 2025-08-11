@@ -44,7 +44,7 @@ export function useTransactions() {
     
     if (transaction.expenseAmount && transaction.expenseAmount > 0) {
         addExpense({
-            description: `Expense from sale to ${transaction.customerName || 'Walk-in'}`,
+            description: `Expense from sale to ${transaction.customerName || 'Walk-in'} (Invoice: ${newDoc.id.slice(0, 6)})`,
             category: 'Other',
             amount: transaction.expenseAmount,
             date: transaction.date,
@@ -76,5 +76,3 @@ export function useTransactions() {
     isLoaded: !loading 
   };
 }
-
-    

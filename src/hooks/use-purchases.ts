@@ -21,7 +21,7 @@ export function usePurchases() {
       ...purchase,
       timestamp: purchase.date.toISOString(),
     }
-    addDoc(purchaseWithTimestamp);
+    const newDoc = addDoc(purchaseWithTimestamp);
 
     // Update product stock based on purchased items
     purchase.items.forEach(item => {
@@ -103,5 +103,3 @@ export function usePurchases() {
     isLoaded: !loading 
   };
 }
-
-    

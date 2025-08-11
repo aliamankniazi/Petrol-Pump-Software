@@ -123,6 +123,7 @@ export default function InvoicePage() {
             }
           }),
           totalAmount: transaction.totalAmount,
+          expenses: transaction.expenseAmount,
           paymentMethod: transaction.paymentMethod,
           bankDetails: bankAccount ? { name: bankAccount.bankName, number: bankAccount.accountNumber } : undefined,
           recentTransactions: recentLedger,

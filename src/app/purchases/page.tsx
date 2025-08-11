@@ -75,6 +75,7 @@ export default function PurchasesPage() {
   const [productSearch, setProductSearch] = useState('');
   const [supplierSearch, setSupplierSearch] = useState('');
   const [isProductPopoverOpen, setIsProductPopoverOpen] = useState(false);
+  const [isSupplierPopoverOpen, setIsSupplierPopoverOpen] = useState(false);
 
 
   useEffect(() => {
@@ -218,10 +219,12 @@ export default function PurchasesPage() {
     const supplier = suppliers.find(s => s.id === data.supplierId);
     if (!supplier) return;
 
+    const subTotal = data.items.reduce((sum, item) => sum + item.totalCost, 0);
+
     addPurchase({
       ...data,
       supplier: supplier.name, 
-      totalCost: grandTotal,
+      totalCost: subTotal, // totalCost for ledger is just items sum
     });
     toast({
       title: 'Purchase Recorded',
@@ -414,7 +417,7 @@ export default function PurchasesPage() {
                         <Label>Supplier</Label>
                          <div className="flex items-center gap-2">
                             <Controller name="supplierId" control={control} render={({ field }) => (
-                                <Popover>
+                                <Popover open={isSupplierPopoverOpen} onOpenChange={setIsSupplierPopoverOpen}>
                                     <PopoverTrigger asChild>
                                         <Button
                                             variant="outline"
@@ -439,6 +442,7 @@ export default function PurchasesPage() {
                                                             value={s.id!}
                                                             onSelect={(currentValue) => {
                                                                 field.onChange(currentValue === field.value ? '' : currentValue)
+                                                                setIsSupplierPopoverOpen(false);
                                                             }}
                                                         >
                                                             <Check
