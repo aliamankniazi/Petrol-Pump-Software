@@ -26,6 +26,7 @@ export default function InvoicesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const filteredSales = useMemo(() => {
     let sales = transactions.filter(tx => tx.timestamp);
@@ -95,7 +96,7 @@ export default function InvoicesPage() {
                         <SelectItem value="purchases">Purchases</SelectItem>
                     </SelectContent>
                 </Select>
-                 <Popover>
+                 <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                     <PopoverTrigger asChild>
                         <Button
                             id="date"
@@ -126,7 +127,12 @@ export default function InvoicesPage() {
                             mode="range"
                             defaultMonth={dateRange?.from}
                             selected={dateRange}
-                            onSelect={setDateRange}
+                            onSelect={(range) => {
+                                setDateRange(range);
+                                if (range?.from && range.to) {
+                                    setIsCalendarOpen(false);
+                                }
+                            }}
                             numberOfMonths={2}
                             withQuickActions
                         />

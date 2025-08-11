@@ -67,6 +67,7 @@ export default function AllTransactionsPage() {
   const { toast } = useToast();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [typeFilter, setTypeFilter] = useState('all');
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const isLoaded = transactionsLoaded && purchasesLoaded && purchaseReturnsLoaded && customersLoaded;
 
@@ -236,7 +237,7 @@ export default function AllTransactionsPage() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="max-w-xs"
                 />
-                 <Popover>
+                 <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                     <PopoverTrigger asChild>
                         <Button
                             id="date"
@@ -267,7 +268,12 @@ export default function AllTransactionsPage() {
                             mode="range"
                             defaultMonth={dateRange?.from}
                             selected={dateRange}
-                            onSelect={setDateRange}
+                            onSelect={(range) => {
+                                setDateRange(range);
+                                if (range?.from && range.to) {
+                                    setIsCalendarOpen(false);
+                                }
+                            }}
                             numberOfMonths={2}
                             withQuickActions
                         />

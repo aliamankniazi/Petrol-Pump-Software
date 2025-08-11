@@ -55,6 +55,7 @@ export default function CreditRecoveryPage() {
     });
     const [searchTerm, setSearchTerm] = useState('');
     const [customerSearch, setCustomerSearch] = useState('');
+    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
     const isDataLoaded = customersLoaded && txLoaded && paymentsLoaded && advancesLoaded;
 
@@ -203,7 +204,7 @@ Mianwali Petroleum Service`;
                         </div>
                          <div className="w-full md:w-auto flex-1">
                             <label className="text-sm font-medium">Date Range</label>
-                            <Popover>
+                            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                                 <PopoverTrigger asChild>
                                     <Button
                                         id="date"
@@ -234,7 +235,12 @@ Mianwali Petroleum Service`;
                                         mode="range"
                                         defaultMonth={dateRange?.from}
                                         selected={dateRange}
-                                        onSelect={setDateRange}
+                                        onSelect={(range) => {
+                                            setDateRange(range);
+                                            if (range?.from && range.to) {
+                                                setIsCalendarOpen(false);
+                                            }
+                                        }}
                                         numberOfMonths={2}
                                         withQuickActions
                                     />
