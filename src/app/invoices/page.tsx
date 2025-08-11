@@ -46,11 +46,11 @@ export default function InvoicesPage() {
     }
     
     return sales.map(sale => {
-        const costOfGoods = sale.items.reduce((totalCost, item) => {
+        const profit = sale.items.reduce((totalProfit, item) => {
             const product = products.find(p => p.id === item.productId);
-            return totalCost + ((product?.purchasePrice || 0) * item.quantity);
+            const costOfGoods = (product?.purchasePrice || 0) * item.quantity;
+            return totalProfit + (item.totalAmount - costOfGoods);
         }, 0);
-        const profit = sale.totalAmount - costOfGoods;
         return { ...sale, profit };
     });
 
