@@ -68,16 +68,17 @@ export default function LedgerPage() {
 
     let combined: Omit<LedgerEntry, 'balance'>[] = [];
 
-    // Credits (Money In or Liability Increase)
+    // Handle Sales: On Credit = Debit, Other (Cash/Card/etc) = Credit
     transactions.forEach(tx => combined.push({
       id: `tx-${tx.id}`,
       timestamp: tx.timestamp!,
       description: `Sale to ${tx.customerName || 'Walk-in'}: ${tx.items.length} item(s) ${tx.notes ? `- ${tx.notes}` : ''}`,
       type: 'Sale',
-      debit: 0,
-      credit: tx.totalAmount,
+      debit: tx.paymentMethod === 'On Credit' ? tx.totalAmount : 0,
+      credit: tx.paymentMethod !== 'On Credit' ? tx.totalAmount : 0,
     }));
 
+    // Other Credits (Money In or Liability Increase)
     purchases.forEach(p => combined.push({
         id: `pur-${p.id}`,
         timestamp: p.timestamp!,
@@ -123,7 +124,7 @@ export default function LedgerPage() {
       credit: inv.amount,
     }));
 
-    // Debits (Money Out or Asset Increase/Liability Decrease)
+    // Other Debits (Money Out or Asset Increase/Liability Decrease)
     expenses.forEach(e => combined.push({
       id: `exp-${e.id}`,
       timestamp: e.timestamp!,
@@ -210,8 +211,8 @@ export default function LedgerPage() {
       case 'Supplier Payment':
       case 'Withdrawal':
       case 'Cash Advance':
+      case 'Sale': // Keep Sale destructive to indicate money out (on credit) or an action
         return 'destructive';
-      case 'Sale':
       case 'Purchase':
       case 'Purchase Return': 
       case 'Other Income':
@@ -223,8 +224,9 @@ export default function LedgerPage() {
     }
   };
   
-  const isCreditEntry = (type: LedgerEntry['type']) => {
-    return ['Sale', 'Purchase', 'Purchase Return', 'Other Income', 'Investment', 'Customer Payment'].includes(type);
+  const isCreditEntry = (type: LedgerEntry['type'], credit: number) => {
+    // True if it's a type that increases business funds, or if it's a sale that was not on credit.
+    return ['Purchase Return', 'Other Income', 'Investment', 'Customer Payment'].includes(type) || (type === 'Sale' && credit > 0);
   }
   
   const handleDeleteEntry = () => {
@@ -360,7 +362,7 @@ export default function LedgerPage() {
                     <TableCell>
                       <Badge 
                         variant={getBadgeVariant(entry.type)}
-                        className={cn('text-xs', isCreditEntry(entry.type) && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}
+                        className={cn('text-xs', isCreditEntry(entry.type, entry.credit) && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}
                       >
                         {entry.type}
                       </Badge>
@@ -449,4 +451,5 @@ export default function LedgerPage() {
       </AlertDialog>
     </>
   );
-}
+
+    
