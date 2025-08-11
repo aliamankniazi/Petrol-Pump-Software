@@ -522,7 +522,7 @@ export function SaleForm() {
                         <Select onValueChange={field.onChange} value={field.value || ''}>
                             <SelectTrigger><SelectValue placeholder="Select Bank..." /></SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">Cash</SelectItem>
+                                <SelectItem value="cash">Cash</SelectItem>
                                 {bankAccountsLoaded ? bankAccounts.map(b => <SelectItem key={b.id} value={b.id!}>{b.bankName}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
                             </SelectContent>
                         </Select>
