@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { format, isSameDay, startOfDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, DollarSign, Calendar as CalendarIcon, X, Trash2, AlertTriangle, Printer, LayoutDashboard } from 'lucide-react';
+import { BookOpen, DollarSign, Calendar as CalendarIcon, X, Trash2, AlertTriangle, Printer, LayoutDashboard, Search } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
 import { usePurchases } from '@/hooks/use-purchases';
 import { useExpenses } from '@/hooks/use-expenses';
@@ -32,6 +32,7 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
 import { useCashAdvances } from '@/hooks/use-cash-advances';
+import { Input } from '@/components/ui/input';
 
 type LedgerEntry = {
   id: string;
@@ -58,6 +59,7 @@ export default function LedgerPage() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<LedgerEntry | null>(null);
   const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState('');
 
   const isLoaded = transactionsLoaded && purchasesLoaded && expensesLoaded && purchaseReturnsLoaded && otherIncomesLoaded && customerPaymentsLoaded && supplierPaymentsLoaded && investmentsLoaded && cashAdvancesLoaded;
 
@@ -189,14 +191,18 @@ export default function LedgerPage() {
         { debit: 0, credit: 0 }
     );
 
+    const filteredEntries = searchTerm
+        ? entriesWithBalance.filter(e => e.description.toLowerCase().includes(searchTerm.toLowerCase()))
+        : entriesWithBalance;
+
     return { 
-        entries: entriesWithBalance.reverse(), 
+        entries: filteredEntries.reverse(), 
         finalBalance: runningBalance, 
         openingBalance: calculatedOpeningBalance,
         totals: calculatedTotals,
     };
 
-  }, [transactions, purchases, expenses, purchaseReturns, otherIncomes, customerPayments, supplierPayments, investments, cashAdvances, isLoaded, selectedDate]);
+  }, [transactions, purchases, expenses, purchaseReturns, otherIncomes, customerPayments, supplierPayments, investments, cashAdvances, isLoaded, selectedDate, searchTerm]);
 
   const getBadgeVariant = (type: LedgerEntry['type']) => {
     switch (type) {
@@ -271,42 +277,53 @@ export default function LedgerPage() {
                 }
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2 print:hidden">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 print:hidden w-full sm:w-auto">
+               <div className="relative w-full sm:w-auto">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                      placeholder="Search particulars..." 
+                      className="pl-10"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+               </div>
+               <div className="flex items-center gap-2">
+                 <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full sm:w-[240px] justify-start text-left font-normal",
+                        !selectedDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {selectedDate ? format(selectedDate, "PPP") : <span>Filter by date...</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={(date) => {
+                          setSelectedDate(date);
+                          setIsCalendarOpen(false);
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                {selectedDate && (
+                  <Button variant="ghost" size="icon" onClick={() => setSelectedDate(undefined)}>
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Clear filter</span>
+                  </Button>
+                )}
+               </div>
                <Button asChild variant="outline">
                   <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
                </Button>
                <Button variant="outline" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4"/>Print</Button>
-               <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-[240px] justify-start text-left font-normal",
-                      !selectedDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "PPP") : <span>Filter by date...</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={(date) => {
-                        setSelectedDate(date);
-                        setIsCalendarOpen(false);
-                    }}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              {selectedDate && (
-                <Button variant="ghost" size="icon" onClick={() => setSelectedDate(undefined)}>
-                  <X className="h-4 w-4" />
-                  <span className="sr-only">Clear filter</span>
-                </Button>
-              )}
             </div>
           </div>
         </CardHeader>
@@ -325,7 +342,7 @@ export default function LedgerPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {selectedDate && (
+                {selectedDate && !searchTerm && (
                   <TableRow className="bg-muted/30">
                     <TableCell colSpan={5} className="font-bold text-right">Opening Balance</TableCell>
                     <TableCell className={`text-right font-semibold font-mono ${openingBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>
@@ -370,14 +387,16 @@ export default function LedgerPage() {
                   </TableRow>
                 ))}
               </TableBody>
-               <TableFooter>
-                <TableRow className="bg-muted/50 font-bold">
-                  <TableCell colSpan={3} className="text-right">Period Totals</TableCell>
-                  <TableCell className="text-right font-mono text-destructive">{totals.debit.toFixed(2)}</TableCell>
-                  <TableCell className="text-right font-mono text-green-600">{totals.credit.toFixed(2)}</TableCell>
-                  <TableCell colSpan={2} />
-                </TableRow>
-              </TableFooter>
+               {!searchTerm && (
+                <TableFooter>
+                  <TableRow className="bg-muted/50 font-bold">
+                    <TableCell colSpan={3} className="text-right">Period Totals</TableCell>
+                    <TableCell className="text-right font-mono text-destructive">{totals.debit.toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-mono text-green-600">{totals.credit.toFixed(2)}</TableCell>
+                    <TableCell colSpan={2} />
+                  </TableRow>
+                </TableFooter>
+               )}
             </Table>
           ) : (
             <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
@@ -385,11 +404,11 @@ export default function LedgerPage() {
                 <>
                   <DollarSign className="w-16 h-16" />
                   <h3 className="text-xl font-semibold">
-                    {selectedDate ? 'No Transactions Found' : 'No Transactions Recorded'}
+                    {selectedDate || searchTerm ? 'No Transactions Found' : 'No Transactions Recorded'}
                   </h3>
                   <p>
-                    {selectedDate 
-                      ? `There are no transactions for ${format(selectedDate, 'PPP')}.`
+                    {selectedDate || searchTerm
+                      ? `There are no transactions for the selected filter.`
                       : 'Your financial ledger is currently empty.'
                     }
                   </p>
@@ -400,7 +419,7 @@ export default function LedgerPage() {
             </div>
           )}
         </CardContent>
-        {isLoaded && entries.length > 0 && (
+        {isLoaded && entries.length > 0 && !searchTerm && (
            <CardFooter className="flex justify-end bg-muted/50 p-4 rounded-b-lg">
               <div className="text-right">
                   <p className="text-sm text-muted-foreground">Final Closing Balance</p>
