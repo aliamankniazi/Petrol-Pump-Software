@@ -36,7 +36,6 @@ const companyDetails = {
     name: 'Mianwali Petroleum Service',
     branch: 'Mianwali',
     mobile1: '03335425401',
-    mobile2: '03335425401',
     dealsIn: 'HSD, PREMIER, EURO 5',
     saleTaxNo: '0400046568661',
     ntn: '04656866',
@@ -80,7 +79,7 @@ export function Invoice({ data }: { data: InvoiceData }) {
         </div>
         <div className="mt-4 grid grid-cols-2 gap-4 text-gray-600">
             <div>
-                 <p>{companyDetails.mobile1}, {companyDetails.mobile2}</p>
+                 <p>{companyDetails.mobile1}</p>
                  <p>Deals in: {companyDetails.dealsIn}</p>
             </div>
              <div className="text-right">
@@ -171,9 +170,18 @@ export function Invoice({ data }: { data: InvoiceData }) {
         </div>
       </section>
       
-      <div className="mt-8 pt-4 border-t-2 border-dashed border-gray-300">
-          <p className="text-center text-xs text-gray-500">This is a computer-generated invoice and does not require a signature.</p>
-      </div>
+       <footer className="mt-16">
+        <div className="flex justify-between items-center">
+            <div className="w-1/3">
+                <div className="border-t-2 border-gray-400 pt-1 text-center">
+                    <p className="font-semibold">Signature</p>
+                </div>
+            </div>
+        </div>
+        <div className="mt-8 pt-4 border-t-2 border-dashed border-gray-300">
+            <p className="text-center text-xs text-gray-500">This is a computer-generated invoice and does not require a signature.</p>
+        </div>
+      </footer>
     </div>
   );
 }
