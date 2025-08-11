@@ -18,6 +18,7 @@ import {
   TrendingUp,
   FileText as ReportsIcon,
   LayoutDashboard,
+  Percent,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,12 @@ const reportLinks = [
     description: 'Analyze sales performance by fuel type.',
     href: '/reports/product-sales',
     icon: Box,
+  },
+   {
+    title: 'Product Profit Margin Report',
+    description: 'Analyze profit margins for each product.',
+    href: '/reports/product-profit-margin',
+    icon: Percent,
   },
   {
     title: 'Date wise Credit Recovery',
