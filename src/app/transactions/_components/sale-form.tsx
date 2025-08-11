@@ -75,6 +75,7 @@ export function SaleForm() {
   const [productSearch, setProductSearch] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
   const [isProductPopoverOpen, setIsProductPopoverOpen] = useState(false);
+  const [isCustomerPopoverOpen, setIsCustomerPopoverOpen] = useState(false);
 
 
   useEffect(() => {
@@ -138,6 +139,14 @@ export function SaleForm() {
         }
     
     }, [currentItem.quantity, currentItem.pricePerUnit, currentItem.discountAmount, currentItem.totalValue, lastFocused]);
+
+    useEffect(() => {
+        if (watchedCustomerId === 'walk-in') {
+          setValue('paymentMethod', 'Cash');
+        } else {
+          setValue('paymentMethod', 'On Credit');
+        }
+    }, [watchedCustomerId, setValue]);
   
   const handleCurrentProductChange = (productId: string) => {
     const product = products.find(p => p.id === productId);
@@ -412,7 +421,7 @@ export function SaleForm() {
                     <Label>Customer</Label>
                      <div className="flex items-center gap-2">
                         <Controller name="customerId" control={control} render={({ field }) => (
-                            <Popover>
+                            <Popover open={isCustomerPopoverOpen} onOpenChange={setIsCustomerPopoverOpen}>
                                 <PopoverTrigger asChild>
                                     <Button
                                     variant="outline"
@@ -431,7 +440,7 @@ export function SaleForm() {
                                     <CommandList>
                                         <CommandEmpty>No customer found.</CommandEmpty>
                                         <CommandGroup>
-                                            <CommandItem value="walk-in" onSelect={() => field.onChange('walk-in')}>
+                                            <CommandItem value="walk-in" onSelect={() => {field.onChange('walk-in'); setIsCustomerPopoverOpen(false);}}>
                                                 <Check className={cn("mr-2 h-4 w-4", field.value === 'walk-in' ? "opacity-100" : "opacity-0")}/>
                                                 Walk-in Customer
                                             </CommandItem>
@@ -440,7 +449,8 @@ export function SaleForm() {
                                             key={c.id}
                                             value={c.id!}
                                             onSelect={(currentValue) => {
-                                                field.onChange(currentValue === field.value ? '' : currentValue)
+                                                field.onChange(currentValue === field.value ? '' : currentValue);
+                                                setIsCustomerPopoverOpen(false);
                                             }}
                                             >
                                             <Check
