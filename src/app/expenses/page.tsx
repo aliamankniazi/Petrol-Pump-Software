@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Receipt, ListChecks, WalletCards, Calendar as CalendarIcon, Trash2, AlertTriangle, LayoutDashboard, X } from 'lucide-react';
+import { Receipt, ListChecks, WalletCards, Calendar as CalendarIcon, Trash2, AlertTriangle, LayoutDashboard, X, Search } from 'lucide-react';
 import type { ExpenseCategory, Expense } from '@/lib/types';
 import { format, isSameDay } from 'date-fns';
 import { useExpenses } from '@/hooks/use-expenses';
@@ -41,6 +41,8 @@ export default function ExpensesPage() {
   const { toast } = useToast();
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
   const [selectedDateFilter, setSelectedDateFilter] = useState<Date | undefined>();
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
   
   const [isClient, setIsClient] = useState(false);
 
@@ -101,16 +103,26 @@ export default function ExpensesPage() {
   };
   
   const filteredExpenses = useMemo(() => {
-    // Filter out any expenses that have an invalid timestamp first.
-    const validExpenses = expenses.filter(expense => expense.timestamp && !isNaN(new Date(expense.timestamp).getTime()));
+    let validExpenses = expenses.filter(expense => expense.timestamp && !isNaN(new Date(expense.timestamp).getTime()));
 
-    if (!selectedDateFilter) {
-      return validExpenses;
+    if (selectedDateFilter) {
+      validExpenses = validExpenses.filter(expense => isSameDay(new Date(expense.timestamp!), selectedDateFilter));
     }
-    return validExpenses.filter(expense => 
-      isSameDay(new Date(expense.timestamp!), selectedDateFilter)
-    );
-  }, [expenses, selectedDateFilter]);
+    if (categoryFilter !== 'all') {
+        validExpenses = validExpenses.filter(expense => expense.category === categoryFilter);
+    }
+    if (searchTerm) {
+        validExpenses = validExpenses.filter(expense => expense.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    }
+    
+    return validExpenses;
+  }, [expenses, selectedDateFilter, categoryFilter, searchTerm]);
+
+  const clearFilters = () => {
+    setSelectedDateFilter(undefined);
+    setCategoryFilter('all');
+    setSearchTerm('');
+  };
 
 
   if (!isClient) {
@@ -215,7 +227,27 @@ export default function ExpensesPage() {
                   A record of all business expenses.
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                 <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Search description..." 
+                        className="pl-10"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                 </div>
+                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Filter by category..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Categories</SelectItem>
+                        {EXPENSE_CATEGORIES.map(cat => (
+                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                    </SelectContent>
+                 </Select>
                  <Popover>
                     <PopoverTrigger asChild>
                         <Button
@@ -238,8 +270,8 @@ export default function ExpensesPage() {
                         />
                     </PopoverContent>
                  </Popover>
-                  {selectedDateFilter && (
-                    <Button variant="ghost" size="icon" onClick={() => setSelectedDateFilter(undefined)}>
+                  {(selectedDateFilter || categoryFilter !== 'all' || searchTerm) && (
+                    <Button variant="ghost" size="icon" onClick={clearFilters}>
                       <X className="h-4 w-4" />
                     </Button>
                   )}
@@ -281,10 +313,10 @@ export default function ExpensesPage() {
               <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
                 <ListChecks className="w-16 h-16" />
                 <h3 className="text-xl font-semibold">
-                    {selectedDateFilter ? 'No Expenses Found' : 'No Expenses Recorded'}
+                    {selectedDateFilter || categoryFilter !== 'all' || searchTerm ? 'No Matching Expenses' : 'No Expenses Recorded'}
                 </h3>
                 <p>
-                    {selectedDateFilter ? 'There are no expenses for the selected date.' : 'Use the form to log your first business expense.'}
+                    {selectedDateFilter || categoryFilter !== 'all' || searchTerm ? 'Try adjusting your filters.' : 'Use the form to log your first business expense.'}
                 </p>
               </div>
             )}

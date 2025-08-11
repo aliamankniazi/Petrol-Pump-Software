@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { DollarSign, ListChecks, WalletCards, Calendar as CalendarIcon, Trash2, AlertTriangle, LayoutDashboard } from 'lucide-react';
+import { DollarSign, ListChecks, WalletCards, Calendar as CalendarIcon, Trash2, AlertTriangle, LayoutDashboard, Search } from 'lucide-react';
 import type { OtherIncomeCategory, OtherIncome } from '@/lib/types';
 import { format } from 'date-fns';
 import { useOtherIncomes } from '@/hooks/use-other-incomes';
@@ -19,7 +19,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 
 const INCOME_CATEGORIES: OtherIncomeCategory[] = ['Service Station', 'Tire Shop', 'Tuck Shop', 'Other'];
@@ -39,6 +39,8 @@ export default function OtherIncomesPage() {
   const { otherIncomes, addOtherIncome, deleteOtherIncome } = useOtherIncomes();
   const { toast } = useToast();
   const [incomeToDelete, setIncomeToDelete] = useState<OtherIncome | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   
   const [isClient, setIsClient] = useState(false);
 
@@ -98,6 +100,18 @@ export default function OtherIncomesPage() {
     });
     setIncomeToDelete(null);
   };
+  
+  const filteredIncomes = useMemo(() => {
+    return otherIncomes.filter(income => {
+        if (categoryFilter !== 'all' && income.category !== categoryFilter) {
+            return false;
+        }
+        if (searchTerm && !income.description.toLowerCase().includes(searchTerm.toLowerCase())) {
+            return false;
+        }
+        return true;
+    });
+  }, [otherIncomes, categoryFilter, searchTerm]);
 
   if (!isClient) {
     return null;
@@ -190,21 +204,45 @@ export default function OtherIncomesPage() {
 
       <div className="lg:col-span-2">
         <Card>
-          <CardHeader className="flex flex-row justify-between items-start">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign /> Income History
-              </CardTitle>
-              <CardDescription>
-                A record of all other business income.
-              </CardDescription>
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign /> Income History
+                </CardTitle>
+                <CardDescription>
+                  A record of all other business income.
+                </CardDescription>
+              </div>
+               <div className="flex items-center gap-2">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="Search description..." 
+                            className="pl-10"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Filter by category..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Categories</SelectItem>
+                            {INCOME_CATEGORIES.map(cat => (
+                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Button asChild variant="outline">
+                        <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
+                    </Button>
+               </div>
             </div>
-             <Button asChild variant="outline">
-                <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
-            </Button>
           </CardHeader>
           <CardContent>
-            {otherIncomes.length > 0 ? (
+            {filteredIncomes.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -216,7 +254,7 @@ export default function OtherIncomesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {otherIncomes.map(e => (
+                  {filteredIncomes.map(e => (
                       <TableRow key={e.id}>
                         <TableCell className="font-medium">{format(new Date(e.timestamp), 'PP')}</TableCell>
                         <TableCell>{e.description}</TableCell>
@@ -234,8 +272,8 @@ export default function OtherIncomesPage() {
             ) : (
               <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
                 <ListChecks className="w-16 h-16" />
-                <h3 className="text-xl font-semibold">No Income Recorded</h3>
-                <p>Use the form to log your first business income.</p>
+                <h3 className="text-xl font-semibold">{searchTerm || categoryFilter !== 'all' ? 'No Matching Incomes' : 'No Income Recorded'}</h3>
+                <p>{searchTerm || categoryFilter !== 'all' ? 'Try adjusting your filters.' : 'Use the form to log your first business income.'}</p>
               </div>
             )}
           </CardContent>

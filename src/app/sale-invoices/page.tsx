@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -50,13 +49,13 @@ export default function InvoicesPage() {
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
                 <CardTitle className="flex items-center gap-2">
-                    <Receipt /> Sale Invoices
+                    <Receipt /> All Invoices
                 </CardTitle>
-                <CardDescription>A record of all sales transactions.</CardDescription>
+                <CardDescription>A record of all sales and purchase invoices.</CardDescription>
             </div>
             <div className='flex gap-2 items-center'>
                  <Input 
-                    placeholder="Search by customer or product..."
+                    placeholder="Search by partner or product..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="max-w-sm"
@@ -68,6 +67,7 @@ export default function InvoicesPage() {
           </div>
         </CardHeader>
         <CardContent>
+          <h3 className="text-lg font-semibold mb-2">Sale Invoices</h3>
           {isLoaded ? (
             filteredSales.length > 0 ? (
               <Table>
@@ -117,10 +117,9 @@ export default function InvoicesPage() {
       
       <Card>
         <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
                 <ShoppingCart /> Purchase Invoices
             </CardTitle>
-            <CardDescription>A record of all purchase transactions.</CardDescription>
         </CardHeader>
         <CardContent>
             {isLoaded ? (
@@ -168,4 +167,3 @@ export default function InvoicesPage() {
     </div>
   );
 }
-

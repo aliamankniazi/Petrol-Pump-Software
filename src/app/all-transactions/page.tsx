@@ -30,6 +30,7 @@ import Link from 'next/link';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 type CombinedEntry = {
@@ -65,6 +66,7 @@ export default function AllTransactionsPage() {
   const [entryToDelete, setEntryToDelete] = useState<CombinedEntry | null>(null);
   const { toast } = useToast();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [typeFilter, setTypeFilter] = useState('all');
 
   const isLoaded = transactionsLoaded && purchasesLoaded && purchaseReturnsLoaded && customersLoaded;
 
@@ -129,6 +131,10 @@ export default function AllTransactionsPage() {
         return false;
       }
       
+      if (typeFilter !== 'all' && entry.type !== typeFilter) {
+          return false;
+      }
+
       if (!searchTerm) {
           return true;
       }
@@ -141,7 +147,7 @@ export default function AllTransactionsPage() {
         (entry.notes && entry.notes.toLowerCase().includes(searchLower))
       );
     });
-  }, [combinedEntries, searchTerm, dateRange]);
+  }, [combinedEntries, searchTerm, dateRange, typeFilter]);
 
   const getBadgeVariant = (type: CombinedEntry['type']) => {
     switch (type) {
@@ -213,6 +219,17 @@ export default function AllTransactionsPage() {
                 <CardDescription>A unified record of all sales, purchases, and returns.</CardDescription>
             </div>
             <div className='flex flex-wrap items-center justify-end gap-2'>
+                 <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Filter by type..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        <SelectItem value="Sale">Sale</SelectItem>
+                        <SelectItem value="Purchase">Purchase</SelectItem>
+                        <SelectItem value="Purchase Return">Purchase Return</SelectItem>
+                    </SelectContent>
+                 </Select>
                  <Input 
                     placeholder="Search transactions..."
                     value={searchTerm}
@@ -254,8 +271,8 @@ export default function AllTransactionsPage() {
                         />
                     </PopoverContent>
                 </Popover>
-                 {dateRange && (
-                    <Button variant="ghost" size="icon" onClick={() => setDateRange(undefined)}>
+                 {(dateRange || typeFilter !== 'all') && (
+                    <Button variant="ghost" size="icon" onClick={() => { setDateRange(undefined); setTypeFilter('all'); }}>
                         <X className="h-4 w-4" />
                     </Button>
                  )}
@@ -333,9 +350,9 @@ export default function AllTransactionsPage() {
               <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
                 <XCircle className="w-16 h-16" />
                 <h3 className="text-xl font-semibold">
-                  {searchTerm || dateRange ? 'No Matching Transactions' : 'Not showing any details'}
+                  {searchTerm || dateRange || typeFilter !== 'all' ? 'No Matching Transactions' : 'Not showing any details'}
                 </h3>
-                <p>{searchTerm || dateRange ? 'Try a different search term or date range.' : ''}</p>
+                <p>{searchTerm || dateRange || typeFilter !== 'all' ? 'Try adjusting your search or filters.' : ''}</p>
               </div>
             )
           ) : (

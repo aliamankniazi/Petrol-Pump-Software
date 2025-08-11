@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Users, UserPlus, List, BookText, Pencil, Trash2, AlertTriangle, Percent, LayoutDashboard } from 'lucide-react';
+import { Users, UserPlus, List, BookText, Pencil, Trash2, AlertTriangle, Percent, LayoutDashboard, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { useCustomers } from '@/hooks/use-customers';
 import Link from 'next/link';
@@ -57,6 +57,7 @@ export default function CustomersPage() {
   
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   
   const { register, handleSubmit, reset, control, watch, formState: { errors } } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
@@ -122,6 +123,14 @@ export default function CustomersPage() {
     setCustomerToDelete(null);
   }, [customerToDelete, deleteCustomer, toast, transactions, customerPayments, cashAdvances]);
   
+  const filteredCustomers = useMemo(() => {
+    if (!searchTerm) return customers;
+    return customers.filter(c =>
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.contact?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [customers, searchTerm]);
+
   useEffect(() => {
       if (customerToEdit) {
         setEditValue('name', customerToEdit.name);
@@ -206,18 +215,31 @@ export default function CustomersPage() {
 
       <div className="lg:col-span-2">
         <Card>
-          <CardHeader className="flex flex-row justify-between items-start">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <List /> Customer, Employee & Partner Ledger
-              </CardTitle>
-              <CardDescription>
-                A record of all your customers, employees, and business partners.
-              </CardDescription>
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <List /> Customer, Employee & Partner Ledger
+                </CardTitle>
+                <CardDescription>
+                  A record of all your customers, employees, and business partners.
+                </CardDescription>
+              </div>
+               <div className="flex items-center gap-2">
+                  <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input 
+                          placeholder="Search by name/contact..." 
+                          className="pl-10 max-w-sm"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                  </div>
+                   <Button asChild variant="outline">
+                      <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
+                  </Button>
+               </div>
             </div>
-             <Button asChild variant="outline">
-                <Link href="/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" /> Go to Dashboard</Link>
-            </Button>
           </CardHeader>
           <CardContent>
             <Table>
@@ -230,8 +252,8 @@ export default function CustomersPage() {
               </TableHeader>
               <TableBody>
                 {isLoaded ? (
-                  customers.length > 0 ? (
-                    customers.map(c => (
+                  filteredCustomers.length > 0 ? (
+                    filteredCustomers.map(c => (
                       <TableRow key={c.id}>
                         <TableCell>
                           <div className="font-medium flex items-center gap-2">
@@ -278,8 +300,8 @@ export default function CustomersPage() {
                       <TableCell colSpan={3} className="h-24 text-center">
                         <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground">
                             <Users className="w-16 h-16" />
-                            <h3 className="text-xl font-semibold">No Customers Recorded</h3>
-                            <p>Use the form to add your first customer.</p>
+                            <h3 className="text-xl font-semibold">{searchTerm ? 'No Matching Records' : 'No Customers Recorded'}</h3>
+                            <p>{searchTerm ? 'Try a different search term.' : 'Use the form to add your first customer.'}</p>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -375,5 +397,3 @@ export default function CustomersPage() {
     </>
   );
 }
-
-    
