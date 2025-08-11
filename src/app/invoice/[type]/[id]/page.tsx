@@ -14,10 +14,12 @@ import { useSuppliers } from '@/hooks/use-suppliers';
 import { useBankAccounts } from '@/hooks/use-bank-accounts';
 import { useProducts } from '@/hooks/use-products';
 import { useCustomerBalance } from '@/hooks/use-customer-balance';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function InvoicePage() {
   const params = useParams();
+  const router = useRouter();
   const { type, id } = params as { type: 'sale' | 'purchase'; id: string };
 
   const { transactions, isLoaded: transactionsLoaded } = useTransactions();
@@ -28,6 +30,20 @@ export default function InvoicePage() {
   const { products, isLoaded: productsLoaded } = useProducts();
 
   const isLoaded = transactionsLoaded && purchasesLoaded && customersLoaded && suppliersLoaded && bankAccountsLoaded && productsLoaded;
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        router.push('/transactions');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [router]);
 
   const invoiceData = useMemo(() => {
     if (!isLoaded) return null;
