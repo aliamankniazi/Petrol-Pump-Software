@@ -30,6 +30,15 @@ export default function InvoicesPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
+  const isLoaded = transactionsLoaded && purchasesLoaded && productsLoaded;
+
+  const sortedPurchases = useMemo(() => {
+    if (!purchasesLoaded) return [];
+    // Sort purchases by date ascending to make finding the last purchase easier
+    return [...purchases].sort((a, b) => new Date(a.timestamp!).getTime() - new Date(b.timestamp!).getTime());
+  }, [purchases, purchasesLoaded]);
+
+
   const filteredSales = useMemo(() => {
     let sales = transactions.filter(tx => tx.timestamp);
     if (searchTerm) {
@@ -47,14 +56,30 @@ export default function InvoicesPage() {
     
     return sales.map(sale => {
         const profit = sale.items.reduce((totalProfit, item) => {
-            const product = products.find(p => p.id === item.productId);
-            const costOfGoods = (product?.purchasePrice || 0) * item.quantity;
+            const saleTimestamp = new Date(sale.timestamp!);
+            
+            // Find the last purchase of this product that happened on or before the sale date
+            const lastRelevantPurchaseItem = sortedPurchases
+                .flatMap(p => p.items.map(pi => ({ ...pi, purchaseTimestamp: p.timestamp })))
+                .filter(pi => pi.productId === item.productId && new Date(pi.purchaseTimestamp!) <= saleTimestamp)
+                .pop(); // Get the last one from the sorted array
+
+            let costOfGoods = 0;
+            if (lastRelevantPurchaseItem) {
+                // Use historical cost
+                costOfGoods = item.quantity * lastRelevantPurchaseItem.costPerUnit;
+            } else {
+                // Fallback to current product purchase price if no historical purchase found
+                const product = products.find(p => p.id === item.productId);
+                costOfGoods = (product?.purchasePrice || 0) * item.quantity;
+            }
+
             return totalProfit + (item.totalAmount - costOfGoods);
         }, 0);
         return { ...sale, profit };
     });
 
-  }, [transactions, products, searchTerm, dateRange]);
+  }, [transactions, products, searchTerm, dateRange, sortedPurchases]);
 
   const filteredPurchases = useMemo(() => {
     let allPurchases = purchases.filter(p => p.timestamp);
@@ -73,7 +98,6 @@ export default function InvoicesPage() {
     return allPurchases;
   }, [purchases, searchTerm, dateRange]);
 
-  const isLoaded = transactionsLoaded && purchasesLoaded && productsLoaded;
 
   const showSales = typeFilter === 'all' || typeFilter === 'sales';
   const showPurchases = typeFilter === 'all' || typeFilter === 'purchases';
