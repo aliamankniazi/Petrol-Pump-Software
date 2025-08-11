@@ -183,7 +183,7 @@ Mianwali Petroleum Service`;
                                                 key={c.id}
                                                 value={c.id!}
                                                 onSelect={(currentValue) => {
-                                                    setSelectedCustomerId(currentValue === selectedCustomerId ? 'all' : currentValue)
+                                                    setSelectedCustomerId(currentValue === selectedCustomerId ? "all" : currentValue)
                                                 }}
                                                 >
                                                 <Check
