@@ -98,6 +98,7 @@ export default function InvoicesPage() {
                  <Popover>
                     <PopoverTrigger asChild>
                         <Button
+                            id="date"
                             variant={"outline"}
                             className={cn(
                                 "w-[280px] justify-start text-left font-normal",
@@ -127,6 +128,7 @@ export default function InvoicesPage() {
                             selected={dateRange}
                             onSelect={setDateRange}
                             numberOfMonths={2}
+                            withQuickActions
                         />
                     </PopoverContent>
                 </Popover>

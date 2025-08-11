@@ -206,6 +206,7 @@ Mianwali Petroleum Service`;
                             <Popover>
                                 <PopoverTrigger asChild>
                                     <Button
+                                        id="date"
                                         variant="outline"
                                         className={cn(
                                             "w-full justify-start text-left font-normal",
@@ -235,6 +236,7 @@ Mianwali Petroleum Service`;
                                         selected={dateRange}
                                         onSelect={setDateRange}
                                         numberOfMonths={2}
+                                        withQuickActions
                                     />
                                 </PopoverContent>
                             </Popover>

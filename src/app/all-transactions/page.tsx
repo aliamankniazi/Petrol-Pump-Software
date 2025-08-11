@@ -239,6 +239,7 @@ export default function AllTransactionsPage() {
                  <Popover>
                     <PopoverTrigger asChild>
                         <Button
+                            id="date"
                             variant={"outline"}
                             className={cn(
                                 "w-[280px] justify-start text-left font-normal",
@@ -268,6 +269,7 @@ export default function AllTransactionsPage() {
                             selected={dateRange}
                             onSelect={setDateRange}
                             numberOfMonths={2}
+                            withQuickActions
                         />
                     </PopoverContent>
                 </Popover>
