@@ -18,11 +18,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { useProducts } from '@/hooks/use-products';
 
 
 export default function InvoicesPage() {
   const { transactions, isLoaded: transactionsLoaded } = useTransactions();
   const { purchases, isLoaded: purchasesLoaded } = usePurchases();
+  const { products, isLoaded: productsLoaded } = useProducts();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -42,8 +44,17 @@ export default function InvoicesPage() {
     if (dateRange?.to) {
         sales = sales.filter(sale => new Date(sale.timestamp!) <= endOfDay(dateRange.to!));
     }
-    return sales;
-  }, [transactions, searchTerm, dateRange]);
+    
+    return sales.map(sale => {
+        const costOfGoods = sale.items.reduce((totalCost, item) => {
+            const product = products.find(p => p.id === item.productId);
+            return totalCost + ((product?.purchasePrice || 0) * item.quantity);
+        }, 0);
+        const profit = sale.totalAmount - costOfGoods;
+        return { ...sale, profit };
+    });
+
+  }, [transactions, products, searchTerm, dateRange]);
 
   const filteredPurchases = useMemo(() => {
     let allPurchases = purchases.filter(p => p.timestamp);
@@ -62,7 +73,7 @@ export default function InvoicesPage() {
     return allPurchases;
   }, [purchases, searchTerm, dateRange]);
 
-  const isLoaded = transactionsLoaded && purchasesLoaded;
+  const isLoaded = transactionsLoaded && purchasesLoaded && productsLoaded;
 
   const showSales = typeFilter === 'all' || typeFilter === 'sales';
   const showPurchases = typeFilter === 'all' || typeFilter === 'purchases';
@@ -167,11 +178,12 @@ export default function InvoicesPage() {
                         <TableHead>Details</TableHead>
                         <TableHead>Payment Method</TableHead>
                         <TableHead className="text-right">Amount (PKR)</TableHead>
+                        <TableHead className="text-right">Profit (PKR)</TableHead>
                         <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {filteredSales.map((sale: Transaction) => (
+                    {filteredSales.map((sale) => (
                         <TableRow key={sale.id}>
                         <TableCell className="font-medium whitespace-nowrap">
                             {sale.timestamp ? format(new Date(sale.timestamp), 'PP pp') : 'N/A'}
@@ -181,8 +193,11 @@ export default function InvoicesPage() {
                         <TableCell>
                             <Badge variant="outline">{sale.paymentMethod}</Badge>
                         </TableCell>
-                        <TableCell className={cn("text-right font-semibold font-mono", 'text-green-600')}>
+                        <TableCell className={cn("text-right font-semibold font-mono")}>
                             {sale.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className={cn("text-right font-semibold font-mono", sale.profit >= 0 ? 'text-green-600' : 'text-destructive')}>
+                            {sale.profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell className="text-center space-x-0.5">
                             <Button asChild variant="ghost" size="icon" title="Print Invoice">
