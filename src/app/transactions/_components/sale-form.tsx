@@ -74,6 +74,8 @@ export function SaleForm() {
   
   const [productSearch, setProductSearch] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
+  const [isProductPopoverOpen, setIsProductPopoverOpen] = useState(false);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -282,7 +284,7 @@ export function SaleForm() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-1">
                         <Label>Product</Label>
-                        <Popover>
+                        <Popover open={isProductPopoverOpen} onOpenChange={setIsProductPopoverOpen}>
                             <PopoverTrigger asChild>
                                 <Button
                                 variant="outline"
@@ -306,7 +308,8 @@ export function SaleForm() {
                                         key={p.id}
                                         value={p.id!}
                                         onSelect={(currentValue) => {
-                                            handleCurrentProductChange(currentValue === currentItem.productId ? 'placeholder' : currentValue)
+                                            handleCurrentProductChange(currentValue === currentItem.productId ? 'placeholder' : currentValue);
+                                            setIsProductPopoverOpen(false);
                                         }}
                                         >
                                         <Check

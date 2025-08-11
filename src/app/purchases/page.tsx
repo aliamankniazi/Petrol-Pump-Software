@@ -74,6 +74,7 @@ export default function PurchasesPage() {
   
   const [productSearch, setProductSearch] = useState('');
   const [supplierSearch, setSupplierSearch] = useState('');
+  const [isProductPopoverOpen, setIsProductPopoverOpen] = useState(false);
 
 
   useEffect(() => {
@@ -285,7 +286,7 @@ export default function PurchasesPage() {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="space-y-1">
                             <Label>Product</Label>
-                            <Popover>
+                            <Popover open={isProductPopoverOpen} onOpenChange={setIsProductPopoverOpen}>
                                 <PopoverTrigger asChild>
                                     <Button
                                     variant="outline"
@@ -310,6 +311,7 @@ export default function PurchasesPage() {
                                                 value={p.id!}
                                                 onSelect={(currentValue) => {
                                                     handleCurrentProductChange(currentValue === currentItem.productId ? 'placeholder' : currentValue)
+                                                    setIsProductPopoverOpen(false);
                                                 }}
                                                 >
                                                 <Check
