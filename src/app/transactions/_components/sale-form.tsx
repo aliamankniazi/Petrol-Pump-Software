@@ -93,7 +93,7 @@ function ProductSelection({ onProductSelect }: { onProductSelect: (productId: st
                                 <CommandItem
                                     key={p.id}
                                     value={p.id!}
-                                    onSelect={() => handleSelect(p.id!)}
+                                    onSelect={(currentValue) => handleSelect(currentValue)}
                                 >
                                     <Check className={cn("mr-2 h-4 w-4", "opacity-0")} />
                                     {p.name}
