@@ -197,6 +197,23 @@ export function SaleForm() {
     }
   };
   
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Check for Ctrl + Shift + S
+      if (event.ctrlKey && event.shiftKey && event.key === 'S') {
+        event.preventDefault();
+        // Trigger form submission
+        handleSubmit(onSubmit)();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleSubmit, onSubmit]);
+
   const filteredProducts = useMemo(() => {
     if (!productSearch) return products;
     return products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
@@ -239,7 +256,7 @@ export function SaleForm() {
                                         <CommandItem
                                         key={p.id}
                                         value={p.id!}
-                                        onSelect={handleProductSelect}
+                                        onSelect={() => handleProductSelect(p.id!)}
                                         >
                                         {p.name}
                                         </CommandItem>
