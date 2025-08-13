@@ -59,6 +59,54 @@ type SaleFormValues = z.infer<typeof saleSchema>;
 
 const LOCAL_STORAGE_KEY = 'global-transaction-date';
 
+function ProductSelection({ onProductSelect }: { onProductSelect: (productId: string) => void }) {
+    const { products, isLoaded: productsLoaded } = useProducts();
+    const [productSearch, setProductSearch] = useState('');
+    const [isOpen, setIsOpen] = useState(false);
+
+    const filteredProducts = useMemo(() => {
+        if (!productsLoaded) return [];
+        if (!productSearch) return products;
+        return products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
+    }, [products, productSearch, productsLoaded]);
+
+    const handleSelect = (productId: string) => {
+        onProductSelect(productId);
+        setIsOpen(false);
+    };
+
+    return (
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
+            <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" className="w-full justify-between">
+                    Select Product
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <Command>
+                    <CommandInput placeholder="Search product..." onValueChange={setProductSearch}/>
+                    <CommandList>
+                        <CommandEmpty>No product found.</CommandEmpty>
+                        <CommandGroup>
+                            {filteredProducts.map((p) => (
+                                <CommandItem
+                                    key={p.id}
+                                    value={p.id!}
+                                    onSelect={() => handleSelect(p.id!)}
+                                >
+                                    <Check className={cn("mr-2 h-4 w-4", "opacity-0")} />
+                                    {p.name}
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
+    );
+}
+
 export function SaleForm() {
   const { addTransaction, transactions } = useTransactions();
   const { customers, isLoaded: customersLoaded } = useCustomers();
@@ -189,7 +237,7 @@ export function SaleForm() {
 
 
   const handleProductSelect = useCallback((productId: string) => {
-    if (!productId) return;
+    if (!productId || !productsLoaded) return;
 
     const product = products.find(p => p.id === productId);
     if (!product) return;
@@ -212,7 +260,7 @@ export function SaleForm() {
         discount: 0,
         bonus: 0,
     });
-  }, [products, transactions, append]);
+  }, [products, productsLoaded, transactions, append]);
 
 
   if (!isClient) {
@@ -225,40 +273,7 @@ export function SaleForm() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-1 md:col-span-2">
                         <Label>Product</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                variant="outline"
-                                role="combobox"
-                                className="w-full justify-between"
-                                >
-                                {"Select Product"}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                <Command>
-                                <CommandInput placeholder="Search product..." />
-                                <CommandList>
-                                    <CommandEmpty>No product found.</CommandEmpty>
-                                    <CommandGroup>
-                                    {products.map((p) => (
-                                        <CommandItem
-                                            key={p.id}
-                                            value={p.id!}
-                                            onSelect={(currentValue) => {
-                                                handleProductSelect(currentValue);
-                                            }}
-                                            >
-                                            <Check className={cn("mr-2 h-4 w-4", "opacity-0" )} />
-                                            {p.name}
-                                        </CommandItem>
-                                    ))}
-                                    </CommandGroup>
-                                </CommandList>
-                                </Command>
-                            </PopoverContent>
-                        </Popover>
+                        <ProductSelection onProductSelect={handleProductSelect} />
                     </div>
                 </div>
             </div>
