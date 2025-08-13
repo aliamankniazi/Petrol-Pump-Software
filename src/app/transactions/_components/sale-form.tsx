@@ -125,34 +125,6 @@ export function SaleForm() {
         setValue('paymentMethod', 'On Credit');
       }
   }, [watchedCustomerId, setValue]);
-  
-  const handleProductSelect = (productId: string) => {
-    const product = products.find(p => p.id === productId);
-    if (!product || !product.id) return;
-
-    // Find the most recent transaction for this product to get the last sale price
-    const lastSaleOfProduct = transactions
-        .flatMap(tx => tx.items.map(item => ({...item, timestamp: tx.timestamp})))
-        .filter(item => item.productId === productId && item.timestamp)
-        .sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime())
-        [0];
-
-    const salePrice = lastSaleOfProduct ? lastSaleOfProduct.pricePerUnit : (product.tradePrice || 0);
-    
-    append({
-        productId: product.id,
-        productName: product.name,
-        unit: product.mainUnit,
-        quantity: 1, // Default quantity
-        pricePerUnit: salePrice,
-        totalAmount: salePrice,
-        discount: 0,
-        bonus: 0,
-    });
-
-    setIsProductPopoverOpen(false);
-    setProductSearch('');
-  };
 
   const { grandTotal } = useMemo(() => {
     const sub = watchedItems.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
@@ -257,7 +229,32 @@ export function SaleForm() {
                                         <CommandItem
                                             key={p.id}
                                             value={p.id!}
-                                            onSelect={handleProductSelect}
+                                            onSelect={(currentValue) => {
+                                                const product = products.find(prod => prod.id === currentValue);
+                                                if (!product || !product.id) return;
+
+                                                const lastSaleOfProduct = transactions
+                                                    .flatMap(tx => tx.items.map(item => ({...item, timestamp: tx.timestamp})))
+                                                    .filter(item => item.productId === product.id && item.timestamp)
+                                                    .sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime())
+                                                    [0];
+
+                                                const salePrice = lastSaleOfProduct ? lastSaleOfProduct.pricePerUnit : (product.tradePrice || 0);
+
+                                                append({
+                                                    productId: product.id,
+                                                    productName: product.name,
+                                                    unit: product.mainUnit,
+                                                    quantity: 1,
+                                                    pricePerUnit: salePrice,
+                                                    totalAmount: salePrice,
+                                                    discount: 0,
+                                                    bonus: 0,
+                                                });
+
+                                                setIsProductPopoverOpen(false);
+                                                setProductSearch('');
+                                            }}
                                             >
                                             <Check className={cn("mr-2 h-4 w-4", "opacity-0" )} />
                                             {p.name}
