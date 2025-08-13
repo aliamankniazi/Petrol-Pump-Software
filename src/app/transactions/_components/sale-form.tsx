@@ -59,19 +59,22 @@ type SaleFormValues = z.infer<typeof saleSchema>;
 
 const LOCAL_STORAGE_KEY = 'global-transaction-date';
 
-function ProductSelection({ onProductSelect }: { onProductSelect: (productId: string) => void }) {
+function ProductSelection({ onProductSelect }: { onProductSelect: (product: Product) => void }) {
     const { products, isLoaded: productsLoaded } = useProducts();
-    const [productSearch, setProductSearch] = useState('');
+    const [search, setSearch] = useState('');
     const [isOpen, setIsOpen] = useState(false);
 
     const filteredProducts = useMemo(() => {
         if (!productsLoaded) return [];
-        if (!productSearch) return products;
-        return products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
-    }, [products, productSearch, productsLoaded]);
+        if (!search) return products;
+        return products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+    }, [products, search, productsLoaded]);
 
     const handleSelect = (productId: string) => {
-        onProductSelect(productId);
+        const product = products.find(p => p.id === productId);
+        if (product) {
+            onProductSelect(product);
+        }
         setIsOpen(false);
     };
 
@@ -85,7 +88,7 @@ function ProductSelection({ onProductSelect }: { onProductSelect: (productId: st
             </PopoverTrigger>
             <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                 <Command>
-                    <CommandInput placeholder="Search product..." onValueChange={setProductSearch}/>
+                    <CommandInput placeholder="Search product..." onValueChange={setSearch}/>
                     <CommandList>
                         <CommandEmpty>No product found.</CommandEmpty>
                         <CommandGroup>
@@ -236,11 +239,8 @@ export function SaleForm() {
   }, [customers, customerSearch]);
 
 
-  const handleProductSelect = useCallback((productId: string) => {
-    if (!productId || !productsLoaded) return;
-
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
+  const handleProductSelect = useCallback((product: Product) => {
+    if (!product || !productsLoaded) return;
 
     const lastSaleOfProduct = transactions
         .flatMap(tx => tx.items.map(item => ({...item, timestamp: tx.timestamp})))
