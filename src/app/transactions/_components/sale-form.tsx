@@ -255,11 +255,14 @@ export function SaleForm() {
                                     <CommandGroup>
                                     {filteredProducts.map((p) => (
                                         <CommandItem
-                                        key={p.id}
-                                        value={p.id!}
-                                        onSelect={(currentValue) => handleProductSelect(currentValue)}
-                                        >
-                                        {p.name}
+                                            key={p.id}
+                                            value={p.id!}
+                                            onSelect={(currentValue) => {
+                                                handleProductSelect(currentValue);
+                                            }}
+                                            >
+                                            <Check className={cn("mr-2 h-4 w-4", "opacity-0" )} />
+                                            {p.name}
                                         </CommandItem>
                                     ))}
                                     </CommandGroup>
