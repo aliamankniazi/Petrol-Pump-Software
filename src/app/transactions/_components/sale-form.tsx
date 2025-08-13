@@ -128,7 +128,7 @@ export function SaleForm() {
   
   const handleProductSelect = (productId: string) => {
     const product = products.find(p => p.id === productId);
-    if (!product) return;
+    if (!product || !product.id) return;
 
     // Find the most recent transaction for this product to get the last sale price
     const lastSaleOfProduct = transactions
@@ -140,7 +140,7 @@ export function SaleForm() {
     const salePrice = lastSaleOfProduct ? lastSaleOfProduct.pricePerUnit : (product.tradePrice || 0);
     
     append({
-        productId: product.id!,
+        productId: product.id,
         productName: product.name,
         unit: product.mainUnit,
         quantity: 1, // Default quantity
@@ -152,7 +152,7 @@ export function SaleForm() {
 
     setIsProductPopoverOpen(false);
     setProductSearch('');
-  }
+  };
 
   const { grandTotal } = useMemo(() => {
     const sub = watchedItems.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
@@ -472,5 +472,5 @@ export function SaleForm() {
                  <Button type="submit" size="lg">Save & Go to Invoice</Button>
             </div>
       </form>
-  )
+  );
 }
