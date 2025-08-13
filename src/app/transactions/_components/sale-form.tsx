@@ -66,9 +66,8 @@ export function SaleForm() {
   const { bankAccounts, isLoaded: bankAccountsLoaded } = useBankAccounts();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const router = useRouter();
-
+  
   const [customerSearch, setCustomerSearch] = useState('');
   const [isCustomerPopoverOpen, setIsCustomerPopoverOpen] = useState(false);
 
@@ -170,10 +169,8 @@ export function SaleForm() {
   
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Check for Ctrl + Shift + S
       if (event.ctrlKey && event.shiftKey && event.key === 'S') {
         event.preventDefault();
-        // Trigger form submission
         handleSubmit(onSubmit)();
       }
     };
@@ -409,9 +406,9 @@ export function SaleForm() {
                 <div className="space-y-1">
                     <Label>Sale Date</Label>
                      <Controller name="date" control={control} render={({ field }) => (
-                        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                        <Popover>
                             <PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
-                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(d) => {if(d) field.onChange(d); setIsCalendarOpen(false);}} initialFocus /></PopoverContent>
+                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(d) => {if(d) field.onChange(d);}} initialFocus /></PopoverContent>
                         </Popover>
                     )}/>
                 </div>
