@@ -26,6 +26,7 @@ import { Separator } from '@/components/ui/separator';
 import { useRouter } from 'next/navigation';
 import { Textarea } from '@/components/ui/textarea';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import type { Product } from '@/lib/types';
 
 
 const saleItemSchema = z.object({
@@ -67,9 +68,6 @@ export function SaleForm() {
   const [isClient, setIsClient] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const router = useRouter();
-  
-  const [currentItem, setCurrentItem] = useState({ productId: 'placeholder', selectedUnit: '...', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
-  const [lastFocused, setLastFocused] = useState<'quantity' | 'total'>('quantity');
   
   const [productSearch, setProductSearch] = useState('');
   const [customerSearch, setCustomerSearch] = useState('');
@@ -119,111 +117,41 @@ export function SaleForm() {
   const watchedItems = watch('items');
 
   const { balance: customerBalance } = useCustomerBalance(watchedCustomerId === 'walk-in' ? null : watchedCustomerId || null);
-  
-    useEffect(() => {
-        const quantity = parseFloat(currentItem.quantity) || 0;
-        const price = parseFloat(currentItem.pricePerUnit) || 0;
-        const discountAmount = parseFloat(currentItem.discountAmount) || 0;
-        const totalValue = parseFloat(currentItem.totalValue) || 0;
-        
-        if (lastFocused === 'quantity') {
-            let total = quantity * price;
-            if (discountAmount > 0) {
-                total -= discountAmount;
-            }
-            setCurrentItem(prev => ({...prev, totalValue: total > 0 ? total.toFixed(2) : ''}));
-        } else if (lastFocused === 'total' && price > 0) {
-            let calculatedQty = totalValue / price;
-             setCurrentItem(prev => ({...prev, quantity: calculatedQty > 0 ? calculatedQty.toFixed(2) : ''}));
-        }
-    
-    }, [currentItem.quantity, currentItem.pricePerUnit, currentItem.discountAmount, currentItem.totalValue, lastFocused]);
 
-    useEffect(() => {
-        if (watchedCustomerId === 'walk-in') {
-          setValue('paymentMethod', 'Cash');
-        } else {
-          setValue('paymentMethod', 'On Credit');
-        }
-    }, [watchedCustomerId, setValue]);
-  
-  const handleCurrentProductChange = (productId: string) => {
-    const product = products.find(p => p.id === productId);
-    if(product) {
-        // Find the most recent transaction for this product to get the last sale price
-        const lastSaleOfProduct = transactions
-            .flatMap(tx => tx.items.map(item => ({...item, timestamp: tx.timestamp})))
-            .filter(item => item.productId === productId && item.timestamp)
-            .sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime())
-            [0];
-
-        const salePrice = lastSaleOfProduct ? lastSaleOfProduct.pricePerUnit : (product.tradePrice || 0);
-
-        setCurrentItem(prev => ({
-            ...prev, 
-            productId, 
-            pricePerUnit: salePrice.toString(),
-            selectedUnit: product.mainUnit,
-        }));
-    } else {
-        setCurrentItem({ productId: 'placeholder', selectedUnit: '...', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
-    }
-  }
-
-  const handleUnitChange = (unitName: string) => {
-      const product = products.find(p => p.id === currentItem.productId);
-      if (!product) return;
-      
-      let newPrice = product.tradePrice || 0;
-      if (unitName !== product.mainUnit && product.subUnit && product.subUnit.name === unitName) {
-          if (product.subUnit.tradePrice) {
-              newPrice = product.subUnit.tradePrice;
-          } else if(product.subUnit.conversionRate) {
-              newPrice = (product.tradePrice || 0) / product.subUnit.conversionRate;
-          }
+  useEffect(() => {
+      if (watchedCustomerId === 'walk-in') {
+        setValue('paymentMethod', 'Cash');
+      } else {
+        setValue('paymentMethod', 'On Credit');
       }
-
-      setCurrentItem(prev => ({
-          ...prev,
-          selectedUnit: unitName,
-          pricePerUnit: newPrice.toFixed(2),
-      }))
-  }
+  }, [watchedCustomerId, setValue]);
   
-  const handleAddItemToSale = () => {
-    const product = products.find(p => p.id === currentItem.productId);
-    if (!product || !product.id || currentItem.productId === 'placeholder') {
-        toast({ variant: 'destructive', title: 'Error', description: 'Please select a product.'});
-        return;
-    }
-    const quantity = parseFloat(currentItem.quantity);
-    if (!quantity || quantity <= 0) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Please enter a valid quantity.'});
-        return;
-    }
+  const handleProductSelect = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
 
-    const pricePerUnit = parseFloat(currentItem.pricePerUnit);
-    const discount = parseFloat(currentItem.discountAmount) || 0;
-    const totalAmount = parseFloat(currentItem.totalValue);
+    // Find the most recent transaction for this product to get the last sale price
+    const lastSaleOfProduct = transactions
+        .flatMap(tx => tx.items.map(item => ({...item, timestamp: tx.timestamp})))
+        .filter(item => item.productId === productId && item.timestamp)
+        .sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime())
+        [0];
 
-    if (!totalAmount || totalAmount <= 0) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Total value must be greater than zero.' });
-        return;
-    }
-
+    const salePrice = lastSaleOfProduct ? lastSaleOfProduct.pricePerUnit : (product.tradePrice || 0);
+    
     append({
         productId: product.id!,
         productName: product.name,
-        unit: currentItem.selectedUnit,
-        quantity: quantity,
-        pricePerUnit: pricePerUnit,
-        totalAmount: totalAmount,
-        discount: discount,
-        bonus: parseFloat(currentItem.bonus) || 0,
+        unit: product.mainUnit,
+        quantity: 1, // Default quantity
+        pricePerUnit: salePrice,
+        totalAmount: salePrice,
+        discount: 0,
+        bonus: 0,
     });
-    
-    setCurrentItem({ productId: 'placeholder', selectedUnit: '...', quantity: '', pricePerUnit: '', bonus: '', discountAmount: '', discountPercent: '', totalValue: '' });
-  };
+
+    setIsProductPopoverOpen(false);
+  }
 
   const { grandTotal } = useMemo(() => {
     const sub = watchedItems.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
@@ -268,8 +196,6 @@ export function SaleForm() {
         router.push(`/invoice/sale/${newTransaction.id}`);
     }
   };
-
-  const selectedProduct = products.find(p => p.id === currentItem.productId);
   
   const filteredProducts = useMemo(() => {
     if (!productSearch) return products;
@@ -290,7 +216,7 @@ export function SaleForm() {
       <form onSubmit={handleSubmit(onSubmit)}>
             <div className="p-4 rounded-lg bg-muted/50 border space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="space-y-1">
+                    <div className="space-y-1 md:col-span-2">
                         <Label>Product</Label>
                         <Popover open={isProductPopoverOpen} onOpenChange={setIsProductPopoverOpen}>
                             <PopoverTrigger asChild>
@@ -299,9 +225,7 @@ export function SaleForm() {
                                 role="combobox"
                                 className="w-full justify-between"
                                 >
-                                {currentItem.productId !== 'placeholder'
-                                    ? products.find((p) => p.id === currentItem.productId)?.name
-                                    : "Select Product"}
+                                {"Select Product"}
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                             </PopoverTrigger>
@@ -315,17 +239,8 @@ export function SaleForm() {
                                         <CommandItem
                                         key={p.id}
                                         value={p.id!}
-                                        onSelect={(currentValue) => {
-                                            handleCurrentProductChange(currentValue === currentItem.productId ? 'placeholder' : currentValue);
-                                            setIsProductPopoverOpen(false);
-                                        }}
+                                        onSelect={handleProductSelect}
                                         >
-                                        <Check
-                                            className={cn(
-                                            "mr-2 h-4 w-4",
-                                            currentItem.productId === p.id ? "opacity-100" : "opacity-0"
-                                            )}
-                                        />
                                         {p.name}
                                         </CommandItem>
                                     ))}
@@ -335,42 +250,6 @@ export function SaleForm() {
                             </PopoverContent>
                         </Popover>
                     </div>
-                    <div className="space-y-1">
-                        <Label>Unit</Label>
-                         <Select onValueChange={handleUnitChange} value={currentItem.selectedUnit}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select Unit"/>
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="..." disabled>...</SelectItem>
-                                {selectedProduct && <SelectItem key={selectedProduct.mainUnit} value={selectedProduct.mainUnit}>{selectedProduct.mainUnit}</SelectItem>}
-                                {selectedProduct?.subUnit && <SelectItem key={selectedProduct.subUnit.name} value={selectedProduct.subUnit.name}>{selectedProduct.subUnit.name}</SelectItem>}
-                            </SelectContent>
-                         </Select>
-                    </div>
-                     <div className="space-y-1">
-                        <Label>Enter Qty</Label>
-                        <Input type="number" step="any" placeholder="0" value={currentItem.quantity} onFocus={() => setLastFocused('quantity')} onChange={e => setCurrentItem(prev => ({...prev, quantity: e.target.value}))}/>
-                    </div>
-                    <div className="space-y-1">
-                        <Label>Sale At</Label>
-                        <Input type="number" step="any" placeholder="0.00" value={currentItem.pricePerUnit} onChange={e => setCurrentItem(prev => ({...prev, pricePerUnit: e.target.value}))} />
-                    </div>
-                </div>
-                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                     <div className="space-y-1 hidden">
-                        <Label>Bonus</Label>
-                        <Input type="number" placeholder="bonus qty" value={currentItem.bonus} onChange={e => setCurrentItem(prev => ({...prev, bonus: e.target.value}))}/>
-                    </div>
-                    <div className="space-y-1 hidden">
-                        <Label>Discount (Amount)</Label>
-                        <Input type="number" step="0.01" placeholder="RS 0" value={currentItem.discountAmount} onChange={e => setCurrentItem(prev => ({...prev, discountAmount: e.target.value}))}/>
-                    </div>
-                    <div className="space-y-1">
-                        <Label>Total Value</Label>
-                        <Input type="number" step="any" placeholder="0.00" value={currentItem.totalValue} onFocus={() => setLastFocused('total')} onChange={e => setCurrentItem(prev => ({...prev, totalValue: e.target.value}))} />
-                    </div>
-                    <Button type="button" onClick={handleAddItemToSale}><PlusCircle/> Add To Sale</Button>
                 </div>
             </div>
 
@@ -391,11 +270,51 @@ export function SaleForm() {
                         {fields.map((field, index) => (
                             <TableRow key={field.id}>
                                 <TableCell>{field.productName}</TableCell>
-                                <TableCell>{field.unit}</TableCell>
-                                <TableCell>{field.pricePerUnit.toFixed(2)}</TableCell>
-                                <TableCell>{field.quantity}</TableCell>
-                                <TableCell>{field.discount.toFixed(2)}</TableCell>
-                                <TableCell>{field.totalAmount.toFixed(2)}</TableCell>
+                                <TableCell>
+                                    <Input
+                                        type="text"
+                                        {...register(`items.${index}.unit`)}
+                                        className="w-24"
+                                    />
+                                </TableCell>
+                                <TableCell>
+                                     <Input
+                                        type="number"
+                                        step="any"
+                                        {...register(`items.${index}.pricePerUnit`)}
+                                        onChange={(e) => {
+                                            const price = parseFloat(e.target.value) || 0;
+                                            const qty = getValues(`items.${index}.quantity`);
+                                            setValue(`items.${index}.totalAmount`, price * qty);
+                                        }}
+                                    />
+                                </TableCell>
+                                <TableCell>
+                                     <Input
+                                        type="number"
+                                        step="any"
+                                        {...register(`items.${index}.quantity`)}
+                                        onChange={(e) => {
+                                            const qty = parseFloat(e.target.value) || 0;
+                                            const price = getValues(`items.${index}.pricePerUnit`);
+                                            setValue(`items.${index}.totalAmount`, price * qty);
+                                        }}
+                                    />
+                                </TableCell>
+                                <TableCell>
+                                    <Input
+                                        type="number"
+                                        step="any"
+                                        {...register(`items.${index}.discount`)}
+                                    />
+                                </TableCell>
+                                <TableCell>
+                                    <Input
+                                        type="number"
+                                        step="any"
+                                        {...register(`items.${index}.totalAmount`)}
+                                    />
+                                </TableCell>
                                 <TableCell>
                                     <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
                                         <Trash2 className="text-destructive w-4 h-4"/>
