@@ -257,9 +257,7 @@ export function SaleForm() {
                                         <CommandItem
                                             key={p.id}
                                             value={p.id!}
-                                            onSelect={(currentValue) => {
-                                                handleProductSelect(currentValue);
-                                            }}
+                                            onSelect={handleProductSelect}
                                             >
                                             <Check className={cn("mr-2 h-4 w-4", "opacity-0" )} />
                                             {p.name}
