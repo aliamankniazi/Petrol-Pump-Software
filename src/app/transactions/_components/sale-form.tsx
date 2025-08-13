@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -68,10 +68,8 @@ export function SaleForm() {
   const [isClient, setIsClient] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const router = useRouter();
-  
-  const [productSearch, setProductSearch] = useState('');
+
   const [customerSearch, setCustomerSearch] = useState('');
-  const [isProductPopoverOpen, setIsProductPopoverOpen] = useState(false);
   const [isCustomerPopoverOpen, setIsCustomerPopoverOpen] = useState(false);
 
 
@@ -187,15 +185,37 @@ export function SaleForm() {
     };
   }, [handleSubmit, onSubmit]);
 
-  const filteredProducts = useMemo(() => {
-    if (!productSearch) return products;
-    return products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
-  }, [products, productSearch]);
-
   const filteredCustomers = useMemo(() => {
       if (!customerSearch) return customers;
       return customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()));
   }, [customers, customerSearch]);
+
+
+  const handleProductSelect = useCallback((productId: string) => {
+    if (!productId) return;
+
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    const lastSaleOfProduct = transactions
+        .flatMap(tx => tx.items.map(item => ({...item, timestamp: tx.timestamp})))
+        .filter(item => item.productId === product.id && item.timestamp)
+        .sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime())
+        [0];
+
+    const salePrice = lastSaleOfProduct ? lastSaleOfProduct.pricePerUnit : (product.tradePrice || 0);
+
+    append({
+        productId: product.id!,
+        productName: product.name,
+        unit: product.mainUnit,
+        quantity: 1,
+        pricePerUnit: salePrice,
+        totalAmount: salePrice,
+        discount: 0,
+        bonus: 0,
+    });
+  }, [products, transactions, append]);
 
 
   if (!isClient) {
@@ -208,7 +228,7 @@ export function SaleForm() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-1 md:col-span-2">
                         <Label>Product</Label>
-                        <Popover open={isProductPopoverOpen} onOpenChange={setIsProductPopoverOpen}>
+                        <Popover>
                             <PopoverTrigger asChild>
                                 <Button
                                 variant="outline"
@@ -221,39 +241,16 @@ export function SaleForm() {
                             </PopoverTrigger>
                             <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                 <Command>
-                                <CommandInput placeholder="Search product..." onValueChange={setProductSearch} />
+                                <CommandInput placeholder="Search product..." />
                                 <CommandList>
                                     <CommandEmpty>No product found.</CommandEmpty>
                                     <CommandGroup>
-                                    {filteredProducts.map((p) => (
+                                    {products.map((p) => (
                                         <CommandItem
                                             key={p.id}
                                             value={p.id!}
                                             onSelect={(currentValue) => {
-                                                const product = products.find(prod => prod.id === currentValue);
-                                                if (!product || !product.id) return;
-
-                                                const lastSaleOfProduct = transactions
-                                                    .flatMap(tx => tx.items.map(item => ({...item, timestamp: tx.timestamp})))
-                                                    .filter(item => item.productId === product.id && item.timestamp)
-                                                    .sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime())
-                                                    [0];
-
-                                                const salePrice = lastSaleOfProduct ? lastSaleOfProduct.pricePerUnit : (product.tradePrice || 0);
-
-                                                append({
-                                                    productId: product.id,
-                                                    productName: product.name,
-                                                    unit: product.mainUnit,
-                                                    quantity: 1,
-                                                    pricePerUnit: salePrice,
-                                                    totalAmount: salePrice,
-                                                    discount: 0,
-                                                    bonus: 0,
-                                                });
-
-                                                setIsProductPopoverOpen(false);
-                                                setProductSearch('');
+                                                handleProductSelect(currentValue);
                                             }}
                                             >
                                             <Check className={cn("mr-2 h-4 w-4", "opacity-0" )} />
