@@ -256,7 +256,7 @@ export function SaleForm() {
                                         <CommandItem
                                         key={p.id}
                                         value={p.id!}
-                                        onSelect={() => handleProductSelect(p.id!)}
+                                        onSelect={(currentValue) => handleProductSelect(currentValue)}
                                         >
                                         {p.name}
                                         </CommandItem>
@@ -468,5 +468,4 @@ export function SaleForm() {
                  <Button type="submit" size="lg">Save & Go to Invoice</Button>
             </div>
       </form>
-  );
-}
+  
