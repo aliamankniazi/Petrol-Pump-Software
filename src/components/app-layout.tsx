@@ -99,6 +99,18 @@ const AppLogo = () => (
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const [currentTime, setCurrentTime] = React.useState('');
+
+  React.useEffect(() => {
+    // Set the time on the client-side to avoid hydration mismatch
+    setCurrentTime(format(new Date(), 'PP p'));
+    // Update the time every second
+    const intervalId = setInterval(() => {
+      setCurrentTime(format(new Date(), 'PP p'));
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, []);
 
   const getPageTitle = () => {
     for (const item of navItems) {
@@ -162,7 +174,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarTrigger className="md:hidden" />
           <h2 className="text-xl font-semibold md:hidden">{pageTitle}</h2>
           <div className="hidden md:flex items-center gap-4 text-sm font-medium">
-             <span>{format(new Date(), 'PP p')}</span>
+             <span>{currentTime || 'Loading time...'}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-muted-foreground">{user?.email}</span>
