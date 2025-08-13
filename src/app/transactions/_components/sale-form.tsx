@@ -151,6 +151,7 @@ export function SaleForm() {
     });
 
     setIsProductPopoverOpen(false);
+    setProductSearch('');
   }
 
   const { grandTotal } = useMemo(() => {
@@ -468,4 +469,5 @@ export function SaleForm() {
                  <Button type="submit" size="lg">Save & Go to Invoice</Button>
             </div>
       </form>
-  
+  );
+}
