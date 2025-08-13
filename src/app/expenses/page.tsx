@@ -34,7 +34,8 @@ const expenseSchema = z.object({
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
 
-const LOCAL_STORAGE_KEY = 'global-transaction-date';
+const LOCAL_STORAGE_DATE_KEY = 'global-transaction-date';
+const LOCAL_STORAGE_CAT_KEY = 'expenses-last-category';
 
 export default function ExpensesPage() {
   const { expenses, addExpense, deleteExpense } = useExpenses();
@@ -48,6 +49,10 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     setIsClient(true);
+    const savedCategory = localStorage.getItem(LOCAL_STORAGE_CAT_KEY);
+    if(savedCategory) {
+      setCategoryFilter(savedCategory);
+    }
   }, []);
 
   const { register, handleSubmit, reset, control, formState: { errors }, watch, setValue } = useForm<ExpenseFormValues>({
@@ -60,7 +65,7 @@ export default function ExpensesPage() {
   
   useEffect(() => {
     if (isClient) {
-      const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const storedDate = localStorage.getItem(LOCAL_STORAGE_DATE_KEY);
       if (storedDate) {
         try {
           setValue('date', new Date(storedDate));
@@ -76,7 +81,7 @@ export default function ExpensesPage() {
   const selectedDate = watch('date');
   useEffect(() => {
     if (selectedDate && isClient) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
+      localStorage.setItem(LOCAL_STORAGE_DATE_KEY, selectedDate.toISOString());
     }
   }, [selectedDate, isClient]);
 
@@ -88,8 +93,9 @@ export default function ExpensesPage() {
       title: 'Expense Recorded',
       description: `Expense of PKR ${data.amount} for "${data.description}" has been logged.`,
     });
+    localStorage.setItem(LOCAL_STORAGE_CAT_KEY, data.category);
     const lastDate = watch('date');
-    reset({ description: '', category: undefined, amount: 0, date: lastDate });
+    reset({ description: '', category: data.category, amount: 0, date: lastDate });
   };
   
   const handleDeleteExpense = () => {
@@ -267,6 +273,7 @@ export default function ExpensesPage() {
                             selected={selectedDateFilter}
                             onSelect={setSelectedDateFilter}
                             initialFocus
+                            defaultMonth={selectedDateFilter}
                         />
                     </PopoverContent>
                  </Popover>

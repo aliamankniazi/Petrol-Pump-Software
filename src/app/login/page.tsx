@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
 import { auth } from '@/lib/firebase-client';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -11,18 +11,41 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Fuel } from 'lucide-react';
+
+const REMEMBER_ME_KEY = 'remember_me_email';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const savedEmail = localStorage.getItem(REMEMBER_ME_KEY);
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Set persistence based on "Remember Me"
+      const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+      await setPersistence(auth, persistence);
+
       await signInWithEmailAndPassword(auth, email, password);
+      
+      if (rememberMe) {
+          localStorage.setItem(REMEMBER_ME_KEY, email);
+      } else {
+          localStorage.removeItem(REMEMBER_ME_KEY);
+      }
+
       router.push('/dashboard');
     } catch (error: any) {
       toast({
@@ -80,6 +103,19 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+            </div>
+            <div className="flex items-center space-x-2">
+                <Checkbox 
+                    id="remember-me" 
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                />
+                <label
+                    htmlFor="remember-me"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                    Remember me
+                </label>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">

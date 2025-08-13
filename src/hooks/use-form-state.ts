@@ -3,26 +3,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
+// This hook is deprecated due to hydration issues.
+// State persistence is now handled directly in components using useState and useEffect.
 export function useFormState<T>(key: string, initialValue: T): [T, (value: T | Partial<T>) => void] {
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    if (typeof window === 'undefined') {
-      return initialValue;
-    }
-    try {
-      const item = window.localStorage.getItem(key);
-      const parsedItem = item ? JSON.parse(item) : initialValue;
-
-      // Ensure customerId is not an empty string on load
-      if (parsedItem.customerId === '') {
-        parsedItem.customerId = 'walk-in';
-      }
-      return parsedItem;
-      
-    } catch (error) {
-      console.log(error);
-      return initialValue;
-    }
-  });
+  const [storedValue, setStoredValue] = useState<T>(initialValue);
 
   const setValue = useCallback((value: T | Partial<T>) => {
     try {
@@ -35,6 +19,9 @@ export function useFormState<T>(key: string, initialValue: T): [T, (value: T | P
       console.log(error);
     }
   }, [key, storedValue]);
+  
+  // Return a stable function that does nothing to avoid breaking components that still use this hook.
+  const emptySetter = useCallback(() => {}, []);
 
-  return [storedValue, setValue];
+  return [initialValue, emptySetter as any];
 }

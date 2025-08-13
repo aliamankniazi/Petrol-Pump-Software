@@ -22,6 +22,10 @@ import {
   SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
 import { FileText, Settings, LayoutDashboard, ShoppingCart, Receipt, Undo2, Users, Landmark, Briefcase, Package, BookOpen, HandCoins, ArrowRightLeft, Fuel, DollarSign, Beaker, Handshake, PiggyBank, Archive, BarChartHorizontal, UserCheck, ArrowRightLeftIcon, Truck } from 'lucide-react';
+import { format } from 'date-fns';
+import { useAuth } from '@/hooks/use-auth';
+import { Button } from '@/components/ui/button';
+import { ThemeToggle } from './theme-toggle';
 
 
 const navItems = [
@@ -94,6 +98,8 @@ const AppLogo = () => (
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { user } = useAuth();
+
   const getPageTitle = () => {
     for (const item of navItems) {
       if ('href' in item && item.href === pathname) return item.label;
@@ -152,9 +158,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/80 p-4 backdrop-blur-sm md:justify-end">
+        <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/80 p-4 backdrop-blur-sm">
           <SidebarTrigger className="md:hidden" />
           <h2 className="text-xl font-semibold md:hidden">{pageTitle}</h2>
+          <div className="hidden md:flex items-center gap-4 text-sm font-medium">
+             <span>{format(new Date(), 'PP p')}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground">{user?.email}</span>
+            <ThemeToggle />
+          </div>
         </header>
         <main className="flex-1">{children}</main>
       </SidebarInset>

@@ -67,10 +67,6 @@ export default function PurchasesPage() {
   const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
-  const [lastFocused, setLastFocused] = useState<'quantity' | 'total'>('quantity');
-  
-  const [currentItem, setCurrentItem] = useState({ productId: 'placeholder', selectedUnit: '...', quantity: '', costPerUnit: '', discountAmount: '', totalValue: '' });
-  const [lastPurchaseRates, setLastPurchaseRates] = useState<Record<string, number>>({});
   
   const [productSearch, setProductSearch] = useState('');
   const [supplierSearch, setSupplierSearch] = useState('');
@@ -104,25 +100,6 @@ export default function PurchasesPage() {
   
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
 
-  useEffect(() => {
-    const quantity = parseFloat(currentItem.quantity) || 0;
-    const price = parseFloat(currentItem.costPerUnit) || 0;
-    const discountAmount = parseFloat(currentItem.discountAmount) || 0;
-    const totalValue = parseFloat(currentItem.totalValue) || 0;
-    
-    if (lastFocused === 'quantity') {
-        let total = quantity * price;
-        if (discountAmount > 0) {
-            total -= discountAmount;
-        }
-        setCurrentItem(prev => ({...prev, totalValue: total > 0 ? total.toFixed(2) : ''}));
-    } else if (lastFocused === 'total' && price > 0) {
-        let calculatedQty = totalValue / price;
-        setCurrentItem(prev => ({...prev, quantity: calculatedQty > 0 ? calculatedQty.toFixed(2) : ''}));
-    }
-
-  }, [currentItem.quantity, currentItem.costPerUnit, currentItem.discountAmount, currentItem.totalValue, lastFocused]);
-
   const watchedItems = watch('items');
   const watchedSupplierId = watch('supplierId');
   
@@ -137,83 +114,29 @@ export default function PurchasesPage() {
     resolver: zodResolver(supplierSchema)
   });
     
-    const handleCurrentProductChange = (productId: string) => {
-        const product = products.find(p => p.id === productId);
-        if(product) {
-            const rememberedPrice = lastPurchaseRates[productId];
-            const purchasePrice = rememberedPrice !== undefined ? rememberedPrice : (product.purchasePrice || 0);
-            
-            setCurrentItem(prev => ({
-                ...prev, 
-                productId, 
-                costPerUnit: purchasePrice.toString(),
-                selectedUnit: product.mainUnit,
-            }));
-        }
-    }
+  const handleAddItemToPurchase = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    if (!product || !product.id) return;
 
-    const handleUnitChange = (unitName: string) => {
-      const product = products.find(p => p.id === currentItem.productId);
-      if (!product) return;
-      
-      let newPrice = product.purchasePrice || 0;
-      if (unitName !== product.mainUnit && product.subUnit && product.subUnit.name === unitName) {
-          if (product.subUnit.purchasePrice) {
-              newPrice = product.subUnit.purchasePrice;
-          } else if(product.subUnit.conversionRate) {
-              newPrice = (product.purchasePrice || 0) / product.subUnit.conversionRate;
-          }
-      }
-
-      setCurrentItem(prev => ({
-          ...prev,
-          selectedUnit: unitName,
-          costPerUnit: newPrice.toFixed(2),
-      }))
-    }
+    append({
+        productId: product.id,
+        productName: product.name,
+        unit: product.mainUnit,
+        quantity: 1,
+        costPerUnit: product.purchasePrice || 0,
+        totalCost: product.purchasePrice || 0,
+        discount: 0,
+    });
+    setIsProductPopoverOpen(false);
+    setProductSearch('');
+  }
   
-    const handleAddItemToPurchase = () => {
-        const product = products.find(p => p.id === currentItem.productId);
-        if (!product || !product.id || currentItem.productId === 'placeholder') {
-            toast({ variant: 'destructive', title: 'Error', description: 'Please select a product.'});
-            return;
-        }
-        const quantity = parseFloat(currentItem.quantity);
-        if (!quantity || quantity <= 0) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Please enter a valid quantity.'});
-            return;
-        }
-    
-        const costPerUnit = parseFloat(currentItem.costPerUnit);
-        const discount = parseFloat(currentItem.discountAmount) || 0;
-        const totalCost = parseFloat(currentItem.totalValue);
-
-        if (!totalCost || totalCost <= 0) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Total value must be greater than zero.'});
-            return;
-        }
-    
-        append({
-            productId: product.id,
-            productName: product.name,
-            unit: currentItem.selectedUnit,
-            quantity: quantity,
-            costPerUnit: costPerUnit,
-            totalCost: totalCost,
-            discount: discount,
-        });
-        
-        setLastPurchaseRates(prev => ({...prev, [product.id!]: costPerUnit}));
-        
-        setCurrentItem({ productId: 'placeholder', selectedUnit: '...', quantity: '', costPerUnit: '', discountAmount: '', totalValue: '' });
-    }
-  
-    const { grandTotal } = useMemo(() => {
-        const sub = watchedItems.reduce((sum, item) => sum + (item.totalCost || 0), 0);
-        const expenses = Number(getValues('expenses')) || 0;
-        const grand = sub + expenses;
-        return { grandTotal: grand };
-      }, [watchedItems, getValues]);
+  const { grandTotal } = useMemo(() => {
+      const sub = watchedItems.reduce((sum, item) => sum + (item.totalCost || 0), 0);
+      const expenses = Number(getValues('expenses')) || 0;
+      const grand = sub + expenses;
+      return { grandTotal: grand };
+    }, [watchedItems, getValues]);
 
   const onPurchaseSubmit: SubmitHandler<PurchaseFormValues> = (data) => {
     const supplier = suppliers.find(s => s.id === data.supplierId);
@@ -224,7 +147,7 @@ export default function PurchasesPage() {
     addPurchase({
       ...data,
       supplier: supplier.name, 
-      totalCost: subTotal, // totalCost for ledger is just items sum
+      totalCost: subTotal,
     });
     toast({
       title: 'Purchase Recorded',
@@ -254,8 +177,6 @@ export default function PurchasesPage() {
     setIsAddSupplierOpen(false);
   }, [addSupplier, toast, resetSupplier]);
 
-  const selectedProduct = products.find(p => p.id === currentItem.productId);
-  
   const filteredProducts = useMemo(() => {
     if (!productsLoaded) return [];
     if (!productSearch) return products;
@@ -286,84 +207,39 @@ export default function PurchasesPage() {
             </CardHeader>
             <CardContent>
                 <div className="p-4 rounded-lg bg-muted/50 border space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="space-y-1">
-                            <Label>Product</Label>
-                            <Popover open={isProductPopoverOpen} onOpenChange={setIsProductPopoverOpen}>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                    variant="outline"
-                                    role="combobox"
-                                    className="w-full justify-between"
-                                    >
-                                    {currentItem.productId !== 'placeholder' && productsLoaded
-                                        ? products.find((p) => p.id === currentItem.productId)?.name
-                                        : "Select Product"}
-                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                    <Command>
-                                        <CommandInput placeholder="Search product..." onValueChange={setProductSearch}/>
-                                        <CommandList>
-                                            <CommandEmpty>No product found.</CommandEmpty>
-                                            <CommandGroup>
-                                            {filteredProducts.map((p) => (
-                                                <CommandItem
-                                                key={p.id}
-                                                value={p.id!}
-                                                onSelect={(currentValue) => {
-                                                    handleCurrentProductChange(currentValue === currentItem.productId ? 'placeholder' : currentValue)
-                                                    setIsProductPopoverOpen(false);
-                                                }}
-                                                >
-                                                <Check
-                                                    className={cn(
-                                                    "mr-2 h-4 w-4",
-                                                    currentItem.productId === p.id ? "opacity-100" : "opacity-0"
-                                                    )}
-                                                />
-                                                {p.name}
-                                                </CommandItem>
-                                            ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                        <div className="space-y-1">
-                            <Label>Unit</Label>
-                             <Select onValueChange={handleUnitChange} value={currentItem.selectedUnit}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select Unit"/>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="..." disabled>...</SelectItem>
-                                    {selectedProduct && <SelectItem key={selectedProduct.mainUnit} value={selectedProduct.mainUnit}>{selectedProduct.mainUnit}</SelectItem>}
-                                    {selectedProduct?.subUnit && <SelectItem key={selectedProduct.subUnit.name} value={selectedProduct.subUnit.name}>{selectedProduct.subUnit.name}</SelectItem>}
-                                </SelectContent>
-                             </Select>
-                        </div>
-                         <div className="space-y-1">
-                            <Label>Enter Qty</Label>
-                            <Input type="number" step="any" placeholder="0" value={currentItem.quantity} onFocus={() => setLastFocused('quantity')} onChange={e => setCurrentItem(prev => ({...prev, quantity: e.target.value}))}/>
-                        </div>
-                        <div className="space-y-1">
-                            <Label>Purchase At</Label>
-                            <Input type="number" step="any" placeholder="0.00" value={currentItem.costPerUnit} onChange={e => setCurrentItem(prev => ({...prev, costPerUnit: e.target.value}))} />
-                        </div>
-                    </div>
-                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                        <div className="space-y-1">
-                            <Label>Discount (Amount)</Label>
-                            <Input type="number" step="any" placeholder="RS 0" value={currentItem.discountAmount} onChange={e => setCurrentItem(prev => ({...prev, discountAmount: e.target.value}))}/>
-                        </div>
-                        <div className="space-y-1">
-                            <Label>Total Value</Label>
-                            <Input type="number" step="any" placeholder="0.00" value={currentItem.totalValue} onFocus={() => setLastFocused('total')} onChange={e => setCurrentItem(prev => ({...prev, totalValue: e.target.value}))}/>
-                        </div>
-                        <Button type="button" onClick={handleAddItemToPurchase}><PlusCircle/> Add To Purchase</Button>
+                     <div className="space-y-1">
+                        <Label>Product</Label>
+                        <Popover open={isProductPopoverOpen} onOpenChange={setIsProductPopoverOpen}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                variant="outline"
+                                role="combobox"
+                                className="w-full justify-between"
+                                >
+                                Select Product
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                <Command>
+                                    <CommandInput placeholder="Search product..." onValueChange={setProductSearch}/>
+                                    <CommandList>
+                                        <CommandEmpty>No product found.</CommandEmpty>
+                                        <CommandGroup>
+                                        {filteredProducts.map((p) => (
+                                            <CommandItem
+                                            key={p.id}
+                                            value={p.id!}
+                                            onSelect={() => handleAddItemToPurchase(p.id!)}
+                                            >
+                                            {p.name}
+                                            </CommandItem>
+                                        ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
                     </div>
                 </div>
 
@@ -385,10 +261,26 @@ export default function PurchasesPage() {
                                 <TableRow key={field.id}>
                                     <TableCell>{field.productName}</TableCell>
                                     <TableCell>{field.unit}</TableCell>
-                                    <TableCell>{field.costPerUnit.toFixed(2)}</TableCell>
-                                    <TableCell>{field.quantity}</TableCell>
-                                    <TableCell>{field.discount.toFixed(2)}</TableCell>
-                                    <TableCell>{field.totalCost.toFixed(2)}</TableCell>
+                                    <TableCell>
+                                        <Input type="number" step="any" {...register(`items.${index}.costPerUnit`)} onChange={e => {
+                                            const cost = parseFloat(e.target.value) || 0;
+                                            const qty = getValues(`items.${index}.quantity`);
+                                            setValue(`items.${index}.totalCost`, qty * cost);
+                                        }}/>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Input type="number" step="any" {...register(`items.${index}.quantity`)} onChange={e => {
+                                            const qty = parseFloat(e.target.value) || 0;
+                                            const cost = getValues(`items.${index}.costPerUnit`);
+                                            setValue(`items.${index}.totalCost`, qty * cost);
+                                        }}/>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Input type="number" step="any" {...register(`items.${index}.discount`)}/>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Input type="number" step="any" {...register(`items.${index}.totalCost`)}/>
+                                    </TableCell>
                                     <TableCell>
                                         <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
                                             <Trash2 className="text-destructive w-4 h-4"/>
