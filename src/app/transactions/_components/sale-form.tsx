@@ -96,7 +96,7 @@ function ProductSelection({ onProductSelect }: { onProductSelect: (product: Prod
                                 <CommandItem
                                     key={p.id}
                                     value={p.id!}
-                                    onSelect={(currentValue) => handleSelect(currentValue)}
+                                    onSelect={() => handleSelect(p.id!)}
                                 >
                                     <Check className={cn("mr-2 h-4 w-4", "opacity-0")} />
                                     {p.name}
@@ -471,9 +471,6 @@ export function SaleForm() {
                         </Select>
                     )}/>
                 </div>
-            </div>
-            <div className="mt-4">
-                 <Button type="submit" size="lg">Save & Go to Invoice</Button>
             </div>
       </form>
   );
