@@ -137,7 +137,7 @@ export function SaleForm() {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
       // Prevent form submission on "Enter" unless it's a button
-      if (event.key === 'Enter' && target.tagName !== 'BUTTON') {
+      if (event.key === 'Enter' && target.tagName !== 'BUTTON' && target.tagName !== 'TEXTAREA') {
           event.preventDefault();
       }
       
