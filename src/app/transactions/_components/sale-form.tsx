@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Trash2, Calendar as CalendarIcon, ShoppingCart, UserPlus, Check, ChevronsUpDown } from 'lucide-react';
+import { Trash2, Calendar as CalendarIcon, UserPlus, Check, ChevronsUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomers } from '@/hooks/use-customers';
@@ -23,7 +23,6 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
-import { useRouter } from 'next/navigation';
 import { Textarea } from '@/components/ui/textarea';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import type { Product } from '@/lib/types';
@@ -76,6 +75,7 @@ function ProductSelection({ onProductSelect }: { onProductSelect: (product: Prod
             onProductSelect(product);
         }
         setIsOpen(false);
+        setSearch(''); 
     };
 
     return (
@@ -117,7 +117,6 @@ export function SaleForm() {
   const { bankAccounts, isLoaded: bankAccountsLoaded } = useBankAccounts();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
-  const router = useRouter();
   
   const [customerSearch, setCustomerSearch] = useState('');
 
@@ -171,7 +170,7 @@ export function SaleForm() {
 
     const grandTotal = data.items.reduce((sum, item) => sum + (item.totalAmount || 0), 0) - (data.extraDiscount || 0);
 
-    const newTransaction = await addTransaction({
+    await addTransaction({
       ...data,
       totalAmount: grandTotal,
       customerName: isWalkIn ? 'Walk-in Customer' : customer?.name,
