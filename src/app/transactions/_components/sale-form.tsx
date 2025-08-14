@@ -149,11 +149,6 @@ export function SaleForm() {
 
    useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Prevent form submission on Enter key press in most cases
-      if (event.key === 'Enter' && (event.target as HTMLElement).tagName.toLowerCase() !== 'textarea') {
-          event.preventDefault();
-      }
-      // Handle Ctrl+S for saving
       if ((event.ctrlKey || event.metaKey) && event.key === 's') {
         event.preventDefault();
         handleSubmit(onSubmit)();
@@ -252,7 +247,7 @@ export function SaleForm() {
                                         onChange={(e) => {
                                             const price = parseFloat(e.target.value) || 0;
                                             const qty = getValues(`items.${index}.quantity`);
-                                            setValue(`items.${index}.totalAmount`, price * qty);
+                                            setValue(`items.${index}.totalAmount`, price * qty, { shouldTouch: true });
                                         }}
                                     />
                                 </TableCell>
@@ -264,7 +259,7 @@ export function SaleForm() {
                                         onChange={(e) => {
                                             const qty = parseFloat(e.target.value) || 0;
                                             const price = getValues(`items.${index}.pricePerUnit`);
-                                            setValue(`items.${index}.totalAmount`, price * qty);
+                                            setValue(`items.${index}.totalAmount`, price * qty, { shouldTouch: true });
                                         }}
                                     />
                                 </TableCell>
@@ -280,6 +275,13 @@ export function SaleForm() {
                                         type="number"
                                         step="any"
                                         {...register(`items.${index}.totalAmount`)}
+                                         onChange={(e) => {
+                                            const total = parseFloat(e.target.value) || 0;
+                                            const price = getValues(`items.${index}.pricePerUnit`);
+                                            if (price > 0) {
+                                                setValue(`items.${index}.quantity`, total / price, { shouldTouch: true });
+                                            }
+                                        }}
                                     />
                                 </TableCell>
                                 <TableCell>

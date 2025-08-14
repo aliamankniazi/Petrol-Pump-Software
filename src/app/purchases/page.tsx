@@ -266,21 +266,27 @@ export default function PurchasesPage() {
                                         <Input type="number" step="any" {...register(`items.${index}.costPerUnit`)} onChange={e => {
                                             const cost = parseFloat(e.target.value) || 0;
                                             const qty = getValues(`items.${index}.quantity`);
-                                            setValue(`items.${index}.totalCost`, qty * cost);
+                                            setValue(`items.${index}.totalCost`, qty * cost, { shouldTouch: true });
                                         }}/>
                                     </TableCell>
                                     <TableCell>
                                         <Input type="number" step="any" {...register(`items.${index}.quantity`)} onChange={e => {
                                             const qty = parseFloat(e.target.value) || 0;
                                             const cost = getValues(`items.${index}.costPerUnit`);
-                                            setValue(`items.${index}.totalCost`, qty * cost);
+                                            setValue(`items.${index}.totalCost`, qty * cost, { shouldTouch: true });
                                         }}/>
                                     </TableCell>
                                     <TableCell>
                                         <Input type="number" step="any" {...register(`items.${index}.discount`)}/>
                                     </TableCell>
                                     <TableCell>
-                                        <Input type="number" step="any" {...register(`items.${index}.totalCost`)}/>
+                                        <Input type="number" step="any" {...register(`items.${index}.totalCost`)} onChange={e => {
+                                            const total = parseFloat(e.target.value) || 0;
+                                            const cost = getValues(`items.${index}.costPerUnit`);
+                                            if (cost > 0) {
+                                                setValue(`items.${index}.quantity`, total / cost, { shouldTouch: true });
+                                            }
+                                        }}/>
                                     </TableCell>
                                     <TableCell>
                                         <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
