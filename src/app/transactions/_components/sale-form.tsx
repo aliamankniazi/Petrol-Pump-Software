@@ -202,7 +202,6 @@ export function SaleForm() {
 
    useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Handle Ctrl+S for saving
       if ((event.ctrlKey || event.metaKey) && event.key === 's') {
         event.preventDefault();
         handleSubmit(onSubmit)();
