@@ -233,6 +233,7 @@ export default function PurchasesPage() {
                                             onSelect={() => handleAddItemToPurchase(p.id!)}
                                             >
                                             {p.name}
+                                            {p.mainUnit && <span className="text-xs text-muted-foreground ml-2">({p.mainUnit}{p.subUnit?.name ? ` / ${p.subUnit.name}` : ''})</span>}
                                             </CommandItem>
                                         ))}
                                         </CommandGroup>

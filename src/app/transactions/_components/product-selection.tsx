@@ -56,6 +56,7 @@ export function ProductSelection({ onProductSelect }: ProductSelectionProps) {
                 >
                   <Check className={cn("mr-2 h-4 w-4", "opacity-0")} />
                   {p.name}
+                   {p.mainUnit && <span className="text-xs text-muted-foreground ml-2">({p.mainUnit}{p.subUnit?.name ? ` / ${p.subUnit.name}` : ''})</span>}
                 </CommandItem>
               ))}
             </CommandGroup>
