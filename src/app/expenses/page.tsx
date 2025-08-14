@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { Textarea } from '@/components/ui/textarea';
 
 
 const EXPENSE_CATEGORIES: ExpenseCategory[] = ['Utilities', 'Salaries', 'Maintenance', 'Other'];
@@ -30,6 +31,7 @@ const expenseSchema = z.object({
   category: z.enum(EXPENSE_CATEGORIES, { required_error: 'Please select a category.' }),
   amount: z.coerce.number().min(0.01, 'Amount must be greater than 0'),
   date: z.date({ required_error: "A date is required."}),
+  notes: z.string().optional(),
 });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
@@ -60,6 +62,7 @@ export default function ExpensesPage() {
     defaultValues: {
       description: '',
       amount: 0,
+      notes: '',
     }
   });
   
@@ -95,7 +98,7 @@ export default function ExpensesPage() {
     });
     localStorage.setItem(LOCAL_STORAGE_CAT_KEY, data.category);
     const lastDate = watch('date');
-    reset({ description: '', category: data.category, amount: 0, date: lastDate });
+    reset({ description: '', category: data.category, amount: 0, date: lastDate, notes: '' });
   };
   
   const handleDeleteExpense = () => {
@@ -118,7 +121,10 @@ export default function ExpensesPage() {
         validExpenses = validExpenses.filter(expense => expense.category === categoryFilter);
     }
     if (searchTerm) {
-        validExpenses = validExpenses.filter(expense => expense.description.toLowerCase().includes(searchTerm.toLowerCase()));
+        validExpenses = validExpenses.filter(expense => 
+            expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (expense.notes && expense.notes.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
     }
     
     return validExpenses;
@@ -214,6 +220,11 @@ export default function ExpensesPage() {
                   {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notes (Optional)</Label>
+                  <Textarea id="notes" {...register('notes')} placeholder="e.g., Bill for the month of July" />
+                </div>
+
 
               <Button type="submit" className="w-full">Record Expense</Button>
             </form>
@@ -296,6 +307,7 @@ export default function ExpensesPage() {
                     <TableHead>Date</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead>Category</TableHead>
+                    <TableHead>Notes</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
                     <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
@@ -306,6 +318,7 @@ export default function ExpensesPage() {
                         <TableCell className="font-medium">{format(new Date(e.timestamp!), 'PP')}</TableCell>
                         <TableCell>{e.description}</TableCell>
                         <TableCell>{e.category}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{e.notes || 'N/A'}</TableCell>
                         <TableCell className="text-right">PKR {e.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                         <TableCell className="text-center">
                             <Button variant="ghost" size="icon" title="Delete" className="text-destructive hover:text-destructive" onClick={() => setExpenseToDelete(e)}>

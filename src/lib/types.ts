@@ -122,6 +122,7 @@ export interface Expense {
   timestamp?: string;
   employeeId?: string; // Link to employee for salary payments
   date: Date;
+  notes?: string;
 }
 
 export type OtherIncomeCategory = 'Service Station' | 'Tire Shop' | 'Tuck Shop' | 'Other';
