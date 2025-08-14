@@ -505,6 +505,7 @@ export function SaleForm() {
             <Separator className="my-6" />
             <div className="flex items-center gap-2">
                 <Button type="submit" size="lg">Save/Submit</Button>
+                 <Button type="button" variant="outline" size="lg" onClick={() => reset({ items: [], paymentMethod: 'On Credit', customerId: 'walk-in', date: new Date(), orderDeliveryDate: new Date(), bankAccountId: '', notes: '', extraDiscount: 0, paidAmount: 0, expenseAmount: 0, expenseBankAccountId: '', referenceNo: '' })}>Discard/Reset</Button>
             </div>
       </form>
   );
