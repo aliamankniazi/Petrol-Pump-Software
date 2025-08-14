@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { format, isSameDay, startOfDay } from 'date-fns';
@@ -33,6 +33,7 @@ import Link from 'next/link';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
 import { useCashAdvances } from '@/hooks/use-cash-advances';
 import { Input } from '@/components/ui/input';
+import { useGlobalDate } from '@/hooks/use-global-date.tsx';
 
 type LedgerEntry = {
   id: string;
@@ -55,7 +56,10 @@ export default function LedgerPage() {
   const { investments, deleteInvestment, isLoaded: investmentsLoaded } = useInvestments();
   const { cashAdvances, deleteCashAdvance, isLoaded: cashAdvancesLoaded } = useCashAdvances();
   
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const { globalDateRange, setGlobalDateRange } = useGlobalDate();
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(globalDateRange?.from);
+  useEffect(() => { setSelectedDate(globalDateRange?.from) }, [globalDateRange]);
+
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<LedgerEntry | null>(null);
   const { toast } = useToast();
@@ -322,6 +326,7 @@ export default function LedgerPage() {
                         selected={selectedDate}
                         onSelect={(date) => {
                             setSelectedDate(date);
+                            setGlobalDateRange(date ? { from: date, to: date } : undefined);
                             setIsCalendarOpen(false);
                         }}
                         initialFocus
@@ -329,7 +334,7 @@ export default function LedgerPage() {
                     </PopoverContent>
                   </Popover>
                   {selectedDate && (
-                    <Button variant="ghost" size="icon" onClick={() => setSelectedDate(undefined)}>
+                    <Button variant="ghost" size="icon" onClick={() => { setSelectedDate(undefined); setGlobalDateRange(undefined); }}>
                       <X className="h-4 w-4" />
                       <span className="sr-only">Clear filter</span>
                     </Button>

@@ -29,7 +29,7 @@ export default function InvoicesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   
-  const { globalDateRange } = useGlobalDate();
+  const { globalDateRange, setGlobalDateRange } = useGlobalDate();
   const [dateRange, setDateRange] = useState<DateRange | undefined>(globalDateRange);
   useEffect(() => { setDateRange(globalDateRange) }, [globalDateRange]);
 
@@ -169,6 +169,7 @@ export default function InvoicesPage() {
                             selected={dateRange}
                             onSelect={(range) => {
                                 setDateRange(range);
+                                setGlobalDateRange(range);
                                 if (range?.from && range.to) {
                                     setIsCalendarOpen(false);
                                 }
@@ -179,7 +180,7 @@ export default function InvoicesPage() {
                     </PopoverContent>
                 </Popover>
                  {(dateRange || typeFilter !== 'all') && (
-                    <Button variant="ghost" size="icon" onClick={() => { setDateRange(undefined); setTypeFilter('all'); }}>
+                    <Button variant="ghost" size="icon" onClick={() => { setDateRange(undefined); setTypeFilter('all'); setGlobalDateRange(undefined); }}>
                         <X className="h-4 w-4" />
                     </Button>
                  )}

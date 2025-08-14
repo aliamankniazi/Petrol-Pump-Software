@@ -67,7 +67,7 @@ export default function AllTransactionsPage() {
   const [entryToDelete, setEntryToDelete] = useState<CombinedEntry | null>(null);
   const { toast } = useToast();
   
-  const { globalDateRange } = useGlobalDate();
+  const { globalDateRange, setGlobalDateRange } = useGlobalDate();
   const [dateRange, setDateRange] = useState<DateRange | undefined>(globalDateRange);
   useEffect(() => { setDateRange(globalDateRange) }, [globalDateRange]);
 
@@ -275,6 +275,7 @@ export default function AllTransactionsPage() {
                             selected={dateRange}
                             onSelect={(range) => {
                                 setDateRange(range);
+                                setGlobalDateRange(range);
                                 if (range?.from && range.to) {
                                     setIsCalendarOpen(false);
                                 }
@@ -285,7 +286,7 @@ export default function AllTransactionsPage() {
                     </PopoverContent>
                 </Popover>
                  {(dateRange || typeFilter !== 'all') && (
-                    <Button variant="ghost" size="icon" onClick={() => { setDateRange(undefined); setTypeFilter('all'); }}>
+                    <Button variant="ghost" size="icon" onClick={() => { setDateRange(undefined); setTypeFilter('all'); setGlobalDateRange(undefined); }}>
                         <X className="h-4 w-4" />
                     </Button>
                  )}

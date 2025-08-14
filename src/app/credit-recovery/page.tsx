@@ -48,7 +48,7 @@ export default function CreditRecoveryPage() {
     const { transactions, isLoaded: txLoaded } = useTransactions();
     const { customerPayments, isLoaded: paymentsLoaded } = useCustomerPayments();
     const { cashAdvances, isLoaded: advancesLoaded } = useCashAdvances();
-    const { globalDateRange } = useGlobalDate();
+    const { globalDateRange, setGlobalDateRange } = useGlobalDate();
 
     const [selectedCustomerId, setSelectedCustomerId] = useState('all');
     const [dateRange, setDateRange] = useState<DateRange | undefined>(globalDateRange);
@@ -238,6 +238,7 @@ Mianwali Petroleum Service`;
                                         selected={dateRange}
                                         onSelect={(range) => {
                                             setDateRange(range);
+                                            setGlobalDateRange(range);
                                             if (range?.from && range.to) {
                                                 setIsCalendarOpen(false);
                                             }
