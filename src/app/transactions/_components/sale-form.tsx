@@ -104,7 +104,7 @@ export function SaleForm() {
 
     const grandTotal = data.items.reduce((sum, item) => sum + (item.totalAmount || 0), 0) - (data.extraDiscount || 0);
 
-    await addTransaction({
+    const newTransaction = await addTransaction({
       ...data,
       totalAmount: grandTotal,
       customerName: isWalkIn ? 'Walk-in Customer' : customer?.name,
@@ -114,6 +114,10 @@ export function SaleForm() {
       title: 'Sale Recorded',
       description: `Transaction of PKR ${grandTotal.toLocaleString()} has been successfully recorded.`,
     });
+
+    if (newTransaction && newTransaction.id) {
+        window.open(`/invoice/sale/${newTransaction.id}?print=true`, '_blank');
+    }
     
     reset({ 
         items: [],

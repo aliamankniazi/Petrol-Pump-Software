@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useTransactions } from '@/hooks/use-transactions';
 import { usePurchases } from '@/hooks/use-purchases';
 import { Invoice } from '@/components/invoice';
@@ -23,6 +23,7 @@ import type { LedgerEntry } from '@/lib/types';
 
 export default function InvoicePage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { type, id } = params as { type: 'sale' | 'purchase'; id: string };
 
@@ -51,6 +52,12 @@ export default function InvoicePage() {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [router]);
+
+  useEffect(() => {
+    if (isLoaded && searchParams.get('print') === 'true') {
+      window.print();
+    }
+  }, [isLoaded, searchParams]);
 
   const invoiceData = useMemo(() => {
     if (!isLoaded) return null;
