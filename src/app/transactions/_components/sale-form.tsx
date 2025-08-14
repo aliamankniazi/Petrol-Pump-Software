@@ -95,6 +95,9 @@ export function SaleForm() {
   const watchedCustomerId = watch('customerId');
   const watchedItems = watch('items');
   const watchedDate = watch('date');
+  const watchedExtraDiscount = watch('extraDiscount');
+  const watchedPaidAmount = watch('paidAmount');
+
 
   const { balance: customerBalance } = useCustomerBalance(watchedCustomerId === 'walk-in' ? null : watchedCustomerId || null);
 
@@ -166,12 +169,12 @@ export function SaleForm() {
       }
   }, [watchedCustomerId, setValue]);
 
-  const { grandTotal } = useMemo(() => {
+  const { subTotal, grandTotal, dueBalance } = useMemo(() => {
     const sub = watchedItems.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
-    const discount = Number(getValues('extraDiscount')) || 0;
-    const grand = sub - discount;
-    return { grandTotal: grand };
-  }, [watchedItems, getValues]);
+    const grand = sub - watchedExtraDiscount;
+    const due = grand - watchedPaidAmount;
+    return { subTotal: sub, grandTotal: grand, dueBalance: due };
+  }, [watchedItems, watchedExtraDiscount, watchedPaidAmount]);
 
   const handleProductSelect = useCallback((product: Product) => {
     if (!product || !productsLoaded) return;
@@ -369,6 +372,18 @@ export function SaleForm() {
                             </SelectContent>
                         </Select>
                     )}/>
+                </div>
+                 <div className="space-y-1">
+                    <Label>Extra Discount</Label>
+                    <Input type="number" step="any" placeholder="RS 0" {...register('extraDiscount')} />
+                </div>
+                 <div className="space-y-1">
+                    <Label>Paid Amount</Label>
+                    <Input type="number" step="any" placeholder="RS 0" {...register('paidAmount')} />
+                </div>
+                 <div className="space-y-1">
+                    <Label>Due Balance</Label>
+                    <Input disabled value={dueBalance.toFixed(2)} />
                 </div>
             </div>
 
