@@ -20,10 +20,11 @@ import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Badge } from '@/components/ui/badge';
 
 const tankReadingSchema = z.object({
   productId: z.string().min(1, 'Please select a tank.'),
-  volume: z.coerce.number().min(0, 'Volume cannot be negative'),
+  meterReading: z.coerce.number().min(0, 'Reading cannot be negative'),
   date: z.date({ required_error: "A date is required."}),
 });
 
@@ -52,7 +53,7 @@ export default function TankManagementPage() {
     resolver: zodResolver(tankReadingSchema),
     defaultValues: {
         productId: '',
-        volume: 0,
+        meterReading: 0,
         date: new Date(),
     }
   });
@@ -64,17 +65,23 @@ export default function TankManagementPage() {
     addTankReading({ 
         productId: data.productId,
         fuelType: product.name as any,
-        volume: data.volume,
+        meterReading: data.meterReading,
         timestamp: data.date.toISOString(),
     });
     
     toast({
       title: 'Machine Reading Logged',
-      description: `New volume for ${product.name} tank has been recorded as ${data.volume}L and stock has been updated.`,
+      description: `New meter reading for ${product.name} has been recorded as ${data.meterReading}L and inventory has been updated.`,
     });
     const lastDate = watch('date');
-    reset({ productId: '', volume: 0, date: lastDate });
+    reset({ productId: '', meterReading: 0, date: lastDate });
   };
+  
+  const getVarianceColor = (variance: number) => {
+      const threshold = 1; // 1L variance tolerance
+      if (Math.abs(variance) <= threshold) return 'text-green-600';
+      return 'text-destructive';
+  }
 
   if (!isClient) {
     return null;
@@ -88,7 +95,7 @@ export default function TankManagementPage() {
             <CardTitle className="flex items-center gap-2">
               <PlusCircle /> New Machine Reading
             </CardTitle>
-            <CardDescription>Enter the reading from the machine for a fuel tank to verify stock.</CardDescription>
+            <CardDescription>Enter the reading from the pump meter to calculate usage and update stock.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -128,9 +135,9 @@ export default function TankManagementPage() {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="volume">Current Volume (Litres)</Label>
-                <Input id="volume" type="number" {...register('volume')} placeholder="e.g., 12500" step="any" />
-                {errors.volume && <p className="text-sm text-destructive">{errors.volume.message}</p>}
+                <Label htmlFor="meterReading">Current Meter Reading</Label>
+                <Input id="meterReading" type="number" {...register('meterReading')} placeholder="e.g., 12500" step="any" />
+                {errors.meterReading && <p className="text-sm text-destructive">{errors.meterReading.message}</p>}
               </div>
 
                <div className="space-y-2">
@@ -180,7 +187,7 @@ export default function TankManagementPage() {
                 <List /> Machine Reading History
               </CardTitle>
               <CardDescription>
-                A historical record of all machine reading entries.
+                A historical record of all pump meter readings and calculated variances.
               </CardDescription>
             </div>
              <Button asChild variant="outline">
@@ -194,7 +201,10 @@ export default function TankManagementPage() {
                   <TableRow>
                     <TableHead>Date & Time</TableHead>
                     <TableHead>Tank</TableHead>
-                    <TableHead className="text-right">Volume (L)</TableHead>
+                    <TableHead className="text-right">Meter Reading</TableHead>
+                    <TableHead className="text-right">Usage</TableHead>
+                    <TableHead className="text-right">Sold</TableHead>
+                    <TableHead className="text-right">Variance</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -202,7 +212,12 @@ export default function TankManagementPage() {
                       <TableRow key={reading.id}>
                         <TableCell className="font-medium">{format(new Date(reading.timestamp), 'PP pp')}</TableCell>
                         <TableCell>{reading.fuelType}</TableCell>
-                        <TableCell className="text-right">{reading.volume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-right font-mono">{reading.meterReading.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-right font-mono text-blue-600">{reading.calculatedUsage?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-right font-mono text-green-600">{reading.salesSinceLastReading?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell className={cn("text-right font-mono font-semibold", getVarianceColor(reading.variance || 0))}>
+                            {reading.variance?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </TableCell>
                       </TableRow>
                     ))}
                 </TableBody>

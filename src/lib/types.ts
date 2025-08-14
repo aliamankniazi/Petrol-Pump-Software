@@ -207,10 +207,14 @@ export interface CashAdvance {
 
 export interface TankReading {
     id?: string;
-    productId?: string; // Link to the product ID for the specific fuel
-    fuelType: FuelType; // For display purposes in history
-    volume: number;
-    timestamp?: string;
+    productId: string; 
+    fuelType: FuelType; 
+    meterReading: number;
+    previousMeterReading: number;
+    calculatedUsage: number;
+    salesSinceLastReading: number;
+    variance: number;
+    timestamp: string;
 }
 
 export interface Investment {
