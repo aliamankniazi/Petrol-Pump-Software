@@ -81,7 +81,7 @@ function ProductSelection({ onProductSelect, triggerRef }: { onProductSelect: (p
     return (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
             <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" className="w-full justify-between" ref={triggerRef}>
+                <Button variant="outline" role="combobox" className="w-full justify-between" ref={triggerRef} id="product-selection-trigger">
                     Select Product
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -96,7 +96,7 @@ function ProductSelection({ onProductSelect, triggerRef }: { onProductSelect: (p
                                 <CommandItem
                                     key={p.id}
                                     value={p.id!}
-                                    onSelect={() => handleSelect(p.id!)}
+                                    onSelect={(currentValue) => handleSelect(currentValue)}
                                 >
                                     <Check className={cn("mr-2 h-4 w-4", "opacity-0")} />
                                     {p.name}
@@ -120,7 +120,6 @@ export function SaleForm() {
   const router = useRouter();
   
   const [customerSearch, setCustomerSearch] = useState('');
-  const [isCustomerPopoverOpen, setIsCustomerPopoverOpen] = useState(false);
   const customerTriggerRef = useRef<HTMLButtonElement>(null);
   const productTriggerRef = useRef<HTMLButtonElement>(null);
 
@@ -157,28 +156,6 @@ export function SaleForm() {
         }
     }
   }, [setValue, isClient]);
-  
-   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Enter') {
-        const activeElement = document.activeElement;
-        
-        // Prevent form submission
-        event.preventDefault();
-
-        if (activeElement?.id === 'product-selection-trigger') {
-          productTriggerRef.current?.click();
-        } else if (activeElement?.id === 'customer-selection-trigger') {
-          customerTriggerRef.current?.click();
-        }
-      }
-    };
-    
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -190,25 +167,11 @@ export function SaleForm() {
 
   const { balance: customerBalance } = useCustomerBalance(watchedCustomerId === 'walk-in' ? null : watchedCustomerId || null);
 
-  useEffect(() => {
-      if (watchedCustomerId === 'walk-in') {
-        setValue('paymentMethod', 'Cash');
-      } else {
-        setValue('paymentMethod', 'On Credit');
-      }
-  }, [watchedCustomerId, setValue]);
-
-  const { grandTotal } = useMemo(() => {
-    const sub = watchedItems.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
-    const discount = Number(getValues('extraDiscount')) || 0;
-    const grand = sub - discount;
-    return { grandTotal: grand };
-  }, [watchedItems, getValues]);
-
-
   const onSubmit = useCallback(async (data: SaleFormValues) => {
     const isWalkIn = !data.customerId || data.customerId === 'walk-in';
     const customer = !isWalkIn ? customers.find(c => c.id === data.customerId) : null;
+
+    const grandTotal = data.items.reduce((sum, item) => sum + (item.totalAmount || 0), 0) - (data.extraDiscount || 0);
 
     const newTransaction = await addTransaction({
       ...data,
@@ -237,7 +200,47 @@ export function SaleForm() {
         referenceNo: '',
     });
 
-  }, [addTransaction, customers, grandTotal, reset, toast, isClient]);
+  }, [addTransaction, customers, reset, toast, isClient]);
+
+   useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Handle Ctrl+S for saving
+      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault();
+        handleSubmit(onSubmit)();
+        return;
+      }
+      
+      // Handle Enter for navigating popovers
+      if (event.key === 'Enter') {
+        const activeElement = document.activeElement;
+        if (activeElement?.id === 'product-selection-trigger' || activeElement?.id === 'customer-selection-trigger') {
+          event.preventDefault();
+          (activeElement as HTMLButtonElement).click();
+        }
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleSubmit, onSubmit]);
+
+  useEffect(() => {
+      if (watchedCustomerId === 'walk-in') {
+        setValue('paymentMethod', 'Cash');
+      } else {
+        setValue('paymentMethod', 'On Credit');
+      }
+  }, [watchedCustomerId, setValue]);
+
+  const { grandTotal } = useMemo(() => {
+    const sub = watchedItems.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
+    const discount = Number(getValues('extraDiscount')) || 0;
+    const grand = sub - discount;
+    return { grandTotal: grand };
+  }, [watchedItems, getValues]);
 
   const filteredCustomers = useMemo(() => {
       if (!customerSearch) return customers;
@@ -370,7 +373,7 @@ export function SaleForm() {
                     <Label>Customer</Label>
                      <div className="flex items-center gap-2">
                         <Controller name="customerId" control={control} render={({ field }) => (
-                            <Popover open={isCustomerPopoverOpen} onOpenChange={setIsCustomerPopoverOpen}>
+                            <Popover>
                                 <PopoverTrigger asChild>
                                     <Button
                                     variant="outline"
@@ -391,7 +394,7 @@ export function SaleForm() {
                                     <CommandList>
                                         <CommandEmpty>No customer found.</CommandEmpty>
                                         <CommandGroup>
-                                            <CommandItem value="walk-in" onSelect={() => {field.onChange('walk-in'); setIsCustomerPopoverOpen(false);}}>
+                                            <CommandItem value="walk-in" onSelect={() => field.onChange('walk-in')}>
                                                 <Check className={cn("mr-2 h-4 w-4", field.value === 'walk-in' ? "opacity-100" : "opacity-0")}/>
                                                 Walk-in Customer
                                             </CommandItem>
@@ -400,8 +403,7 @@ export function SaleForm() {
                                             key={c.id}
                                             value={c.id!}
                                             onSelect={(currentValue) => {
-                                                field.onChange(currentValue === field.value ? '' : currentValue);
-                                                setIsCustomerPopoverOpen(false);
+                                                field.onChange(currentValue === field.value ? '' : currentValue)
                                             }}
                                             >
                                             <Check
