@@ -25,7 +25,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import type { Product } from '@/lib/types';
+import type { Product, Customer } from '@/lib/types';
 
 
 const saleItemSchema = z.object({
@@ -110,6 +110,91 @@ function ProductSelection({ onProductSelect }: { onProductSelect: (product: Prod
     );
 }
 
+function CustomerSelection({
+  selectedCustomerId,
+  onCustomerSelect,
+}: {
+  selectedCustomerId?: string;
+  onCustomerSelect: (customerId: string) => void;
+}) {
+  const { customers, isLoaded: customersLoaded } = useCustomers();
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const filteredCustomers = useMemo(() => {
+    if (!customersLoaded) return [];
+    if (!search) return customers;
+    return customers.filter((c) =>
+      c.name.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [customers, search, customersLoaded]);
+  
+  const handleSelect = (customerId: string) => {
+      onCustomerSelect(customerId);
+      setIsOpen(false);
+      setSearch("");
+  }
+
+  const selectedCustomerName = useMemo(() => {
+      if (!selectedCustomerId || selectedCustomerId === 'walk-in') {
+          return 'Walk-in Customer';
+      }
+      return customers.find(c => c.id === selectedCustomerId)?.name || 'Select Customer';
+  }, [selectedCustomerId, customers]);
+
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" role="combobox" className="w-full justify-between">
+          {selectedCustomerName}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+        <Command>
+          <CommandInput
+            placeholder="Search customer..."
+            onValueChange={setSearch}
+          />
+          <CommandList>
+            <CommandEmpty>No customer found.</CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value="walk-in"
+                onSelect={() => handleSelect('walk-in')}
+              >
+                <Check
+                  className={cn(
+                    "mr-2 h-4 w-4",
+                    selectedCustomerId === "walk-in" ? "opacity-100" : "opacity-0"
+                  )}
+                />
+                Walk-in Customer
+              </CommandItem>
+              {filteredCustomers.map((c) => (
+                <CommandItem
+                  key={c.id}
+                  value={c.id!}
+                  onSelect={() => handleSelect(c.id!)}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      selectedCustomerId === c.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {c.name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+
 export function SaleForm() {
   const { addTransaction, transactions } = useTransactions();
   const { customers, isLoaded: customersLoaded } = useCustomers();
@@ -118,9 +203,6 @@ export function SaleForm() {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   
-  const [customerSearch, setCustomerSearch] = useState('');
-
-
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -229,12 +311,6 @@ export function SaleForm() {
     const grand = sub - discount;
     return { grandTotal: grand };
   }, [watchedItems, getValues]);
-
-  const filteredCustomers = useMemo(() => {
-      if (!customerSearch) return customers;
-      return customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()));
-  }, [customers, customerSearch]);
-
 
   const handleProductSelect = useCallback((product: Product) => {
     if (!product || !productsLoaded) return;
@@ -360,53 +436,10 @@ export function SaleForm() {
                  <div className="space-y-1 lg:col-span-2">
                     <Label>Customer</Label>
                      <div className="flex items-center gap-2">
-                        <Controller name="customerId" control={control} render={({ field }) => (
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                    variant="outline"
-                                    role="combobox"
-                                    className="w-full justify-between"
-                                    >
-                                    {field.value && field.value !== 'walk-in'
-                                        ? customers.find((c) => c.id === field.value)?.name
-                                        : "Walk-in Customer"}
-                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                    <Command>
-                                    <CommandInput placeholder="Search customer..." onValueChange={setCustomerSearch} />
-                                    <CommandList>
-                                        <CommandEmpty>No customer found.</CommandEmpty>
-                                        <CommandGroup>
-                                            <CommandItem value="walk-in" onSelect={() => field.onChange('walk-in')}>
-                                                <Check className={cn("mr-2 h-4 w-4", field.value === 'walk-in' ? "opacity-100" : "opacity-0")}/>
-                                                Walk-in Customer
-                                            </CommandItem>
-                                        {filteredCustomers.map((c) => (
-                                            <CommandItem
-                                            key={c.id}
-                                            value={c.id!}
-                                            onSelect={(currentValue) => {
-                                                field.onChange(currentValue === field.value ? '' : currentValue)
-                                            }}
-                                            >
-                                            <Check
-                                                className={cn(
-                                                "mr-2 h-4 w-4",
-                                                field.value === c.id ? "opacity-100" : "opacity-0"
-                                                )}
-                                            />
-                                            {c.name}
-                                            </CommandItem>
-                                        ))}
-                                        </CommandGroup>
-                                    </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
-                        )} />
+                       <CustomerSelection
+                            selectedCustomerId={watchedCustomerId}
+                            onCustomerSelect={(customerId) => setValue('customerId', customerId)}
+                        />
                          <Button type="button" variant="outline" size="icon" asChild><Link href="/customers" title="Add new customer"><UserPlus /></Link></Button>
                      </div>
                 </div>
