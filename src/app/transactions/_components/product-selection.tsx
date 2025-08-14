@@ -25,11 +25,8 @@ export function ProductSelection({ onProductSelect }: ProductSelectionProps) {
     return products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
   }, [products, search, productsLoaded]);
 
-  const handleSelect = (productId: string) => {
-    const product = products.find(p => p.id === productId);
-    if (product) {
-      onProductSelect(product);
-    }
+  const handleSelect = (product: Product) => {
+    onProductSelect(product);
     setIsOpen(false);
     setSearch('');
   };
@@ -52,7 +49,7 @@ export function ProductSelection({ onProductSelect }: ProductSelectionProps) {
                 <CommandItem
                   key={p.id}
                   value={p.id!}
-                  onSelect={(currentValue) => handleSelect(currentValue)}
+                  onSelect={() => handleSelect(p)}
                 >
                   <Check className={cn("mr-2 h-4 w-4", "opacity-0")} />
                   {p.name}
