@@ -37,8 +37,6 @@ const investmentSchema = z.object({
 
 type InvestmentFormValues = z.infer<typeof investmentSchema>;
 
-const LOCAL_STORAGE_KEY = 'global-transaction-date';
-
 export default function InvestmentsPage() {
   const { investments, addInvestment, deleteInvestment, isLoaded: investmentsLoaded } = useInvestments();
   const { customers, isLoaded: partnersLoaded } = useCustomers();
@@ -59,33 +57,11 @@ export default function InvestmentsPage() {
   }, [businessPartners, partnerSearch]);
 
   // Form for new investments/withdrawals
-  const { register: registerInvestment, handleSubmit: handleSubmitInvestment, reset: resetInvestment, control: controlInvestment, formState: { errors: investmentErrors }, watch, setValue } = useForm<InvestmentFormValues>({
+  const { register: registerInvestment, handleSubmit: handleSubmitInvestment, reset: resetInvestment, control: controlInvestment, formState: { errors: investmentErrors }, watch } = useForm<InvestmentFormValues>({
     resolver: zodResolver(investmentSchema),
-    defaultValues: { type: 'Investment', partnerId: '', amount: 0, notes: '' }
+    defaultValues: { type: 'Investment', partnerId: '', amount: 0, notes: '', date: new Date() }
   });
 
-  useEffect(() => {
-    if (isClient) {
-      const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (storedDate) {
-        try {
-          setValue('date', new Date(storedDate));
-        } catch(e) {
-          setValue('date', new Date());
-        }
-      } else {
-        setValue('date', new Date());
-      }
-    }
-  }, [setValue, isClient]);
-
-  const selectedDate = watch('date');
-  useEffect(() => {
-    if (selectedDate && isClient) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
-    }
-  }, [selectedDate, isClient]);
-  
   const isLoaded = investmentsLoaded && partnersLoaded;
   
   const { toast } = useToast();

@@ -30,8 +30,6 @@ const supplierPaymentSchema = z.object({
 
 type SupplierPaymentFormValues = z.infer<typeof supplierPaymentSchema>;
 
-const LOCAL_STORAGE_KEY = 'global-transaction-date';
-
 export function SupplierPaymentForm() {
   const { suppliers, isLoaded: suppliersLoaded } = useSuppliers();
   const { addSupplierPayment } = useSupplierPayments();
@@ -55,19 +53,12 @@ export function SupplierPaymentForm() {
       paymentMethod: 'Cash',
       supplierId: '',
       amount: 0,
+      date: new Date(),
     }
   });
   
   const watchedSupplierId = watch('supplierId');
   const { balance: supplierBalance } = useSupplierBalance(watchedSupplierId || null);
-
-  useEffect(() => {
-    if (isClient) {
-      const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-      const initialDate = storedDate ? new Date(storedDate) : new Date();
-      setValue('date', initialDate);
-    }
-  }, [setValue, isClient]);
 
   const onSubmit: SubmitHandler<SupplierPaymentFormValues> = (data) => {
     const supplier = suppliers.find(s => s.id === data.supplierId);

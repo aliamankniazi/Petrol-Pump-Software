@@ -33,8 +33,6 @@ const paymentSchema = z.object({
 
 type PaymentFormValues = z.infer<typeof paymentSchema>;
 
-const LOCAL_STORAGE_KEY = 'global-transaction-date';
-
 export function CustomerPaymentForm() {
   const { customers, isLoaded: customersLoaded } = useCustomers();
   const { addCustomerPayment } = useCustomerPayments();
@@ -59,16 +57,9 @@ export function CustomerPaymentForm() {
       customerId: '',
       amount: 0,
       notes: '',
+      date: new Date(),
     }
   });
-  
-  useEffect(() => {
-    if (isClient) {
-      const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-      const initialDate = storedDate ? new Date(storedDate) : new Date();
-      setValue('date', initialDate);
-    }
-  }, [setValue, isClient]);
 
   const watchedCustomerId = watch('customerId');
   const { balance: customerBalance } = useCustomerBalance(watchedCustomerId || null);

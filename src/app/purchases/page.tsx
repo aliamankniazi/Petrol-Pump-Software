@@ -57,8 +57,6 @@ const supplierSchema = z.object({
 });
 type SupplierFormValues = z.infer<typeof supplierSchema>;
 
-const LOCAL_STORAGE_KEY = 'global-transaction-date';
-
 export default function PurchasesPage() {
   const { addPurchase } = usePurchases();
   const { suppliers, addSupplier, isLoaded: suppliersLoaded } = useSuppliers();
@@ -87,16 +85,9 @@ export default function PurchasesPage() {
       bankAccountId: '',
       referenceNo: '',
       notes: '',
+      date: new Date(),
     }
   });
-
-  useEffect(() => {
-    if (isClient) {
-      const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-      const defaultDate = storedDate ? new Date(storedDate) : new Date();
-      setValue('date', defaultDate);
-    }
-  }, [setValue, isClient]);
   
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
 
@@ -154,11 +145,10 @@ export default function PurchasesPage() {
       description: `Delivery from ${supplier.name} has been logged.`,
     });
     
-    const defaultDate = isClient && localStorage.getItem(LOCAL_STORAGE_KEY) ? new Date(localStorage.getItem(LOCAL_STORAGE_KEY)!) : new Date();
     reset({
         supplierId: '',
         items: [],
-        date: defaultDate,
+        date: new Date(),
         expenses: 0,
         notes: '',
         paidAmount: 0,

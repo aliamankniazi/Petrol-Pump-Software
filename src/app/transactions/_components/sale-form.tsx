@@ -57,9 +57,6 @@ const saleSchema = z.object({
 
 type SaleFormValues = z.infer<typeof saleSchema>;
 
-const LOCAL_STORAGE_KEY = 'global-transaction-date';
-
-
 export function SaleForm() {
   const { addTransaction, transactions } = useTransactions();
   const { customers } = useCustomers();
@@ -85,21 +82,10 @@ export function SaleForm() {
       expenseAmount: 0,
       expenseBankAccountId: '',
       referenceNo: '',
+      date: new Date(),
+      orderDeliveryDate: new Date(),
     }
   });
-
-  useEffect(() => {
-    if (isClient) {
-        const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (storedDate) {
-            setValue('date', new Date(storedDate));
-            setValue('orderDeliveryDate', new Date(storedDate));
-        } else {
-            setValue('date', new Date());
-            setValue('orderDeliveryDate', new Date());
-        }
-    }
-  }, [setValue, isClient]);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -128,13 +114,12 @@ export function SaleForm() {
       description: `Transaction of PKR ${grandTotal.toLocaleString()} has been successfully recorded.`,
     });
     
-    const defaultDate = isClient && localStorage.getItem(LOCAL_STORAGE_KEY) ? new Date(localStorage.getItem(LOCAL_STORAGE_KEY)!) : new Date();
     reset({ 
         items: [],
         paymentMethod: 'On Credit',
         customerId: 'walk-in',
-        date: defaultDate,
-        orderDeliveryDate: defaultDate,
+        date: new Date(),
+        orderDeliveryDate: new Date(),
         bankAccountId: '',
         notes: '',
         extraDiscount: 0,
@@ -144,7 +129,7 @@ export function SaleForm() {
         referenceNo: '',
     });
 
-  }, [addTransaction, customers, reset, toast, isClient]);
+  }, [addTransaction, customers, reset, toast]);
 
 
    useEffect(() => {

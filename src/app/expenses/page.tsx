@@ -36,7 +36,6 @@ const expenseSchema = z.object({
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
 
-const LOCAL_STORAGE_DATE_KEY = 'global-transaction-date';
 const LOCAL_STORAGE_CAT_KEY = 'expenses-last-category';
 
 export default function ExpensesPage() {
@@ -63,30 +62,9 @@ export default function ExpensesPage() {
       description: '',
       amount: 0,
       notes: '',
+      date: new Date(),
     }
   });
-  
-  useEffect(() => {
-    if (isClient) {
-      const storedDate = localStorage.getItem(LOCAL_STORAGE_DATE_KEY);
-      if (storedDate) {
-        try {
-          setValue('date', new Date(storedDate));
-        } catch(e) {
-          setValue('date', new Date());
-        }
-      } else {
-        setValue('date', new Date());
-      }
-    }
-  }, [setValue, isClient]);
-  
-  const selectedDate = watch('date');
-  useEffect(() => {
-    if (selectedDate && isClient) {
-      localStorage.setItem(LOCAL_STORAGE_DATE_KEY, selectedDate.toISOString());
-    }
-  }, [selectedDate, isClient]);
 
   const onSubmit: SubmitHandler<ExpenseFormValues> = (data) => {
     addExpense({

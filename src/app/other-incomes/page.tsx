@@ -33,8 +33,6 @@ const incomeSchema = z.object({
 
 type IncomeFormValues = z.infer<typeof incomeSchema>;
 
-const LOCAL_STORAGE_KEY = 'global-transaction-date';
-
 export default function OtherIncomesPage() {
   const { otherIncomes, addOtherIncome, deleteOtherIncome } = useOtherIncomes();
   const { toast } = useToast();
@@ -53,30 +51,9 @@ export default function OtherIncomesPage() {
     defaultValues: {
       description: '',
       amount: 0,
+      date: new Date(),
     }
   });
-  
-  useEffect(() => {
-    if (isClient) {
-      const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (storedDate) {
-        try {
-          setValue('date', new Date(storedDate));
-        } catch(e) {
-          setValue('date', new Date());
-        }
-      } else {
-        setValue('date', new Date());
-      }
-    }
-  }, [setValue, isClient]);
-
-  const selectedDate = watch('date');
-  useEffect(() => {
-    if (selectedDate && isClient) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
-    }
-  }, [selectedDate, isClient]);
 
   const onSubmit: SubmitHandler<IncomeFormValues> = (data) => {
     addOtherIncome({

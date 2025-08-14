@@ -31,8 +31,6 @@ const cashAdvanceSchema = z.object({
 
 type CashAdvanceFormValues = z.infer<typeof cashAdvanceSchema>;
 
-const LOCAL_STORAGE_KEY = 'global-transaction-date';
-
 export function CashAdvanceForm() {
   const { customers, isLoaded: customersLoaded } = useCustomers();
   const { addCashAdvance } = useCashAdvances();
@@ -52,14 +50,6 @@ export function CashAdvanceForm() {
 
   const watchedCustomerId = watch('customerId');
   const { balance: customerBalance } = useCustomerBalance(watchedCustomerId || null);
-
-  useEffect(() => {
-    if (isClient) {
-      const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-      const initialDate = storedDate ? new Date(storedDate) : new Date();
-      setValue('date', initialDate);
-    }
-  }, [setValue, isClient]);
 
   const onSubmit: SubmitHandler<CashAdvanceFormValues> = (data) => {
     const customer = customers.find(c => c.id === data.customerId);

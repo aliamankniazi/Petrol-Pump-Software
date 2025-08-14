@@ -29,8 +29,6 @@ const tankReadingSchema = z.object({
 
 type TankReadingFormValues = z.infer<typeof tankReadingSchema>;
 
-const LOCAL_STORAGE_KEY = 'global-transaction-date';
-
 export default function TankManagementPage() {
   const { tankReadings, addTankReading } = useTankReadings();
   const { products, isLoaded: productsLoaded } = useProducts();
@@ -50,35 +48,14 @@ export default function TankManagementPage() {
     return fuelProducts.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
   }, [fuelProducts, productSearch]);
 
-  const { register, handleSubmit, control, reset, formState: { errors }, watch, setValue } = useForm<TankReadingFormValues>({
+  const { register, handleSubmit, control, reset, formState: { errors }, watch } = useForm<TankReadingFormValues>({
     resolver: zodResolver(tankReadingSchema),
     defaultValues: {
         productId: '',
         volume: 0,
+        date: new Date(),
     }
   });
-  
-  useEffect(() => {
-    if (isClient) {
-      const storedDate = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (storedDate) {
-        try {
-          setValue('date', new Date(storedDate));
-        } catch(e) {
-            setValue('date', new Date());
-        }
-      } else {
-        setValue('date', new Date());
-      }
-    }
-  }, [setValue, isClient]);
-
-  const selectedDate = watch('date');
-  useEffect(() => {
-    if (selectedDate && isClient) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, selectedDate.toISOString());
-    }
-  }, [selectedDate, isClient]);
 
   const onSubmit: SubmitHandler<TankReadingFormValues> = (data) => {
     const product = products.find(p => p.id === data.productId);
