@@ -217,21 +217,6 @@ export function SaleForm() {
         window.open(`/invoice/sale/${newTransaction.id}`, '_blank');
     }
   }, [addTransaction, customers, grandTotal, reset, toast, isClient]);
-  
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.ctrlKey && event.shiftKey && event.key === 'S') {
-        event.preventDefault();
-        handleSubmit((data) => onSubmit(data))();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [handleSubmit, onSubmit]);
 
   const filteredCustomers = useMemo(() => {
       if (!customerSearch) return customers;
@@ -476,7 +461,7 @@ export function SaleForm() {
             <Separator className="my-6" />
             <div className="flex items-center gap-2">
                 <Button type="submit" size="lg">Save/Submit</Button>
-                <Button type="button" variant="secondary" size="lg" onClick={handleSubmit((data) => onSubmit(data, true))}>Save &amp; Print Invoice</Button>
+                <Button type="button" variant="secondary" size="lg" onClick={handleSubmit((data) => onSubmit(data, true))}>Save & Print Invoice</Button>
             </div>
       </form>
   );
