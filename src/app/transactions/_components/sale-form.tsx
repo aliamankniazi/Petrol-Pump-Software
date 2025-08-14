@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -59,7 +59,7 @@ type SaleFormValues = z.infer<typeof saleSchema>;
 
 const LOCAL_STORAGE_KEY = 'global-transaction-date';
 
-function ProductSelection({ onProductSelect }: { onProductSelect: (product: Product) => void }) {
+function ProductSelection({ onProductSelect, triggerRef }: { onProductSelect: (product: Product) => void, triggerRef: React.RefObject<HTMLButtonElement> }) {
     const { products, isLoaded: productsLoaded } = useProducts();
     const [search, setSearch] = useState('');
     const [isOpen, setIsOpen] = useState(false);
@@ -81,7 +81,7 @@ function ProductSelection({ onProductSelect }: { onProductSelect: (product: Prod
     return (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
             <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" className="w-full justify-between">
+                <Button variant="outline" role="combobox" className="w-full justify-between" ref={triggerRef}>
                     Select Product
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -121,6 +121,8 @@ export function SaleForm() {
   
   const [customerSearch, setCustomerSearch] = useState('');
   const [isCustomerPopoverOpen, setIsCustomerPopoverOpen] = useState(false);
+  const customerTriggerRef = useRef<HTMLButtonElement>(null);
+  const productTriggerRef = useRef<HTMLButtonElement>(null);
 
 
   useEffect(() => {
@@ -155,6 +157,28 @@ export function SaleForm() {
         }
     }
   }, [setValue, isClient]);
+  
+   useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Enter') {
+        const activeElement = document.activeElement;
+        
+        // Prevent form submission
+        event.preventDefault();
+
+        if (activeElement?.id === 'product-selection-trigger') {
+          productTriggerRef.current?.click();
+        } else if (activeElement?.id === 'customer-selection-trigger') {
+          customerTriggerRef.current?.click();
+        }
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -182,7 +206,7 @@ export function SaleForm() {
   }, [watchedItems, getValues]);
 
 
-  const onSubmit = useCallback(async (data: SaleFormValues, redirectToInvoice: boolean = false) => {
+  const onSubmit = useCallback(async (data: SaleFormValues) => {
     const isWalkIn = !data.customerId || data.customerId === 'walk-in';
     const customer = !isWalkIn ? customers.find(c => c.id === data.customerId) : null;
 
@@ -213,9 +237,6 @@ export function SaleForm() {
         referenceNo: '',
     });
 
-    if (redirectToInvoice && newTransaction?.id) {
-        window.open(`/invoice/sale/${newTransaction.id}`, '_blank');
-    }
   }, [addTransaction, customers, grandTotal, reset, toast, isClient]);
 
   const filteredCustomers = useMemo(() => {
@@ -253,12 +274,12 @@ export function SaleForm() {
   }
 
   return (
-      <form onSubmit={handleSubmit((data) => onSubmit(data, false))}>
+      <form onSubmit={handleSubmit(onSubmit)}>
             <div className="p-4 rounded-lg bg-muted/50 border space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-1 md:col-span-2">
                         <Label>Product</Label>
-                        <ProductSelection onProductSelect={handleProductSelect} />
+                        <ProductSelection onProductSelect={handleProductSelect} triggerRef={productTriggerRef} />
                     </div>
                 </div>
             </div>
@@ -355,6 +376,8 @@ export function SaleForm() {
                                     variant="outline"
                                     role="combobox"
                                     className="w-full justify-between"
+                                    ref={customerTriggerRef}
+                                    id="customer-selection-trigger"
                                     >
                                     {field.value && field.value !== 'walk-in'
                                         ? customers.find((c) => c.id === field.value)?.name
@@ -461,7 +484,6 @@ export function SaleForm() {
             <Separator className="my-6" />
             <div className="flex items-center gap-2">
                 <Button type="submit" size="lg">Save/Submit</Button>
-                <Button type="button" variant="secondary" size="lg" onClick={handleSubmit((data) => onSubmit(data, true))}>Save & Print Invoice</Button>
             </div>
       </form>
   );
