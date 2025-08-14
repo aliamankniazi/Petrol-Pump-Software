@@ -135,6 +135,13 @@ export function SaleForm() {
 
    useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+      // Prevent form submission on "Enter" unless it's a button
+      if (event.key === 'Enter' && target.tagName !== 'BUTTON') {
+          event.preventDefault();
+      }
+      
+      // Allow Ctrl+S to save
       if ((event.ctrlKey || event.metaKey) && event.key === 's') {
         event.preventDefault();
         handleSubmit(onSubmit)();
