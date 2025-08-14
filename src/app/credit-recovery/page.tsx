@@ -244,7 +244,6 @@ Mianwali Petroleum Service`;
                                             }
                                         }}
                                         numberOfMonths={2}
-                                        withQuickActions
                                     />
                                 </PopoverContent>
                             </Popover>
@@ -324,3 +323,5 @@ Mianwali Petroleum Service`;
         </div>
     );
 }
+
+    

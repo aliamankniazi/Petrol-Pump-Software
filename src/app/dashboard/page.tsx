@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -203,7 +203,6 @@ export default function DashboardPage() {
                                     }
                                 }}
                                 numberOfMonths={2}
-                                withQuickActions
                             />
                         </PopoverContent>
                     </Popover>
@@ -369,3 +368,5 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    

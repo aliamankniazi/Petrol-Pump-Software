@@ -281,7 +281,6 @@ export default function AllTransactionsPage() {
                                 }
                             }}
                             numberOfMonths={2}
-                            withQuickActions
                         />
                     </PopoverContent>
                 </Popover>
@@ -398,3 +397,6 @@ export default function AllTransactionsPage() {
     </>
   );
 }
+
+
+    
