@@ -59,7 +59,7 @@ type SaleFormValues = z.infer<typeof saleSchema>;
 
 const LOCAL_STORAGE_KEY = 'global-transaction-date';
 
-function ProductSelection({ onProductSelect, triggerRef }: { onProductSelect: (product: Product) => void, triggerRef: React.RefObject<HTMLButtonElement> }) {
+function ProductSelection({ onProductSelect }: { onProductSelect: (product: Product) => void }) {
     const { products, isLoaded: productsLoaded } = useProducts();
     const [search, setSearch] = useState('');
     const [isOpen, setIsOpen] = useState(false);
@@ -81,7 +81,7 @@ function ProductSelection({ onProductSelect, triggerRef }: { onProductSelect: (p
     return (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
             <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" className="w-full justify-between" ref={triggerRef} id="product-selection-trigger">
+                <Button variant="outline" role="combobox" className="w-full justify-between">
                     Select Product
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -120,8 +120,6 @@ export function SaleForm() {
   const router = useRouter();
   
   const [customerSearch, setCustomerSearch] = useState('');
-  const customerTriggerRef = useRef<HTMLButtonElement>(null);
-  const productTriggerRef = useRef<HTMLButtonElement>(null);
 
 
   useEffect(() => {
@@ -202,6 +200,7 @@ export function SaleForm() {
 
   }, [addTransaction, customers, reset, toast, isClient]);
 
+
    useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Handle Ctrl+S for saving
@@ -209,15 +208,6 @@ export function SaleForm() {
         event.preventDefault();
         handleSubmit(onSubmit)();
         return;
-      }
-      
-      // Handle Enter for navigating popovers
-      if (event.key === 'Enter') {
-        const activeElement = document.activeElement;
-        if (activeElement?.id === 'product-selection-trigger' || activeElement?.id === 'customer-selection-trigger') {
-          event.preventDefault();
-          (activeElement as HTMLButtonElement).click();
-        }
       }
     };
     
@@ -282,7 +272,7 @@ export function SaleForm() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-1 md:col-span-2">
                         <Label>Product</Label>
-                        <ProductSelection onProductSelect={handleProductSelect} triggerRef={productTriggerRef} />
+                        <ProductSelection onProductSelect={handleProductSelect} />
                     </div>
                 </div>
             </div>
@@ -379,8 +369,6 @@ export function SaleForm() {
                                     variant="outline"
                                     role="combobox"
                                     className="w-full justify-between"
-                                    ref={customerTriggerRef}
-                                    id="customer-selection-trigger"
                                     >
                                     {field.value && field.value !== 'walk-in'
                                         ? customers.find((c) => c.id === field.value)?.name
