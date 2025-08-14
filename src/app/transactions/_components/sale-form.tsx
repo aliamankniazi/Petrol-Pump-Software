@@ -284,10 +284,9 @@ export function SaleForm() {
 
    useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
-        event.preventDefault();
-        handleSubmit(onSubmit)();
-        return;
+      // Prevent form submission on Enter key press
+      if (event.key === 'Enter' && (event.target as HTMLElement).tagName.toLowerCase() !== 'textarea') {
+          event.preventDefault();
       }
     };
     
@@ -295,7 +294,7 @@ export function SaleForm() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleSubmit, onSubmit]);
+  }, []);
 
   useEffect(() => {
       if (watchedCustomerId === 'walk-in') {
