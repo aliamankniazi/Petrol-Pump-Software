@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Calendar as CalendarIcon, UserPlus, Check, ChevronsUpDown } from 'lucide-react';
+import { Trash2, Calendar as CalendarIcon, UserPlus, ChevronsUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomers } from '@/hooks/use-customers';
@@ -24,8 +24,9 @@ import { Calendar } from '@/components/ui/calendar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import type { Product, Customer } from '@/lib/types';
+import type { Product } from '@/lib/types';
+import { ProductSelection } from './product-selection';
+import { CustomerSelection } from './customer-selection';
 
 
 const saleItemSchema = z.object({
@@ -58,146 +59,10 @@ type SaleFormValues = z.infer<typeof saleSchema>;
 
 const LOCAL_STORAGE_KEY = 'global-transaction-date';
 
-function ProductSelection({ onProductSelect }: { onProductSelect: (product: Product) => void }) {
-    const { products, isLoaded: productsLoaded } = useProducts();
-    const [search, setSearch] = useState('');
-    const [isOpen, setIsOpen] = useState(false);
-
-    const filteredProducts = useMemo(() => {
-        if (!productsLoaded) return [];
-        if (!search) return products;
-        return products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
-    }, [products, search, productsLoaded]);
-
-    const handleSelect = (productId: string) => {
-        const product = products.find(p => p.id === productId);
-        if (product) {
-            onProductSelect(product);
-        }
-        setIsOpen(false);
-        setSearch(''); 
-    };
-
-    return (
-        <Popover open={isOpen} onOpenChange={setIsOpen}>
-            <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" className="w-full justify-between">
-                    Select Product
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                <Command>
-                    <CommandInput placeholder="Search product..." onValueChange={setSearch}/>
-                    <CommandList>
-                        <CommandEmpty>No product found.</CommandEmpty>
-                        <CommandGroup>
-                            {filteredProducts.map((p) => (
-                                <CommandItem
-                                    key={p.id}
-                                    value={p.id!}
-                                    onSelect={(currentValue) => handleSelect(currentValue)}
-                                >
-                                    <Check className={cn("mr-2 h-4 w-4", "opacity-0")} />
-                                    {p.name}
-                                </CommandItem>
-                            ))}
-                        </CommandGroup>
-                    </CommandList>
-                </Command>
-            </PopoverContent>
-        </Popover>
-    );
-}
-
-function CustomerSelection({
-  selectedCustomerId,
-  onCustomerSelect,
-}: {
-  selectedCustomerId?: string;
-  onCustomerSelect: (customerId: string) => void;
-}) {
-  const { customers, isLoaded: customersLoaded } = useCustomers();
-  const [isOpen, setIsOpen] = useState(false);
-  const [search, setSearch] = useState("");
-
-  const filteredCustomers = useMemo(() => {
-    if (!customersLoaded) return [];
-    if (!search) return customers;
-    return customers.filter((c) =>
-      c.name.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [customers, search, customersLoaded]);
-  
-  const handleSelect = (customerId: string) => {
-      onCustomerSelect(customerId);
-      setIsOpen(false);
-      setSearch("");
-  }
-
-  const selectedCustomerName = useMemo(() => {
-      if (!selectedCustomerId || selectedCustomerId === 'walk-in') {
-          return 'Walk-in Customer';
-      }
-      return customers.find(c => c.id === selectedCustomerId)?.name || 'Select Customer';
-  }, [selectedCustomerId, customers]);
-
-  return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" role="combobox" className="w-full justify-between">
-          {selectedCustomerName}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-        <Command>
-          <CommandInput
-            placeholder="Search customer..."
-            onValueChange={setSearch}
-          />
-          <CommandList>
-            <CommandEmpty>No customer found.</CommandEmpty>
-            <CommandGroup>
-              <CommandItem
-                value="walk-in"
-                onSelect={() => handleSelect('walk-in')}
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    selectedCustomerId === "walk-in" ? "opacity-100" : "opacity-0"
-                  )}
-                />
-                Walk-in Customer
-              </CommandItem>
-              {filteredCustomers.map((c) => (
-                <CommandItem
-                  key={c.id}
-                  value={c.id!}
-                  onSelect={() => handleSelect(c.id!)}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      selectedCustomerId === c.id ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  {c.name}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
 
 export function SaleForm() {
   const { addTransaction, transactions } = useTransactions();
-  const { customers, isLoaded: customersLoaded } = useCustomers();
+  const { customers } = useCustomers();
   const { products, isLoaded: productsLoaded } = useProducts();
   const { bankAccounts, isLoaded: bankAccountsLoaded } = useBankAccounts();
   const { toast } = useToast();
@@ -284,9 +149,14 @@ export function SaleForm() {
 
    useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Prevent form submission on Enter key press
+      // Prevent form submission on Enter key press in most cases
       if (event.key === 'Enter' && (event.target as HTMLElement).tagName.toLowerCase() !== 'textarea') {
           event.preventDefault();
+      }
+      // Handle Ctrl+S for saving
+      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault();
+        handleSubmit(onSubmit)();
       }
     };
     
@@ -294,7 +164,7 @@ export function SaleForm() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [handleSubmit, onSubmit]);
 
   useEffect(() => {
       if (watchedCustomerId === 'walk-in') {
