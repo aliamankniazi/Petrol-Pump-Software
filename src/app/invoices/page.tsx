@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, startOfDay, endOfDay } from 'date-fns';
@@ -19,6 +19,7 @@ import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useProducts } from '@/hooks/use-products';
+import { useGlobalDate } from '@/hooks/use-global-date.tsx';
 
 
 export default function InvoicesPage() {
@@ -27,7 +28,11 @@ export default function InvoicesPage() {
   const { products, isLoaded: productsLoaded } = useProducts();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  
+  const { globalDateRange } = useGlobalDate();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(globalDateRange);
+  useEffect(() => { setDateRange(globalDateRange) }, [globalDateRange]);
+
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const isLoaded = transactionsLoaded && purchasesLoaded && productsLoaded;

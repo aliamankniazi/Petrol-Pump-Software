@@ -94,6 +94,7 @@ export function SaleForm() {
 
   const watchedCustomerId = watch('customerId');
   const watchedItems = watch('items');
+  const watchedDate = watch('date');
 
   const { balance: customerBalance } = useCustomerBalance(watchedCustomerId === 'walk-in' ? null : watchedCustomerId || null);
 
@@ -164,9 +165,11 @@ export function SaleForm() {
   const handleProductSelect = useCallback((product: Product) => {
     if (!product || !productsLoaded) return;
 
+    const saleDate = getValues('date');
+
     const lastSaleOfProduct = transactions
         .flatMap(tx => tx.items.map(item => ({...item, timestamp: tx.timestamp})))
-        .filter(item => item.productId === product.id && item.timestamp)
+        .filter(item => item.productId === product.id && item.timestamp && new Date(item.timestamp) <= saleDate)
         .sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime())
         [0];
 
@@ -182,7 +185,7 @@ export function SaleForm() {
         discount: 0,
         bonus: 0,
     });
-  }, [productsLoaded, transactions, append]);
+  }, [productsLoaded, transactions, append, getValues]);
 
 
   if (!isClient) {

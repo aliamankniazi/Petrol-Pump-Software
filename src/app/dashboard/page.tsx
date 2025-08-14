@@ -1,23 +1,28 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowRight, BarChart2, BookOpen, DollarSign, PlusCircle, TrendingDown, TrendingUp, Users, Fuel, Droplets, Receipt, ShoppingCart } from 'lucide-react';
+import { ArrowRight, BarChart2, BookOpen, DollarSign, PlusCircle, TrendingDown, TrendingUp, Users, Fuel, Droplets, Receipt, ShoppingCart, Calendar as CalendarIcon, X } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
 import { usePurchases } from '@/hooks/use-purchases';
 import { useExpenses } from '@/hooks/use-expenses';
 import { useOtherIncomes } from '@/hooks/use-other-incomes';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow, startOfDay, endOfDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
 import { Progress } from '@/components/ui/progress';
 import { useProducts } from '@/hooks/use-products';
+import { useGlobalDate } from '@/hooks/use-global-date.tsx';
+import { DateRange } from 'react-day-picker';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 const chartConfig = {
   sales: {
@@ -37,6 +42,9 @@ type RecentActivity = {
 }
 
 export default function DashboardPage() {
+    const { globalDateRange, setGlobalDateRange } = useGlobalDate();
+    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
     const { transactions, isLoaded: transactionsLoaded } = useTransactions();
     const { purchases, isLoaded: purchasesLoaded } = usePurchases();
     const { expenses, isLoaded: expensesLoaded } = useExpenses();
@@ -45,14 +53,37 @@ export default function DashboardPage() {
 
     const isLoaded = transactionsLoaded && purchasesLoaded && expensesLoaded && otherIncomesLoaded && stockLoaded;
 
+    const filteredData = useMemo(() => {
+        if (!isLoaded) return { transactions: [], purchases: [], expenses: [], otherIncomes: [] };
+
+        if (!globalDateRange?.from) {
+            return { transactions, purchases, expenses, otherIncomes };
+        }
+        
+        const from = startOfDay(globalDateRange.from);
+        const to = globalDateRange.to ? endOfDay(globalDateRange.to) : endOfDay(globalDateRange.from);
+
+        const filterByDate = (items: any[]) => items.filter(item => {
+            const itemDate = new Date(item.timestamp);
+            return itemDate >= from && itemDate <= to;
+        });
+
+        return {
+            transactions: filterByDate(transactions),
+            purchases: filterByDate(purchases),
+            expenses: filterByDate(expenses),
+            otherIncomes: filterByDate(otherIncomes),
+        }
+    }, [isLoaded, transactions, purchases, expenses, otherIncomes, globalDateRange]);
+
     const financialSummary = useMemo(() => {
         if (!isLoaded) return null;
 
-        const totalRevenue = transactions.reduce((sum, tx) => sum + tx.totalAmount, 0) + otherIncomes.reduce((sum, oi) => sum + oi.amount, 0);
-        const totalCostOfGoods = purchases.reduce((sum, p) => sum + p.totalCost, 0);
-        const totalExpenses = expenses.reduce((sum, ex) => sum + ex.amount, 0);
+        const totalRevenue = filteredData.transactions.reduce((sum, tx) => sum + tx.totalAmount, 0) + filteredData.otherIncomes.reduce((sum, oi) => sum + oi.amount, 0);
+        const totalCostOfGoods = filteredData.purchases.reduce((sum, p) => sum + p.totalCost, 0);
+        const totalExpenses = filteredData.expenses.reduce((sum, ex) => sum + ex.amount, 0);
         const netProfit = totalRevenue - totalCostOfGoods - totalExpenses;
-        const totalCustomers = new Set(transactions.map(tx => tx.customerId).filter(Boolean)).size;
+        const totalCustomers = new Set(filteredData.transactions.map(tx => tx.customerId).filter(Boolean)).size;
 
         return {
             totalRevenue,
@@ -60,25 +91,25 @@ export default function DashboardPage() {
             totalExpenses,
             totalCustomers,
         };
-    }, [isLoaded, transactions, purchases, expenses, otherIncomes]);
+    }, [isLoaded, filteredData]);
     
     const salesByDay = useMemo(() => {
         const salesMap = new Map<string, number>();
-        transactions.forEach(tx => {
+        filteredData.transactions.forEach(tx => {
             if (tx.timestamp) { // Safeguard against missing timestamps
                 const day = format(new Date(tx.timestamp), 'yyyy-MM-dd');
                 salesMap.set(day, (salesMap.get(day) || 0) + tx.totalAmount);
             }
         });
         
-        const sortedDays = Array.from(salesMap.keys()).sort((a,b) => new Date(a).getTime() - new Date(b).getTime()).slice(-7);
+        const sortedDays = Array.from(salesMap.keys()).sort((a,b) => new Date(a).getTime() - new Date(b).getTime()).slice(-30);
         
         return sortedDays.map(day => ({
             date: format(new Date(day), 'MMM d'),
             sales: salesMap.get(day) || 0,
         }));
 
-    }, [transactions]);
+    }, [filteredData.transactions]);
     
     const recentActivity = useMemo((): RecentActivity[] => {
         const validSales: RecentActivity[] = transactions
@@ -133,9 +164,58 @@ export default function DashboardPage() {
                     <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
                     <p className="text-muted-foreground">A quick overview of your business performance.</p>
                 </div>
-                <Button asChild>
-                    <Link href="/transactions"><PlusCircle/> New Sale</Link>
-                </Button>
+                <div className="flex items-center gap-2">
+                     <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                        <PopoverTrigger asChild>
+                            <Button
+                                id="date"
+                                variant={"outline"}
+                                className={cn(
+                                    "w-[280px] justify-start text-left font-normal",
+                                    !globalDateRange && "text-muted-foreground"
+                                )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {globalDateRange?.from ? (
+                                    globalDateRange.to ? (
+                                        <>
+                                            {format(globalDateRange.from, "LLL dd, y")} -{" "}
+                                            {format(globalDateRange.to, "LLL dd, y")}
+                                        </>
+                                    ) : (
+                                        format(globalDateRange.from, "LLL dd, y")
+                                    )
+                                ) : (
+                                    <span>Pick a date range</span>
+                                )}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="end">
+                            <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={globalDateRange?.from}
+                                selected={globalDateRange}
+                                onSelect={(range) => {
+                                    setGlobalDateRange(range);
+                                    if (range?.from && range.to) {
+                                        setIsCalendarOpen(false);
+                                    }
+                                }}
+                                numberOfMonths={2}
+                                withQuickActions
+                            />
+                        </PopoverContent>
+                    </Popover>
+                     {globalDateRange && (
+                        <Button variant="ghost" size="icon" onClick={() => setGlobalDateRange(undefined)}>
+                            <X className="h-4 w-4" />
+                        </Button>
+                     )}
+                    <Button asChild>
+                        <Link href="/transactions"><PlusCircle/> New Sale</Link>
+                    </Button>
+                </div>
             </header>
             
             {/* Stat Cards */}
@@ -149,7 +229,7 @@ export default function DashboardPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">PKR {financialSummary.totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</div>
-                                <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+                                <p className="text-xs text-muted-foreground">For selected period</p>
                             </CardContent>
                         </Card>
                          <Card>
@@ -194,8 +274,8 @@ export default function DashboardPage() {
                 {/* Sales Chart */}
                 <Card className="lg:col-span-2">
                     <CardHeader>
-                        <CardTitle>Sales - Last 7 Days</CardTitle>
-                        <CardDescription>A look at your daily sales revenue.</CardDescription>
+                        <CardTitle>Sales Chart</CardTitle>
+                        <CardDescription>A look at your daily sales revenue for the selected period.</CardDescription>
                     </CardHeader>
                      <CardContent>
                         {isLoaded ? (
@@ -252,7 +332,7 @@ export default function DashboardPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Recent Activity</CardTitle>
-                    <CardDescription>A feed of your latest transactions.</CardDescription>
+                    <CardDescription>A feed of your latest transactions (not affected by date filter).</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-6">
@@ -289,5 +369,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-    

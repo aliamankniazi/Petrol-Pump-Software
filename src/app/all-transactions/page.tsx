@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, startOfDay, endOfDay } from 'date-fns';
@@ -31,6 +31,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useGlobalDate } from '@/hooks/use-global-date.tsx';
 
 
 type CombinedEntry = {
@@ -65,7 +66,11 @@ export default function AllTransactionsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [entryToDelete, setEntryToDelete] = useState<CombinedEntry | null>(null);
   const { toast } = useToast();
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  
+  const { globalDateRange } = useGlobalDate();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(globalDateRange);
+  useEffect(() => { setDateRange(globalDateRange) }, [globalDateRange]);
+
   const [typeFilter, setTypeFilter] = useState('all');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 

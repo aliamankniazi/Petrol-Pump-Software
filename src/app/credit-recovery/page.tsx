@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import type { Customer } from '@/lib/types';
 import Link from 'next/link';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { useGlobalDate } from '@/hooks/use-global-date.tsx';
 
 
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -47,12 +48,12 @@ export default function CreditRecoveryPage() {
     const { transactions, isLoaded: txLoaded } = useTransactions();
     const { customerPayments, isLoaded: paymentsLoaded } = useCustomerPayments();
     const { cashAdvances, isLoaded: advancesLoaded } = useCashAdvances();
+    const { globalDateRange } = useGlobalDate();
 
     const [selectedCustomerId, setSelectedCustomerId] = useState('all');
-    const [dateRange, setDateRange] = useState<DateRange | undefined>({
-        from: subDays(new Date(), 30),
-        to: new Date(),
-    });
+    const [dateRange, setDateRange] = useState<DateRange | undefined>(globalDateRange);
+    useEffect(() => { setDateRange(globalDateRange) }, [globalDateRange]);
+    
     const [searchTerm, setSearchTerm] = useState('');
     const [customerSearch, setCustomerSearch] = useState('');
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
