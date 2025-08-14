@@ -182,7 +182,7 @@ export function SaleForm() {
   }, [watchedItems, getValues]);
 
 
-  const onSubmit: SubmitHandler<SaleFormValues> = async (data) => {
+  const onSubmit = useCallback(async (data: SaleFormValues, redirectToInvoice: boolean = false) => {
     const isWalkIn = !data.customerId || data.customerId === 'walk-in';
     const customer = !isWalkIn ? customers.find(c => c.id === data.customerId) : null;
 
@@ -213,16 +213,16 @@ export function SaleForm() {
         referenceNo: '',
     });
 
-    if (newTransaction?.id) {
-        router.push(`/invoice/sale/${newTransaction.id}`);
+    if (redirectToInvoice && newTransaction?.id) {
+        window.open(`/invoice/sale/${newTransaction.id}`, '_blank');
     }
-  };
+  }, [addTransaction, customers, grandTotal, reset, toast, isClient]);
   
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.shiftKey && event.key === 'S') {
         event.preventDefault();
-        handleSubmit(onSubmit)();
+        handleSubmit((data) => onSubmit(data))();
       }
     };
 
@@ -268,7 +268,7 @@ export function SaleForm() {
   }
 
   return (
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit((data) => onSubmit(data, false))}>
             <div className="p-4 rounded-lg bg-muted/50 border space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-1 md:col-span-2">
@@ -471,6 +471,12 @@ export function SaleForm() {
                         </Select>
                     )}/>
                 </div>
+            </div>
+
+            <Separator className="my-6" />
+            <div className="flex items-center gap-2">
+                <Button type="submit" size="lg">Save/Submit</Button>
+                <Button type="button" variant="secondary" size="lg" onClick={handleSubmit((data) => onSubmit(data, true))}>Save &amp; Print Invoice</Button>
             </div>
       </form>
   );
