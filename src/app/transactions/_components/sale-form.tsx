@@ -83,6 +83,7 @@ export function SaleForm() {
 
   const productSelectionRef = useRef<HTMLButtonElement>(null);
   const customerSelectionRef = useRef<HTMLButtonElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -159,15 +160,36 @@ export function SaleForm() {
    useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
-      if (event.key === 'Enter' && target.tagName !== 'BUTTON' && target.tagName !== 'TEXTAREA') {
-          event.preventDefault();
+
+      // Handle Enter key to move to the next field
+      if (event.key === 'Enter' && target instanceof HTMLInputElement) {
+        event.preventDefault();
+        const form = formRef.current;
+        if (!form) return;
+
+        const focusable = Array.from(
+          form.querySelectorAll('input, button, select, textarea')
+        ) as HTMLElement[];
+        
+        const index = focusable.indexOf(target);
+        
+        if (index > -1 && index < focusable.length - 1) {
+            const nextElement = focusable[index + 1];
+            if (nextElement) {
+                nextElement.focus();
+            }
+        } else if (target.id === 'gstPercentInput') { // Special case for last item input
+            handleAddToCart();
+        }
       }
       
+      // Save shortcut
       if ((event.ctrlKey || event.metaKey) && event.key === 's') {
         event.preventDefault();
         handleSubmit(onSubmit)();
       }
        
+      // Focus customer shortcut
       if (event.key.toLowerCase() === 'a' && target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
           event.preventDefault();
           customerSelectionRef.current?.click();
@@ -254,7 +276,7 @@ export function SaleForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form onSubmit={handleSubmit(onSubmit)} ref={formRef}>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Left Column: Create Sale */}
@@ -326,7 +348,7 @@ export function SaleForm() {
                         </div>
                          <div className="space-y-1">
                             <Label>GST (%)</Label>
-                            <Input type="number" value={currentItem.gstPercent} onChange={e => setCurrentItem(p => ({...p, gstPercent: parseFloat(e.target.value) || 0}))} />
+                            <Input id="gstPercentInput" type="number" value={currentItem.gstPercent} onChange={e => setCurrentItem(p => ({...p, gstPercent: parseFloat(e.target.value) || 0}))} />
                         </div>
                     </div>
 
