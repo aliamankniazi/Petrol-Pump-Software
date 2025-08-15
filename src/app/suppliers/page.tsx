@@ -26,6 +26,9 @@ import type { Supplier } from '@/lib/types';
 import { useSuppliers } from '@/hooks/use-suppliers';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Link from 'next/link';
+import { usePurchases } from '@/hooks/use-purchases';
+import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
+import { useSupplierPayments } from '@/hooks/use-supplier-payments';
 
 const supplierSchema = z.object({
   name: z.string().min(1, 'Supplier name is required'),
@@ -36,8 +39,13 @@ type SupplierFormValues = z.infer<typeof supplierSchema>;
 
 export default function SuppliersPage() {
   const { suppliers, addSupplier, deleteSupplier, isLoaded: suppliersLoaded } = useSuppliers();
+  const { purchases, isLoaded: purchasesLoaded } = usePurchases();
+  const { purchaseReturns, isLoaded: returnsLoaded } = usePurchaseReturns();
+  const { supplierPayments, isLoaded: paymentsLoaded } = useSupplierPayments();
   const { toast } = useToast();
   const [supplierToDelete, setSupplierToDelete] = React.useState<Supplier | null>(null);
+
+  const isDataLoaded = suppliersLoaded && purchasesLoaded && returnsLoaded && paymentsLoaded;
 
   const {
     register: registerSupplier,
@@ -60,9 +68,27 @@ export default function SuppliersPage() {
 
   const handleDeleteSupplier = React.useCallback(() => {
     if (!supplierToDelete || !supplierToDelete.id) return;
+    
+    // Safeguard: Check for dependencies before deleting
+    const hasDependencies = purchases.some(p => p.supplierId === supplierToDelete.id) ||
+                            purchaseReturns.some(pr => pr.supplierId === supplierToDelete.id) ||
+                            supplierPayments.some(sp => sp.supplierId === supplierToDelete.id);
+
+    const supplierName = suppliers.find(s => s.id === supplierToDelete.id)?.name || 'The supplier';
+
+    if (hasDependencies) {
+        toast({
+            variant: 'destructive',
+            title: 'Deletion Prevented',
+            description: `${supplierName} has existing transactions and cannot be deleted.`,
+        });
+        setSupplierToDelete(null);
+        return;
+    }
+    
     deleteSupplier(supplierToDelete.id);
     setSupplierToDelete(null);
-  }, [supplierToDelete, deleteSupplier]);
+  }, [supplierToDelete, deleteSupplier, purchases, purchaseReturns, supplierPayments, suppliers, toast]);
 
   return (
     <>
