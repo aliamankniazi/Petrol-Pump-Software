@@ -10,8 +10,9 @@ import { SupplierPaymentForm } from "./_components/supplier-payment-form";
 import { CashAdvanceForm } from "./_components/cash-advance-form";
 import { SalaryPaymentForm } from "./_components/salary-payment-form";
 import { useSearchParams, useRouter } from 'next/navigation';
+import React, { Suspense } from 'react';
 
-export default function TransactionsPage() {
+function TransactionsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'sale';
@@ -21,7 +22,6 @@ export default function TransactionsPage() {
   };
 
   return (
-    <div className="p-4 md:p-8">
       <Tabs defaultValue={defaultTab} onValueChange={onTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5">
           <TabsTrigger value="sale"><Fuel className="mr-2 h-4 w-4" />Sale</TabsTrigger>
@@ -86,6 +86,16 @@ export default function TransactionsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+  );
+}
+
+
+export default function TransactionsPage() {
+  return (
+    <div className="p-4 md:p-8">
+      <Suspense fallback={<div>Loading...</div>}>
+        <TransactionsPageContent />
+      </Suspense>
     </div>
-  )
+  );
 }
