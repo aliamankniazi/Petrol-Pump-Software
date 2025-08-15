@@ -30,9 +30,6 @@ export default function InvoicesPage() {
   const [typeFilter, setTypeFilter] = useState('all');
   
   const { globalDateRange, setGlobalDateRange } = useGlobalDate();
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(globalDateRange);
-  useEffect(() => { setDateRange(globalDateRange) }, [globalDateRange]);
-
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const isLoaded = transactionsLoaded && purchasesLoaded && productsLoaded;
@@ -52,11 +49,11 @@ export default function InvoicesPage() {
             sale.items.some(item => item.productName.toLowerCase().includes(searchTerm.toLowerCase()))
         );
     }
-    if (dateRange?.from) {
-        sales = sales.filter(sale => new Date(sale.timestamp!) >= startOfDay(dateRange.from!));
+    if (globalDateRange?.from) {
+        sales = sales.filter(sale => new Date(sale.timestamp!) >= startOfDay(globalDateRange.from!));
     }
-    if (dateRange?.to) {
-        sales = sales.filter(sale => new Date(sale.timestamp!) <= endOfDay(dateRange.to!));
+    if (globalDateRange?.to) {
+        sales = sales.filter(sale => new Date(sale.timestamp!) <= endOfDay(globalDateRange.to!));
     }
     
     return sales.map(sale => {
@@ -84,7 +81,7 @@ export default function InvoicesPage() {
         return { ...sale, profit };
     });
 
-  }, [transactions, products, searchTerm, dateRange, sortedPurchases]);
+  }, [transactions, products, searchTerm, globalDateRange, sortedPurchases]);
 
   const filteredPurchases = useMemo(() => {
     let allPurchases = purchases.filter(p => p.timestamp);
@@ -94,14 +91,14 @@ export default function InvoicesPage() {
             purchase.items.some(item => item.productName.toLowerCase().includes(searchTerm.toLowerCase()))
         );
     }
-     if (dateRange?.from) {
-        allPurchases = allPurchases.filter(p => new Date(p.timestamp!) >= startOfDay(dateRange.from!));
+     if (globalDateRange?.from) {
+        allPurchases = allPurchases.filter(p => new Date(p.timestamp!) >= startOfDay(globalDateRange.from!));
     }
-    if (dateRange?.to) {
-        allPurchases = allPurchases.filter(p => new Date(p.timestamp!) <= endOfDay(dateRange.to!));
+    if (globalDateRange?.to) {
+        allPurchases = allPurchases.filter(p => new Date(p.timestamp!) <= endOfDay(globalDateRange.to!));
     }
     return allPurchases;
-  }, [purchases, searchTerm, dateRange]);
+  }, [purchases, searchTerm, globalDateRange]);
 
 
   const showSales = typeFilter === 'all' || typeFilter === 'sales';
@@ -143,18 +140,18 @@ export default function InvoicesPage() {
                             variant={"outline"}
                             className={cn(
                                 "w-[280px] justify-start text-left font-normal",
-                                !dateRange && "text-muted-foreground"
+                                !globalDateRange && "text-muted-foreground"
                             )}
                         >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {dateRange?.from ? (
-                                dateRange.to ? (
+                            {globalDateRange?.from ? (
+                                globalDateRange.to ? (
                                     <>
-                                        {format(dateRange.from, "LLL dd, y")} -{" "}
-                                        {format(dateRange.to, "LLL dd, y")}
+                                        {format(globalDateRange.from, "LLL dd, y")} -{" "}
+                                        {format(globalDateRange.to, "LLL dd, y")}
                                     </>
                                 ) : (
-                                    format(dateRange.from, "LLL dd, y")
+                                    format(globalDateRange.from, "LLL dd, y")
                                 )
                             ) : (
                                 <span>Pick a date range</span>
@@ -165,21 +162,21 @@ export default function InvoicesPage() {
                         <Calendar
                             initialFocus
                             mode="range"
-                            defaultMonth={dateRange?.from}
-                            selected={dateRange}
+                            defaultMonth={globalDateRange?.from}
+                            selected={globalDateRange}
                             onSelect={(range) => {
-                                setDateRange(range);
                                 setGlobalDateRange(range);
                                 if (range?.from && range.to) {
                                     setIsCalendarOpen(false);
                                 }
                             }}
                             numberOfMonths={2}
+                            withQuickActions
                         />
                     </PopoverContent>
                 </Popover>
-                 {(dateRange || typeFilter !== 'all') && (
-                    <Button variant="ghost" size="icon" onClick={() => { setDateRange(undefined); setTypeFilter('all'); setGlobalDateRange(undefined); }}>
+                 {(globalDateRange || typeFilter !== 'all') && (
+                    <Button variant="ghost" size="icon" onClick={() => { setGlobalDateRange(undefined); setTypeFilter('all'); }}>
                         <X className="h-4 w-4" />
                     </Button>
                  )}

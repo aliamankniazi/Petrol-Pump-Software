@@ -57,8 +57,6 @@ export default function LedgerPage() {
   const { cashAdvances, deleteCashAdvance, isLoaded: cashAdvancesLoaded } = useCashAdvances();
   
   const { globalDateRange, setGlobalDateRange } = useGlobalDate();
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(globalDateRange?.from);
-  useEffect(() => { setSelectedDate(globalDateRange?.from) }, [globalDateRange]);
 
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<LedgerEntry | null>(null);
@@ -187,12 +185,17 @@ export default function LedgerPage() {
     let calculatedOpeningBalance = 0;
     let entriesForDisplay = validCombined;
 
-    if (selectedDate) {
+    if (globalDateRange?.from) {
+      const fromDate = startOfDay(globalDateRange.from);
       calculatedOpeningBalance = validCombined
-        .filter(entry => new Date(entry.timestamp) < startOfDay(selectedDate))
+        .filter(entry => new Date(entry.timestamp) < fromDate)
         .reduce((acc, entry) => acc + entry.credit - entry.debit, 0);
       
-      entriesForDisplay = validCombined.filter(entry => isSameDay(new Date(entry.timestamp), selectedDate));
+      const toDate = globalDateRange.to ? endOfDay(globalDateRange.to) : endOfDay(fromDate);
+      entriesForDisplay = validCombined.filter(entry => {
+        const entryDate = new Date(entry.timestamp);
+        return entryDate >= fromDate && entryDate <= toDate;
+      });
     }
     
     let runningBalance = calculatedOpeningBalance;
@@ -221,7 +224,7 @@ export default function LedgerPage() {
         totals: calculatedTotals,
     };
 
-  }, [transactions, purchases, expenses, purchaseReturns, otherIncomes, customerPayments, supplierPayments, investments, cashAdvances, isLoaded, selectedDate, searchTerm]);
+  }, [transactions, purchases, expenses, purchaseReturns, otherIncomes, customerPayments, supplierPayments, investments, cashAdvances, isLoaded, globalDateRange, searchTerm]);
 
   const getBadgeVariant = (type: LedgerEntry['type']) => {
     switch (type) {
@@ -290,8 +293,8 @@ export default function LedgerPage() {
                   <BookOpen /> General Journal
                 </CardTitle>
                 <CardDescription>
-                  {selectedDate 
-                    ? `Showing financial transactions for ${format(selectedDate, 'PPP')}.`
+                  {globalDateRange?.from 
+                    ? `Showing financial transactions for the selected period.`
                     : 'A chronological record of all financial transactions.'
                   }
                 </CardDescription>
@@ -313,28 +316,41 @@ export default function LedgerPage() {
                         variant={"outline"}
                         className={cn(
                           "w-full sm:w-[240px] justify-start text-left font-normal",
-                          !selectedDate && "text-muted-foreground"
+                          !globalDateRange && "text-muted-foreground"
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {selectedDate ? format(selectedDate, "PPP") : <span>Filter by date...</span>}
+                        {globalDateRange?.from ? (
+                            globalDateRange.to ? (
+                                <>
+                                    {format(globalDateRange.from, "LLL dd, y")} -{" "}
+                                    {format(globalDateRange.to, "LLL dd, y")}
+                                </>
+                            ) : (
+                                format(globalDateRange.from, "LLL dd, y")
+                            )
+                        ) : (
+                            <span>Filter by date...</span>
+                        )}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="end">
                       <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={(date) => {
-                            setSelectedDate(date);
-                            setGlobalDateRange(date ? { from: date, to: date } : undefined);
-                            setIsCalendarOpen(false);
+                        mode="range"
+                        selected={globalDateRange}
+                        onSelect={(range) => {
+                            setGlobalDateRange(range);
+                            if (range?.from && range.to) {
+                                setIsCalendarOpen(false);
+                            }
                         }}
                         initialFocus
+                        withQuickActions
                       />
                     </PopoverContent>
                   </Popover>
-                  {selectedDate && (
-                    <Button variant="ghost" size="icon" onClick={() => { setSelectedDate(undefined); setGlobalDateRange(undefined); }}>
+                  {globalDateRange && (
+                    <Button variant="ghost" size="icon" onClick={() => { setGlobalDateRange(undefined); }}>
                       <X className="h-4 w-4" />
                       <span className="sr-only">Clear filter</span>
                     </Button>
@@ -362,7 +378,7 @@ export default function LedgerPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {selectedDate && !searchTerm && (
+                  {globalDateRange && !searchTerm && (
                     <TableRow className="bg-muted/30">
                       <TableCell colSpan={5} className="font-bold text-right">Opening Balance</TableCell>
                       <TableCell className={`text-right font-semibold font-mono ${openingBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>
@@ -424,10 +440,10 @@ export default function LedgerPage() {
                   <>
                     <DollarSign className="w-16 h-16" />
                     <h3 className="text-xl font-semibold">
-                      {selectedDate || searchTerm ? 'No Transactions Found' : 'No Transactions Recorded'}
+                      {globalDateRange || searchTerm ? 'No Transactions Found' : 'No Transactions Recorded'}
                     </h3>
                     <p>
-                      {selectedDate || searchTerm
+                      {globalDateRange || searchTerm
                         ? `There are no transactions for the selected filter.`
                         : 'Your financial ledger is currently empty.'
                       }

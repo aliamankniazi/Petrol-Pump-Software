@@ -51,8 +51,6 @@ export default function CreditRecoveryPage() {
     const { globalDateRange, setGlobalDateRange } = useGlobalDate();
 
     const [selectedCustomerId, setSelectedCustomerId] = useState('all');
-    const [dateRange, setDateRange] = useState<DateRange | undefined>(globalDateRange);
-    useEffect(() => { setDateRange(globalDateRange) }, [globalDateRange]);
     
     const [searchTerm, setSearchTerm] = useState('');
     const [customerSearch, setCustomerSearch] = useState('');
@@ -74,8 +72,8 @@ export default function CreditRecoveryPage() {
         }
 
         const report: ReportRow[] = targetCustomers.map(customer => {
-            const rangeStart = dateRange?.from ? startOfDay(dateRange.from) : new Date(0);
-            const rangeEnd = dateRange?.to ? endOfDay(dateRange.to) : new Date();
+            const rangeStart = globalDateRange?.from ? startOfDay(globalDateRange.from) : new Date(0);
+            const rangeEnd = globalDateRange?.to ? endOfDay(globalDateRange.to) : new Date();
 
             // Calculate Previous Balance
             const prevTx = transactions.filter(tx => tx.customerId === customer.id && new Date(tx.timestamp!) < rangeStart);
@@ -108,7 +106,7 @@ export default function CreditRecoveryPage() {
 
         return report.sort((a,b) => a.customer.name.localeCompare(b.customer.name));
 
-    }, [customers, transactions, customerPayments, cashAdvances, isDataLoaded, selectedCustomerId, dateRange]);
+    }, [customers, transactions, customerPayments, cashAdvances, isDataLoaded, selectedCustomerId, globalDateRange]);
     
     const filteredReportData = useMemo(() => {
         if (!searchTerm) return reportData;
@@ -212,18 +210,18 @@ Mianwali Petroleum Service`;
                                         variant="outline"
                                         className={cn(
                                             "w-full justify-start text-left font-normal",
-                                            !dateRange && "text-muted-foreground"
+                                            !globalDateRange && "text-muted-foreground"
                                         )}
                                     >
                                         <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {dateRange?.from ? (
-                                            dateRange.to ? (
+                                        {globalDateRange?.from ? (
+                                            globalDateRange.to ? (
                                                 <>
-                                                    {format(dateRange.from, "LLL dd, y")} -{" "}
-                                                    {format(dateRange.to, "LLL dd, y")}
+                                                    {format(globalDateRange.from, "LLL dd, y")} -{" "}
+                                                    {format(globalDateRange.to, "LLL dd, y")}
                                                 </>
                                             ) : (
-                                                format(dateRange.from, "LLL dd, y")
+                                                format(globalDateRange.from, "LLL dd, y")
                                             )
                                         ) : (
                                             <span>Pick a date</span>
@@ -234,16 +232,16 @@ Mianwali Petroleum Service`;
                                     <Calendar
                                         initialFocus
                                         mode="range"
-                                        defaultMonth={dateRange?.from}
-                                        selected={dateRange}
+                                        defaultMonth={globalDateRange?.from}
+                                        selected={globalDateRange}
                                         onSelect={(range) => {
-                                            setDateRange(range);
                                             setGlobalDateRange(range);
                                             if (range?.from && range.to) {
                                                 setIsCalendarOpen(false);
                                             }
                                         }}
                                         numberOfMonths={2}
+                                        withQuickActions
                                     />
                                 </PopoverContent>
                             </Popover>

@@ -203,6 +203,7 @@ export default function DashboardPage() {
                                     }
                                 }}
                                 numberOfMonths={2}
+                                withQuickActions
                             />
                         </PopoverContent>
                     </Popover>

@@ -22,7 +22,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Textarea } from '@/components/ui/textarea';
-
+import { useGlobalDate } from '@/hooks/use-global-date.tsx';
+import { DateRange } from 'react-day-picker';
 
 const EXPENSE_CATEGORIES: ExpenseCategory[] = ['Utilities', 'Salaries', 'Maintenance', 'Other'];
 
@@ -42,9 +43,10 @@ export default function ExpensesPage() {
   const { expenses, addExpense, deleteExpense } = useExpenses();
   const { toast } = useToast();
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
-  const [selectedDateFilter, setSelectedDateFilter] = useState<Date | undefined>();
+  const { globalDateRange, setGlobalDateRange } = useGlobalDate();
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   
   const [isClient, setIsClient] = useState(false);
 
@@ -92,9 +94,15 @@ export default function ExpensesPage() {
   const filteredExpenses = useMemo(() => {
     let validExpenses = expenses.filter(expense => expense.timestamp && !isNaN(new Date(expense.timestamp).getTime()));
 
-    if (selectedDateFilter) {
-      validExpenses = validExpenses.filter(expense => isSameDay(new Date(expense.timestamp!), selectedDateFilter));
+    if (globalDateRange?.from) {
+      const from = globalDateRange.from;
+      const to = globalDateRange.to || from;
+      validExpenses = validExpenses.filter(expense => {
+        const expenseDate = new Date(expense.timestamp!);
+        return expenseDate >= from && expenseDate <= to;
+      });
     }
+
     if (categoryFilter !== 'all') {
         validExpenses = validExpenses.filter(expense => expense.category === categoryFilter);
     }
@@ -106,10 +114,10 @@ export default function ExpensesPage() {
     }
     
     return validExpenses;
-  }, [expenses, selectedDateFilter, categoryFilter, searchTerm]);
+  }, [expenses, globalDateRange, categoryFilter, searchTerm]);
 
   const clearFilters = () => {
-    setSelectedDateFilter(undefined);
+    setGlobalDateRange(undefined);
     setCategoryFilter('all');
     setSearchTerm('');
   };
@@ -243,30 +251,44 @@ export default function ExpensesPage() {
                         ))}
                     </SelectContent>
                  </Select>
-                 <Popover>
+                 <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                     <PopoverTrigger asChild>
                         <Button
+                            id="date"
                             variant={"outline"}
                             className={cn(
                                 "w-[240px] justify-start text-left font-normal",
-                                !selectedDateFilter && "text-muted-foreground"
+                                !globalDateRange && "text-muted-foreground"
                             )}
                         >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {selectedDateFilter ? format(selectedDateFilter, "PPP") : <span>Filter by date...</span>}
+                            {globalDateRange?.from ? (
+                                globalDateRange.to ? (
+                                    <>
+                                        {format(globalDateRange.from, "LLL dd, y")} -{" "}
+                                        {format(globalDateRange.to, "LLL dd, y")}
+                                    </>
+                                ) : (
+                                    format(globalDateRange.from, "LLL dd, y")
+                                )
+                            ) : (
+                                <span>Pick a date range</span>
+                            )}
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="end">
                         <Calendar
-                            mode="single"
-                            selected={selectedDateFilter}
-                            onSelect={setSelectedDateFilter}
                             initialFocus
-                            defaultMonth={selectedDateFilter}
+                            mode="range"
+                            defaultMonth={globalDateRange?.from}
+                            selected={globalDateRange}
+                            onSelect={setGlobalDateRange}
+                            numberOfMonths={2}
+                            withQuickActions
                         />
                     </PopoverContent>
                  </Popover>
-                  {(selectedDateFilter || categoryFilter !== 'all' || searchTerm) && (
+                  {(globalDateRange || categoryFilter !== 'all' || searchTerm) && (
                     <Button variant="ghost" size="icon" onClick={clearFilters}>
                       <X className="h-4 w-4" />
                     </Button>
@@ -311,10 +333,10 @@ export default function ExpensesPage() {
               <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
                 <ListChecks className="w-16 h-16" />
                 <h3 className="text-xl font-semibold">
-                    {selectedDateFilter || categoryFilter !== 'all' || searchTerm ? 'No Matching Expenses' : 'No Expenses Recorded'}
+                    {globalDateRange || categoryFilter !== 'all' || searchTerm ? 'No Matching Expenses' : 'No Expenses Recorded'}
                 </h3>
                 <p>
-                    {selectedDateFilter || categoryFilter !== 'all' || searchTerm ? 'Try adjusting your filters.' : 'Use the form to log your first business expense.'}
+                    {globalDateRange || categoryFilter !== 'all' || searchTerm ? 'Try adjusting your filters.' : 'Use the form to log your first business expense.'}
                 </p>
               </div>
             )}

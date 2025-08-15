@@ -68,11 +68,9 @@ export default function AllTransactionsPage() {
   const { toast } = useToast();
   
   const { globalDateRange, setGlobalDateRange } = useGlobalDate();
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(globalDateRange);
-  useEffect(() => { setDateRange(globalDateRange) }, [globalDateRange]);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const [typeFilter, setTypeFilter] = useState('all');
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const isLoaded = transactionsLoaded && purchasesLoaded && purchaseReturnsLoaded && customersLoaded;
 
@@ -128,9 +126,9 @@ export default function AllTransactionsPage() {
     return combinedEntries.filter(entry => {
       const entryDate = new Date(entry.timestamp);
       
-      const isInDateRange = !dateRange?.from || (
-          entryDate >= startOfDay(dateRange.from) &&
-          (!dateRange.to || entryDate <= endOfDay(dateRange.to))
+      const isInDateRange = !globalDateRange?.from || (
+          entryDate >= startOfDay(globalDateRange.from) &&
+          (!globalDateRange.to || entryDate <= endOfDay(globalDateRange.to))
       );
 
       if (!isInDateRange) {
@@ -153,7 +151,7 @@ export default function AllTransactionsPage() {
         (entry.notes && entry.notes.toLowerCase().includes(searchLower))
       );
     });
-  }, [combinedEntries, searchTerm, dateRange, typeFilter]);
+  }, [combinedEntries, searchTerm, globalDateRange, typeFilter]);
 
   const getBadgeVariant = (type: CombinedEntry['type']) => {
     switch (type) {
@@ -249,18 +247,18 @@ export default function AllTransactionsPage() {
                             variant={"outline"}
                             className={cn(
                                 "w-[280px] justify-start text-left font-normal",
-                                !dateRange && "text-muted-foreground"
+                                !globalDateRange && "text-muted-foreground"
                             )}
                         >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {dateRange?.from ? (
-                                dateRange.to ? (
+                            {globalDateRange?.from ? (
+                                globalDateRange.to ? (
                                     <>
-                                        {format(dateRange.from, "LLL dd, y")} -{" "}
-                                        {format(dateRange.to, "LLL dd, y")}
+                                        {format(globalDateRange.from, "LLL dd, y")} -{" "}
+                                        {format(globalDateRange.to, "LLL dd, y")}
                                     </>
                                 ) : (
-                                    format(dateRange.from, "LLL dd, y")
+                                    format(globalDateRange.from, "LLL dd, y")
                                 )
                             ) : (
                                 <span>Pick a date range</span>
@@ -271,21 +269,21 @@ export default function AllTransactionsPage() {
                         <Calendar
                             initialFocus
                             mode="range"
-                            defaultMonth={dateRange?.from}
-                            selected={dateRange}
+                            defaultMonth={globalDateRange?.from}
+                            selected={globalDateRange}
                             onSelect={(range) => {
-                                setDateRange(range);
                                 setGlobalDateRange(range);
                                 if (range?.from && range.to) {
                                     setIsCalendarOpen(false);
                                 }
                             }}
                             numberOfMonths={2}
+                            withQuickActions
                         />
                     </PopoverContent>
                 </Popover>
-                 {(dateRange || typeFilter !== 'all') && (
-                    <Button variant="ghost" size="icon" onClick={() => { setDateRange(undefined); setTypeFilter('all'); setGlobalDateRange(undefined); }}>
+                 {(globalDateRange || typeFilter !== 'all') && (
+                    <Button variant="ghost" size="icon" onClick={() => { setGlobalDateRange(undefined); setTypeFilter('all'); }}>
                         <X className="h-4 w-4" />
                     </Button>
                  )}
@@ -363,9 +361,9 @@ export default function AllTransactionsPage() {
               <div className="flex flex-col items-center justify-center gap-4 text-center text-muted-foreground p-8 border-2 border-dashed rounded-lg">
                 <XCircle className="w-16 h-16" />
                 <h3 className="text-xl font-semibold">
-                  {searchTerm || dateRange || typeFilter !== 'all' ? 'No Matching Transactions' : 'Not showing any details'}
+                  {searchTerm || globalDateRange || typeFilter !== 'all' ? 'No Matching Transactions' : 'Not showing any details'}
                 </h3>
-                <p>{searchTerm || dateRange || typeFilter !== 'all' ? 'Try adjusting your search or filters.' : ''}</p>
+                <p>{searchTerm || globalDateRange || typeFilter !== 'all' ? 'Try adjusting your search or filters.' : ''}</p>
               </div>
             )
           ) : (
