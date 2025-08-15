@@ -113,11 +113,11 @@ export default function CustomerDefaulterReportPage() {
                   </TableRow>
                 )
               ) : (
-                Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>
-                        <TableCell colSpan={5} className="h-12 text-center">Loading...</TableCell>
-                    </TableRow>
-                ))
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center">
+                    Loading...
+                  </TableCell>
+                </TableRow>
               )}
             </TableBody>
           </Table>
