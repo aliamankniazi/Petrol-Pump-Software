@@ -65,11 +65,11 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id'>>(
       dataArray.sort((a, b) => {
         const timestampA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
         const timestampB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-        return timestampA - timestampB;
+        return timestampB - timestampA;
       });
       
 
-      setData(dataArray.reverse());
+      setData(dataArray);
       setLoading(false);
     }, (error) => {
       console.error(`Error fetching ${collectionName}:`, error);
