@@ -27,6 +27,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { Product } from '@/lib/types';
 import { ProductSelection } from './product-selection';
 import { CustomerSelection } from './customer-selection';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
 
 const saleItemSchema = z.object({
@@ -220,179 +221,183 @@ export function SaleForm() {
   }
 
   return (
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div className="border rounded-lg p-4 grid md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                <div className="space-y-1">
-                    <Label>Customer</Label>
-                    <div className="flex items-center gap-2">
-                        <CustomerSelection
-                            selectedCustomerId={watchedCustomerId}
-                            onCustomerSelect={handleCustomerSelect}
-                        />
-                        <Button type="button" variant="outline" size="icon" asChild><Link href="/customers" title="Add new customer"><UserPlus /></Link></Button>
-                    </div>
-                </div>
-                <div className="space-y-1">
-                    <Label>Old Balance</Label>
-                    <Input disabled value={customerBalance.toFixed(2)} />
-                </div>
-                <div className="space-y-1">
-                    <Label>Sale Date</Label>
-                    <Controller name="date" control={control} render={({ field }) => (
-                        <Popover>
-                            <PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
-                            <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(d) => {if(d) field.onChange(d);}} initialFocus /></PopoverContent>
-                        </Popover>
-                    )}/>
-                </div>
-                <div className="space-y-1">
-                    <Label>Reference No.</Label>
-                    <Input placeholder="e.g. PO-123" {...register('referenceNo')} />
-                </div>
-            </div>
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <Card>
+          <CardHeader>
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                  <div className="space-y-1">
+                      <Label>Customer</Label>
+                      <div className="flex items-center gap-2">
+                          <CustomerSelection
+                              selectedCustomerId={watchedCustomerId}
+                              onCustomerSelect={handleCustomerSelect}
+                          />
+                          <Button type="button" variant="outline" size="icon" asChild><Link href="/customers" title="Add new customer"><UserPlus /></Link></Button>
+                      </div>
+                  </div>
+                  <div className="space-y-1">
+                      <Label>Old Balance</Label>
+                      <Input disabled value={customerBalance.toFixed(2)} />
+                  </div>
+                  <div className="space-y-1">
+                      <Label>Sale Date</Label>
+                      <Controller name="date" control={control} render={({ field }) => (
+                          <Popover>
+                              <PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
+                              <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(d) => {if(d) field.onChange(d);}} initialFocus /></PopoverContent>
+                          </Popover>
+                      )}/>
+                  </div>
+                  <div className="space-y-1">
+                      <Label>Reference No.</Label>
+                      <Input placeholder="e.g. PO-123" {...register('referenceNo')} />
+                  </div>
+              </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+              <div className="p-4 rounded-lg bg-muted/50 border space-y-4">
+                  <div className="space-y-1">
+                      <Label>Product</Label>
+                      <div className="flex items-center gap-2">
+                          <ProductSelection onProductSelect={handleProductSelect} ref={productSelectionRef} />
+                          <Button type="button" variant="outline" size="icon" asChild>
+                              <Link href="/settings" title="Add new product">
+                                  <PlusCircle />
+                              </Link>
+                          </Button>
+                      </div>
+                  </div>
+              </div>
 
-            <div className="p-4 rounded-lg bg-muted/50 border space-y-4">
-                <div className="space-y-1">
-                    <Label>Product</Label>
-                    <div className="flex items-center gap-2">
-                        <ProductSelection onProductSelect={handleProductSelect} ref={productSelectionRef} />
-                        <Button type="button" variant="outline" size="icon" asChild>
-                            <Link href="/settings" title="Add new product">
-                                <PlusCircle />
-                            </Link>
-                        </Button>
-                    </div>
-                </div>
-            </div>
+              <div className="border rounded-lg">
+                  <div className="overflow-x-auto">
+                      <Table>
+                          <TableHeader>
+                              <TableRow>
+                                  <TableHead className="min-w-[200px]">Product</TableHead>
+                                  <TableHead>Unit</TableHead>
+                                  <TableHead>Price</TableHead>
+                                  <TableHead>Qty</TableHead>
+                                  <TableHead>Total</TableHead>
+                                  <TableHead></TableHead>
+                              </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                              {fields.length === 0 && (
+                                  <TableRow>
+                                      <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                                          No products added yet.
+                                      </TableCell>
+                                  </TableRow>
+                              )}
+                              {fields.map((field, index) => {
+                                  const product = products.find(p => p.id === field.productId);
+                                  return (
+                                  <TableRow key={field.id}>
+                                      <TableCell>{field.productName}</TableCell>
+                                      <TableCell>
+                                        {product?.subUnit ? (
+                                          <Controller
+                                            name={`items.${index}.unit`}
+                                            control={control}
+                                            render={({ field }) => (
+                                              <Select value={field.value} onValueChange={(value) => handleUnitChange(index, value)}>
+                                                <SelectTrigger className="w-28">
+                                                  <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  <SelectItem value={product.mainUnit}>{product.mainUnit}</SelectItem>
+                                                  {product.subUnit && <SelectItem value={product.subUnit.name}>{product.subUnit.name}</SelectItem>}
+                                                </SelectContent>
+                                              </Select>
+                                            )}
+                                          />
+                                        ) : (
+                                          field.unit
+                                        )}
+                                      </TableCell>
+                                      <TableCell>
+                                          <Input type="number" step="any" {...register(`items.${index}.pricePerUnit`)} onChange={(e) => { const price = parseFloat(e.target.value) || 0; const qty = getValues(`items.${index}.quantity`); setValue(`items.${index}.totalAmount`, price * qty, { shouldTouch: true }); }} className="w-28"/>
+                                      </TableCell>
+                                      <TableCell>
+                                          <Input type="number" step="any" {...register(`items.${index}.quantity`)} onChange={(e) => { const qty = parseFloat(e.target.value) || 0; const price = getValues(`items.${index}.pricePerUnit`); setValue(`items.${index}.totalAmount`, price * qty, { shouldTouch: true }); }} className="w-24"/>
+                                      </TableCell>
+                                      <TableCell>
+                                          <Input type="number" step="any" {...register(`items.${index}.totalAmount`)} onChange={(e) => { const total = parseFloat(e.target.value) || 0; const price = getValues(`items.${index}.pricePerUnit`); if (price > 0) { setValue(`items.${index}.quantity`, total / price, { shouldTouch: true }); } }} className="w-28"/>
+                                      </TableCell>
+                                      <TableCell>
+                                          <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                                              <Trash2 className="text-destructive w-4 h-4"/>
+                                          </Button>
+                                      </TableCell>
+                                  </TableRow>
+                              )})}
+                          </TableBody>
+                      </Table>
+                  </div>
+              </div>
 
-            <div className="border rounded-lg">
-                <div className="overflow-x-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="min-w-[200px]">Product</TableHead>
-                                <TableHead>Unit</TableHead>
-                                <TableHead>Price</TableHead>
-                                <TableHead>Qty</TableHead>
-                                <TableHead>Total</TableHead>
-                                <TableHead></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {fields.length === 0 && (
-                                <TableRow>
-                                <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
-                                    No products added yet.
-                                </TableCell>
-                                </TableRow>
-                            )}
-                            {fields.map((field, index) => {
-                                const product = products.find(p => p.id === field.productId);
-                                return (
-                                <TableRow key={field.id}>
-                                    <TableCell>{field.productName}</TableCell>
-                                    <TableCell>
-                                      {product?.subUnit ? (
-                                        <Controller
-                                          name={`items.${index}.unit`}
-                                          control={control}
-                                          render={({ field }) => (
-                                            <Select value={field.value} onValueChange={(value) => handleUnitChange(index, value)}>
-                                              <SelectTrigger className="w-28">
-                                                <SelectValue />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value={product.mainUnit}>{product.mainUnit}</SelectItem>
-                                                {product.subUnit && <SelectItem value={product.subUnit.name}>{product.subUnit.name}</SelectItem>}
-                                              </SelectContent>
-                                            </Select>
-                                          )}
-                                        />
-                                      ) : (
-                                        field.unit
-                                      )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Input type="number" step="any" {...register(`items.${index}.pricePerUnit`)} onChange={(e) => { const price = parseFloat(e.target.value) || 0; const qty = getValues(`items.${index}.quantity`); setValue(`items.${index}.totalAmount`, price * qty, { shouldTouch: true }); }} className="w-28"/>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Input type="number" step="any" {...register(`items.${index}.quantity`)} onChange={(e) => { const qty = parseFloat(e.target.value) || 0; const price = getValues(`items.${index}.pricePerUnit`); setValue(`items.${index}.totalAmount`, price * qty, { shouldTouch: true }); }} className="w-24"/>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Input type="number" step="any" {...register(`items.${index}.totalAmount`)} onChange={(e) => { const total = parseFloat(e.target.value) || 0; const price = getValues(`items.${index}.pricePerUnit`); if (price > 0) { setValue(`items.${index}.quantity`, total / price, { shouldTouch: true }); } }} className="w-28"/>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                                            <Trash2 className="text-destructive w-4 h-4"/>
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            )})}
-                        </TableBody>
-                    </Table>
-                </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                     <div className="space-y-2">
-                        <Label>Notes / Description</Label>
-                        <Textarea placeholder="Add any notes for this sale..." {...register('notes')} />
-                      </div>
-                </div>
-                <div className="border rounded-lg p-4 space-y-4">
-                     <div className="flex justify-between items-center text-sm">
-                        <Label>Sub Total</Label>
-                        <span className="font-medium">{subTotal.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-sm">
-                        <Label htmlFor="extraDiscount">Extra Discount</Label>
-                        <Input id="extraDiscount" type="number" step="any" className="w-28 h-8" {...register('extraDiscount')} />
-                      </div>
-                      <Separator/>
-                      <div className="flex justify-between items-center font-bold text-lg">
-                        <Label>Grand Total</Label>
-                        <span>{grandTotal.toFixed(2)}</span>
-                      </div>
+              <div className="grid md:grid-cols-2 gap-6">
+                  <div>
                       <div className="space-y-2">
-                        <Label>Payment Method</Label>
-                        <div className="flex gap-2">
-                             <Controller name="paymentMethod" control={control} render={({ field }) => (
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <SelectTrigger><SelectValue placeholder="Method" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="Cash">Cash</SelectItem>
-                                        <SelectItem value="Card">Card</SelectItem>
-                                        <SelectItem value="Mobile">Mobile</SelectItem>
-                                        <SelectItem value="On Credit">On Credit</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                             )}/>
-                             <Controller name="bankAccountId" control={control} render={({ field }) => (
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                    <SelectTrigger><SelectValue placeholder="@Bank" /></SelectTrigger>
-                                    <SelectContent>
-                                        {bankAccountsLoaded ? bankAccounts.map(b => <SelectItem key={b.id} value={b.id!}>{b.bankName}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                                    </SelectContent>
-                                </Select>
-                             )}/>
+                          <Label>Notes / Description</Label>
+                          <Textarea placeholder="Add any notes for this sale..." {...register('notes')} />
                         </div>
-                      </div>
-                       <div className="space-y-2">
-                        <Label htmlFor="paidAmount">Paid Amount</Label>
-                        <Input id="paidAmount" type="number" step="any" {...register('paidAmount')} />
-                      </div>
-                       <div className="flex justify-between items-center font-bold text-lg text-destructive">
-                        <Label>Due Balance</Label>
-                        <span>{dueBalance.toFixed(2)}</span>
-                      </div>
-                </div>
-            </div>
-
-            <div className="flex gap-2 justify-end">
-                <Button type="button" variant="outline" size="lg" onClick={() => reset({ items: [], paymentMethod: 'On Credit', customerId: 'walk-in', date: new Date(), orderDeliveryDate: new Date(), bankAccountId: '', notes: '', extraDiscount: 0, paidAmount: 0, expenseAmount: 0, expenseBankAccountId: '', referenceNo: '' })}>Discard/Reset</Button>
-                <Button type="submit" size="lg">Save Sale & Print Invoice</Button>
-            </div>
-      </form>
+                  </div>
+                  <div className="border rounded-lg p-4 space-y-4">
+                      <div className="flex justify-between items-center text-sm">
+                          <Label>Sub Total</Label>
+                          <span className="font-medium">{subTotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                          <Label htmlFor="extraDiscount">Extra Discount</Label>
+                          <Input id="extraDiscount" type="number" step="any" className="w-28 h-8" {...register('extraDiscount')} />
+                        </div>
+                        <Separator/>
+                        <div className="flex justify-between items-center font-bold text-lg">
+                          <Label>Grand Total</Label>
+                          <span>{grandTotal.toFixed(2)}</span>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Payment Method</Label>
+                          <div className="flex gap-2">
+                              <Controller name="paymentMethod" control={control} render={({ field }) => (
+                                  <Select onValueChange={field.onChange} value={field.value}>
+                                      <SelectTrigger><SelectValue placeholder="Method" /></SelectTrigger>
+                                      <SelectContent>
+                                          <SelectItem value="Cash">Cash</SelectItem>
+                                          <SelectItem value="Card">Card</SelectItem>
+                                          <SelectItem value="Mobile">Mobile</SelectItem>
+                                          <SelectItem value="On Credit">On Credit</SelectItem>
+                                      </SelectContent>
+                                  </Select>
+                              )}/>
+                              <Controller name="bankAccountId" control={control} render={({ field }) => (
+                                  <Select onValueChange={field.onChange} value={field.value}>
+                                      <SelectTrigger><SelectValue placeholder="@Bank" /></SelectTrigger>
+                                      <SelectContent>
+                                          {bankAccountsLoaded ? bankAccounts.map(b => <SelectItem key={b.id} value={b.id!}>{b.bankName}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
+                                      </SelectContent>
+                                  </Select>
+                              )}/>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="paidAmount">Paid Amount</Label>
+                          <Input id="paidAmount" type="number" step="any" {...register('paidAmount')} />
+                        </div>
+                        <div className="flex justify-between items-center font-bold text-lg text-destructive">
+                          <Label>Due Balance</Label>
+                          <span>{dueBalance.toFixed(2)}</span>
+                        </div>
+                  </div>
+              </div>
+          </CardContent>
+          <CardFooter className="gap-2 justify-end">
+              <Button type="button" variant="outline" size="lg" onClick={() => reset({ items: [], paymentMethod: 'On Credit', customerId: 'walk-in', date: new Date(), orderDeliveryDate: new Date(), bankAccountId: '', notes: '', extraDiscount: 0, paidAmount: 0, expenseAmount: 0, expenseBankAccountId: '', referenceNo: '' })}>Discard/Reset</Button>
+              <Button type="submit" size="lg">Save Sale & Print Invoice</Button>
+          </CardFooter>
+      </Card>
+    </form>
   );
 }
