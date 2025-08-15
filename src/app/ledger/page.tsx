@@ -72,6 +72,7 @@ export default function LedgerPage() {
     
     // Process transactions based on user's requested logic
     transactions.forEach(tx => {
+        if (!tx.id) return;
         if (tx.paymentMethod === 'On Credit') {
             // "On Credit" sales are DEBIT
             combined.push({
@@ -95,87 +96,114 @@ export default function LedgerPage() {
         }
     });
 
-    expenses.forEach(e => combined.push({
-      id: `exp-${e.id}`,
-      timestamp: e.timestamp!,
-      description: `Expense: ${e.description}`,
-      type: 'Expense',
-      debit: e.amount,
-      credit: 0,
-    }));
+    expenses.forEach(e => {
+        if (!e.id) return;
+        combined.push({
+          id: `exp-${e.id}`,
+          timestamp: e.timestamp!,
+          description: `Expense: ${e.description}`,
+          type: 'Expense',
+          debit: e.amount,
+          credit: 0,
+        });
+    });
 
-    supplierPayments.forEach(sp => combined.push({
-      id: `sp-${sp.id}`,
-      timestamp: sp.timestamp!,
-      description: `Payment to ${sp.supplierName}`,
-      type: 'Supplier Payment',
-      debit: sp.amount,
-      credit: 0,
-    }));
-    
-    investments.filter(inv => inv.type === 'Withdrawal').forEach(inv => combined.push({
-      id: `wdr-${inv.id}`,
-      timestamp: inv.timestamp!,
-      description: `Withdrawal by ${inv.partnerName}`,
-      type: 'Withdrawal',
-      debit: inv.amount,
-      credit: 0,
-    }));
-    
-    cashAdvances.forEach(ca => combined.push({
-        id: `ca-${ca.id}`,
-        timestamp: ca.timestamp!,
-        description: `Cash advance to ${ca.customerName} ${ca.notes ? `- ${ca.notes}` : ''}`,
-        type: 'Cash Advance',
-        debit: ca.amount,
+    supplierPayments.forEach(sp => {
+      if (!sp.id) return;
+      combined.push({
+        id: `sp-${sp.id}`,
+        timestamp: sp.timestamp!,
+        description: `Payment to ${sp.supplierName}`,
+        type: 'Supplier Payment',
+        debit: sp.amount,
         credit: 0,
-    }));
+      });
+    });
+    
+    investments.filter(inv => inv.type === 'Withdrawal').forEach(inv => {
+        if (!inv.id) return;
+        combined.push({
+          id: `wdr-${inv.id}`,
+          timestamp: inv.timestamp!,
+          description: `Withdrawal by ${inv.partnerName}`,
+          type: 'Withdrawal',
+          debit: inv.amount,
+          credit: 0,
+        });
+    });
+    
+    cashAdvances.forEach(ca => {
+        if (!ca.id) return;
+        combined.push({
+            id: `ca-${ca.id}`,
+            timestamp: ca.timestamp!,
+            description: `Cash advance to ${ca.customerName} ${ca.notes ? `- ${ca.notes}` : ''}`,
+            type: 'Cash Advance',
+            debit: ca.amount,
+            credit: 0,
+        });
+    });
     
     // CREDITS (Money In or Liability Increase)
-    purchases.forEach(p => combined.push({
-        id: `pur-${p.id}`,
-        timestamp: p.timestamp!,
-        description: `Purchase from ${p.supplier}: ${p.items.length} item(s)`,
-        type: 'Purchase',
+    purchases.forEach(p => {
+        if (!p.id) return;
+        combined.push({
+            id: `pur-${p.id}`,
+            timestamp: p.timestamp!,
+            description: `Purchase from ${p.supplier}: ${p.items.length} item(s)`,
+            type: 'Purchase',
+            debit: 0,
+            credit: p.totalCost,
+        });
+    });
+
+    purchaseReturns.forEach(pr => {
+      if (!pr.id) return;
+      combined.push({
+        id: `pr-${pr.id}`,
+        timestamp: pr.timestamp!,
+        description: `Return from ${pr.supplier}: ${pr.volume.toFixed(2)}L of ${pr.productName}`,
+        type: 'Purchase Return',
         debit: 0,
-        credit: p.totalCost,
-    }));
+        credit: pr.totalRefund,
+      });
+    });
 
-    purchaseReturns.forEach(pr => combined.push({
-      id: `pr-${pr.id}`,
-      timestamp: pr.timestamp!,
-      description: `Return from ${pr.supplier}: ${pr.volume.toFixed(2)}L of ${pr.productName}`,
-      type: 'Purchase Return',
-      debit: 0,
-      credit: pr.totalRefund,
-    }));
-
-    otherIncomes.forEach(oi => combined.push({
-      id: `oi-${oi.id}`,
-      timestamp: oi.timestamp!,
-      description: `Income: ${oi.description}`,
-      type: 'Other Income',
-      debit: 0,
-      credit: oi.amount,
-    }));
+    otherIncomes.forEach(oi => {
+      if (!oi.id) return;
+      combined.push({
+        id: `oi-${oi.id}`,
+        timestamp: oi.timestamp!,
+        description: `Income: ${oi.description}`,
+        type: 'Other Income',
+        debit: 0,
+        credit: oi.amount,
+      });
+    });
     
-    customerPayments.forEach(cp => combined.push({
-      id: `cp-${cp.id}`,
-      timestamp: cp.timestamp!,
-      description: `Payment from ${cp.customerName} ${cp.notes ? `- ${cp.notes}` : ''}`,
-      type: 'Customer Payment',
-      debit: 0,
-      credit: cp.amount,
-    }));
+    customerPayments.forEach(cp => {
+      if (!cp.id) return;
+      combined.push({
+        id: `cp-${cp.id}`,
+        timestamp: cp.timestamp!,
+        description: `Payment from ${cp.customerName} ${cp.notes ? `- ${cp.notes}` : ''}`,
+        type: 'Customer Payment',
+        debit: 0,
+        credit: cp.amount,
+      });
+    });
 
-    investments.filter(inv => inv.type === 'Investment').forEach(inv => combined.push({
-      id: `inv-${inv.id}`,
-      timestamp: inv.timestamp!,
-      description: `Investment from ${inv.partnerName}`,
-      type: 'Investment',
-      debit: 0,
-      credit: inv.amount,
-    }));
+    investments.filter(inv => inv.type === 'Investment').forEach(inv => {
+      if (!inv.id) return;
+      combined.push({
+        id: `inv-${inv.id}`,
+        timestamp: inv.timestamp!,
+        description: `Investment from ${inv.partnerName}`,
+        type: 'Investment',
+        debit: 0,
+        credit: inv.amount,
+      });
+    });
 
     // Filter out any entries with an invalid or missing timestamp
     const validCombined = combined.filter(entry => entry.timestamp && !isNaN(new Date(entry.timestamp).getTime()));
@@ -250,7 +278,7 @@ export default function LedgerPage() {
   }
   
   const handleDeleteEntry = () => {
-    if (!entryToDelete) return;
+    if (!entryToDelete || !entryToDelete.id) return;
     
     const [typePrefix, id] = entryToDelete.id.split(/-(.*)/s);
 
@@ -486,5 +514,3 @@ export default function LedgerPage() {
     </>
   );
 }
-
-    
