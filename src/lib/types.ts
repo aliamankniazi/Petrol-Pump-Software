@@ -21,11 +21,12 @@ export interface SaleItem {
     discount?: number;
     bonus?: number;
     timestamp?: string;
+    gst?: number;
 }
 
 export type FuelType = 'Unleaded' | 'Premium' | 'Diesel';
 
-export type PaymentMethod = 'Cash' | 'Card' | 'Mobile' | 'On Credit';
+export type PaymentMethod = 'Cash' | 'Bank' | 'Mobile' | 'On Credit';
 
 export interface SubUnit {
   name: string;
@@ -180,7 +181,7 @@ export interface CustomerPayment {
   customerId: string;
   customerName: string;
   amount: number;
-  paymentMethod: Extract<PaymentMethod, 'Cash' | 'Card' | 'Mobile'>;
+  paymentMethod: Extract<PaymentMethod, 'Cash' | 'Bank' | 'Mobile'>;
   timestamp?: string;
   notes?: string;
   date: Date;
@@ -191,7 +192,7 @@ export interface SupplierPayment {
   supplierId: string;
   supplierName: string;
   amount: number;
-  paymentMethod: Extract<PaymentMethod, 'Cash' | 'Card' | 'Mobile'>;
+  paymentMethod: Extract<PaymentMethod, 'Cash' | 'Bank' | 'Mobile'>;
   timestamp?: string;
   isSalary?: boolean; // Custom flag to identify salary payments
   date: Date;

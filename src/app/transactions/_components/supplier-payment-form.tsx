@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Wallet, CreditCard, Smartphone, Calendar as CalendarIcon, ChevronsUpDown, Check } from 'lucide-react';
+import { Wallet, CreditCard, Smartphone, Calendar as CalendarIcon, ChevronsUpDown, Check, Landmark } from 'lucide-react';
 import { format } from 'date-fns';
 import { useSupplierPayments } from '@/hooks/use-supplier-payments';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -24,7 +24,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 const supplierPaymentSchema = z.object({
   supplierId: z.string().min(1, 'Please select a supplier.'),
   amount: z.coerce.number().min(0.01, 'Amount must be greater than 0'),
-  paymentMethod: z.enum(['Cash', 'Card', 'Mobile'], { required_error: 'Please select a payment method.' }),
+  paymentMethod: z.enum(['Cash', 'Bank', 'Mobile'], { required_error: 'Please select a payment method.' }),
   date: z.date({ required_error: "A date is required."}),
 });
 
@@ -150,7 +150,7 @@ export function SupplierPaymentForm() {
                 </SelectTrigger>
                 <SelectContent>
                 <SelectItem value="Cash"><div className="flex items-center gap-2"><Wallet/>Cash</div></SelectItem>
-                <SelectItem value="Card"><div className="flex items-center gap-2"><CreditCard/>Card</div></SelectItem>
+                <SelectItem value="Bank"><div className="flex items-center gap-2"><Landmark/>Bank</div></SelectItem>
                 <SelectItem value="Mobile"><div className="flex items-center gap-2"><Smartphone/>Mobile</div></SelectItem>
                 </SelectContent>
             </Select>

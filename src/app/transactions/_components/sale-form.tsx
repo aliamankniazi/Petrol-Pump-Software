@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Calendar as CalendarIcon, UserPlus, PlusCircle, ShoppingCart } from 'lucide-react';
+import { Trash2, Calendar as CalendarIcon, UserPlus, PlusCircle, ShoppingCart, Wallet, CreditCard, Smartphone, Landmark } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomers } from '@/hooks/use-customers';
@@ -45,7 +45,7 @@ const saleItemSchema = z.object({
 
 const saleSchema = z.object({
   customerId: z.string().optional(),
-  paymentMethod: z.enum(['Cash', 'Card', 'Mobile', 'On Credit']),
+  paymentMethod: z.enum(['Cash', 'Bank', 'Mobile', 'On Credit']),
   bankAccountId: z.string().optional(),
   notes: z.string().optional(),
   date: z.date({ required_error: "A date is required."}),
@@ -113,6 +113,7 @@ export function SaleForm() {
   const watchedCustomerId = watch('customerId');
   const watchedItems = watch('items');
   const watchedPaidAmount = watch('paidAmount');
+  const watchedPaymentMethod = watch('paymentMethod');
 
 
   const { balance: customerBalance } = useCustomerBalance(watchedCustomerId === 'walk-in' ? null : watchedCustomerId || null);
@@ -387,6 +388,43 @@ export function SaleForm() {
             <Card>
                 <CardHeader><CardTitle>Finalize Sale</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
+                    <div className="space-y-1">
+                        <Label>Payment Method</Label>
+                         <Controller
+                            name="paymentMethod"
+                            control={control}
+                            render={({ field }) => (
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <SelectTrigger><SelectValue placeholder="Select payment method" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Cash"><div className="flex items-center gap-2"><Wallet/>Cash</div></SelectItem>
+                                        <SelectItem value="Bank"><div className="flex items-center gap-2"><Landmark/>Bank</div></SelectItem>
+                                        <SelectItem value="Mobile"><div className="flex items-center gap-2"><Smartphone/>Mobile</div></SelectItem>
+                                        <SelectItem value="On Credit"><div className="flex items-center gap-2"><CreditCard/>On Credit</div></SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                    </div>
+                     {watchedPaymentMethod === 'Bank' && (
+                        <div className="space-y-1">
+                          <Label>Bank Account</Label>
+                          <Controller
+                            name="bankAccountId"
+                            control={control}
+                            render={({ field }) => (
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                <SelectTrigger><SelectValue placeholder="Select bank" /></SelectTrigger>
+                                <SelectContent>
+                                    {bankAccountsLoaded && bankAccounts.map(acc => (
+                                        <SelectItem key={acc.id} value={acc.id!}>{acc.bankName} - {acc.accountNumber}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            )}
+                          />
+                        </div>
+                    )}
                      <div className="space-y-1">
                       <Label>Invoice Date</Label>
                       <Controller name="date" control={control} render={({ field }) => (
