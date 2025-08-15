@@ -332,20 +332,20 @@ export default function AllTransactionsPage() {
                       <TableCell className="text-center">
                           <div className="flex justify-center items-center">
                               {isPrintable && (
-                                <Button asChild variant="ghost" size="icon" title="Print Invoice">
-                                  <Link href={`/invoice/${entry.type.toLowerCase().replace(' ', '')}/${entry.originalId}`} target="_blank">
+                                <a href={`/invoice/${entry.type.toLowerCase().replace(' ', '')}/${entry.originalId}`} target="_blank" rel="noopener noreferrer">
+                                  <Button variant="ghost" size="icon" title="Print Invoice">
                                     <Printer className="w-4 h-4" />
-                                  </Link>
-                                </Button>
+                                  </Button>
+                                </a>
                               )}
                               {entry.type === 'Sale' && customer?.contact && (
-                                  <Button asChild variant="ghost" size="icon" className="text-green-500 hover:text-green-600" title={`Message ${customer.name} on WhatsApp`}>
+                                  <Button asChild variant="ghost" size="icon" className="text-green-500 hover:text-green-600 shrink-0" title={`Message ${customer.name} on WhatsApp`}>
                                       <a 
                                       href={`https://wa.me/${formatPhoneNumberForWhatsApp(customer.contact)}`}
                                       target="_blank" 
                                       rel="noopener noreferrer"
                                       >
-                                      <WhatsAppIcon className="w-5 h-5 shrink-0" />
+                                      <WhatsAppIcon className="w-5 h-5" />
                                       </a>
                                   </Button>
                               )}
