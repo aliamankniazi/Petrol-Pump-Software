@@ -12,7 +12,7 @@ export function useCustomers() {
   const { data: customers, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<Customer>(COLLECTION_NAME);
 
   const addCustomer = useCallback(async (customer: Omit<Customer, 'id' | 'timestamp'>): Promise<Customer> => {
-    const dataWithTimestamp = { ...customer, isEmployee: customer.isEmployee || false, timestamp: new Date().toISOString() };
+    const dataWithTimestamp = { ...customer, timestamp: new Date().toISOString() };
     const newDoc = await addDoc(dataWithTimestamp);
     return newDoc;
   }, [addDoc]);

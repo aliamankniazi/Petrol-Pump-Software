@@ -13,6 +13,7 @@ import {
   type DatabaseReference,
 } from 'firebase/database';
 import { db, isFirebaseConfigured } from '@/lib/firebase-client';
+import { useAuth } from './use-auth';
 
 interface DbDoc {
   id: string;
@@ -25,8 +26,16 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id'>>(
 ) {
   const [data, setData] = useState<(T & { id: string })[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth(); // Use the auth hook
 
   useEffect(() => {
+    // CRITICAL FIX: Do not attempt to fetch data until auth is resolved and a user is present.
+    if (authLoading || !user) {
+      setLoading(false);
+      setData([]); // Ensure data is cleared on logout
+      return;
+    }
+
     if (!isFirebaseConfigured() || !db) {
       setLoading(false);
       setData([]);
@@ -55,16 +64,13 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id'>>(
         });
       }
       
-      // Sort data chronologically by timestamp (newest last)
       dataArray.sort((a, b) => {
         const timestampA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
         const timestampB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-        return timestampA - timestampB;
+        return timestampB - timestampA; // Sort newest first directly
       });
       
-      // Reverse the array to have the newest items first for display purposes.
-      // This is a common UI pattern.
-      setData(dataArray.reverse());
+      setData(dataArray);
       setLoading(false);
     }, (error) => {
       console.error(`Error fetching ${collectionName}:`, error);
@@ -72,7 +78,7 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id'>>(
     });
 
     return () => unsubscribe();
-  }, [collectionName]);
+  }, [collectionName, authLoading, user]); // Add auth state to dependency array
 
   const addDoc = useCallback(async (newData: T, docId?: string): Promise<T & { id: string }> => {
     if (!db) {
