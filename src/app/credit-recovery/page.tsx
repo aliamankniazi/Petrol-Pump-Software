@@ -53,15 +53,9 @@ export default function CreditRecoveryPage() {
     const [selectedCustomerId, setSelectedCustomerId] = useState('all');
     
     const [searchTerm, setSearchTerm] = useState('');
-    const [customerSearch, setCustomerSearch] = useState('');
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
     const isDataLoaded = customersLoaded && txLoaded && paymentsLoaded && advancesLoaded;
-
-    const filteredCustomers = useMemo(() => {
-        if (!customerSearch) return customers;
-        return customers.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase()));
-    }, [customers, customerSearch]);
 
     const reportData = useMemo(() => {
         if (!isDataLoaded) return [];
@@ -170,7 +164,7 @@ Mianwali Petroleum Service`;
                                 </PopoverTrigger>
                                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                     <Command>
-                                        <CommandInput placeholder="Search customer..." onValueChange={setCustomerSearch}/>
+                                        <CommandInput placeholder="Search customer..."/>
                                         <CommandList>
                                             <CommandEmpty>No customer found.</CommandEmpty>
                                             <CommandGroup>
@@ -178,12 +172,12 @@ Mianwali Petroleum Service`;
                                                 <Check className={cn("mr-2 h-4 w-4", selectedCustomerId === 'all' ? "opacity-100" : "opacity-0")}/>
                                                 All Customers
                                             </CommandItem>
-                                            {filteredCustomers.map((c) => (
+                                            {customers.map((c) => (
                                                 <CommandItem
                                                 key={c.id}
-                                                value={c.id!}
-                                                onSelect={(currentValue) => {
-                                                    setSelectedCustomerId(currentValue === selectedCustomerId ? "all" : currentValue)
+                                                value={c.name}
+                                                onSelect={() => {
+                                                    setSelectedCustomerId(c.id! === selectedCustomerId ? "all" : c.id!)
                                                 }}
                                                 >
                                                 <Check
@@ -276,10 +270,10 @@ Mianwali Petroleum Service`;
                                     <TableHead>Customer Name/Code</TableHead>
                                     <TableHead>Area</TableHead>
                                     <TableHead>Mobile</TableHead>
-                                    <TableHead className="text-right">Previous Balance</TableHead>
-                                    <TableHead className="text-right">Sale</TableHead>
-                                    <TableHead className="text-right">Recovery Amount</TableHead>
-                                    <TableHead className="text-right">Current Balance</TableHead>
+                                    <TableHead className="text-right font-bold">Previous Balance</TableHead>
+                                    <TableHead className="text-right font-bold">Sale</TableHead>
+                                    <TableHead className="text-right font-bold">Recovery Amount</TableHead>
+                                    <TableHead className="text-right font-bold">Current Balance</TableHead>
                                     <TableHead className="text-center">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>

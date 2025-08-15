@@ -18,20 +18,10 @@ export const CustomerSelection = forwardRef<HTMLButtonElement, CustomerSelection
   ({ selectedCustomerId, onCustomerSelect }, ref) => {
     const { customers, isLoaded: customersLoaded } = useCustomers();
     const [isOpen, setIsOpen] = useState(false);
-    const [search, setSearch] = useState("");
-
-    const filteredCustomers = useMemo(() => {
-      if (!customersLoaded) return [];
-      if (!search) return customers;
-      return customers.filter((c) =>
-        c.name.toLowerCase().includes(search.toLowerCase())
-      );
-    }, [customers, search, customersLoaded]);
 
     const handleSelect = (customerId: string) => {
       onCustomerSelect(customerId);
       setIsOpen(false);
-      setSearch("");
     };
 
     const selectedCustomerName = useMemo(() => {
@@ -51,7 +41,7 @@ export const CustomerSelection = forwardRef<HTMLButtonElement, CustomerSelection
         </PopoverTrigger>
         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
           <Command>
-            <CommandInput placeholder="Search customer..." onValueChange={setSearch} />
+            <CommandInput placeholder="Search customer..." />
             <CommandList>
               <CommandEmpty>No customer found.</CommandEmpty>
               <CommandGroup>
@@ -59,8 +49,8 @@ export const CustomerSelection = forwardRef<HTMLButtonElement, CustomerSelection
                   <Check className={cn("mr-2 h-4 w-4", selectedCustomerId === "walk-in" ? "opacity-100" : "opacity-0")} />
                   Walk-in Customer
                 </CommandItem>
-                {filteredCustomers.map((c) => (
-                  <CommandItem key={c.id} value={c.id!} onSelect={() => handleSelect(c.id!)}>
+                {customers.map((c) => (
+                  <CommandItem key={c.id} value={c.name} onSelect={() => handleSelect(c.id!)}>
                     <Check className={cn("mr-2 h-4 w-4", selectedCustomerId === c.id ? "opacity-100" : "opacity-0")} />
                     {c.name}
                   </CommandItem>

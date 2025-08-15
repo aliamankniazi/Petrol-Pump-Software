@@ -17,19 +17,11 @@ interface ProductSelectionProps {
 export const ProductSelection = forwardRef<HTMLButtonElement, ProductSelectionProps>(
   ({ onProductSelect }, ref) => {
     const { products, isLoaded: productsLoaded } = useProducts();
-    const [search, setSearch] = useState('');
     const [isOpen, setIsOpen] = useState(false);
-
-    const filteredProducts = useMemo(() => {
-      if (!productsLoaded) return [];
-      if (!search) return products;
-      return products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
-    }, [products, search, productsLoaded]);
 
     const handleSelect = (product: Product) => {
       onProductSelect(product);
       setIsOpen(false);
-      setSearch('');
     };
 
     return (
@@ -42,14 +34,14 @@ export const ProductSelection = forwardRef<HTMLButtonElement, ProductSelectionPr
         </PopoverTrigger>
         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
           <Command>
-            <CommandInput placeholder="Search product..." onValueChange={setSearch} />
+            <CommandInput placeholder="Search product..." />
             <CommandList>
               <CommandEmpty>No product found.</CommandEmpty>
               <CommandGroup>
-                {filteredProducts.map((p) => (
+                {products.map((p) => (
                   <CommandItem
                     key={p.id}
-                    value={p.id!}
+                    value={p.name}
                     onSelect={() => handleSelect(p)}
                   >
                     <Check className={cn("mr-2 h-4 w-4", "opacity-0")} />
