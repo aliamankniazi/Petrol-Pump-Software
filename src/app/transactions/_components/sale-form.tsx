@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Calendar as CalendarIcon, UserPlus, PlusCircle } from 'lucide-react';
+import { Trash2, Calendar as CalendarIcon, UserPlus, PlusCircle, ShoppingCart } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomers } from '@/hooks/use-customers';
@@ -28,6 +28,7 @@ import type { Product } from '@/lib/types';
 import { ProductSelection } from './product-selection';
 import { CustomerSelection } from './customer-selection';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 
 
 const saleItemSchema = z.object({
@@ -39,6 +40,7 @@ const saleItemSchema = z.object({
   totalAmount: z.coerce.number().min(0.01, 'Amount must be positive.'),
   discount: z.coerce.number().default(0),
   bonus: z.coerce.number().default(0),
+  gst: z.coerce.number().default(0),
 });
 
 const saleSchema = z.object({
@@ -66,6 +68,7 @@ export function SaleForm() {
   const [isClient, setIsClient] = useState(false);
   
   const productSelectionRef = useRef<HTMLButtonElement>(null);
+  const customerSelectionRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -151,6 +154,11 @@ export function SaleForm() {
         event.preventDefault();
         handleSubmit(onSubmit)();
       }
+       
+      if (event.key.toLowerCase() === 'a' && target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+          event.preventDefault();
+          customerSelectionRef.current?.click();
+      }
     };
     
     document.addEventListener('keydown', handleKeyDown);
@@ -167,12 +175,15 @@ export function SaleForm() {
       }
   }, [watchedCustomerId, setValue]);
 
-  const { subTotal, grandTotal, dueBalance } = useMemo(() => {
-    const sub = watchedItems.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
-    const grand = sub;
+  const { subTotal, totalDiscount, totalGst, grandTotal, dueBalance, newAccountBalance } = useMemo(() => {
+    const sub = watchedItems.reduce((sum, item) => sum + (item.quantity * item.pricePerUnit), 0);
+    const discount = watchedItems.reduce((sum, item) => sum + (item.discount || 0), 0);
+    const gst = watchedItems.reduce((sum, item) => sum + (item.gst || 0), 0);
+    const grand = sub - discount + gst;
     const due = grand - watchedPaidAmount;
-    return { subTotal: sub, grandTotal: grand, dueBalance: due };
-  }, [watchedItems, watchedPaidAmount]);
+    const newBalance = customerBalance + grand - watchedPaidAmount;
+    return { subTotal: sub, totalDiscount: discount, totalGst: gst, grandTotal: grand, dueBalance: due, newAccountBalance: newBalance };
+  }, [watchedItems, watchedPaidAmount, customerBalance]);
 
   const handleProductSelect = useCallback((product: Product) => {
     if (!product || !productsLoaded) return;
@@ -186,6 +197,7 @@ export function SaleForm() {
         totalAmount: product.retailPrice || product.tradePrice || 0,
         discount: 0,
         bonus: 0,
+        gst: 0,
     });
   }, [productsLoaded, append]);
   
@@ -216,25 +228,97 @@ export function SaleForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
-      <Card>
-          <CardHeader>
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                  <div className="space-y-1">
-                      <Label>Customer</Label>
-                      <div className="flex items-center gap-2">
-                          <CustomerSelection
-                              selectedCustomerId={watchedCustomerId}
-                              onCustomerSelect={handleCustomerSelect}
-                          />
-                          <Button type="button" variant="outline" size="icon" asChild><Link href="/customers" title="Add new customer"><UserPlus /></Link></Button>
-                      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Left Column: Create Sale */}
+        <div className="lg:col-span-1 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Create Sale</CardTitle>
+              <CardDescription>Select products and add them to the cart.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+               <div className="space-y-1">
+                <Label>Customer</Label>
+                <div className="flex items-center gap-2">
+                    <CustomerSelection
+                        ref={customerSelectionRef}
+                        selectedCustomerId={watchedCustomerId}
+                        onCustomerSelect={handleCustomerSelect}
+                    />
+                    <Button type="button" variant="outline" size="icon" asChild><Link href="/customers" title="Add new customer"><UserPlus /></Link></Button>
+                </div>
+              </div>
+               <div className="space-y-1">
+                  <Label>Product</Label>
+                  <div className="flex items-center gap-2">
+                      <ProductSelection onProductSelect={handleProductSelect} ref={productSelectionRef} />
+                      <Button type="button" variant="outline" size="icon" asChild>
+                          <Link href="/settings" title="Add new product">
+                              <PlusCircle />
+                          </Link>
+                      </Button>
                   </div>
-                  <div className="space-y-1">
-                      <Label>Old Balance</Label>
-                      <Input disabled value={customerBalance.toFixed(2)} />
-                  </div>
-                  <div className="space-y-1">
-                      <Label>Sale Date</Label>
+              </div>
+              
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Middle Column: Current Cart & Finalize */}
+        <div className="lg:col-span-1 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><ShoppingCart /> Current Cart</CardTitle>
+                <CardDescription>Items to be included in the sale.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="border rounded-lg overflow-x-auto">
+                      <Table>
+                          <TableHeader>
+                              <TableRow>
+                                  <TableHead>Item</TableHead>
+                                  <TableHead>Qty</TableHead>
+                                  <TableHead>Price</TableHead>
+                                  <TableHead>Total</TableHead>
+                                  <TableHead></TableHead>
+                              </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                              {fields.length === 0 && (
+                                  <TableRow>
+                                      <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                                          List is empty
+                                      </TableCell>
+                                  </TableRow>
+                              )}
+                              {fields.map((field, index) => (
+                                  <TableRow key={field.id}>
+                                      <TableCell className="font-medium">{field.productName}</TableCell>
+                                      <TableCell>
+                                        <Input type="number" step="any" {...register(`items.${index}.quantity`)} onChange={(e) => { const qty = parseFloat(e.target.value) || 0; const price = getValues(`items.${index}.pricePerUnit`); setValue(`items.${index}.totalAmount`, price * qty, { shouldTouch: true }); }} className="w-20"/>
+                                      </TableCell>
+                                      <TableCell>
+                                        <Input type="number" step="any" {...register(`items.${index}.pricePerUnit`)} onChange={(e) => { const price = parseFloat(e.target.value) || 0; const qty = getValues(`items.${index}.quantity`); setValue(`items.${index}.totalAmount`, price * qty, { shouldTouch: true }); }} className="w-24"/>
+                                      </TableCell>
+                                      <TableCell className="font-semibold">{watchedItems[index]?.totalAmount.toFixed(2)}</TableCell>
+                                      <TableCell>
+                                          <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                                              <Trash2 className="text-destructive w-4 h-4"/>
+                                          </Button>
+                                      </TableCell>
+                                  </TableRow>
+                              ))}
+                          </TableBody>
+                      </Table>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+                <CardHeader><CardTitle>Finalize Sale</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                     <div className="space-y-1">
+                      <Label>Invoice Date</Label>
                       <Controller name="date" control={control} render={({ field }) => (
                           <Popover>
                               <PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
@@ -243,153 +327,54 @@ export function SaleForm() {
                       )}/>
                   </div>
                   <div className="space-y-1">
-                      <Label>Reference No.</Label>
-                      <Input placeholder="e.g. PO-123" {...register('referenceNo')} />
+                    <Label htmlFor="expenseAmount">Expense Amount</Label>
+                    <Input id="expenseAmount" type="number" step="any" {...register('expenseAmount')} />
                   </div>
-              </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-              <div className="p-4 rounded-lg bg-muted/50 border space-y-4">
                   <div className="space-y-1">
-                      <Label>Product</Label>
-                      <div className="flex items-center gap-2">
-                          <ProductSelection onProductSelect={handleProductSelect} ref={productSelectionRef} />
-                          <Button type="button" variant="outline" size="icon" asChild>
-                              <Link href="/settings" title="Add new product">
-                                  <PlusCircle />
-                              </Link>
-                          </Button>
-                      </div>
+                    <Label>Notes</Label>
+                    <Textarea placeholder="Add any notes for the invoice..." {...register('notes')} />
                   </div>
-              </div>
+                </CardContent>
+            </Card>
+        </div>
 
-              <div className="border rounded-lg">
-                  <div className="overflow-x-auto">
-                      <Table>
-                          <TableHeader>
-                              <TableRow>
-                                  <TableHead className="min-w-[200px]">Product</TableHead>
-                                  <TableHead>Unit</TableHead>
-                                  <TableHead>Price</TableHead>
-                                  <TableHead>Qty</TableHead>
-                                  <TableHead>Total</TableHead>
-                                  <TableHead></TableHead>
-                              </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                              {fields.length === 0 && (
-                                  <TableRow>
-                                      <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
-                                          No products added yet.
-                                      </TableCell>
-                                  </TableRow>
-                              )}
-                              {fields.map((field, index) => {
-                                  const product = products.find(p => p.id === field.productId);
-                                  return (
-                                  <TableRow key={field.id}>
-                                      <TableCell>{field.productName}</TableCell>
-                                      <TableCell>
-                                        {product?.subUnit ? (
-                                          <Controller
-                                            name={`items.${index}.unit`}
-                                            control={control}
-                                            render={({ field }) => (
-                                              <Select value={field.value} onValueChange={(value) => handleUnitChange(index, value)}>
-                                                <SelectTrigger className="w-28">
-                                                  <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                  <SelectItem value={product.mainUnit}>{product.mainUnit}</SelectItem>
-                                                  {product.subUnit && <SelectItem value={product.subUnit.name}>{product.subUnit.name}</SelectItem>}
-                                                </SelectContent>
-                                              </Select>
-                                            )}
-                                          />
-                                        ) : (
-                                          field.unit
-                                        )}
-                                      </TableCell>
-                                      <TableCell>
-                                          <Input type="number" step="any" {...register(`items.${index}.pricePerUnit`)} onChange={(e) => { const price = parseFloat(e.target.value) || 0; const qty = getValues(`items.${index}.quantity`); setValue(`items.${index}.totalAmount`, price * qty, { shouldTouch: true }); }} className="w-28"/>
-                                      </TableCell>
-                                      <TableCell>
-                                          <Input type="number" step="any" {...register(`items.${index}.quantity`)} onChange={(e) => { const qty = parseFloat(e.target.value) || 0; const price = getValues(`items.${index}.pricePerUnit`); setValue(`items.${index}.totalAmount`, price * qty, { shouldTouch: true }); }} className="w-24"/>
-                                      </TableCell>
-                                      <TableCell>
-                                          <Input type="number" step="any" {...register(`items.${index}.totalAmount`)} onChange={(e) => { const total = parseFloat(e.target.value) || 0; const price = getValues(`items.${index}.pricePerUnit`); if (price > 0) { setValue(`items.${index}.quantity`, total / price, { shouldTouch: true }); } }} className="w-28"/>
-                                      </TableCell>
-                                      <TableCell>
-                                          <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                                              <Trash2 className="text-destructive w-4 h-4"/>
-                                          </Button>
-                                      </TableCell>
-                                  </TableRow>
-                              )})}
-                          </TableBody>
-                      </Table>
+        {/* Right Column: Summary */}
+        <div className="lg:col-span-1">
+          <Card className="sticky top-6">
+              <CardHeader><CardTitle>Invoice Summary</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                  <div className="space-y-2 text-sm">
+                      <div className="flex justify-between"><span>Subtotal</span><span className="font-medium">{subTotal.toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span>Total Item Discount</span><span className="font-medium">{totalDiscount.toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span>Sales Tax (GST)</span><span className="font-medium">{totalGst.toFixed(2)}</span></div>
                   </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                      <div className="space-y-2">
-                          <Label>Notes / Description</Label>
-                          <Textarea placeholder="Add any notes for this sale..." {...register('notes')} />
-                        </div>
+                  <Separator/>
+                  <div className="flex justify-between items-center font-bold text-lg">
+                      <Label>Invoice Total</Label>
+                      <span>{grandTotal.toFixed(2)}</span>
                   </div>
-                  <div className="border rounded-lg p-4 space-y-4">
-                      <div className="flex justify-between items-center text-sm">
-                          <Label>Sub Total</Label>
-                          <span className="font-medium">{subTotal.toFixed(2)}</span>
-                        </div>
-                        <Separator/>
-                        <div className="flex justify-between items-center font-bold text-lg">
-                          <Label>Grand Total</Label>
-                          <span>{grandTotal.toFixed(2)}</span>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Payment Method</Label>
-                          <div className="flex gap-2">
-                              <Controller name="paymentMethod" control={control} render={({ field }) => (
-                                  <Select onValueChange={field.onChange} value={field.value}>
-                                      <SelectTrigger><SelectValue placeholder="Method" /></SelectTrigger>
-                                      <SelectContent>
-                                          <SelectItem value="Cash">Cash</SelectItem>
-                                          <SelectItem value="Card">Card</SelectItem>
-                                          <SelectItem value="Mobile">Mobile</SelectItem>
-                                          <SelectItem value="On Credit">On Credit</SelectItem>
-                                      </SelectContent>
-                                  </Select>
-                              )}/>
-                              <Controller name="bankAccountId" control={control} render={({ field }) => (
-                                  <Select onValueChange={field.onChange} value={field.value}>
-                                      <SelectTrigger><SelectValue placeholder="@Bank" /></SelectTrigger>
-                                      <SelectContent>
-                                          {bankAccountsLoaded ? bankAccounts.map(b => <SelectItem key={b.id} value={b.id!}>{b.bankName}</SelectItem>) : <SelectItem value="loading" disabled>Loading...</SelectItem>}
-                                      </SelectContent>
-                                  </Select>
-                              )}/>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="paidAmount">Paid Amount</Label>
-                          <Input id="paidAmount" type="number" step="any" {...register('paidAmount')} />
-                        </div>
-                        <div className="flex justify-between items-center font-bold text-lg text-destructive">
-                          <Label>Due Balance</Label>
-                          <span>{dueBalance.toFixed(2)}</span>
-                        </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="paidAmount">Paid Amount</Label>
+                    <Input id="paidAmount" type="number" step="any" {...register('paidAmount')} />
                   </div>
-              </div>
-          </CardContent>
-          <CardFooter className="gap-2 justify-end">
-              <Button type="button" variant="outline" size="lg" onClick={() => reset({ items: [], paymentMethod: 'On Credit', customerId: 'walk-in', date: new Date(), orderDeliveryDate: new Date(), bankAccountId: '', notes: '', paidAmount: 0, expenseAmount: 0, expenseBankAccountId: '', referenceNo: '' })}>Discard/Reset</Button>
-              <Button type="submit" size="lg">Save Sale & Print Invoice</Button>
-          </CardFooter>
-      </Card>
+                  <div className="flex justify-between items-center font-bold text-md text-destructive">
+                    <Label>Invoice Balance</Label>
+                    <span>{dueBalance.toFixed(2)}</span>
+                  </div>
+                  <Separator/>
+                   <div className="space-y-2 text-sm">
+                      <h4 className="font-semibold">Customer Account</h4>
+                      <div className="flex justify-between"><span>Previous Balance</span><span className="font-medium">{customerBalance.toFixed(2)}</span></div>
+                      <div className="flex justify-between font-bold text-md"><span>New Account Balance</span><span className={cn(newAccountBalance >= 0 ? 'text-destructive' : 'text-green-600')}>{newAccountBalance.toFixed(2)}</span></div>
+                  </div>
+              </CardContent>
+              <CardFooter className="grid grid-cols-2 gap-2">
+                  <Button type="button" variant="outline" size="lg" onClick={() => reset({ items: [], paymentMethod: 'On Credit', customerId: 'walk-in', date: new Date(), orderDeliveryDate: new Date(), bankAccountId: '', notes: '', paidAmount: 0, expenseAmount: 0, expenseBankAccountId: '', referenceNo: '' })}>Discard</Button>
+                  <Button type="submit" size="lg">Complete & Print Invoice</Button>
+              </CardFooter>
+          </Card>
+        </div>
+      </div>
     </form>
   );
 }
-
-    
