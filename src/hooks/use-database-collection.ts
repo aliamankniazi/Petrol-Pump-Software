@@ -76,8 +76,13 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id'>>(
       throw new Error("Database not configured.");
     }
     
-    const collectionRef = ref(db, collectionName);
-    const docRef = docId ? ref(db, `${collectionName}/${docId}`) : push(collectionRef);
+    let docRef: DatabaseReference;
+    if (docId) {
+        docRef = ref(db, `${collectionName}/${docId}`);
+    } else {
+        const collectionRef = ref(db, collectionName);
+        docRef = push(collectionRef);
+    }
       
     const newId = docRef.key!;
     
