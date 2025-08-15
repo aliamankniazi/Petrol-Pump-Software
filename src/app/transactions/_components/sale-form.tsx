@@ -188,18 +188,26 @@ export function SaleForm() {
   const handleProductSelect = useCallback((product: Product) => {
     if (!product || !productsLoaded) return;
 
+    // Find the last sale price for this product
+    const reversedTransactions = [...transactions].reverse();
+    const lastSaleOfProduct = reversedTransactions
+      .flatMap(tx => tx.items)
+      .find(item => item.productId === product.id);
+
+    const priceToUse = lastSaleOfProduct?.pricePerUnit ?? (product.retailPrice || product.tradePrice || 0);
+
     append({
         productId: product.id!,
         productName: product.name,
         unit: product.mainUnit,
         quantity: 1,
-        pricePerUnit: product.retailPrice || product.tradePrice || 0,
-        totalAmount: product.retailPrice || product.tradePrice || 0,
+        pricePerUnit: priceToUse,
+        totalAmount: priceToUse, // For quantity 1
         discount: 0,
         bonus: 0,
         gst: 0,
     });
-  }, [productsLoaded, append]);
+  }, [productsLoaded, append, transactions]);
   
   const handleUnitChange = (index: number, newUnit: string) => {
     const item = getValues(`items.${index}`);
