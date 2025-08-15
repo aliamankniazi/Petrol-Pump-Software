@@ -50,26 +50,21 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id'>>(
         Object.keys(fetchedData).forEach(key => {
           dataArray.push({
             ...fetchedData[key],
-            id: key, // Ensure the key from the snapshot is the ID
+            id: key,
           });
         });
       }
       
-      // DEPRECATED - This sort order was causing issues. Data is now sorted by timestamp.
-      // dataArray.sort((a, b) => {
-      //   const timestampA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-      //   const timestampB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-      //   return timestampB - timestampA;
-      // });
-      
+      // Sort data chronologically by timestamp (newest last)
       dataArray.sort((a, b) => {
         const timestampA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
         const timestampB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-        return timestampB - timestampA;
+        return timestampA - timestampB;
       });
       
-
-      setData(dataArray);
+      // Reverse the array to have the newest items first for display purposes.
+      // This is a common UI pattern.
+      setData(dataArray.reverse());
       setLoading(false);
     }, (error) => {
       console.error(`Error fetching ${collectionName}:`, error);

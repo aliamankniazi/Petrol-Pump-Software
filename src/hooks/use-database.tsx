@@ -25,7 +25,7 @@ import { useAttendance } from './use-attendance';
 // race conditions and permission errors on initial load.
 const DataContext = createContext({});
 
-function useAllData() {
+function AuthenticatedDataProvider({ children }: { children: ReactNode }) {
     // This hook will trigger all the individual data hooks.
     // By placing this inside the AuthenticatedDataProvider, we ensure
     // they only run when a user is logged in.
@@ -45,10 +45,7 @@ function useAllData() {
     useTankReadings();
     useInvestments();
     useAttendance();
-}
 
-function AuthenticatedDataProvider({ children }: { children: ReactNode }) {
-    useAllData();
     return <>{children}</>;
 }
 
@@ -56,27 +53,26 @@ function AuthenticatedDataProvider({ children }: { children: ReactNode }) {
 export function DataProvider({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   
-  const content = useMemo(() => {
-    if (loading) {
-        // While auth is loading, we can show a loader or nothing.
-        // Returning null is fine for now.
-        return null;
-    }
-    if (!user) {
-        // If there's no user, just render the children (e.g., login page)
-        // The data hooks will not be called.
-        return <>{children}</>;
-    }
-    
-    // If we have a user, we render the provider that will trigger all data hooks.
-    return (
+  // This is a critical change to prevent race conditions.
+  // We explicitly wait for the loading to finish and for a user to be present
+  // before we mount the AuthenticatedDataProvider, which triggers all data hooks.
+  if (loading) {
+    // While auth is loading, we render nothing.
+    return null;
+  }
+  
+  if (!user) {
+    // If there's no user, just render the children (e.g., login page)
+    // The data hooks will not be called.
+    return <>{children}</>;
+  }
+  
+  // If we have a user, we render the provider that will trigger all data hooks.
+  return (
+    <DataContext.Provider value={{}}>
         <AuthenticatedDataProvider>
             {children}
         </AuthenticatedDataProvider>
-    )
-
-  }, [user, loading, children]);
-
-
-  return <DataContext.Provider value={{}}>{content}</DataContext.Provider>;
+    </DataContext.Provider>
+  );
 }
