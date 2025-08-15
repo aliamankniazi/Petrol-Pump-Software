@@ -131,7 +131,7 @@ Mianwali Petroleum Service`;
         <div className="p-4 md:p-8 space-y-6 watermark-container">
             <Card>
                 <CardHeader>
-                    <div className="flex justify-between items-start">
+                    <div className="flex justify-between items-start print:hidden">
                         <div>
                             <CardTitle className="flex items-center gap-2">
                                 <FileText /> Customer Credit Recovery Report
@@ -146,7 +146,7 @@ Mianwali Petroleum Service`;
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="bg-muted p-4 rounded-lg flex flex-col md:flex-row items-center gap-4">
+                    <div className="bg-muted p-4 rounded-lg flex flex-col md:flex-row items-center gap-4 print:hidden">
                         <div className="w-full md:w-auto flex-1">
                             <label className="text-sm font-medium">Customer</label>
                             <Popover>
@@ -247,7 +247,7 @@ Mianwali Petroleum Service`;
              <Card>
                 <CardHeader>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div className="relative w-full max-w-sm">
+                        <div className="relative w-full max-w-sm print:hidden">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input 
                                 placeholder="Search records..." 
@@ -256,7 +256,7 @@ Mianwali Petroleum Service`;
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 print:hidden">
                             <Button variant="outline" onClick={() => window.print()}><Printer className="mr-2 h-4 w-4" /> Print</Button>
                         </div>
                     </div>
@@ -274,7 +274,7 @@ Mianwali Petroleum Service`;
                                     <TableHead className="text-right font-bold">Sale</TableHead>
                                     <TableHead className="text-right font-bold">Recovery Amount</TableHead>
                                     <TableHead className="text-right font-bold">Current Balance</TableHead>
-                                    <TableHead className="text-center">Actions</TableHead>
+                                    <TableHead className="text-center print:hidden">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -290,7 +290,7 @@ Mianwali Petroleum Service`;
                                         <TableCell className={`text-right font-bold font-mono ${row.currentBalance < 0 ? 'text-green-600' : 'text-destructive'}`}>
                                             {row.currentBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </TableCell>
-                                        <TableCell className="text-center">
+                                        <TableCell className="text-center print:hidden">
                                             {row.customer.contact && (
                                                 <Button asChild variant="ghost" size="icon" className="text-green-500 hover:text-green-600" title={`Message ${row.customer.name} on WhatsApp`}>
                                                     <a 

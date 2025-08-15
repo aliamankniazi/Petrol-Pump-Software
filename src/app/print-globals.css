@@ -15,5 +15,21 @@
         .print\:hidden {
             display: none !important;
         }
+        .sidebar-wrapper, header, [data-sidebar="sidebar"] {
+            display: none !important;
+        }
+        main, [data-slot="sidebar-inset"] {
+            display: block !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            min-height: 0 !important;
+        }
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        .card-footer {
+            display: none !important;
+        }
     }
 }
