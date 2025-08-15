@@ -115,7 +115,7 @@ export default function InvoicesPage() {
   const showSales = typeFilter === 'all' || typeFilter === 'sales';
   const showPurchases = typeFilter === 'all' || typeFilter === 'purchases';
   
-  const hasActiveFilters = searchTerm || typeFilter !== 'all' || globalDateRange;
+  const hasActiveFilters = searchTerm || typeFilter !== 'all' || !!globalDateRange;
 
   return (
     <div className="p-4 md:p-8 space-y-8">
@@ -311,5 +311,4 @@ export default function InvoicesPage() {
       )}
     </div>
   );
-
-    
+}
