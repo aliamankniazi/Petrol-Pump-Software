@@ -37,6 +37,7 @@ const subUnitSchema = z.object({
   conversionRate: z.coerce.number().min(0.01, 'Conversion rate must be positive'),
   purchasePrice: z.coerce.number().optional(),
   tradePrice: z.coerce.number().optional(),
+  retailPrice: z.coerce.number().optional(),
 }).optional();
 
 const productSchema = z.object({
@@ -49,6 +50,7 @@ const productSchema = z.object({
   mainUnit: z.string().min(1, 'Main unit is required'),
   purchasePrice: z.coerce.number().min(0, 'Purchase price cannot be negative'),
   tradePrice: z.coerce.number().min(0, 'Trade price cannot be negative'),
+  retailPrice: z.coerce.number().min(0, 'Retail price cannot be negative'),
   stock: z.coerce.number().min(0, 'Stock cannot be negative').default(0),
   subUnitStock: z.coerce.number().min(0, 'Sub-unit stock cannot be negative').optional(),
   hasSubUnit: z.boolean().default(false),
@@ -91,8 +93,8 @@ export default function SettingsPage() {
     } else {
       reset({
         name: '', category: null, productCode: null, barcode: null, productGroupId: null,
-        companyId: null, mainUnit: '', purchasePrice: 0, tradePrice: 0, stock: 0,
-        subUnitStock: 0, hasSubUnit: false, subUnit: { name: '', conversionRate: 0, purchasePrice: 0, tradePrice: 0 }
+        companyId: null, mainUnit: '', purchasePrice: 0, tradePrice: 0, retailPrice: 0, stock: 0,
+        subUnitStock: 0, hasSubUnit: false, subUnit: { name: '', conversionRate: 0, purchasePrice: 0, tradePrice: 0, retailPrice: 0 }
       });
     }
   }, [productToEdit, reset]);
@@ -113,8 +115,8 @@ export default function SettingsPage() {
     }
     reset({
         name: '', category: null, productCode: null, barcode: null, productGroupId: null,
-        companyId: null, mainUnit: '', purchasePrice: 0, tradePrice: 0, stock: 0,
-        subUnitStock: 0, hasSubUnit: false, subUnit: { name: '', conversionRate: 0, purchasePrice: 0, tradePrice: 0 }
+        companyId: null, mainUnit: '', purchasePrice: 0, tradePrice: 0, retailPrice: 0, stock: 0,
+        subUnitStock: 0, hasSubUnit: false, subUnit: { name: '', conversionRate: 0, purchasePrice: 0, tradePrice: 0, retailPrice: 0 }
       });
   }, [productToEdit, addProduct, updateProduct, toast, reset]);
   
@@ -147,8 +149,8 @@ export default function SettingsPage() {
     setProductToEdit(null);
     reset({
         name: '', category: null, productCode: null, barcode: null, productGroupId: null,
-        companyId: null, mainUnit: '', purchasePrice: 0, tradePrice: 0, stock: 0,
-        subUnitStock: 0, hasSubUnit: false, subUnit: { name: '', conversionRate: 0, purchasePrice: 0, tradePrice: 0 }
+        companyId: null, mainUnit: '', purchasePrice: 0, tradePrice: 0, retailPrice: 0, stock: 0,
+        subUnitStock: 0, hasSubUnit: false, subUnit: { name: '', conversionRate: 0, purchasePrice: 0, tradePrice: 0, retailPrice: 0 }
     });
   }
 
@@ -222,21 +224,26 @@ export default function SettingsPage() {
                             {/* Section 2: Units & Pricing */}
                             <div>
                                 <h4 className="text-md font-medium mb-4 pb-2 border-b">2. Units & Pricing</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="mainUnit">Main Unit *</Label>
                                         <Input id="mainUnit" {...register('mainUnit')} placeholder="e.g., Liter, Carton"/>
                                         {errors.mainUnit && <p className="text-sm text-destructive">{errors.mainUnit.message}</p>}
                                     </div>
                                      <div className="space-y-2">
-                                        <Label htmlFor="purchasePrice">Purchase Price (Main Unit) *</Label>
+                                        <Label htmlFor="purchasePrice">Purchase Price *</Label>
                                         <Input id="purchasePrice" type="number" step="any" {...register('purchasePrice')} />
                                         {errors.purchasePrice && <p className="text-sm text-destructive">{errors.purchasePrice.message}</p>}
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="tradePrice">Trade Price (Main Unit) *</Label>
+                                        <Label htmlFor="tradePrice">Trade Price *</Label>
                                         <Input id="tradePrice" type="number" step="any" {...register('tradePrice')} />
                                         {errors.tradePrice && <p className="text-sm text-destructive">{errors.tradePrice.message}</p>}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="retailPrice">Retail Price *</Label>
+                                        <Input id="retailPrice" type="number" step="any" {...register('retailPrice')} />
+                                        {errors.retailPrice && <p className="text-sm text-destructive">{errors.retailPrice.message}</p>}
                                     </div>
                                 </div>
                                 <div className="mt-4 flex items-center gap-2">
@@ -248,7 +255,7 @@ export default function SettingsPage() {
                                     <Label htmlFor="hasSubUnit">Add Sub Unit Details (e.g., pieces in a carton)</Label>
                                 </div>
                                 {hasSubUnit && (
-                                     <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg bg-muted/50 animate-in fade-in-0">
+                                     <div className="mt-4 grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border rounded-lg bg-muted/50 animate-in fade-in-0">
                                          <div className="space-y-2">
                                             <Label htmlFor="subUnit.name">Sub Unit Name *</Label>
                                             <Input id="subUnit.name" {...register('subUnit.name')} placeholder="e.g., Piece, Bottle" />
@@ -260,12 +267,16 @@ export default function SettingsPage() {
                                              {errors.subUnit?.conversionRate && <p className="text-sm text-destructive">{errors.subUnit.conversionRate.message}</p>}
                                         </div>
                                         <div className="space-y-2">
-                                            <Label htmlFor="subUnit.purchasePrice">Purchase Price (Sub Unit)</Label>
+                                            <Label htmlFor="subUnit.purchasePrice">Purchase Price</Label>
                                             <Input id="subUnit.purchasePrice" type="number" step="any" {...register('subUnit.purchasePrice')} />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label htmlFor="subUnit.tradePrice">Trade Price (Sub Unit)</Label>
+                                            <Label htmlFor="subUnit.tradePrice">Trade Price</Label>
                                             <Input id="subUnit.tradePrice" type="number" step="any" {...register('subUnit.tradePrice')} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="subUnit.retailPrice">Retail Price</Label>
+                                            <Input id="subUnit.retailPrice" type="number" step="any" {...register('subUnit.retailPrice')} />
                                         </div>
                                      </div>
                                 )}
@@ -313,6 +324,7 @@ export default function SettingsPage() {
                                     <TableHead>Product Name</TableHead>
                                     <TableHead>Purchase Price</TableHead>
                                     <TableHead>Trade Price</TableHead>
+                                    <TableHead>Retail Price</TableHead>
                                     <TableHead>Stock</TableHead>
                                     <TableHead className="text-center">Actions</TableHead>
                                 </TableRow>
@@ -324,6 +336,7 @@ export default function SettingsPage() {
                                         <TableCell className="font-medium">{p.name}</TableCell>
                                         <TableCell>PKR {p.purchasePrice.toFixed(2)} / {p.mainUnit}</TableCell>
                                         <TableCell>PKR {p.tradePrice.toFixed(2)} / {p.mainUnit}</TableCell>
+                                        <TableCell>PKR {p.retailPrice.toFixed(2)} / {p.mainUnit}</TableCell>
                                         <TableCell>{p.stock} {p.mainUnit}(s)</TableCell>
                                         <TableCell className="text-center">
                                             <Button variant="ghost" size="icon" title="Edit Product" onClick={() => handleEditClick(p)}>
@@ -337,7 +350,7 @@ export default function SettingsPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-24 text-center">
+                                        <TableCell colSpan={6} className="h-24 text-center">
                                             {productsLoaded ? 'No products added yet.' : 'Loading products...'}
                                         </TableCell>
                                     </TableRow>

@@ -32,6 +32,7 @@ export interface SubUnit {
   conversionRate: number; // How many sub-units make one main unit
   purchasePrice?: number;
   tradePrice?: number;
+  retailPrice?: number;
 }
 
 export interface Product {
@@ -45,6 +46,7 @@ export interface Product {
     mainUnit: string;
     purchasePrice: number;
     tradePrice: number;
+    retailPrice: number;
     stock: number; // Stock in main units
     subUnitStock?: number; // Stock in sub-units
     subUnit?: SubUnit | null;

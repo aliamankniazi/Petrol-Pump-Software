@@ -27,7 +27,6 @@ import { Textarea } from '@/components/ui/textarea';
 import type { Product } from '@/lib/types';
 import { ProductSelection } from './product-selection';
 import { CustomerSelection } from './customer-selection';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 
 
 const saleItemSchema = z.object({
@@ -181,29 +180,34 @@ export function SaleForm() {
   const handleProductSelect = useCallback((product: Product) => {
     if (!product || !productsLoaded) return;
 
-    const saleDate = getValues('date');
-
-    const lastSaleOfProduct = transactions
-        .flatMap(tx => tx.items.map(item => ({...item, timestamp: tx.timestamp})))
-        .filter(item => item.productId === product.id && item.timestamp && new Date(item.timestamp) <= saleDate)
-        .sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime())
-        [0];
-
-    const salePrice = lastSaleOfProduct ? lastSaleOfProduct.pricePerUnit : (product.tradePrice || 0);
-
     append({
         productId: product.id!,
         productName: product.name,
         unit: product.mainUnit,
         quantity: 1,
-        pricePerUnit: salePrice,
-        totalAmount: salePrice,
+        pricePerUnit: product.retailPrice || product.tradePrice || 0,
+        totalAmount: product.retailPrice || product.tradePrice || 0,
         discount: 0,
         bonus: 0,
     });
 
     productSelectionRef.current?.focus();
-  }, [productsLoaded, transactions, append, getValues]);
+  }, [productsLoaded, append]);
+  
+  const handleUnitChange = (index: number, newUnit: string) => {
+    const item = getValues(`items.${index}`);
+    const product = products.find(p => p.id === item.productId);
+    if (!product) return;
+
+    let newPrice = product.retailPrice || product.tradePrice || 0;
+    if (product.subUnit && newUnit === product.subUnit.name) {
+        newPrice = product.subUnit.retailPrice || product.subUnit.tradePrice || 0;
+    }
+    
+    setValue(`items.${index}.unit`, newUnit);
+    setValue(`items.${index}.pricePerUnit`, newPrice);
+    setValue(`items.${index}.totalAmount`, newPrice * item.quantity);
+  };
 
   const handleCustomerSelect = (customerId: string) => {
     setValue('customerId', customerId);
@@ -282,10 +286,32 @@ export function SaleForm() {
                                 </TableCell>
                                 </TableRow>
                             )}
-                            {fields.map((field, index) => (
+                            {fields.map((field, index) => {
+                                const product = products.find(p => p.id === field.productId);
+                                return (
                                 <TableRow key={field.id}>
                                     <TableCell>{field.productName}</TableCell>
-                                    <TableCell>{field.unit}</TableCell>
+                                    <TableCell>
+                                      {product?.subUnit ? (
+                                        <Controller
+                                          name={`items.${index}.unit`}
+                                          control={control}
+                                          render={({ field }) => (
+                                            <Select value={field.value} onValueChange={(value) => handleUnitChange(index, value)}>
+                                              <SelectTrigger className="w-28">
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value={product.mainUnit}>{product.mainUnit}</SelectItem>
+                                                {product.subUnit && <SelectItem value={product.subUnit.name}>{product.subUnit.name}</SelectItem>}
+                                              </SelectContent>
+                                            </Select>
+                                          )}
+                                        />
+                                      ) : (
+                                        field.unit
+                                      )}
+                                    </TableCell>
                                     <TableCell>
                                         <Input type="number" step="any" {...register(`items.${index}.pricePerUnit`)} onChange={(e) => { const price = parseFloat(e.target.value) || 0; const qty = getValues(`items.${index}.quantity`); setValue(`items.${index}.totalAmount`, price * qty, { shouldTouch: true }); }} className="w-28"/>
                                     </TableCell>
@@ -301,7 +327,7 @@ export function SaleForm() {
                                         </Button>
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            )})}
                         </TableBody>
                     </Table>
                 </div>
