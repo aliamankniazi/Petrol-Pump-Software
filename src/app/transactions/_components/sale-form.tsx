@@ -187,8 +187,6 @@ export function SaleForm() {
         discount: 0,
         bonus: 0,
     });
-
-    productSelectionRef.current?.focus();
   }, [productsLoaded, append]);
   
   const handleUnitChange = (index: number, newUnit: string) => {
@@ -209,7 +207,7 @@ export function SaleForm() {
   const handleCustomerSelect = (customerId: string) => {
     setValue('customerId', customerId);
     // Focus the product selection button after a customer is selected
-    setTimeout(() => productSelectionRef.current?.focus(), 0);
+    setTimeout(() => productSelectionRef.current?.focus(), 100);
   };
 
   if (!isClient) {
