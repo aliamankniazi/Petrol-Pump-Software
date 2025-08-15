@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -65,6 +65,8 @@ export function SaleForm() {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   
+  const productSelectionRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -201,6 +203,11 @@ export function SaleForm() {
     });
   }, [productsLoaded, transactions, append, getValues]);
 
+  const handleCustomerSelect = (customerId: string) => {
+    setValue('customerId', customerId);
+    // Focus the product selection button after a customer is selected
+    productSelectionRef.current?.focus();
+  };
 
   if (!isClient) {
     return null;
@@ -212,7 +219,7 @@ export function SaleForm() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-1 md:col-span-2">
                         <Label>Product</Label>
-                        <ProductSelection onProductSelect={handleProductSelect} />
+                        <ProductSelection onProductSelect={handleProductSelect} ref={productSelectionRef} />
                     </div>
                 </div>
             </div>
@@ -311,7 +318,7 @@ export function SaleForm() {
                      <div className="flex items-center gap-2">
                        <CustomerSelection
                             selectedCustomerId={watchedCustomerId}
-                            onCustomerSelect={(customerId) => setValue('customerId', customerId)}
+                            onCustomerSelect={handleCustomerSelect}
                         />
                          <Button type="button" variant="outline" size="icon" asChild><Link href="/customers" title="Add new customer"><UserPlus /></Link></Button>
                      </div>
