@@ -24,7 +24,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import type { Product } from '@/lib/types';
+import type { Product, SaleItem as SaleItemType } from '@/lib/types';
 import { ProductSelection } from './product-selection';
 import { CustomerSelection } from './customer-selection';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -59,6 +59,18 @@ const saleSchema = z.object({
 
 type SaleFormValues = z.infer<typeof saleSchema>;
 
+// State for the temporary form for adding a single item
+const defaultItemState = {
+    product: null as Product | null,
+    unit: '',
+    quantity: 1,
+    price: 0,
+    bonusQty: 0,
+    discountAmt: 0,
+    discountPercent: 0,
+    gstPercent: 0,
+};
+
 export function SaleForm() {
   const { addTransaction, transactions } = useTransactions();
   const { customers } = useCustomers();
@@ -67,6 +79,8 @@ export function SaleForm() {
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
   
+  const [currentItem, setCurrentItem] = useState(defaultItemState);
+
   const productSelectionRef = useRef<HTMLButtonElement>(null);
   const customerSelectionRef = useRef<HTMLButtonElement>(null);
 
@@ -144,12 +158,10 @@ export function SaleForm() {
    useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
-      // Prevent form submission on "Enter" unless it's a button
       if (event.key === 'Enter' && target.tagName !== 'BUTTON' && target.tagName !== 'TEXTAREA') {
           event.preventDefault();
       }
       
-      // Allow Ctrl+S to save
       if ((event.ctrlKey || event.metaKey) && event.key === 's') {
         event.preventDefault();
         handleSubmit(onSubmit)();
@@ -184,49 +196,55 @@ export function SaleForm() {
     const newBalance = customerBalance + grand - watchedPaidAmount;
     return { subTotal: sub, totalDiscount: discount, totalGst: gst, grandTotal: grand, dueBalance: due, newAccountBalance: newBalance };
   }, [watchedItems, watchedPaidAmount, customerBalance]);
-
-  const handleProductSelect = useCallback((product: Product) => {
-    if (!product || !productsLoaded) return;
-
-    // Find the last sale price for this product
-    const reversedTransactions = [...transactions].reverse();
-    const lastSaleOfProduct = reversedTransactions
-      .flatMap(tx => tx.items)
-      .find(item => item.productId === product.id);
-
-    const priceToUse = lastSaleOfProduct?.pricePerUnit ?? (product.retailPrice || product.tradePrice || 0);
-
-    append({
-        productId: product.id!,
-        productName: product.name,
-        unit: product.mainUnit,
-        quantity: 1,
-        pricePerUnit: priceToUse,
-        totalAmount: priceToUse, // For quantity 1
-        discount: 0,
-        bonus: 0,
-        gst: 0,
-    });
-  }, [productsLoaded, append, transactions]);
   
-  const handleUnitChange = (index: number, newUnit: string) => {
-    const item = getValues(`items.${index}`);
-    const product = products.find(p => p.id === item.productId);
-    if (!product) return;
+  const handleProductSelect = useCallback((product: Product) => {
+      if (!product || !productsLoaded) return;
 
-    let newPrice = product.retailPrice || product.tradePrice || 0;
-    if (product.subUnit && newUnit === product.subUnit.name) {
-        newPrice = product.subUnit.retailPrice || product.subUnit.tradePrice || 0;
-    }
-    
-    setValue(`items.${index}.unit`, newUnit);
-    setValue(`items.${index}.pricePerUnit`, newPrice);
-    setValue(`items.${index}.totalAmount`, newPrice * item.quantity);
+      const reversedTransactions = [...transactions].reverse();
+      const lastSaleOfProduct = reversedTransactions
+        .flatMap(tx => tx.items)
+        .find(item => item.productId === product.id);
+
+      const priceToUse = lastSaleOfProduct?.pricePerUnit ?? (product.retailPrice || product.tradePrice || 0);
+      
+      setCurrentItem(prev => ({
+          ...prev,
+          product,
+          unit: product.mainUnit,
+          price: priceToUse,
+      }));
+
+  }, [productsLoaded, transactions]);
+
+  const handleAddToCart = () => {
+      const { product, quantity, price, discountAmt, gstPercent, bonusQty } = currentItem;
+      if (!product) {
+          toast({ variant: 'destructive', title: 'Error', description: 'Please select a product first.' });
+          return;
+      }
+      
+      const totalAmount = (quantity * price) - discountAmt;
+      const gstAmount = totalAmount * (gstPercent / 100);
+      const finalAmount = totalAmount + gstAmount;
+
+      append({
+          productId: product.id!,
+          productName: product.name,
+          unit: currentItem.unit || product.mainUnit,
+          quantity: quantity,
+          pricePerUnit: price,
+          totalAmount: finalAmount,
+          discount: discountAmt,
+          bonus: bonusQty,
+          gst: gstAmount,
+      });
+
+      setCurrentItem(defaultItemState); // Reset for next item
+      productSelectionRef.current?.focus();
   };
-
+  
   const handleCustomerSelect = (customerId: string) => {
     setValue('customerId', customerId);
-    // Focus the product selection button after a customer is selected
     setTimeout(() => productSelectionRef.current?.focus(), 100);
   };
 
@@ -240,37 +258,81 @@ export function SaleForm() {
         
         {/* Left Column: Create Sale */}
         <div className="lg:col-span-1 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Create Sale</CardTitle>
-              <CardDescription>Select products and add them to the cart.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-               <div className="space-y-1">
-                <Label>Customer</Label>
-                <div className="flex items-center gap-2">
-                    <CustomerSelection
-                        ref={customerSelectionRef}
-                        selectedCustomerId={watchedCustomerId}
-                        onCustomerSelect={handleCustomerSelect}
-                    />
-                    <Button type="button" variant="outline" size="icon" asChild><Link href="/customers" title="Add new customer"><UserPlus /></Link></Button>
-                </div>
-              </div>
-               <div className="space-y-1">
-                  <Label>Product</Label>
-                  <div className="flex items-center gap-2">
-                      <ProductSelection onProductSelect={handleProductSelect} ref={productSelectionRef} />
-                      <Button type="button" variant="outline" size="icon" asChild>
-                          <Link href="/settings" title="Add new product">
-                              <PlusCircle />
-                          </Link>
-                      </Button>
-                  </div>
-              </div>
-              
-            </CardContent>
-          </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Create Sale</CardTitle>
+                    <CardDescription>Select products and add them to the cart.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <div className="space-y-1">
+                        <Label>Customer</Label>
+                        <div className="flex items-center gap-2">
+                            <CustomerSelection
+                                ref={customerSelectionRef}
+                                selectedCustomerId={watchedCustomerId}
+                                onCustomerSelect={handleCustomerSelect}
+                            />
+                            <Button type="button" variant="outline" size="icon" asChild><Link href="/customers" title="Add new customer"><UserPlus /></Link></Button>
+                        </div>
+                    </div>
+                     <div className="space-y-1">
+                        <Label>Product</Label>
+                        <ProductSelection onProductSelect={handleProductSelect} ref={productSelectionRef} />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <Label>Unit</Label>
+                             <Select 
+                                value={currentItem.unit}
+                                onValueChange={(value) => setCurrentItem(prev => ({ ...prev, unit: value }))}
+                                disabled={!currentItem.product || !currentItem.product.subUnit}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select unit" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {currentItem.product && <SelectItem value={currentItem.product.mainUnit}>{currentItem.product.mainUnit}</SelectItem>}
+                                    {currentItem.product?.subUnit && <SelectItem value={currentItem.product.subUnit.name}>{currentItem.product.subUnit.name}</SelectItem>}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                         <div className="space-y-1">
+                            <Label>Quantity</Label>
+                            <Input type="number" value={currentItem.quantity} onChange={e => setCurrentItem(p => ({...p, quantity: parseFloat(e.target.value) || 0}))} />
+                        </div>
+                    </div>
+                    
+                     <div className="space-y-1">
+                        <Label>Price</Label>
+                        <Input type="number" value={currentItem.price} onChange={e => setCurrentItem(p => ({...p, price: parseFloat(e.target.value) || 0}))} />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <Label>Bonus Qty</Label>
+                            <Input type="number" value={currentItem.bonusQty} onChange={e => setCurrentItem(p => ({...p, bonusQty: parseFloat(e.target.value) || 0}))} />
+                        </div>
+                         <div className="space-y-1">
+                            <Label>Discount (Amt)</Label>
+                            <Input type="number" value={currentItem.discountAmt} onChange={e => setCurrentItem(p => ({...p, discountAmt: parseFloat(e.target.value) || 0}))} />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <Label>Discount (%)</Label>
+                            <Input type="number" value={currentItem.discountPercent} onChange={e => setCurrentItem(p => ({...p, discountPercent: parseFloat(e.target.value) || 0}))} />
+                        </div>
+                         <div className="space-y-1">
+                            <Label>GST (%)</Label>
+                            <Input type="number" value={currentItem.gstPercent} onChange={e => setCurrentItem(p => ({...p, gstPercent: parseFloat(e.target.value) || 0}))} />
+                        </div>
+                    </div>
+
+                    <Button type="button" className="w-full" onClick={handleAddToCart}><PlusCircle/>Add to Cart</Button>
+
+                </CardContent>
+            </Card>
         </div>
 
         {/* Middle Column: Current Cart & Finalize */}
