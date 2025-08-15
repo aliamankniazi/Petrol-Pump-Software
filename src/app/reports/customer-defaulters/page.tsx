@@ -93,7 +93,7 @@ export default function CustomerDefaulterReportPage() {
                       <TableCell className="font-medium">{d.name}</TableCell>
                       <TableCell>{d.contact}</TableCell>
                       <TableCell>{d.area || 'N/A'}</TableCell>
-                      <TableCell className="text-right font-mono text-destructive">
+                      <TableCell className="text-right font-mono font-bold text-destructive">
                         {d.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell className="text-center print:hidden">

@@ -219,10 +219,10 @@ export default function InvoicesPage() {
                         <TableCell>
                             <Badge variant="outline">{sale.paymentMethod}</Badge>
                         </TableCell>
-                        <TableCell className={cn("text-right font-semibold font-mono")}>
+                        <TableCell className={cn("text-right font-bold font-mono")}>
                             {sale.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell className={cn("text-right font-semibold font-mono", sale.profit >= 0 ? 'text-green-600' : 'text-destructive')}>
+                        <TableCell className={cn("text-right font-bold font-mono", sale.profit >= 0 ? 'text-green-600' : 'text-destructive')}>
                             {sale.profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell className="text-center space-x-0.5">
@@ -274,7 +274,7 @@ export default function InvoicesPage() {
                                     </TableCell>
                                     <TableCell>{purchase.supplier}</TableCell>
                                     <TableCell>{purchase.items.map(i => i.productName).join(', ')}</TableCell>
-                                    <TableCell className="text-right font-semibold font-mono text-destructive">
+                                    <TableCell className="text-right font-bold font-mono text-destructive">
                                         {purchase.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </TableCell>
                                     <TableCell className="text-center space-x-0.5">
@@ -300,5 +300,3 @@ export default function InvoicesPage() {
     </div>
   );
 }
-
-    

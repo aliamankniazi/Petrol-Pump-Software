@@ -326,7 +326,7 @@ export default function AllTransactionsPage() {
                       <TableCell>{entry.partner}</TableCell>
                       <TableCell>{entry.details}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{entry.notes || 'N/A'}</TableCell>
-                      <TableCell className={cn("text-right font-semibold font-mono", getAmountClass(entry.type))}>
+                      <TableCell className={cn("text-right font-bold font-mono", getAmountClass(entry.type))}>
                           {entry.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell className="text-center space-x-0.5">
@@ -395,6 +395,3 @@ export default function AllTransactionsPage() {
     </>
   );
 }
-
-
-    

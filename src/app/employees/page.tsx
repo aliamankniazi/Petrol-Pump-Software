@@ -300,7 +300,7 @@ export default function EmployeesPage() {
                             <div className="text-xs text-muted-foreground">{e.mobileNumber || 'No mobile'}</div>
                           </TableCell>
                           <TableCell>{e.position}</TableCell>
-                          <TableCell className="text-right">{e.salary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                          <TableCell className="text-right font-bold">{e.salary.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                           <TableCell className="text-center space-x-0">
                             <Button asChild variant="ghost" size="icon" title="View Ledger">
                               <Link href={`/customers/${e.id}/ledger`}>
@@ -518,5 +518,3 @@ export default function EmployeesPage() {
     </>
   );
 }
-
-    

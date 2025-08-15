@@ -78,9 +78,9 @@ export default function ProductSalesPage() {
                   salesByProduct.map(product => (
                     <TableRow key={product.productName}>
                       <TableCell className="font-medium">{product.productName}</TableCell>
-                      <TableCell className="text-right font-mono">{product.totalQuantity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {product.unit}s</TableCell>
-                      <TableCell className="text-right font-mono">{product.avgPricePerUnit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                      <TableCell className="text-right font-mono font-semibold">{product.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-right font-mono font-bold">{product.totalQuantity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {product.unit}s</TableCell>
+                      <TableCell className="text-right font-mono font-bold">{product.avgPricePerUnit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-right font-mono font-bold">{product.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                     </TableRow>
                   ))
                 ) : (
@@ -101,7 +101,7 @@ export default function ProductSalesPage() {
             <TableFooter>
                 <TableRow className="font-bold bg-muted/50">
                     <TableCell colSpan={3}>Total</TableCell>
-                    <TableCell className="text-right font-mono">{totals.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-right font-mono font-bold">{totals.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                 </TableRow>
             </TableFooter>
           </Table>

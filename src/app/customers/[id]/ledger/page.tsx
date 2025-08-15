@@ -210,7 +210,7 @@ export default function CustomerLedgerPage() {
     let runningBalance = 0;
     const entriesWithBalance: LedgerEntry[] = combined.map(entry => {
       // For suppliers & partners, a credit increases their balance (we owe them more), a debit decreases it.
-      if (entityType === 'Supplier' || entityType === 'Partner') {
+      if (entityType === 'Partner' || entityType === 'Supplier') {
           runningBalance += entry.credit - entry.debit;
       }
       // For customers & employees, a debit increases their balance (they owe us more), a credit decreases it.
@@ -434,13 +434,13 @@ export default function CustomerLedgerPage() {
                          {entry.type}
                        </Badge>
                     </TableCell>
-                    <TableCell className="text-right font-mono text-destructive">
+                    <TableCell className="text-right font-mono font-bold text-destructive">
                         {entry.debit > 0 ? entry.debit.toFixed(2) : '-'}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-green-600">
+                    <TableCell className="text-right font-mono font-bold text-green-600">
                         {entry.credit > 0 ? entry.credit.toFixed(2) : '-'}
                     </TableCell>
-                     <TableCell className={cn("text-right font-semibold font-mono", rowBalanceColorClass(entry.balance))}>
+                     <TableCell className={cn("text-right font-bold font-mono", rowBalanceColorClass(entry.balance))}>
                         {Math.abs(entry.balance).toFixed(2)}
                     </TableCell>
                      <TableCell className="text-center print:hidden">

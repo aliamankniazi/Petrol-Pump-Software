@@ -151,8 +151,8 @@ export default function InvestmentsPage() {
                     {isLoaded && partnerSummary.length > 0 ? partnerSummary.map(p => (
                         <TableRow key={p.id}>
                             <TableCell className="font-medium">{p.name}</TableCell>
-                            <TableCell className="text-right font-mono">{p.sharePercentage?.toFixed(2)}%</TableCell>
-                            <TableCell className={`text-right font-semibold font-mono ${p.netInvestment >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                            <TableCell className="text-right font-mono font-bold">{p.sharePercentage?.toFixed(2)}%</TableCell>
+                            <TableCell className={`text-right font-bold font-mono ${p.netInvestment >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                                 PKR {p.netInvestment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </TableCell>
                         </TableRow>
@@ -167,8 +167,8 @@ export default function InvestmentsPage() {
                 <TableFooter>
                     <TableRow className="font-bold">
                         <TableCell>Total</TableCell>
-                        <TableCell className="text-right font-mono">{totalSharePercentage.toFixed(2)}%</TableCell>
-                        <TableCell className={`text-right font-mono ${totalNetInvestment >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                        <TableCell className="text-right font-mono font-bold">{totalSharePercentage.toFixed(2)}%</TableCell>
+                        <TableCell className={`text-right font-mono font-bold ${totalNetInvestment >= 0 ? 'text-primary' : 'text-destructive'}`}>
                             PKR {totalNetInvestment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </TableCell>
                     </TableRow>
@@ -344,7 +344,7 @@ export default function InvestmentsPage() {
                                 </Badge>
                             </TableCell>
                             <TableCell>{t.notes || 'N/A'}</TableCell>
-                            <TableCell className={`text-right font-semibold ${t.type === 'Investment' ? 'text-green-600' : 'text-destructive'}`}>
+                            <TableCell className={`text-right font-bold ${t.type === 'Investment' ? 'text-green-600' : 'text-destructive'}`}>
                                 PKR {t.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </TableCell>
                             <TableCell className="text-center">

@@ -81,9 +81,9 @@ export default function StockMovementPage() {
                 reportData.map(row => (
                   <TableRow key={row.id}>
                     <TableCell className="font-medium">{row.name}</TableCell>
-                    <TableCell className="text-right font-mono text-green-600">{row.totalPurchased.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.unit}(s)</TableCell>
-                    <TableCell className="text-right font-mono text-destructive">{row.totalSold.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.unit}(s)</TableCell>
-                    <TableCell className="text-right font-mono text-blue-600">{row.totalReturned.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.unit}(s)</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-green-600">{row.totalPurchased.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.unit}(s)</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-destructive">{row.totalSold.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.unit}(s)</TableCell>
+                    <TableCell className="text-right font-mono font-bold text-blue-600">{row.totalReturned.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.unit}(s)</TableCell>
                     <TableCell className="text-right font-mono font-bold">{row.currentStock.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.unit}(s)</TableCell>
                   </TableRow>
                 ))

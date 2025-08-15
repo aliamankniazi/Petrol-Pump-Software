@@ -158,7 +158,7 @@ export default function BankManagementPage() {
                         <TableCell className="font-medium">{format(new Date(account.timestamp), 'PP')}</TableCell>
                         <TableCell>{account.bankName}</TableCell>
                         <TableCell>{account.accountNumber}</TableCell>
-                        <TableCell className="text-right">PKR {account.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-right font-bold">PKR {account.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                         <TableCell className="text-center space-x-0">
                            <Button variant="ghost" size="icon" title="Edit Account" onClick={() => setAccountToEdit(account)}>
                                 <Edit className="w-4 h-4" />

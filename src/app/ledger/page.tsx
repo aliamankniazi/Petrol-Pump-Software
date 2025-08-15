@@ -409,7 +409,7 @@ export default function LedgerPage() {
                   {globalDateRange && !searchTerm && (
                     <TableRow className="bg-muted/30">
                       <TableCell colSpan={5} className="font-bold text-right">Opening Balance</TableCell>
-                      <TableCell className={`text-right font-semibold font-mono ${openingBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                      <TableCell className={`text-right font-bold font-mono ${openingBalance >= 0 ? 'text-primary' : 'text-destructive'}`}>
                         {openingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                        <TableCell/>
@@ -429,13 +429,13 @@ export default function LedgerPage() {
                           {entry.type}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right font-mono text-destructive">
+                      <TableCell className="text-right font-mono font-bold text-destructive">
                           {entry.debit > 0 ? entry.debit.toFixed(2) : '-'}
                       </TableCell>
-                      <TableCell className="text-right font-mono text-green-600">
+                      <TableCell className="text-right font-mono font-bold text-green-600">
                           {entry.credit > 0 ? entry.credit.toFixed(2) : '-'}
                       </TableCell>
-                      <TableCell className={`text-right font-semibold font-mono ${entry.balance >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                      <TableCell className={`text-right font-bold font-mono ${entry.balance >= 0 ? 'text-primary' : 'text-destructive'}`}>
                           {entry.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell className="text-center print:hidden">
@@ -455,8 +455,8 @@ export default function LedgerPage() {
                   <TableFooter>
                     <TableRow className="bg-muted/50 font-bold">
                       <TableCell colSpan={3} className="text-right">Period Totals</TableCell>
-                      <TableCell className="text-right font-mono text-destructive">{totals.debit.toFixed(2)}</TableCell>
-                      <TableCell className="text-right font-mono text-green-600">{totals.credit.toFixed(2)}</TableCell>
+                      <TableCell className="text-right font-mono font-bold text-destructive">{totals.debit.toFixed(2)}</TableCell>
+                      <TableCell className="text-right font-mono font-bold text-green-600">{totals.credit.toFixed(2)}</TableCell>
                       <TableCell colSpan={2} />
                     </TableRow>
                   </TableFooter>

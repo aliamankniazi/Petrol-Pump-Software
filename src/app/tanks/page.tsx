@@ -212,10 +212,10 @@ export default function TankManagementPage() {
                       <TableRow key={reading.id}>
                         <TableCell className="font-medium">{format(new Date(reading.timestamp), 'PP pp')}</TableCell>
                         <TableCell>{reading.fuelType}</TableCell>
-                        <TableCell className="text-right font-mono">{reading.meterReading.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                        <TableCell className="text-right font-mono text-blue-600">{reading.calculatedUsage?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                        <TableCell className="text-right font-mono text-green-600">{reading.salesSinceLastReading?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                        <TableCell className={cn("text-right font-mono font-semibold", getVarianceColor(reading.variance || 0))}>
+                        <TableCell className="text-right font-mono font-bold">{reading.meterReading.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-blue-600">{reading.calculatedUsage?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-green-600">{reading.salesSinceLastReading?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell className={cn("text-right font-mono font-bold", getVarianceColor(reading.variance || 0))}>
                             {reading.variance?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </TableCell>
                       </TableRow>
