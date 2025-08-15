@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useCallback } from 'react';
@@ -18,7 +19,7 @@ interface PaySalaryProps {
 
 export function useEmployees() {
   const { data: employees, addDoc, updateDoc, deleteDoc, loading } = useDatabaseCollection<Employee>(COLLECTION_NAME);
-  const { addCustomer } = useCustomers();
+  const { addCustomerWithId } = useCustomers();
   const { addExpense } = useExpenses();
 
   /**
@@ -32,16 +33,16 @@ export function useEmployees() {
     const newDoc = await addDoc(dataWithTimestamp);
 
     // Create a corresponding customer record for ledger purposes, using the same ID
-    await addCustomer({
+    await addCustomerWithId(newDoc.id, {
         name: newDoc.name,
         contact: newDoc.mobileNumber || '',
         area: 'Employee',
         isPartner: false,
         isEmployee: true,
-    }, newDoc.id);
+    });
 
     return newDoc;
-  }, [addDoc, addCustomer]);
+  }, [addDoc, addCustomerWithId]);
 
   const updateEmployee = useCallback((id: string, updatedDetails: Partial<Omit<Employee, 'id' | 'timestamp'>>) => {
     updateDoc(id, updatedDetails);

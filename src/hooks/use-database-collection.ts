@@ -75,17 +75,22 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id'>>(
     if (!db) {
       throw new Error("Database not configured.");
     }
-    
+
     let docRef: DatabaseReference;
+    let newId: string;
+
     if (docId) {
-        docRef = ref(db, `${collectionName}/${docId}`);
+      // Use the provided ID
+      newId = docId;
+      docRef = ref(db, `${collectionName}/${newId}`);
     } else {
-        const collectionRef = ref(db, collectionName);
-        docRef = push(collectionRef);
+      // Generate a new ID
+      const collectionRef = ref(db, collectionName);
+      const newPushRef = push(collectionRef);
+      docRef = newPushRef;
+      newId = newPushRef.key!;
     }
       
-    const newId = docRef.key!;
-    
     // The id field is now part of the document itself.
     // Let's ensure it's set before writing.
     const docToWrite = { ...newData, id: newId };
