@@ -38,6 +38,7 @@ export function CashAdvanceForm() {
   
   const [isClient, setIsClient] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -89,7 +90,7 @@ export function CashAdvanceForm() {
                 name="customerId"
                 control={control}
                 render={({ field }) => (
-                <Popover>
+                <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
                     <PopoverTrigger asChild>
                     <Button
                         variant="outline"
@@ -114,6 +115,7 @@ export function CashAdvanceForm() {
                                     key={c.id}
                                     onSelect={() => {
                                         field.onChange(c.id);
+                                        setIsPopoverOpen(false);
                                     }}
                                 >
                                     <Check
