@@ -43,17 +43,22 @@ export default function InvoicesPage() {
 
   const filteredSales = useMemo(() => {
     let sales = transactions.filter(tx => tx.timestamp);
+
+    if (globalDateRange?.from) {
+        const from = startOfDay(globalDateRange.from);
+        const to = globalDateRange.to ? endOfDay(globalDateRange.to) : endOfDay(globalDateRange.from);
+
+        sales = sales.filter(sale => {
+            const saleDate = new Date(sale.timestamp!);
+            return saleDate >= from && saleDate <= to;
+        });
+    }
+
     if (searchTerm) {
         sales = sales.filter(sale =>
             sale.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             sale.items.some(item => item.productName.toLowerCase().includes(searchTerm.toLowerCase()))
         );
-    }
-    if (globalDateRange?.from) {
-        sales = sales.filter(sale => new Date(sale.timestamp!) >= startOfDay(globalDateRange.from!));
-    }
-    if (globalDateRange?.to) {
-        sales = sales.filter(sale => new Date(sale.timestamp!) <= endOfDay(globalDateRange.to!));
     }
     
     return sales.map(sale => {
@@ -85,25 +90,32 @@ export default function InvoicesPage() {
 
   const filteredPurchases = useMemo(() => {
     let allPurchases = purchases.filter(p => p.timestamp);
+
+    if (globalDateRange?.from) {
+        const from = startOfDay(globalDateRange.from);
+        const to = globalDateRange.to ? endOfDay(globalDateRange.to) : endOfDay(globalDateRange.from);
+        
+        allPurchases = allPurchases.filter(p => {
+            const purchaseDate = new Date(p.timestamp!);
+            return purchaseDate >= from && purchaseDate <= to;
+        });
+    }
+    
     if (searchTerm) {
         allPurchases = allPurchases.filter(purchase =>
             purchase.supplier.toLowerCase().includes(searchTerm.toLowerCase()) ||
             purchase.items.some(item => item.productName.toLowerCase().includes(searchTerm.toLowerCase()))
         );
     }
-     if (globalDateRange?.from) {
-        allPurchases = allPurchases.filter(p => new Date(p.timestamp!) >= startOfDay(globalDateRange.from!));
-    }
-    if (globalDateRange?.to) {
-        allPurchases = allPurchases.filter(p => new Date(p.timestamp!) <= endOfDay(globalDateRange.to!));
-    }
+    
     return allPurchases;
   }, [purchases, searchTerm, globalDateRange]);
 
 
   const showSales = typeFilter === 'all' || typeFilter === 'sales';
   const showPurchases = typeFilter === 'all' || typeFilter === 'purchases';
-
+  
+  const hasActiveFilters = searchTerm || typeFilter !== 'all' || globalDateRange;
 
   return (
     <div className="p-4 md:p-8 space-y-8">
@@ -237,7 +249,7 @@ export default function InvoicesPage() {
                     </TableBody>
                 </Table>
                 ) : (
-                <div className="text-center py-12 text-muted-foreground">No sale invoices found matching the current filters.</div>
+                <div className="text-center py-12 text-muted-foreground">{hasActiveFilters ? 'No sale invoices found matching the current filters.' : 'No sale invoices found.'}</div>
                 )
             ) : (
                 <div className="text-center py-12 text-muted-foreground">Loading invoices...</div>
@@ -289,7 +301,7 @@ export default function InvoicesPage() {
                             </TableBody>
                         </Table>
                     ) : (
-                        <div className="text-center py-12 text-muted-foreground">No purchase invoices found matching the current filters.</div>
+                         <div className="text-center py-12 text-muted-foreground">{hasActiveFilters ? 'No purchase invoices found matching the current filters.' : 'No purchase invoices found.'}</div>
                     )
                 ) : (
                     <div className="text-center py-12 text-muted-foreground">Loading invoices...</div>
@@ -299,4 +311,5 @@ export default function InvoicesPage() {
       )}
     </div>
   );
-}
+
+    
