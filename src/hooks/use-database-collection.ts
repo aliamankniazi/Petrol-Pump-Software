@@ -55,13 +55,21 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id'>>(
         });
       }
       
+      // DEPRECATED - This sort order was causing issues. Data is now sorted by timestamp.
+      // dataArray.sort((a, b) => {
+      //   const timestampA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+      //   const timestampB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      //   return timestampB - timestampA;
+      // });
+      
       dataArray.sort((a, b) => {
         const timestampA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
         const timestampB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-        return timestampB - timestampA;
+        return timestampA - timestampB;
       });
+      
 
-      setData(dataArray);
+      setData(dataArray.reverse());
       setLoading(false);
     }, (error) => {
       console.error(`Error fetching ${collectionName}:`, error);
@@ -91,12 +99,10 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id'>>(
       newId = newPushRef.key!;
     }
       
-    // The id field is now part of the document itself.
-    // Let's ensure it's set before writing.
-    const docToWrite = { ...newData, id: newId };
+    const docToWrite = { ...newData };
     
     await set(docRef, docToWrite);
-    return docToWrite as (T & { id: string });
+    return { ...newData, id: newId };
 
   }, [collectionName]);
   
