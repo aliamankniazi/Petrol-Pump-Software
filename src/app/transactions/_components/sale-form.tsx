@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Calendar as CalendarIcon, UserPlus } from 'lucide-react';
+import { Trash2, Calendar as CalendarIcon, UserPlus, PlusCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomers } from '@/hooks/use-customers';
@@ -250,7 +250,14 @@ export function SaleForm() {
             <div className="p-4 rounded-lg bg-muted/50 border space-y-4">
                 <div className="space-y-1">
                     <Label>Product</Label>
-                    <ProductSelection onProductSelect={handleProductSelect} ref={productSelectionRef} />
+                    <div className="flex items-center gap-2">
+                        <ProductSelection onProductSelect={handleProductSelect} ref={productSelectionRef} />
+                        <Button type="button" variant="outline" size="icon" asChild>
+                            <Link href="/settings" title="Add new product">
+                                <PlusCircle />
+                            </Link>
+                        </Button>
+                    </div>
                 </div>
             </div>
 
