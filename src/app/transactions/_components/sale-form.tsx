@@ -49,7 +49,6 @@ const saleSchema = z.object({
   date: z.date({ required_error: "A date is required."}),
   orderDeliveryDate: z.date().optional(),
   items: z.array(saleItemSchema).min(1, 'At least one item is required.'),
-  extraDiscount: z.coerce.number().default(0),
   paidAmount: z.coerce.number().default(0),
   expenseAmount: z.coerce.number().default(0),
   expenseBankAccountId: z.string().optional(),
@@ -80,7 +79,6 @@ export function SaleForm() {
       customerId: 'walk-in',
       bankAccountId: '',
       notes: '',
-      extraDiscount: 0,
       paidAmount: 0,
       expenseAmount: 0,
       expenseBankAccountId: '',
@@ -97,7 +95,6 @@ export function SaleForm() {
 
   const watchedCustomerId = watch('customerId');
   const watchedItems = watch('items');
-  const watchedExtraDiscount = watch('extraDiscount');
   const watchedPaidAmount = watch('paidAmount');
 
 
@@ -107,7 +104,7 @@ export function SaleForm() {
     const isWalkIn = !data.customerId || data.customerId === 'walk-in';
     const customer = !isWalkIn ? customers.find(c => c.id === data.customerId) : null;
 
-    const grandTotal = data.items.reduce((sum, item) => sum + (item.totalAmount || 0), 0) - (data.extraDiscount || 0);
+    const grandTotal = data.items.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
 
     const newTransaction = await addTransaction({
       ...data,
@@ -132,7 +129,6 @@ export function SaleForm() {
         orderDeliveryDate: new Date(),
         bankAccountId: '',
         notes: '',
-        extraDiscount: 0,
         paidAmount: 0,
         expenseAmount: 0,
         expenseBankAccountId: '',
@@ -173,10 +169,10 @@ export function SaleForm() {
 
   const { subTotal, grandTotal, dueBalance } = useMemo(() => {
     const sub = watchedItems.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
-    const grand = sub - watchedExtraDiscount;
+    const grand = sub;
     const due = grand - watchedPaidAmount;
     return { subTotal: sub, grandTotal: grand, dueBalance: due };
-  }, [watchedItems, watchedExtraDiscount, watchedPaidAmount]);
+  }, [watchedItems, watchedPaidAmount]);
 
   const handleProductSelect = useCallback((product: Product) => {
     if (!product || !productsLoaded) return;
@@ -390,7 +386,7 @@ export function SaleForm() {
               </div>
           </CardContent>
           <CardFooter className="gap-2 justify-end">
-              <Button type="button" variant="outline" size="lg" onClick={() => reset({ items: [], paymentMethod: 'On Credit', customerId: 'walk-in', date: new Date(), orderDeliveryDate: new Date(), bankAccountId: '', notes: '', extraDiscount: 0, paidAmount: 0, expenseAmount: 0, expenseBankAccountId: '', referenceNo: '' })}>Discard/Reset</Button>
+              <Button type="button" variant="outline" size="lg" onClick={() => reset({ items: [], paymentMethod: 'On Credit', customerId: 'walk-in', date: new Date(), orderDeliveryDate: new Date(), bankAccountId: '', notes: '', paidAmount: 0, expenseAmount: 0, expenseBankAccountId: '', referenceNo: '' })}>Discard/Reset</Button>
               <Button type="submit" size="lg">Save Sale & Print Invoice</Button>
           </CardFooter>
       </Card>
