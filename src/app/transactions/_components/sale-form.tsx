@@ -349,10 +349,6 @@ export function SaleForm() {
                           <Label>Sub Total</Label>
                           <span className="font-medium">{subTotal.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between items-center text-sm">
-                          <Label htmlFor="extraDiscount">Extra Discount</Label>
-                          <Input id="extraDiscount" type="number" step="any" className="w-28 h-8" {...register('extraDiscount')} />
-                        </div>
                         <Separator/>
                         <div className="flex justify-between items-center font-bold text-lg">
                           <Label>Grand Total</Label>
