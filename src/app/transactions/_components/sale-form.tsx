@@ -66,7 +66,6 @@ export function SaleForm() {
   const [isClient, setIsClient] = useState(false);
   
   const productSelectionRef = useRef<HTMLButtonElement>(null);
-  const customerSelectionRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -152,11 +151,6 @@ export function SaleForm() {
         event.preventDefault();
         handleSubmit(onSubmit)();
       }
-
-      if (event.key.toLowerCase() === 'a' && !['INPUT', 'TEXTAREA'].includes(target.tagName)) {
-        event.preventDefault();
-        customerSelectionRef.current?.click();
-      }
     };
     
     document.addEventListener('keydown', handleKeyDown);
@@ -229,7 +223,6 @@ export function SaleForm() {
                       <Label>Customer</Label>
                       <div className="flex items-center gap-2">
                           <CustomerSelection
-                              ref={customerSelectionRef}
                               selectedCustomerId={watchedCustomerId}
                               onCustomerSelect={handleCustomerSelect}
                           />
@@ -398,3 +391,5 @@ export function SaleForm() {
     </form>
   );
 }
+
+    
