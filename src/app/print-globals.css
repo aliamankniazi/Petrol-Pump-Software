@@ -4,6 +4,11 @@
 @tailwind utilities;
 
 @layer base {
+    @page {
+        size: A5;
+        margin: 1cm;
+    }
+
     @media print {
         body {
             background-color: white !important;
