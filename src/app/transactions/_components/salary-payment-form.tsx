@@ -18,12 +18,14 @@ import { cn } from '@/lib/utils';
 import type { Employee } from '@/lib/types';
 import { useAttendance } from '@/hooks/use-attendance';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Textarea } from '@/components/ui/textarea';
 
 const salaryPaymentSchema = z.object({
   employeeId: z.string().min(1, 'Please select an employee.'),
   month: z.string().min(1, 'Please select a month.'),
   year: z.coerce.number(),
   postingDate: z.date({ required_error: "A posting date is required."}),
+  notes: z.string().optional(),
 });
 
 type SalaryPaymentFormValues = z.infer<typeof salaryPaymentSchema>;
@@ -55,6 +57,7 @@ export function SalaryPaymentForm() {
       month: getMonth(new Date()).toString(),
       year: currentYear,
       postingDate: new Date(),
+      notes: '',
     }
   });
 
@@ -104,7 +107,8 @@ export function SalaryPaymentForm() {
       employee: selectedEmployee,
       amount: salaryCalculation.payableSalary,
       postingDate: data.postingDate,
-      period: `${monthName} ${data.year}`
+      period: `${monthName} ${data.year}`,
+      notes: data.notes,
     });
 
     toast({
@@ -117,6 +121,7 @@ export function SalaryPaymentForm() {
         month: getMonth(new Date()).toString(),
         year: currentYear,
         postingDate: new Date(),
+        notes: '',
     });
 
   }, [selectedEmployee, salaryCalculation, paySalary, toast, reset]);
@@ -211,6 +216,21 @@ export function SalaryPaymentForm() {
                     </Popover>
                 )}
              />
+        </div>
+
+         <div className="space-y-2">
+            <Label htmlFor="notes">Notes (Optional)</Label>
+            <Controller
+                name="notes"
+                control={control}
+                render={({ field }) => (
+                    <Textarea
+                        id="notes"
+                        placeholder="e.g., Including overtime payment"
+                        {...field}
+                    />
+                )}
+            />
         </div>
         
         {salaryCalculation && selectedEmployee && (

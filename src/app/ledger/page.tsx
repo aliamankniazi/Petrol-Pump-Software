@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -101,7 +102,7 @@ export default function LedgerPage() {
         combined.push({
           id: `exp-${e.id}`,
           timestamp: e.timestamp!,
-          description: `Expense: ${e.description}`,
+          description: `Expense: ${e.description} ${e.notes ? `- ${e.notes}`: ''}`,
           type: 'Expense',
           debit: e.amount,
           credit: 0,
@@ -113,7 +114,7 @@ export default function LedgerPage() {
       combined.push({
         id: `sp-${sp.id}`,
         timestamp: sp.timestamp!,
-        description: `Payment to ${sp.supplierName}`,
+        description: `Payment to ${sp.supplierName} ${sp.notes ? `- ${sp.notes}`: ''}`,
         type: 'Supplier Payment',
         debit: sp.amount,
         credit: 0,
@@ -150,7 +151,7 @@ export default function LedgerPage() {
         combined.push({
             id: `pur-${p.id}`,
             timestamp: p.timestamp!,
-            description: `Purchase from ${p.supplier}: ${p.items.length} item(s)`,
+            description: `Purchase from ${p.supplier}: ${p.items.length} item(s) ${p.notes ? `- ${p.notes}` : ''}`,
             type: 'Purchase',
             debit: 0,
             credit: p.totalCost,

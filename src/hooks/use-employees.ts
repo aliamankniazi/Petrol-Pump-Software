@@ -15,6 +15,7 @@ interface PaySalaryProps {
     amount: number;
     postingDate: Date;
     period: string;
+    notes?: string;
 }
 
 export function useEmployees() {
@@ -57,7 +58,7 @@ export function useEmployees() {
    * and links it to the employee. This expense will appear as a credit in the employee's ledger.
    * @param {PaySalaryProps} props The salary payment details.
    */
-  const paySalary = useCallback(async ({ employee, amount, postingDate, period }: PaySalaryProps) => {
+  const paySalary = useCallback(async ({ employee, amount, postingDate, period, notes }: PaySalaryProps) => {
     const expenseDescription = `Salary for ${employee.name} for ${period}`;
 
     // Log the salary as a business expense, and tag it with the employee's ID
@@ -67,6 +68,7 @@ export function useEmployees() {
       amount: amount,
       employeeId: employee.id!, // Explicitly link the expense to the employee
       date: postingDate,
+      notes: notes,
     };
     
     await addExpense(expense);
