@@ -113,8 +113,8 @@ export function CashAdvanceForm() {
                                 <CommandItem
                                     value={c.id!}
                                     key={c.id}
-                                    onSelect={() => {
-                                        field.onChange(c.id);
+                                    onSelect={(currentValue) => {
+                                        field.onChange(currentValue === field.value ? '' : currentValue);
                                         setIsPopoverOpen(false);
                                     }}
                                 >
