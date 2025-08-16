@@ -111,10 +111,10 @@ export function CashAdvanceForm() {
                             <CommandGroup>
                                 {filteredCustomers.map((c) => (
                                 <CommandItem
-                                    value={c.id!}
+                                    value={c.name}
                                     key={c.id}
-                                    onSelect={(currentValue) => {
-                                        field.onChange(currentValue === field.value ? '' : currentValue);
+                                    onSelect={() => {
+                                        field.onChange(c.id!);
                                         setIsPopoverOpen(false);
                                     }}
                                 >
