@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -18,7 +19,7 @@ import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '
 import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
 import { Progress } from '@/components/ui/progress';
 import { useProducts } from '@/hooks/use-products';
-import { useGlobalDate } from '@/hooks/use-global-date.tsx';
+import { useGlobalDate } from '@/hooks/use-global-date';
 import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -64,7 +65,7 @@ export default function DashboardPage() {
         const to = globalDateRange.to ? endOfDay(globalDateRange.to) : endOfDay(globalDateRange.from);
 
         const filterByDate = (items: any[]) => items.filter(item => {
-            const itemDate = new Date(item.timestamp);
+            const itemDate = new Date(item.timestamp!);
             return itemDate >= from && itemDate <= to;
         });
 
@@ -369,5 +370,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-    

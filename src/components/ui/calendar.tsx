@@ -19,12 +19,13 @@ function Calendar({
   classNames,
   showOutsideDays = true,
   withQuickActions = false,
+  onSelect,
   ...props
 }: CalendarProps) {
 
   const handleSelect = (range: DateRange | undefined) => {
-    if (props.onSelect && typeof props.onSelect === 'function') {
-      props.onSelect(range as any, new Date(), {} as any);
+    if (onSelect && typeof onSelect === 'function') {
+      onSelect(range as any, new Date(), {} as any);
     }
   };
 
@@ -93,6 +94,7 @@ function Calendar({
             <ChevronRight className={cn("h-4 w-4", className)} {...props} />
           ),
         }}
+        onSelect={handleSelect}
         {...props}
       />
     </div>

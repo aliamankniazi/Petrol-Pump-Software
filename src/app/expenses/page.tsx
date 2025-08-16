@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
@@ -13,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Receipt, ListChecks, WalletCards, Calendar as CalendarIcon, Trash2, AlertTriangle, LayoutDashboard, X, Search } from 'lucide-react';
 import type { ExpenseCategory, Expense } from '@/lib/types';
-import { format, isSameDay } from 'date-fns';
+import { format, isSameDay, startOfDay, endOfDay } from 'date-fns';
 import { useExpenses } from '@/hooks/use-expenses';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -22,7 +23,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Textarea } from '@/components/ui/textarea';
-import { useGlobalDate } from '@/hooks/use-global-date.tsx';
+import { useGlobalDate } from '@/hooks/use-global-date';
 import { DateRange } from 'react-day-picker';
 
 const EXPENSE_CATEGORIES: ExpenseCategory[] = ['Utilities', 'Salaries', 'Maintenance', 'Other'];
@@ -95,8 +96,8 @@ export default function ExpensesPage() {
     let validExpenses = expenses.filter(expense => expense.timestamp && !isNaN(new Date(expense.timestamp).getTime()));
 
     if (globalDateRange?.from) {
-      const from = globalDateRange.from;
-      const to = globalDateRange.to || from;
+      const from = startOfDay(globalDateRange.from);
+      const to = globalDateRange.to ? endOfDay(globalDateRange.to) : endOfDay(globalDateRange.from);
       validExpenses = validExpenses.filter(expense => {
         const expenseDate = new Date(expense.timestamp!);
         return expenseDate >= from && expenseDate <= to;
@@ -282,7 +283,12 @@ export default function ExpensesPage() {
                             mode="range"
                             defaultMonth={globalDateRange?.from}
                             selected={globalDateRange}
-                            onSelect={setGlobalDateRange}
+                            onSelect={(range) => {
+                              setGlobalDateRange(range);
+                              if (range?.from && range.to) {
+                                setIsCalendarOpen(false);
+                              }
+                            }}
                             numberOfMonths={2}
                             withQuickActions
                         />

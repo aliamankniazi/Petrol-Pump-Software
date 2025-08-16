@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -19,7 +20,7 @@ import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useProducts } from '@/hooks/use-products';
-import { useGlobalDate } from '@/hooks/use-global-date.tsx';
+import { useGlobalDate } from '@/hooks/use-global-date';
 
 
 export default function InvoicesPage() {

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo, useState, useCallback, useEffect } from 'react';
@@ -31,7 +32,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { DateRange } from 'react-day-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useGlobalDate } from '@/hooks/use-global-date.tsx';
+import { useGlobalDate } from '@/hooks/use-global-date';
 
 
 type CombinedEntry = {
@@ -124,17 +125,16 @@ export default function AllTransactionsPage() {
 
   const filteredEntries = useMemo(() => {
     return combinedEntries.filter(entry => {
-      const entryDate = new Date(entry.timestamp);
       
-      const isInDateRange = !globalDateRange?.from || (
-          entryDate >= startOfDay(globalDateRange.from) &&
-          (!globalDateRange.to || entryDate <= endOfDay(globalDateRange.to))
-      );
-
-      if (!isInDateRange) {
-        return false;
+      if (globalDateRange?.from) {
+          const entryDate = new Date(entry.timestamp);
+          const from = startOfDay(globalDateRange.from);
+          const to = globalDateRange.to ? endOfDay(globalDateRange.to) : endOfDay(globalDateRange.from);
+          if (entryDate < from || entryDate > to) {
+              return false;
+          }
       }
-      
+
       if (typeFilter !== 'all' && entry.type !== typeFilter) {
           return false;
       }

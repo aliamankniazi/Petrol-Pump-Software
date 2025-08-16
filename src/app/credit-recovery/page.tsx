@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -19,7 +20,7 @@ import { cn } from '@/lib/utils';
 import type { Customer } from '@/lib/types';
 import Link from 'next/link';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { useGlobalDate } from '@/hooks/use-global-date.tsx';
+import { useGlobalDate } from '@/hooks/use-global-date';
 
 
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (

@@ -34,7 +34,8 @@ import Link from 'next/link';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
 import { useCashAdvances } from '@/hooks/use-cash-advances';
 import { Input } from '@/components/ui/input';
-import { useGlobalDate } from '@/hooks/use-global-date.tsx';
+import { useGlobalDate } from '@/hooks/use-global-date';
+import { DateRange } from 'react-day-picker';
 
 type LedgerEntry = {
   id: string;
@@ -114,7 +115,7 @@ export default function LedgerPage() {
       combined.push({
         id: `sp-${sp.id}`,
         timestamp: sp.timestamp!,
-        description: `Payment to ${sp.supplierName} ${sp.notes ? `- ${sp.notes}`: ''}`,
+        description: `Payment to ${sp.supplierName} ${sp.notes ? `- ${sp.notes}` : ''}`,
         type: 'Supplier Payment',
         debit: sp.amount,
         credit: 0,
@@ -368,10 +369,10 @@ export default function LedgerPage() {
                         mode="range"
                         selected={globalDateRange}
                         onSelect={(range) => {
-                            setGlobalDateRange(range);
-                            if (range?.from && range.to) {
-                                setIsCalendarOpen(false);
-                            }
+                          setGlobalDateRange(range);
+                          if (range?.from && range.to) {
+                            setIsCalendarOpen(false);
+                          }
                         }}
                         initialFocus
                         withQuickActions
