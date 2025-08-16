@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { format } from 'date-fns';
@@ -31,6 +32,7 @@ interface InvoiceData {
     number: string;
   }
   recentTransactions?: LedgerEntry[];
+  notes?: string;
 }
 
 const companyDetails = {
@@ -138,6 +140,12 @@ export function Invoice({ data }: { data: InvoiceData }) {
                     <h3 className="font-semibold text-gray-500 mb-1">Amount in Words:</h3>
                     <p className="capitalize font-medium text-gray-800">{totalAmountInWords} rupees only.</p>
                 </div>
+                 {data.notes && (
+                    <div>
+                        <h3 className="font-semibold text-gray-500 mb-1">Notes:</h3>
+                        <p className="text-gray-800 text-xs italic border-l-2 border-gray-300 pl-2">{data.notes}</p>
+                    </div>
+                )}
             </div>
             <div className="col-span-1">
                 <table className="w-full">

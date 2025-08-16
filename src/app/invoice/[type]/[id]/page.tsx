@@ -134,6 +134,7 @@ export default function InvoicePage() {
           paymentMethod: transaction.paymentMethod,
           bankDetails: bankAccount ? { name: bankAccount.bankName, number: bankAccount.accountNumber } : undefined,
           recentTransactions: recentLedger,
+          notes: transaction.notes,
         };
       }
     } else if (type === 'purchase') {
@@ -162,6 +163,7 @@ export default function InvoicePage() {
           totalAmount: purchase.totalCost,
           expenses: purchase.expenses,
           paymentMethod: 'Credit', // Purchases are assumed to be on credit
+          notes: purchase.notes,
         };
       }
     }
