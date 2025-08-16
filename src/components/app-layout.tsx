@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -48,6 +47,7 @@ const navItems = [
         { href: '/purchases', label: 'Purchases', icon: ShoppingCart },
         { href: '/purchase-returns', label: 'Purchase Returns', icon: Undo2 },
         { href: '/suppliers', label: 'Suppliers', icon: Truck },
+        { href: '/partner-ledger', label: 'Supplier Ledger', icon: BookOpen },
     ]
   },
   {
