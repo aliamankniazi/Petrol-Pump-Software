@@ -196,6 +196,7 @@ export interface SupplierPayment {
   timestamp?: string;
   isSalary?: boolean; // Custom flag to identify salary payments
   date: Date;
+  notes?: string;
 }
 
 export interface CashAdvance {

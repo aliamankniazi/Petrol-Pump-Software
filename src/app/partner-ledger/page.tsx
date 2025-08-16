@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
@@ -170,7 +171,7 @@ export default function UnifiedLedgerPage() {
             entityName: sp.supplierName,
             entityType: 'Supplier',
             type: 'Supplier Payment',
-            description: `Payment Made (${sp.paymentMethod})`,
+            description: `Payment Made (${sp.paymentMethod}) ${sp.notes ? `- ${sp.notes}` : ''}`,
             debit: sp.amount,
             credit: 0,
         });

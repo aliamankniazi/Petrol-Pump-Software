@@ -20,12 +20,14 @@ import { useSuppliers } from '@/hooks/use-suppliers';
 import { useSupplierBalance } from '@/hooks/use-supplier-balance';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Textarea } from '@/components/ui/textarea';
 
 const supplierPaymentSchema = z.object({
   supplierId: z.string().min(1, 'Please select a supplier.'),
   amount: z.coerce.number().min(0.01, 'Amount must be greater than 0'),
   paymentMethod: z.enum(['Cash', 'Bank', 'Mobile'], { required_error: 'Please select a payment method.' }),
   date: z.date({ required_error: "A date is required."}),
+  notes: z.string().optional(),
 });
 
 type SupplierPaymentFormValues = z.infer<typeof supplierPaymentSchema>;
@@ -37,6 +39,8 @@ export function SupplierPaymentForm() {
 
   const [isClient, setIsClient] = useState(false);
   const [supplierSearch, setSupplierSearch] = useState('');
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -53,6 +57,7 @@ export function SupplierPaymentForm() {
       paymentMethod: 'Cash',
       supplierId: '',
       amount: 0,
+      notes: '',
       date: new Date(),
     }
   });
@@ -74,7 +79,7 @@ export function SupplierPaymentForm() {
       description: `Payment of PKR ${data.amount} to ${supplier.name} has been logged.`,
     });
     const lastDate = watch('date');
-    reset({ supplierId: '', amount: 0, date: lastDate, paymentMethod: 'Cash' });
+    reset({ supplierId: '', amount: 0, date: lastDate, paymentMethod: 'Cash', notes: '' });
   };
 
   if (!isClient) {
@@ -89,7 +94,7 @@ export function SupplierPaymentForm() {
             name="supplierId"
             control={control}
             render={({ field }) => (
-                <Popover>
+                <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
                     <PopoverTrigger asChild>
                         <Button variant="outline" role="combobox" className="w-full justify-between">
                             {field.value ? suppliers.find(s => s.id === field.value)?.name : "Select a supplier"}
@@ -103,7 +108,7 @@ export function SupplierPaymentForm() {
                                 <CommandEmpty>No supplier found.</CommandEmpty>
                                 <CommandGroup>
                                     {filteredSuppliers.map(s => (
-                                        <CommandItem key={s.id} value={s.id!} onSelect={currentValue => field.onChange(currentValue === field.value ? "" : currentValue)}>
+                                        <CommandItem key={s.id} value={s.id!} onSelect={() => { field.onChange(s.id); setIsPopoverOpen(false); }}>
                                             <Check className={cn("mr-2 h-4 w-4", field.value === s.id ? "opacity-100" : "opacity-0")} />
                                             {s.name}
                                         </CommandItem>
@@ -157,6 +162,11 @@ export function SupplierPaymentForm() {
             )}
         />
             {errors.paymentMethod && <p className="text-sm text-destructive">{errors.paymentMethod.message}</p>}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="notes">Notes (Optional)</Label>
+          <Textarea id="notes" {...register('notes')} placeholder="e.g., Invoice #123, full settlement" />
         </div>
 
         <div className="space-y-2">
