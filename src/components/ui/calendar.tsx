@@ -3,7 +3,7 @@
 
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker, type DateRange } from "react-day-picker"
+import { DayPicker, type DateRange, type SelectSingleEventHandler, type SelectRangeEventHandler } from "react-day-picker"
 import { addDays, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns"
 
 import { cn } from "@/lib/utils"
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
   withQuickActions?: boolean;
+  onSelectAndClose?: () => void;
 }
 
 function Calendar({
@@ -20,22 +21,42 @@ function Calendar({
   showOutsideDays = true,
   withQuickActions = false,
   onSelect,
+  onSelectAndClose,
+  mode,
   ...props
 }: CalendarProps) {
 
-  const handleSelect = (range: DateRange | undefined) => {
+  const handleSelect = (day: any, selectedDay: any, modifiers: any) => {
+    if (onSelect) {
+      (onSelect as any)(day, selectedDay, modifiers);
+    }
+
+    // If a selection is made (and it's not just clearing), close the popover.
+    // In range mode, this closes after the second date is selected.
+    const shouldClose = mode === 'single' ? !!day : (day?.from && day?.to);
+    
+    if (shouldClose && onSelectAndClose) {
+      onSelectAndClose();
+    }
+  };
+  
+  const handleQuickActionSelect = (range: DateRange | undefined) => {
     if (onSelect && typeof onSelect === 'function') {
-      onSelect(range as any, new Date(), {} as any);
+      (onSelect as SelectRangeEventHandler)(range, new Date(), {} as any);
+    }
+     if (onSelectAndClose) {
+      onSelectAndClose();
     }
   };
 
+
   const quickActions = [
-    { label: "Today", action: () => handleSelect({ from: new Date(), to: new Date() })},
-    { label: "Yesterday", action: () => handleSelect({ from: subDays(new Date(), 1), to: subDays(new Date(), 1) })},
-    { label: "This Week", action: () => handleSelect({ from: startOfWeek(new Date()), to: endOfWeek(new Date()) })},
-    { label: "Last 7 Days", action: () => handleSelect({ from: subDays(new Date(), 6), to: new Date() })},
-    { label: "This Month", action: () => handleSelect({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })},
-    { label: "Last Month", action: () => handleSelect({ from: startOfMonth(subDays(new Date(), 30)), to: endOfMonth(subDays(new Date(), 30)) })},
+    { label: "Today", action: () => handleQuickActionSelect({ from: new Date(), to: new Date() })},
+    { label: "Yesterday", action: () => handleQuickActionSelect({ from: subDays(new Date(), 1), to: subDays(new Date(), 1) })},
+    { label: "This Week", action: () => handleQuickActionSelect({ from: startOfWeek(new Date()), to: endOfWeek(new Date()) })},
+    { label: "Last 7 Days", action: () => handleQuickActionSelect({ from: subDays(new Date(), 6), to: new Date() })},
+    { label: "This Month", action: () => handleQuickActionSelect({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })},
+    { label: "Last Month", action: () => handleQuickActionSelect({ from: startOfMonth(subDays(new Date(), 30)), to: endOfMonth(subDays(new Date(), 30)) })},
   ]
 
   return (
@@ -95,6 +116,7 @@ function Calendar({
           ),
         }}
         onSelect={handleSelect}
+        mode={mode}
         {...props}
       />
     </div>

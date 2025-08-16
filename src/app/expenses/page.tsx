@@ -48,6 +48,8 @@ export default function ExpensesPage() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isFormCalendarOpen, setIsFormCalendarOpen] = useState(false);
+
   
   const [isClient, setIsClient] = useState(false);
 
@@ -180,7 +182,7 @@ export default function ExpensesPage() {
                     name="date"
                     control={control}
                     render={({ field }) => (
-                      <Popover>
+                      <Popover open={isFormCalendarOpen} onOpenChange={setIsFormCalendarOpen}>
                         <PopoverTrigger asChild>
                           <Button
                             variant={"outline"}
@@ -198,6 +200,7 @@ export default function ExpensesPage() {
                             mode="single"
                             selected={field.value}
                             onSelect={field.onChange}
+                            onSelectAndClose={() => setIsFormCalendarOpen(false)}
                             initialFocus
                           />
                         </PopoverContent>
@@ -283,12 +286,8 @@ export default function ExpensesPage() {
                             mode="range"
                             defaultMonth={globalDateRange?.from}
                             selected={globalDateRange}
-                            onSelect={(range) => {
-                              setGlobalDateRange(range);
-                              if (range?.from && range.to) {
-                                setIsCalendarOpen(false);
-                              }
-                            }}
+                            onSelect={setGlobalDateRange}
+                            onSelectAndClose={() => setIsCalendarOpen(false)}
                             numberOfMonths={2}
                             withQuickActions
                         />

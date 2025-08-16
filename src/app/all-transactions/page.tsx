@@ -271,12 +271,8 @@ export default function AllTransactionsPage() {
                             mode="range"
                             defaultMonth={globalDateRange?.from}
                             selected={globalDateRange}
-                            onSelect={(range) => {
-                                setGlobalDateRange(range);
-                                if (range?.from && range.to) {
-                                    setIsCalendarOpen(false);
-                                }
-                            }}
+                            onSelect={setGlobalDateRange}
+                            onSelectAndClose={() => setIsCalendarOpen(false)}
                             numberOfMonths={2}
                             withQuickActions
                         />

@@ -96,7 +96,6 @@ export default function AttendancePage() {
   const handleDateChange = (date: Date | undefined) => {
     if (date) {
       setSelectedDate(date);
-      setIsCalendarOpen(false);
     }
   };
 
@@ -190,6 +189,7 @@ export default function AttendancePage() {
                       mode="single"
                       selected={selectedDate}
                       onSelect={handleDateChange}
+                      onSelectAndClose={() => setIsCalendarOpen(false)}
                       initialFocus
                     />
                   </PopoverContent>
