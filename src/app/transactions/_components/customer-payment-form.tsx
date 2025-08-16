@@ -40,6 +40,8 @@ export function CustomerPaymentForm() {
   
   const [isClient, setIsClient] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -93,7 +95,7 @@ export function CustomerPaymentForm() {
                 name="customerId"
                 control={control}
                 render={({ field }) => (
-                <Popover>
+                <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
                     <PopoverTrigger asChild>
                         <Button variant="outline" role="combobox" className="w-full justify-between">
                             {field.value ? customers.find(c => c.id === field.value)?.name : "Select a customer"}
@@ -107,7 +109,7 @@ export function CustomerPaymentForm() {
                                 <CommandEmpty>No customer found.</CommandEmpty>
                                 <CommandGroup>
                                     {filteredCustomers.map(c => (
-                                        <CommandItem key={c.id} value={c.id!} onSelect={currentValue => field.onChange(currentValue === field.value ? "" : currentValue)}>
+                                        <CommandItem key={c.id} value={c.name} onSelect={() => { field.onChange(c.id!); setIsPopoverOpen(false); }}>
                                             <Check className={cn("mr-2 h-4 w-4", field.value === c.id ? "opacity-100" : "opacity-0")} />
                                             {c.name}
                                         </CommandItem>

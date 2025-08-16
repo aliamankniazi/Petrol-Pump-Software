@@ -108,7 +108,7 @@ export function SupplierPaymentForm() {
                                 <CommandEmpty>No supplier found.</CommandEmpty>
                                 <CommandGroup>
                                     {filteredSuppliers.map(s => (
-                                        <CommandItem key={s.id} value={s.id!} onSelect={() => { field.onChange(s.id); setIsPopoverOpen(false); }}>
+                                        <CommandItem key={s.id} value={s.name} onSelect={() => { field.onChange(s.id!); setIsPopoverOpen(false); }}>
                                             <Check className={cn("mr-2 h-4 w-4", field.value === s.id ? "opacity-100" : "opacity-0")} />
                                             {s.name}
                                         </CommandItem>
