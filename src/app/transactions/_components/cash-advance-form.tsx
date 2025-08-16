@@ -97,7 +97,7 @@ export function CashAdvanceForm() {
                         role="combobox"
                         className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
                     >
-                        {field.value
+                        {field.value && customersLoaded
                         ? customers.find((c) => c.id === field.value)?.name
                         : "Select a person"}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -184,6 +184,12 @@ export function CashAdvanceForm() {
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
+                    onSelectAndClose={() => {
+                        const popoverTrigger = document.querySelector('[aria-controls="radix-popover-content-"][data-state="open"]');
+                        if (popoverTrigger instanceof HTMLElement) {
+                            popoverTrigger.click();
+                        }
+                    }}
                     initialFocus
                 />
                 </PopoverContent>
