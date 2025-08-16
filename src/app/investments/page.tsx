@@ -44,6 +44,8 @@ export default function InvestmentsPage() {
   
   const [isClient, setIsClient] = useState(false);
   const [partnerSearch, setPartnerSearch] = useState('');
+  const [isPartnerPopoverOpen, setIsPartnerPopoverOpen] = useState(false);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -194,7 +196,7 @@ export default function InvestmentsPage() {
                   name="partnerId"
                   control={controlInvestment}
                   render={({ field }) => (
-                    <Popover>
+                    <Popover open={isPartnerPopoverOpen} onOpenChange={setIsPartnerPopoverOpen}>
                         <PopoverTrigger asChild>
                             <Button
                             variant="outline"
@@ -219,6 +221,7 @@ export default function InvestmentsPage() {
                                         value={p.id!}
                                         onSelect={(currentValue) => {
                                             field.onChange(currentValue === field.value ? "" : currentValue)
+                                            setIsPartnerPopoverOpen(false);
                                         }}
                                         >
                                         <Check

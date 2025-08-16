@@ -37,6 +37,8 @@ export default function TankManagementPage() {
   
   const [isClient, setIsClient] = useState(false);
   const [productSearch, setProductSearch] = useState('');
+  const [isTankPopoverOpen, setIsTankPopoverOpen] = useState(false);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -105,7 +107,7 @@ export default function TankManagementPage() {
                   name="productId"
                   control={control}
                   render={({ field }) => (
-                    <Popover>
+                    <Popover open={isTankPopoverOpen} onOpenChange={setIsTankPopoverOpen}>
                         <PopoverTrigger asChild>
                             <Button variant="outline" role="combobox" className="w-full justify-between">
                                 {field.value ? fuelProducts.find(p => p.id === field.value)?.name : "Select a tank"}
@@ -119,7 +121,10 @@ export default function TankManagementPage() {
                                     <CommandEmpty>No tank found.</CommandEmpty>
                                     <CommandGroup>
                                         {filteredProducts.map(p => (
-                                            <CommandItem key={p.id} value={p.id!} onSelect={currentValue => field.onChange(currentValue === field.value ? "" : currentValue)}>
+                                            <CommandItem key={p.id} value={p.id!} onSelect={currentValue => {
+                                                field.onChange(currentValue === field.value ? "" : currentValue);
+                                                setIsTankPopoverOpen(false);
+                                            }}>
                                                 <Check className={cn("mr-2 h-4 w-4", field.value === p.id ? "opacity-100" : "opacity-0")} />
                                                 {p.name} Tank
                                             </CommandItem>

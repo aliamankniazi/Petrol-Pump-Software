@@ -43,6 +43,9 @@ export default function PurchaseReturnsPage() {
   const [isClient, setIsClient] = useState(false);
   const [supplierSearch, setSupplierSearch] = useState('');
   const [productSearch, setProductSearch] = useState('');
+  const [isSupplierPopoverOpen, setIsSupplierPopoverOpen] = useState(false);
+  const [isProductPopoverOpen, setIsProductPopoverOpen] = useState(false);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -119,7 +122,7 @@ export default function PurchaseReturnsPage() {
                   name="supplierId"
                   control={control}
                   render={({ field }) => (
-                    <Popover>
+                    <Popover open={isSupplierPopoverOpen} onOpenChange={setIsSupplierPopoverOpen}>
                         <PopoverTrigger asChild>
                             <Button variant="outline" role="combobox" className="w-full justify-between">
                                 {field.value ? suppliers.find(s => s.id === field.value)?.name : "Select a supplier"}
@@ -133,7 +136,10 @@ export default function PurchaseReturnsPage() {
                                     <CommandEmpty>No supplier found.</CommandEmpty>
                                     <CommandGroup>
                                         {filteredSuppliers.map(s => (
-                                            <CommandItem key={s.id} value={s.id!} onSelect={currentValue => field.onChange(currentValue === field.value ? "" : currentValue)}>
+                                            <CommandItem key={s.id} value={s.id!} onSelect={currentValue => {
+                                                field.onChange(currentValue === field.value ? "" : currentValue);
+                                                setIsSupplierPopoverOpen(false);
+                                            }}>
                                                 <Check className={cn("mr-2 h-4 w-4", field.value === s.id ? "opacity-100" : "opacity-0")} />
                                                 {s.name}
                                             </CommandItem>
@@ -154,7 +160,7 @@ export default function PurchaseReturnsPage() {
                   name="productId"
                   control={control}
                   render={({ field }) => (
-                     <Popover>
+                     <Popover open={isProductPopoverOpen} onOpenChange={setIsProductPopoverOpen}>
                         <PopoverTrigger asChild>
                             <Button variant="outline" role="combobox" className="w-full justify-between">
                                 {field.value ? products.find(p => p.id === field.value)?.name : "Select a product"}
@@ -168,7 +174,10 @@ export default function PurchaseReturnsPage() {
                                     <CommandEmpty>No product found.</CommandEmpty>
                                     <CommandGroup>
                                         {filteredProducts.map(p => (
-                                            <CommandItem key={p.id} value={p.id!} onSelect={currentValue => field.onChange(currentValue === field.value ? "" : currentValue)}>
+                                            <CommandItem key={p.id} value={p.id!} onSelect={currentValue => {
+                                                field.onChange(currentValue === field.value ? "" : currentValue);
+                                                setIsProductPopoverOpen(false);
+                                            }}>
                                                 <Check className={cn("mr-2 h-4 w-4", field.value === p.id ? "opacity-100" : "opacity-0")} />
                                                 {p.name}
                                             </CommandItem>

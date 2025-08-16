@@ -18,10 +18,18 @@ export const ProductSelection = forwardRef<HTMLButtonElement, ProductSelectionPr
   ({ onProductSelect }, ref) => {
     const { products, isLoaded: productsLoaded } = useProducts();
     const [isOpen, setIsOpen] = useState(false);
+    const [search, setSearch] = useState('');
+
+    const filteredProducts = useMemo(() => {
+        if (!productsLoaded) return [];
+        if (!search) return products;
+        return products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+    }, [products, search, productsLoaded]);
 
     const handleSelect = (product: Product) => {
       onProductSelect(product);
       setIsOpen(false);
+      setSearch(''); // Reset search
     };
 
     return (
@@ -34,11 +42,11 @@ export const ProductSelection = forwardRef<HTMLButtonElement, ProductSelectionPr
         </PopoverTrigger>
         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
           <Command>
-            <CommandInput placeholder="Search product..." />
+            <CommandInput placeholder="Search product..." onValueChange={setSearch} />
             <CommandList>
               <CommandEmpty>No product found.</CommandEmpty>
               <CommandGroup>
-                {products.map((p) => (
+                {filteredProducts.map((p) => (
                   <CommandItem
                     key={p.id}
                     value={p.name}
