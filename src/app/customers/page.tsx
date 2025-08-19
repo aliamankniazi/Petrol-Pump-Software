@@ -309,7 +309,7 @@ export default function CustomersPage() {
                 ) : (
                   <TableRow>
                       <TableCell colSpan={3} className="h-24 text-center">
-                          Loading customers...
+                          <p className="text-muted-foreground">Loading customers...</p>
                       </TableCell>
                   </TableRow>
                 )}

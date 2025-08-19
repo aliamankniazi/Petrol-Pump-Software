@@ -37,7 +37,7 @@ export function useTransactions() {
             customerId: transaction.customerId,
             customerName: transaction.customerName,
             amount: transaction.paidAmount,
-            paymentMethod: transaction.paymentMethod as 'Cash' | 'Card' | 'Mobile',
+            paymentMethod: transaction.paymentMethod as 'Cash' | 'Bank' | 'Mobile',
             date: transaction.date,
         });
     }
@@ -54,19 +54,19 @@ export function useTransactions() {
     return newDoc;
   }, [addDoc, products, updateProductStock, addCustomerPayment, addExpense]);
   
-  const deleteTransaction = useCallback((id: string) => {
+  const deleteTransaction = useCallback(async (id: string) => {
     const transactionToDelete = transactions.find(t => t.id === id);
     if (!transactionToDelete) return;
     
-    transactionToDelete.items.forEach((item: SaleItem) => {
-        const product = products.find(p => p.id === item.productId);
-        if (product && product.id) {
-            const newStock = (product.stock || 0) + item.quantity;
-            updateProductStock(product.id, newStock);
-        }
-    });
+    for (const item of transactionToDelete.items) {
+      const product = products.find(p => p.id === item.productId);
+      if (product && product.id) {
+          const newStock = (product.stock || 0) + item.quantity;
+          await updateProductStock(product.id, newStock);
+      }
+    }
     
-    deleteDoc(id);
+    await deleteDoc(id);
   }, [deleteDoc, transactions, products, updateProductStock]);
 
   return { 

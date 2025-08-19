@@ -156,12 +156,10 @@ export function SaleForm() {
 
   }, [addTransaction, customers, reset, toast]);
 
-
-   useEffect(() => {
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
 
-      // Handle Enter key to move to the next field
       if (event.key === 'Enter' && target instanceof HTMLInputElement) {
         event.preventDefault();
         const form = formRef.current;
@@ -183,13 +181,11 @@ export function SaleForm() {
         }
       }
       
-      // Save shortcut
       if ((event.ctrlKey || event.metaKey) && event.key === 's') {
         event.preventDefault();
         handleSubmit(onSubmit)();
       }
        
-      // Focus customer shortcut
       if (event.key.toLowerCase() === 'a' && target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
           event.preventDefault();
           customerSelectionRef.current?.click();
@@ -239,7 +235,7 @@ export function SaleForm() {
 
   }, [productsLoaded, transactions]);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = useCallback(() => {
       const { product, quantity, price, discountAmt, gstPercent, bonusQty } = currentItem;
       if (!product) {
           toast({ variant: 'destructive', title: 'Error', description: 'Please select a product first.' });
@@ -264,7 +260,7 @@ export function SaleForm() {
 
       setCurrentItem(defaultItemState); // Reset for next item
       productSelectionRef.current?.focus();
-  };
+  }, [append, currentItem, toast]);
   
   const handleCustomerSelect = (customerId: string) => {
     setValue('customerId', customerId);

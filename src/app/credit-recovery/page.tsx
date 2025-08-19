@@ -229,12 +229,8 @@ Mianwali Petroleum Service`;
                                         mode="range"
                                         defaultMonth={globalDateRange?.from}
                                         selected={globalDateRange}
-                                        onSelect={(range) => {
-                                            setGlobalDateRange(range);
-                                            if (range?.from && range.to) {
-                                                setIsCalendarOpen(false);
-                                            }
-                                        }}
+                                        onSelect={setGlobalDateRange}
+                                        onSelectAndClose={() => setIsCalendarOpen(false)}
                                         numberOfMonths={2}
                                         withQuickActions
                                     />
@@ -288,7 +284,7 @@ Mianwali Petroleum Service`;
                                         <TableCell className="text-right font-mono font-bold">{row.previousBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                                         <TableCell className="text-right font-mono font-bold text-destructive">{row.sale.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                                         <TableCell className="text-right font-mono font-bold text-green-600">{row.recovery.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
-                                        <TableCell className={`text-right font-bold font-mono ${row.currentBalance < 0 ? 'text-green-600' : 'text-destructive'}`}>
+                                        <TableCell className={`text-right font-bold font-mono ${row.currentBalance >= 0 ? 'text-destructive' : 'text-green-600'}`}>
                                             {row.currentBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </TableCell>
                                         <TableCell className="text-center print:hidden">

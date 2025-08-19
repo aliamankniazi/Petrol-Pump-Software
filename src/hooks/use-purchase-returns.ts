@@ -12,12 +12,12 @@ export function usePurchaseReturns() {
   const { data: purchaseReturns, addDoc, deleteDoc, loading } = useDatabaseCollection<PurchaseReturn>(COLLECTION_NAME);
   const { products, updateProductStock } = useProducts();
 
-  const addPurchaseReturn = useCallback((purchaseReturn: Omit<PurchaseReturn, 'id'>) => {
+  const addPurchaseReturn = useCallback(async (purchaseReturn: Omit<PurchaseReturn, 'id'>) => {
     const returnWithTimestamp = {
       ...purchaseReturn,
       timestamp: purchaseReturn.date.toISOString(),
     }
-    addDoc(returnWithTimestamp);
+    await addDoc(returnWithTimestamp);
 
     const product = products.find(p => p.id === purchaseReturn.productId);
     if(product) {
@@ -27,17 +27,17 @@ export function usePurchaseReturns() {
 
   }, [addDoc, products, updateProductStock]);
 
-  const deletePurchaseReturn = useCallback((id: string) => {
+  const deletePurchaseReturn = useCallback(async (id: string) => {
      const returnToDelete = purchaseReturns.find(pr => pr.id === id);
     if (!returnToDelete) return;
 
     const product = products.find(p => p.id === returnToDelete.productId);
     if(product) {
         const newStock = (product.stock || 0) + returnToDelete.volume;
-        updateProductStock(product.id!, newStock);
+        await updateProductStock(product.id!, newStock);
     }
     
-    deleteDoc(id);
+    await deleteDoc(id);
   }, [deleteDoc, purchaseReturns, products, updateProductStock]);
 
   return { 

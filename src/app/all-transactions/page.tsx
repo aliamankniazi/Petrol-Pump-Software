@@ -209,6 +209,12 @@ export default function AllTransactionsPage() {
     }
   }, [entryToDelete, deleteTransaction, deletePurchase, deletePurchaseReturn, toast]);
 
+  const clearFilters = useCallback(() => {
+    setGlobalDateRange(undefined);
+    setTypeFilter('all');
+    setSearchTerm('');
+  }, [setGlobalDateRange]);
+
 
   return (
     <>
@@ -278,8 +284,8 @@ export default function AllTransactionsPage() {
                         />
                     </PopoverContent>
                 </Popover>
-                 {(globalDateRange || typeFilter !== 'all') && (
-                    <Button variant="ghost" size="icon" onClick={() => { setGlobalDateRange(undefined); setTypeFilter('all'); }}>
+                 {(globalDateRange || typeFilter !== 'all' || searchTerm) && (
+                    <Button variant="ghost" size="icon" onClick={clearFilters}>
                         <X className="h-4 w-4" />
                     </Button>
                  )}

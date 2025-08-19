@@ -14,7 +14,7 @@ export function useTankReadings() {
   const { products, updateProductStock } = useProducts();
   const { transactions } = useTransactions();
 
-  const addTankReading = useCallback((reading: Omit<TankReading, 'id' | 'calculatedUsage' | 'salesSinceLastReading' | 'variance'>) => {
+  const addTankReading = useCallback(async (reading: Omit<TankReading, 'id' | 'calculatedUsage' | 'salesSinceLastReading' | 'variance'>) => {
     
     // Find the previous reading for the same tank
     const lastReading = tankReadings
@@ -50,14 +50,14 @@ export function useTankReadings() {
       variance,
     }
 
-    addDoc(readingWithCalculations);
+    await addDoc(readingWithCalculations);
     
     // Update the stock of that product by decrementing the usage
     if (reading.productId && calculatedUsage > 0) {
       const product = products.find(p => p.id === reading.productId);
       if (product) {
         const newStock = (product.stock || 0) - calculatedUsage;
-        updateProductStock(reading.productId, newStock);
+        await updateProductStock(reading.productId, newStock);
       }
     }
   }, [addDoc, updateProductStock, tankReadings, transactions, products]);

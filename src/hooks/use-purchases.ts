@@ -16,12 +16,12 @@ export function usePurchases() {
   const { addExpense } = useExpenses();
   const { addSupplierPayment } = useSupplierPayments();
 
-  const addPurchase = useCallback((purchase: Omit<Purchase, 'id' | 'timestamp'>) => {
+  const addPurchase = useCallback(async (purchase: Omit<Purchase, 'id' | 'timestamp'>) => {
     const purchaseWithTimestamp = {
       ...purchase,
       timestamp: purchase.date.toISOString(),
     }
-    const newDoc = addDoc(purchaseWithTimestamp);
+    const newDoc = await addDoc(purchaseWithTimestamp);
 
     // Update product stock based on purchased items
     purchase.items.forEach(item => {
