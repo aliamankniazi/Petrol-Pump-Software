@@ -55,9 +55,13 @@ export default function InvoicePage() {
 
   useEffect(() => {
     if (isLoaded && searchParams.get('print') === 'true') {
-      window.print();
+      const transaction = transactions.find(t => t.id === id);
+      const purchase = purchases.find(p => p.id === id);
+      if (transaction || purchase) {
+        window.print();
+      }
     }
-  }, [isLoaded, searchParams]);
+  }, [isLoaded, searchParams, transactions, purchases, id]);
 
   const invoiceData = useMemo(() => {
     if (!isLoaded) return null;
@@ -170,28 +174,36 @@ export default function InvoicePage() {
     return null;
   }, [isLoaded, type, id, transactions, purchases, customers, suppliers, bankAccounts, products, customerPayments, cashAdvances]);
 
+  const renderContent = () => {
+    if (!isLoaded) {
+      return (
+        <div className="space-y-4">
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      );
+    }
+
+    if (invoiceData) {
+      return <Invoice data={invoiceData} />;
+    }
+    
+    return <div className="text-center text-red-500 font-bold p-10">Invoice not found.</div>;
+  };
+
   return (
     <div className="bg-gray-100 dark:bg-gray-800 min-h-screen p-4 sm:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-4 flex justify-end gap-2 print:hidden">
-            <Button onClick={() => window.print()}>
+            <Button onClick={() => window.print()} disabled={!invoiceData}>
                 <Printer className="mr-2 h-4 w-4" />
                 Print Invoice
             </Button>
         </div>
         <div className="bg-white dark:bg-card shadow-lg rounded-lg p-8">
-            {isLoaded && invoiceData ? (
-                <Invoice data={invoiceData} />
-            ) : isLoaded && !invoiceData ? (
-                <div className="text-center text-red-500">Invoice not found.</div>
-            ) : (
-                <div className="space-y-4">
-                    <Skeleton className="h-20 w-full" />
-                    <Skeleton className="h-32 w-full" />
-                    <Skeleton className="h-48 w-full" />
-                    <Skeleton className="h-24 w-full" />
-                </div>
-            )}
+            {renderContent()}
         </div>
       </div>
     </div>
