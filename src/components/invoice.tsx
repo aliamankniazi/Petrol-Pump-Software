@@ -21,6 +21,7 @@ interface InvoiceData {
   partner: {
     name: string;
     contact: string;
+    area?: string;
     balance: number;
   };
   items: InvoiceItem[];
@@ -89,6 +90,7 @@ export function Invoice({ data }: { data: InvoiceData }) {
                 <p className="font-semibold text-gray-500 mb-1">Bill To:</p>
                 <p className="font-bold text-base text-gray-900">{data.partner.name}</p>
                 {data.partner.contact && <p className="text-gray-600">{data.partner.contact}</p>}
+                {data.partner.area && <p className="text-gray-600">{data.partner.area}</p>}
                 {data.bankDetails && (
                     <p className="text-gray-600 text-xs">Bank: {data.bankDetails.name} ({data.bankDetails.number})</p>
                 )}

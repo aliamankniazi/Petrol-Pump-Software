@@ -121,6 +121,7 @@ export default function InvoicePage() {
           partner: {
             name: transaction.customerName || 'Walk-in Customer',
             contact: customer?.contact || 'N/A',
+            area: customer?.area,
             balance: 0, 
           },
           items: transaction.items.map(item => {
