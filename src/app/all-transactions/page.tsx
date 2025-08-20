@@ -135,7 +135,7 @@ export default function AllTransactionsPage() {
           }
       }
 
-      if (typeFilter !== 'all' && entry.type !== typeFilter) {
+      if (typeFilter !== 'all' && entry.type.toLowerCase().replace(' ', '') !== typeFilter) {
           return false;
       }
 
@@ -235,9 +235,9 @@ export default function AllTransactionsPage() {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Types</SelectItem>
-                        <SelectItem value="Sale">Sale</SelectItem>
-                        <SelectItem value="Purchase">Purchase</SelectItem>
-                        <SelectItem value="Purchase Return">Purchase Return</SelectItem>
+                        <SelectItem value="sale">Sale</SelectItem>
+                        <SelectItem value="purchase">Purchase</SelectItem>
+                        <SelectItem value="purchasereturn">Purchase Return</SelectItem>
                     </SelectContent>
                  </Select>
                  <Input 

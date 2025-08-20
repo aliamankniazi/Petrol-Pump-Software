@@ -125,11 +125,7 @@ export function SaleForm() {
 
     const grandTotal = data.items.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
 
-    const newTransaction = await addTransaction({
-      ...data,
-      totalAmount: grandTotal,
-      customerName: isWalkIn ? 'Walk-in Customer' : customer?.name,
-    });
+    const newTransaction = await addTransaction(data, products);
     
     toast({
       title: 'Sale Recorded',
@@ -154,7 +150,7 @@ export function SaleForm() {
         referenceNo: '',
     });
 
-  }, [addTransaction, customers, reset, toast]);
+  }, [addTransaction, customers, reset, toast, products]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -196,7 +192,7 @@ export function SaleForm() {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleSubmit, onSubmit]);
+  }, [handleSubmit, onSubmit, handleAddToCart]);
 
   useEffect(() => {
       if (watchedCustomerId === 'walk-in') {

@@ -2,7 +2,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import type { Transaction, SaleItem } from '@/lib/types';
+import type { Transaction, SaleItem, Product } from '@/lib/types';
 import { useDatabaseCollection } from './use-database-collection';
 import { useProducts } from './use-products';
 import { useCustomerPayments } from './use-customer-payments';
@@ -12,11 +12,11 @@ const COLLECTION_NAME = 'transactions';
 
 export function useTransactions() {
   const { data: transactions, addDoc, deleteDoc, loading } = useDatabaseCollection<Transaction>(COLLECTION_NAME);
-  const { products, updateProductStock } = useProducts();
+  const { updateProductStock } = useProducts();
   const { addCustomerPayment } = useCustomerPayments();
   const { addExpense } = useExpenses();
 
-  const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id' | 'timestamp'>): Promise<Transaction> => {
+  const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id' | 'timestamp'>, products: Product[]): Promise<Transaction> => {
     const transactionWithTimestamp = {
       ...transaction,
       timestamp: transaction.date.toISOString(),
@@ -52,9 +52,9 @@ export function useTransactions() {
     }
 
     return newDoc;
-  }, [addDoc, products, updateProductStock, addCustomerPayment, addExpense]);
+  }, [addDoc, updateProductStock, addCustomerPayment, addExpense]);
   
-  const deleteTransaction = useCallback(async (id: string) => {
+  const deleteTransaction = useCallback(async (id: string, products: Product[]) => {
     const transactionToDelete = transactions.find(t => t.id === id);
     if (!transactionToDelete) return;
     
@@ -67,12 +67,15 @@ export function useTransactions() {
     }
     
     await deleteDoc(id);
-  }, [deleteDoc, transactions, products, updateProductStock]);
+  }, [deleteDoc, transactions, updateProductStock]);
+
+  const { products } = useProducts();
+  const deleteTransactionWithProducts = (id: string) => deleteTransaction(id, products);
 
   return { 
     transactions: transactions || [], 
     addTransaction, 
-    deleteTransaction, 
+    deleteTransaction: deleteTransactionWithProducts, 
     isLoaded: !loading 
   };
 }
