@@ -184,7 +184,7 @@ export default function PurchasesPage() {
     addPurchase({
       ...data,
       supplier: supplier.name, 
-      totalCost: subTotal,
+      totalCost: grandTotal,
     });
     toast({
       title: 'Purchase Recorded',

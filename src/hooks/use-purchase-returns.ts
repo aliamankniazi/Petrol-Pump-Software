@@ -17,13 +17,14 @@ export function usePurchaseReturns() {
       ...purchaseReturn,
       timestamp: purchaseReturn.date.toISOString(),
     }
-    await addDoc(returnWithTimestamp);
+    const newDoc = await addDoc(returnWithTimestamp);
 
     const product = products.find(p => p.id === purchaseReturn.productId);
     if(product) {
         const newStock = (product.stock || 0) - purchaseReturn.volume;
         updateProductStock(product.id!, newStock);
     }
+    return newDoc;
 
   }, [addDoc, products, updateProductStock]);
 

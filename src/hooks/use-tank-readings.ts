@@ -50,7 +50,7 @@ export function useTankReadings() {
       variance,
     }
 
-    await addDoc(readingWithCalculations);
+    const newDoc = await addDoc(readingWithCalculations);
     
     // Update the stock of that product by decrementing the usage
     if (reading.productId && calculatedUsage > 0) {
@@ -60,6 +60,7 @@ export function useTankReadings() {
         await updateProductStock(reading.productId, newStock);
       }
     }
+    return newDoc;
   }, [addDoc, updateProductStock, tankReadings, transactions, products]);
 
   return { 

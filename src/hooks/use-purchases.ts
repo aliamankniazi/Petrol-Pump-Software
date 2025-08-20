@@ -53,6 +53,7 @@ export function usePurchases() {
         });
     }
     
+    return newDoc;
   }, [addDoc, products, updateProductStock, addExpense, addSupplierPayment]);
   
   const updatePurchase = useCallback((id: string, originalPurchase: Purchase, updatedPurchase: Partial<Omit<Purchase, 'id' | 'timestamp'>>) => {
@@ -79,20 +80,20 @@ export function usePurchases() {
 
   }, [products, updateDoc, updateProductStock]);
 
-  const deletePurchase = useCallback((purchaseId: string) => {
+  const deletePurchase = useCallback(async (purchaseId: string) => {
     const purchaseToDelete = purchases.find(p => p.id === purchaseId);
     if (!purchaseToDelete) return;
 
     // Revert stock changes from the deleted purchase
-    purchaseToDelete.items.forEach(item => {
-        const product = products.find(p => p.id === item.productId);
-        if (product) {
-            const newStock = (product.stock || 0) - item.quantity;
-            updateProductStock(item.productId, newStock);
-        }
-    });
+    for (const item of purchaseToDelete.items) {
+      const product = products.find(p => p.id === item.productId);
+      if (product && product.id) {
+          const newStock = (product.stock || 0) - item.quantity;
+          await updateProductStock(product.id, newStock);
+      }
+    }
     
-    deleteDoc(purchaseToDelete.id!);
+    await deleteDoc(purchaseToDelete.id!);
   }, [deleteDoc, purchases, products, updateProductStock]);
   
   return { 
