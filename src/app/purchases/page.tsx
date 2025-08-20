@@ -65,7 +65,7 @@ const defaultItemState = {
     unit: '',
     quantity: 1,
     price: 0,
-    discount: 0,
+    totalAmount: 0,
 };
 
 export default function PurchasesPage() {
@@ -87,6 +87,11 @@ export default function PurchasesPage() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+  
+  useEffect(() => {
+    const { quantity, price } = currentItem;
+    setCurrentItem(prev => ({...prev, totalAmount: quantity * price}));
+  }, [currentItem.quantity, currentItem.price]);
 
   const { register, handleSubmit, reset, setValue, control, watch, getValues } = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseSchema),
@@ -148,13 +153,16 @@ export default function PurchasesPage() {
   };
   
   const handleAddItemToPurchase = useCallback(() => {
-    const { product, quantity, price, discount } = currentItem;
+    const { product, quantity, price, totalAmount } = currentItem;
     if (!product) {
         toast({ variant: 'destructive', title: 'Error', description: 'Please select a product first.' });
         return;
     }
     
-    const totalCost = (quantity * price) - discount;
+    if (quantity <= 0 || price <= 0) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Quantity and Price must be positive.' });
+        return;
+    }
 
     append({
         productId: product.id!,
@@ -162,8 +170,8 @@ export default function PurchasesPage() {
         unit: currentItem.unit || product.mainUnit,
         quantity: quantity,
         costPerUnit: price,
-        totalCost: totalCost,
-        discount: discount,
+        totalCost: totalAmount,
+        discount: 0,
     });
 
     setCurrentItem(defaultItemState); // Reset for next item
@@ -234,8 +242,8 @@ export default function PurchasesPage() {
                 <CardHeader>
                     <CardTitle>Add Items to Purchase</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
-                    <div className="lg:col-span-2 space-y-1">
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+                    <div className="lg:col-span-3 space-y-1">
                         <Label>Product</Label>
                         <ProductSelection onProductSelect={handleProductSelect} ref={productSelectionRef} />
                     </div>
@@ -263,8 +271,17 @@ export default function PurchasesPage() {
                         <Label>Price</Label>
                         <Input type="number" step="any" value={currentItem.price} onChange={e => setCurrentItem(p => ({...p, price: parseFloat(e.target.value) || 0}))} />
                     </div>
-                    <div className="lg:col-span-full">
-                         <Button type="button" onClick={handleAddItemToPurchase}><PlusCircle/>Add to Purchase</Button>
+                     <div className="space-y-1">
+                        <Label>Total Amount</Label>
+                        <Input type="number" step="any" value={currentItem.totalAmount} onChange={e => {
+                            const total = parseFloat(e.target.value) || 0;
+                            const price = currentItem.price;
+                            const newQty = price > 0 ? total / price : 0;
+                            setCurrentItem(p => ({...p, totalAmount: total, quantity: newQty }));
+                        }} />
+                    </div>
+                    <div className="lg:col-span-3">
+                         <Button type="button" onClick={handleAddItemToPurchase}><PlusCircle className="mr-2"/>Add to Purchase</Button>
                     </div>
                 </CardContent>
             </Card>
