@@ -153,48 +153,6 @@ export function SaleForm() {
   }, [addTransaction, customers, reset, toast, products]);
 
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement;
-
-      if (event.key === 'Enter' && target instanceof HTMLInputElement) {
-        event.preventDefault();
-        const form = formRef.current;
-        if (!form) return;
-
-        const focusable = Array.from(
-          form.querySelectorAll('input, button, select, textarea')
-        ) as HTMLElement[];
-        
-        const index = focusable.indexOf(target);
-        
-        if (index > -1 && index < focusable.length - 1) {
-            const nextElement = focusable[index + 1];
-            if (nextElement) {
-                nextElement.focus();
-            }
-        } else if (target.id === 'gstPercentInput') { // Special case for last item input
-            handleAddToCart();
-        }
-      }
-      
-      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
-        event.preventDefault();
-        handleSubmit(onSubmit)();
-      }
-       
-      if (event.key.toLowerCase() === 'a' && target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
-          event.preventDefault();
-          customerSelectionRef.current?.click();
-      }
-    };
-    
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [handleSubmit, onSubmit, handleAddToCart]);
-
-  useEffect(() => {
       if (watchedCustomerId === 'walk-in') {
         setValue('paymentMethod', 'Cash');
       } else {
@@ -257,6 +215,48 @@ export function SaleForm() {
       setCurrentItem(defaultItemState); // Reset for next item
       productSelectionRef.current?.focus();
   }, [append, currentItem, toast]);
+  
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+
+      if (event.key === 'Enter' && target instanceof HTMLInputElement) {
+        event.preventDefault();
+        const form = formRef.current;
+        if (!form) return;
+
+        const focusable = Array.from(
+          form.querySelectorAll('input, button, select, textarea')
+        ) as HTMLElement[];
+        
+        const index = focusable.indexOf(target);
+        
+        if (index > -1 && index < focusable.length - 1) {
+            const nextElement = focusable[index + 1];
+            if (nextElement) {
+                nextElement.focus();
+            }
+        } else if (target.id === 'gstPercentInput') { // Special case for last item input
+            handleAddToCart();
+        }
+      }
+      
+      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault();
+        handleSubmit(onSubmit)();
+      }
+       
+      if (event.key.toLowerCase() === 'a' && target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+          event.preventDefault();
+          customerSelectionRef.current?.click();
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleSubmit, onSubmit, handleAddToCart]);
   
   const handleCustomerSelect = (customerId: string) => {
     setValue('customerId', customerId);
