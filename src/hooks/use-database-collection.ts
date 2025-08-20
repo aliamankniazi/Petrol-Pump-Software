@@ -29,8 +29,13 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id'>>(
   const { user, loading: authLoading } = useAuth(); // Use the auth hook
 
   useEffect(() => {
-    // CRITICAL FIX: Do not attempt to fetch data until auth is resolved and a user is present.
-    if (authLoading || !user) {
+    if (authLoading) {
+      // While auth is resolving, do nothing.
+      return;
+    }
+    
+    if (!user) {
+      // If auth is resolved and there's no user, we are logged out.
       setLoading(false);
       setData([]); // Ensure data is cleared on logout
       return;
