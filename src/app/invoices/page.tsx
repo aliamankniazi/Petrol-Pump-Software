@@ -2,12 +2,12 @@
 
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { Receipt, Printer, LayoutDashboard, ShoppingCart, Calendar as CalendarIcon, X, DollarSign } from 'lucide-react';
+import { Receipt, Printer, LayoutDashboard, ShoppingCart, Calendar as CalendarIcon, X, DollarSign, Trash2, AlertTriangle } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
 import { usePurchases } from '@/hooks/use-purchases';
 import { cn } from '@/lib/utils';
@@ -22,11 +22,13 @@ import { Calendar } from '@/components/ui/calendar';
 import { useProducts } from '@/hooks/use-products';
 import { useGlobalDate } from '@/hooks/use-global-date';
 import { useCustomers } from '@/hooks/use-customers';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function InvoicesPage() {
-  const { transactions, isLoaded: transactionsLoaded } = useTransactions();
-  const { purchases, isLoaded: purchasesLoaded } = usePurchases();
+  const { transactions, deleteTransaction, isLoaded: transactionsLoaded } = useTransactions();
+  const { purchases, deletePurchase, isLoaded: purchasesLoaded } = usePurchases();
   const { products, isLoaded: productsLoaded } = useProducts();
   const { customers, isLoaded: customersLoaded } = useCustomers();
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,6 +36,9 @@ export default function InvoicesPage() {
   
   const { globalDateRange, setGlobalDateRange } = useGlobalDate();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  
+  const [invoiceToDelete, setInvoiceToDelete] = useState<{ type: 'sale' | 'purchase', id: string, description: string } | null>(null);
+  const { toast } = useToast();
 
   const isLoaded = transactionsLoaded && purchasesLoaded && productsLoaded && customersLoaded;
 
@@ -153,6 +158,20 @@ export default function InvoicesPage() {
     return allPurchases;
   }, [purchases, searchTerm, globalDateRange]);
 
+  const handleDeleteInvoice = useCallback(() => {
+    if (!invoiceToDelete) return;
+    
+    if (invoiceToDelete.type === 'sale') {
+      deleteTransaction(invoiceToDelete.id);
+      toast({ title: 'Sale Invoice Deleted', description: `The invoice has been successfully deleted.` });
+    } else {
+      deletePurchase(invoiceToDelete.id);
+      toast({ title: 'Purchase Invoice Deleted', description: `The invoice has been successfully deleted.` });
+    }
+    
+    setInvoiceToDelete(null);
+  }, [invoiceToDelete, deleteTransaction, deletePurchase, toast]);
+
 
   const showSales = typeFilter === 'all' || typeFilter === 'sales';
   const showPurchases = typeFilter === 'all' || typeFilter === 'purchases';
@@ -160,6 +179,7 @@ export default function InvoicesPage() {
   const hasActiveFilters = searchTerm || typeFilter !== 'all' || !!globalDateRange;
 
   return (
+    <>
     <div className="p-4 md:p-8 space-y-8">
       <Card>
         <CardHeader>
@@ -325,6 +345,9 @@ export default function InvoicesPage() {
                                 <Printer className="w-4 h-4" />
                                 </Link>
                             </Button>
+                            <Button variant="ghost" size="icon" title="Delete Invoice" className="text-destructive" onClick={() => setInvoiceToDelete({type: 'sale', id: sale.id!, description: `invoice for ${sale.customerName}`})}>
+                                <Trash2 className="w-4 h-4" />
+                            </Button>
                         </TableCell>
                         </TableRow>
                     ))}
@@ -377,6 +400,9 @@ export default function InvoicesPage() {
                                             <Printer className="w-4 h-4" />
                                             </Link>
                                         </Button>
+                                        <Button variant="ghost" size="icon" title="Delete Invoice" className="text-destructive" onClick={() => setInvoiceToDelete({type: 'purchase', id: purchase.id!, description: `invoice from ${purchase.supplier}`})}>
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
                                     </TableCell>
                                     </TableRow>
                                 ))}
@@ -392,5 +418,23 @@ export default function InvoicesPage() {
         </Card>
       )}
     </div>
+
+    <AlertDialog open={!!invoiceToDelete} onOpenChange={(isOpen) => !isOpen && setInvoiceToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2"><AlertTriangle/>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the {invoiceToDelete?.description}. All associated stock changes will be reverted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteInvoice} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Yes, delete invoice
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
