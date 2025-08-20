@@ -79,30 +79,42 @@ export default function InvoicePage() {
             const customerPaymentsReceived = customerPayments.filter(p => p.customerId === customer.id && p.timestamp);
             const customerCashAdvances = cashAdvances.filter(ca => ca.customerId === customer.id && ca.timestamp);
 
-            customerTransactions.forEach(tx => combined.push({
-                id: `tx-${tx.id}`,
-                timestamp: tx.timestamp!,
-                description: 'Sale',
-                type: 'Sale',
-                debit: tx.totalAmount,
-                credit: 0,
-            }));
-            customerPaymentsReceived.forEach(p => combined.push({
-                id: `pay-${p.id}`,
-                timestamp: p.timestamp!,
-                description: 'Payment',
-                type: 'Payment',
-                debit: 0,
-                credit: p.amount,
-            }));
-            customerCashAdvances.forEach(ca => combined.push({
-                id: `adv-${ca.id}`,
-                timestamp: ca.timestamp!,
-                description: 'Cash Advance',
-                type: 'Cash Advance',
-                debit: ca.amount,
-                credit: 0,
-            }));
+            customerTransactions.forEach(tx => {
+                if (tx.timestamp) {
+                  combined.push({
+                    id: `tx-${tx.id}`,
+                    timestamp: tx.timestamp,
+                    description: 'Sale',
+                    type: 'Sale',
+                    debit: tx.totalAmount,
+                    credit: 0,
+                  });
+                }
+            });
+            customerPaymentsReceived.forEach(p => {
+              if (p.timestamp) {
+                combined.push({
+                    id: `pay-${p.id}`,
+                    timestamp: p.timestamp,
+                    description: 'Payment',
+                    type: 'Payment',
+                    debit: 0,
+                    credit: p.amount,
+                });
+              }
+            });
+            customerCashAdvances.forEach(ca => {
+              if (ca.timestamp) {
+                combined.push({
+                    id: `adv-${ca.id}`,
+                    timestamp: ca.timestamp,
+                    description: 'Cash Advance',
+                    type: 'Cash Advance',
+                    debit: ca.amount,
+                    credit: 0,
+                });
+              }
+            });
 
             combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
             
@@ -153,6 +165,7 @@ export default function InvoicePage() {
           partner: {
             name: purchase.supplier,
             contact: supplier?.contact || 'N/A',
+            area: '',
             balance: 0,
           },
           items: purchase.items.map(item => {
