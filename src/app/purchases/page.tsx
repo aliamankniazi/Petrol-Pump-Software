@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useForm, type SubmitHandler, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -26,6 +26,9 @@ import { useBankAccounts } from '@/hooks/use-bank-accounts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { Product } from '@/lib/types';
+import { ProductSelection } from '../transactions/_components/product-selection';
+import { Textarea } from '@/components/ui/textarea';
 
 
 const purchaseItemSchema = z.object({
@@ -57,6 +60,14 @@ const supplierSchema = z.object({
 });
 type SupplierFormValues = z.infer<typeof supplierSchema>;
 
+const defaultItemState = {
+    product: null as Product | null,
+    unit: '',
+    quantity: 1,
+    price: 0,
+    discount: 0,
+};
+
 export default function PurchasesPage() {
   const { addPurchase } = usePurchases();
   const { suppliers, addSupplier, isLoaded: suppliersLoaded } = useSuppliers();
@@ -65,10 +76,11 @@ export default function PurchasesPage() {
   const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
+  const productSelectionRef = useRef<HTMLButtonElement>(null);
+  const [currentItem, setCurrentItem] = useState(defaultItemState);
+
   
-  const [productSearch, setProductSearch] = useState('');
   const [supplierSearch, setSupplierSearch] = useState('');
-  const [isProductPopoverOpen, setIsProductPopoverOpen] = useState(false);
   const [isSupplierPopoverOpen, setIsSupplierPopoverOpen] = useState(false);
 
 
@@ -105,35 +117,69 @@ export default function PurchasesPage() {
     resolver: zodResolver(supplierSchema)
   });
     
-  const handleAddItemToPurchase = (productId: string) => {
-    const product = products.find(p => p.id === productId);
-    if (!product || !product.id) return;
+  const handleProductSelect = useCallback((product: Product) => {
+    if (!product || !productsLoaded) return;
+    
+    setCurrentItem(prev => ({
+        ...prev,
+        product,
+        unit: product.mainUnit,
+        price: product.purchasePrice || 0,
+    }));
+  }, [productsLoaded]);
+
+  const handleUnitChange = (unit: string) => {
+    if (!currentItem.product) return;
+    const product = currentItem.product;
+    const isMainUnit = unit === product.mainUnit;
+    
+    let newPrice = 0;
+    if(isMainUnit) {
+        newPrice = product.purchasePrice || 0;
+    } else if (product.subUnit && unit === product.subUnit.name) {
+        newPrice = product.subUnit.purchasePrice || (product.purchasePrice / product.subUnit.conversionRate) || 0;
+    }
+
+    setCurrentItem(prev => ({
+      ...prev,
+      unit: unit,
+      price: newPrice,
+    }));
+  };
+  
+  const handleAddItemToPurchase = useCallback(() => {
+    const { product, quantity, price, discount } = currentItem;
+    if (!product) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Please select a product first.' });
+        return;
+    }
+    
+    const totalCost = (quantity * price) - discount;
 
     append({
-        productId: product.id,
+        productId: product.id!,
         productName: product.name,
-        unit: product.mainUnit,
-        quantity: 1,
-        costPerUnit: product.purchasePrice || 0,
-        totalCost: product.purchasePrice || 0,
-        discount: 0,
+        unit: currentItem.unit || product.mainUnit,
+        quantity: quantity,
+        costPerUnit: price,
+        totalCost: totalCost,
+        discount: discount,
     });
-    setIsProductPopoverOpen(false);
-    setProductSearch('');
-  }
+
+    setCurrentItem(defaultItemState); // Reset for next item
+    productSelectionRef.current?.focus();
+  }, [append, currentItem, toast]);
   
-  const { grandTotal } = useMemo(() => {
+  const { subTotal, grandTotal } = useMemo(() => {
       const sub = watchedItems.reduce((sum, item) => sum + (item.totalCost || 0), 0);
       const expenses = Number(getValues('expenses')) || 0;
       const grand = sub + expenses;
-      return { grandTotal: grand };
+      return { subTotal: sub, grandTotal: grand };
     }, [watchedItems, getValues]);
 
   const onPurchaseSubmit: SubmitHandler<PurchaseFormValues> = (data) => {
     const supplier = suppliers.find(s => s.id === data.supplierId);
     if (!supplier) return;
-
-    const subTotal = data.items.reduce((sum, item) => sum + item.totalCost, 0);
 
     addPurchase({
       ...data,
@@ -167,12 +213,6 @@ export default function PurchasesPage() {
     setIsAddSupplierOpen(false);
   }, [addSupplier, toast, resetSupplier]);
 
-  const filteredProducts = useMemo(() => {
-    if (!productsLoaded) return [];
-    if (!productSearch) return products;
-    return products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()));
-  }, [products, productSearch, productsLoaded]);
-
   const filteredSuppliers = useMemo(() => {
     if (!suppliersLoaded) return [];
     if (!supplierSearch) return suppliers;
@@ -188,53 +228,51 @@ export default function PurchasesPage() {
     <>
     <div className="p-4 md:p-8">
      <form onSubmit={handleSubmit(onPurchaseSubmit)}>
-     <Card>
-            <CardHeader>
-                <div className='flex justify-between items-center'>
-                    <CardTitle className="flex items-center gap-2"><Truck /> New Purchase Invoice</CardTitle>
-                    <CardDescription>Date: {format(new Date(), 'dd-MM-yyyy')}</CardDescription>
-                </div>
-            </CardHeader>
-            <CardContent>
-                <div className="p-4 rounded-lg bg-muted/50 border space-y-4">
-                     <div className="space-y-1">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Add Items to Purchase</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                    <div className="lg:col-span-2 space-y-1">
                         <Label>Product</Label>
-                        <Popover open={isProductPopoverOpen} onOpenChange={setIsProductPopoverOpen}>
-                            <PopoverTrigger asChild>
-                                <Button
-                                variant="outline"
-                                role="combobox"
-                                className="w-full justify-between"
-                                >
-                                Select Product
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                <Command>
-                                    <CommandInput placeholder="Search product..." onValueChange={setProductSearch}/>
-                                    <CommandList>
-                                        <CommandEmpty>No product found.</CommandEmpty>
-                                        <CommandGroup>
-                                        {filteredProducts.map((p) => (
-                                            <CommandItem
-                                            key={p.id}
-                                            value={p.id!}
-                                            onSelect={() => handleAddItemToPurchase(p.id!)}
-                                            >
-                                            {p.name}
-                                            {p.mainUnit && <span className="text-xs text-muted-foreground ml-2">({p.mainUnit}{p.subUnit?.name ? ` / ${p.subUnit.name}` : ''})</span>}
-                                            </CommandItem>
-                                        ))}
-                                        </CommandGroup>
-                                    </CommandList>
-                                </Command>
-                            </PopoverContent>
-                        </Popover>
+                        <ProductSelection onProductSelect={handleProductSelect} ref={productSelectionRef} />
                     </div>
-                </div>
+                     <div className="space-y-1">
+                        <Label>Unit</Label>
+                         <Select 
+                            value={currentItem.unit}
+                            onValueChange={handleUnitChange}
+                            disabled={!currentItem.product || !currentItem.product.subUnit}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Unit" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {currentItem.product && <SelectItem value={currentItem.product.mainUnit}>{currentItem.product.mainUnit}</SelectItem>}
+                                {currentItem.product?.subUnit && <SelectItem value={currentItem.product.subUnit.name}>{currentItem.product.subUnit.name}</SelectItem>}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-1">
+                        <Label>Qty</Label>
+                        <Input type="number" step="any" value={currentItem.quantity} onChange={e => setCurrentItem(p => ({...p, quantity: parseFloat(e.target.value) || 0}))} />
+                    </div>
+                    <div className="space-y-1">
+                        <Label>Price</Label>
+                        <Input type="number" step="any" value={currentItem.price} onChange={e => setCurrentItem(p => ({...p, price: parseFloat(e.target.value) || 0}))} />
+                    </div>
+                    <div className="lg:col-span-full">
+                         <Button type="button" onClick={handleAddItemToPurchase}><PlusCircle/>Add to Purchase</Button>
+                    </div>
+                </CardContent>
+            </Card>
 
-                <div className="mt-6 border rounded-lg">
+            <Card>
+                <CardHeader><CardTitle>Purchase Items</CardTitle></CardHeader>
+                <CardContent>
+                    <div className="border rounded-lg overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -287,21 +325,18 @@ export default function PurchasesPage() {
                             ))}
                         </TableBody>
                     </Table>
-                    <div className="p-4 text-right space-y-2">
-                         <div className="flex justify-end items-center gap-4">
-                            <Label>Extra Expenses:</Label>
-                            <Input className="w-24" placeholder="RS 0" {...register('expenses')} />
-                        </div>
-                         <div className="flex justify-end items-center gap-4 font-bold text-xl">
-                            <Label>Grand Total:</Label>
-                            <span>{grandTotal.toFixed(2)}</span>
-                        </div>
                     </div>
-                </div>
-                
-                <Separator className="my-6" />
+                </CardContent>
+            </Card>
+        </div>
 
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+        <div className="lg:col-span-1 space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Finalize Purchase</CardTitle>
+                    <CardDescription>Add supplier and payment details.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
                      <div className="space-y-1">
                         <Label>Supplier</Label>
                          <div className="flex items-center gap-2">
@@ -353,10 +388,6 @@ export default function PurchasesPage() {
                          </div>
                     </div>
                      <div className="space-y-1">
-                        <Label>Old Balance</Label>
-                        <Input disabled value={supplierBalance.toFixed(2)} />
-                    </div>
-                    <div className="space-y-1">
                         <Label>Purchase Date</Label>
                          <Controller name="date" control={control} render={({ field }) => (
                             <Popover>
@@ -365,24 +396,43 @@ export default function PurchasesPage() {
                             </Popover>
                         )}/>
                     </div>
-                    
-                    <div className="space-y-1 lg:col-span-2">
-                        <Label>Reference No.</Label>
-                        <Input placeholder="e.g. PO-12345" {...register('referenceNo')} />
+                    <div className="space-y-1">
+                        <Label>Notes / Description</Label>
+                        <Textarea placeholder="e.g. PO-12345" {...register('notes')} />
                     </div>
-                    <div className="space-y-1 lg:col-span-2">
-                        <Label>Purchase Description</Label>
-                        <Input placeholder="type purchase description" {...register('notes')} />
-                    </div>
-                </div>
+                </CardContent>
+            </Card>
 
-            </CardContent>
-            <CardFooter className="gap-2">
-                 <Button type="submit" size="lg">Save/Submit</Button>
-                 <Button type="button" variant="outline" size="lg" onClick={() => reset()}>Discard/Reset</Button>
-            </CardFooter>
-        </Card>
-      </form>
+            <Card>
+                <CardHeader><CardTitle>Summary</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                     <div className="space-y-2 text-sm">
+                        <div className="flex justify-between"><span>Subtotal</span><span className="font-medium">{subTotal.toFixed(2)}</span></div>
+                        <div className="flex justify-between items-center">
+                            <Label htmlFor="expenses">Extra Expenses</Label>
+                            <Input className="w-24 h-8" id="expenses" placeholder="RS 0" {...register('expenses')} />
+                        </div>
+                    </div>
+                    <Separator/>
+                     <div className="flex justify-between items-center font-bold text-lg">
+                        <Label>Grand Total</Label>
+                        <span>{grandTotal.toFixed(2)}</span>
+                    </div>
+                     <Separator/>
+                     <div className="space-y-2 text-sm">
+                      <h4 className="font-semibold">Supplier Account</h4>
+                      <div className="flex justify-between"><span>Old Balance</span><span className="font-medium">{supplierBalance.toFixed(2)}</span></div>
+                      <div className="flex justify-between font-bold text-md"><span>New Account Balance</span><span className={cn( (supplierBalance + grandTotal) >= 0 ? 'text-destructive' : 'text-green-600')}>{ (supplierBalance + grandTotal).toFixed(2)}</span></div>
+                  </div>
+                </CardContent>
+                <CardFooter className="grid grid-cols-2 gap-2">
+                    <Button type="button" variant="outline" size="lg" onClick={() => reset()}>Discard</Button>
+                    <Button type="submit" size="lg">Save Purchase</Button>
+                </CardFooter>
+            </Card>
+        </div>
+      </div>
+     </form>
     </div>
     
     <Dialog open={isAddSupplierOpen} onOpenChange={setIsAddSupplierOpen}>
