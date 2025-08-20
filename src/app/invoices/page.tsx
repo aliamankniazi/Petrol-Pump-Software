@@ -7,33 +7,35 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { Receipt, Printer, LayoutDashboard, ShoppingCart, Calendar as CalendarIcon, X } from 'lucide-react';
+import { Receipt, Printer, LayoutDashboard, ShoppingCart, Calendar as CalendarIcon, X, DollarSign } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
 import { usePurchases } from '@/hooks/use-purchases';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import type { Transaction, Purchase } from '@/lib/types';
+import type { Transaction, Purchase, Customer } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DateRange } from 'react-day-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useProducts } from '@/hooks/use-products';
 import { useGlobalDate } from '@/hooks/use-global-date';
+import { useCustomers } from '@/hooks/use-customers';
 
 
 export default function InvoicesPage() {
   const { transactions, isLoaded: transactionsLoaded } = useTransactions();
   const { purchases, isLoaded: purchasesLoaded } = usePurchases();
   const { products, isLoaded: productsLoaded } = useProducts();
+  const { customers, isLoaded: customersLoaded } = useCustomers();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   
   const { globalDateRange, setGlobalDateRange } = useGlobalDate();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
-  const isLoaded = transactionsLoaded && purchasesLoaded && productsLoaded;
+  const isLoaded = transactionsLoaded && purchasesLoaded && productsLoaded && customersLoaded;
 
   const sortedPurchases = useMemo(() => {
     if (!purchasesLoaded) return [];
@@ -88,6 +90,45 @@ export default function InvoicesPage() {
     });
 
   }, [transactions, products, searchTerm, globalDateRange, sortedPurchases]);
+  
+  const customerProfitSummary = useMemo(() => {
+    if (!isLoaded) return [];
+
+    const summary: Record<string, { name: string; totalSale: number; totalProfit: number }> = {};
+
+    transactions.forEach(tx => {
+        const customerId = tx.customerId || 'walk-in';
+        const customerName = tx.customerName || 'Walk-in Customer';
+
+        if (!summary[customerId]) {
+            summary[customerId] = { name: customerName, totalSale: 0, totalProfit: 0 };
+        }
+
+        const saleProfit = tx.items.reduce((profit, item) => {
+             const saleTimestamp = new Date(tx.timestamp!);
+            const lastRelevantPurchaseItem = sortedPurchases
+                .flatMap(p => p.items.map(pi => ({ ...pi, purchaseTimestamp: p.timestamp })))
+                .filter(pi => pi.productId === item.productId && new Date(pi.purchaseTimestamp!) <= saleTimestamp)
+                .pop();
+
+            let costOfGoods = 0;
+            if (lastRelevantPurchaseItem) {
+                costOfGoods = item.quantity * lastRelevantPurchaseItem.costPerUnit;
+            } else {
+                const product = products.find(p => p.id === item.productId);
+                costOfGoods = (product?.purchasePrice || 0) * item.quantity;
+            }
+            return profit + (item.totalAmount - costOfGoods);
+        }, 0);
+
+        summary[customerId].totalSale += tx.totalAmount;
+        summary[customerId].totalProfit += saleProfit;
+    });
+
+    return Object.values(summary).sort((a, b) => b.totalProfit - a.totalProfit);
+
+  }, [isLoaded, transactions, products, sortedPurchases]);
+
 
   const filteredPurchases = useMemo(() => {
     let allPurchases = purchases.filter(p => p.timestamp);
@@ -200,6 +241,46 @@ export default function InvoicesPage() {
           </div>
         </CardHeader>
       </Card>
+      
+      {showSales && (
+         <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg"><DollarSign /> Customer Profit Summary</CardTitle>
+                <CardDescription>Total sales and profit calculated for each customer across all their transactions.</CardDescription>
+            </CardHeader>
+             <CardContent>
+                {isLoaded ? (
+                    customerProfitSummary.length > 0 ? (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Customer Name</TableHead>
+                                    <TableHead className="text-right">Total Sales (PKR)</TableHead>
+                                    <TableHead className="text-right">Total Profit (PKR)</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {customerProfitSummary.map(summary => (
+                                    <TableRow key={summary.name}>
+                                        <TableCell className="font-medium">{summary.name}</TableCell>
+                                        <TableCell className="text-right font-mono font-bold">{summary.totalSale.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</TableCell>
+                                        <TableCell className={cn("text-right font-mono font-bold", summary.totalProfit >= 0 ? 'text-green-600' : 'text-destructive')}>
+                                            {summary.totalProfit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    ) : (
+                        <div className="text-center py-12 text-muted-foreground">No customer sales found to generate a summary.</div>
+                    )
+                ) : (
+                    <div className="text-center py-12 text-muted-foreground">Loading summary...</div>
+                )}
+             </CardContent>
+         </Card>
+      )}
+
 
       {showSales && (
         <Card>
