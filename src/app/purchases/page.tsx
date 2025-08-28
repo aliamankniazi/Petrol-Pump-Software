@@ -69,7 +69,7 @@ const defaultItemState = {
 };
 
 export default function PurchasesPage() {
-  const { addPurchase } = usePurchases();
+  const { purchases, addPurchase } = usePurchases();
   const { suppliers, addSupplier, isLoaded: suppliersLoaded } = useSuppliers();
   const { products, isLoaded: productsLoaded } = useProducts();
   const { bankAccounts, isLoaded: bankAccountsLoaded } = useBankAccounts();
@@ -125,13 +125,21 @@ export default function PurchasesPage() {
   const handleProductSelect = useCallback((product: Product) => {
     if (!product || !productsLoaded) return;
     
+    // Find the last purchase price for this product
+    const lastPurchaseOfProduct = purchases
+        .flatMap(p => p.items)
+        .filter(item => item.productId === product.id)
+        .pop(); // Assumes purchases are sorted by date, last one is the latest
+    
+    const lastPrice = lastPurchaseOfProduct ? lastPurchaseOfProduct.costPerUnit : product.purchasePrice;
+
     setCurrentItem(prev => ({
         ...prev,
         product,
         unit: product.mainUnit,
-        price: product.purchasePrice || 0,
+        price: lastPrice || 0,
     }));
-  }, [productsLoaded]);
+  }, [productsLoaded, purchases]);
 
   const handleUnitChange = (unit: string) => {
     if (!currentItem.product) return;
@@ -245,7 +253,7 @@ export default function PurchasesPage() {
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
                     <div className="lg:col-span-3 space-y-1">
                         <Label>Product</Label>
-                        <ProductSelection onProductSelect={handleProductSelect} ref={productSelectionRef} />
+                        <ProductSelection onProductSelect={handleProductSelect} ref={productSelectionRef} selectedProduct={currentItem.product} />
                     </div>
                      <div className="space-y-1">
                         <Label>Unit</Label>

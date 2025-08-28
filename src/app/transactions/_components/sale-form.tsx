@@ -73,7 +73,7 @@ const defaultItemState = {
 };
 
 export function SaleForm() {
-  const { addTransaction } = useTransactions();
+  const { transactions, addTransaction } = useTransactions();
   const { customers } = useCustomers();
   const { products, isLoaded: productsLoaded } = useProducts();
   const { bankAccounts, isLoaded: bankAccountsLoaded } = useBankAccounts();
@@ -183,14 +183,20 @@ export function SaleForm() {
     const handleProductSelect = useCallback((product: Product) => {
         if (!product || !productsLoaded) return;
         
-        const newPrice = product.retailPrice || product.tradePrice || 0;
+        // Find the last transaction for this product to get the last price
+        const lastSaleOfProduct = transactions
+            .flatMap(tx => tx.items)
+            .filter(item => item.productId === product.id)
+            .pop(); // Assumes transactions are sorted by date, last one is the latest
+        
+        const lastPrice = lastSaleOfProduct ? lastSaleOfProduct.pricePerUnit : (product.retailPrice || product.tradePrice || 0);
         let newQuantity = 1;
-        let newTotalAmount = newPrice;
+        let newTotalAmount = lastPrice;
 
         if(lastAddedAmount > 0) {
             newTotalAmount = lastAddedAmount;
-            if(newPrice > 0) {
-                newQuantity = newTotalAmount / newPrice;
+            if(lastPrice > 0) {
+                newQuantity = newTotalAmount / lastPrice;
             }
         }
 
@@ -198,12 +204,12 @@ export function SaleForm() {
             ...prev,
             product,
             unit: product.mainUnit,
-            price: newPrice,
+            price: lastPrice,
             quantity: newQuantity,
             totalAmount: newTotalAmount,
         }));
 
-    }, [productsLoaded, lastAddedAmount]);
+    }, [productsLoaded, lastAddedAmount, transactions]);
 
     const handleAddToCart = useCallback(() => {
         const { product, quantity, price, discountAmt, gstPercent, bonusQty } = currentItem;
