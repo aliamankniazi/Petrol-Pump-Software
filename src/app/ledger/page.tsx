@@ -453,12 +453,12 @@ export default function LedgerPage() {
                     </TableRow>
                   ))}
                 </TableBody>
-                 {!searchTerm && (
+                 {isLoaded && !searchTerm && (
                   <TableFooter>
                     <TableRow className="bg-muted/50 font-bold">
                       <TableCell colSpan={3} className="text-right">Period Totals</TableCell>
-                      <TableCell className="text-right font-mono font-bold text-destructive">{totals.debit.toFixed(2)}</TableCell>
-                      <TableCell className="text-right font-mono font-bold text-green-600">{totals.credit.toFixed(2)}</TableCell>
+                      <TableCell className="text-right font-mono font-bold text-destructive">{totals.debit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-right font-mono font-bold text-green-600">{totals.credit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell colSpan={2} />
                     </TableRow>
                   </TableFooter>
