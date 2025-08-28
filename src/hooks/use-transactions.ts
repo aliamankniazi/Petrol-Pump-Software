@@ -32,13 +32,15 @@ export function useTransactions() {
         }
     });
     
-    if (transaction.paidAmount && transaction.paidAmount > 0 && transaction.paymentMethod && transaction.paymentMethod !== 'On Credit' && transaction.customerId && transaction.customerName) {
+    // Create a separate payment record only if it's a credit customer who is paying something upfront.
+    if (transaction.paidAmount && transaction.paidAmount > 0 && transaction.customerId && transaction.customerId !== 'walk-in') {
         addCustomerPayment({
             customerId: transaction.customerId,
-            customerName: transaction.customerName,
+            customerName: transaction.customerName!,
             amount: transaction.paidAmount,
             paymentMethod: transaction.paymentMethod as 'Cash' | 'Bank' | 'Mobile',
             date: transaction.date,
+            notes: `Payment for invoice #${newDoc.id.slice(0,6)}`,
         });
     }
     

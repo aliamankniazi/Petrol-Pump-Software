@@ -52,6 +52,7 @@ const saleSchema = z.object({
   orderDeliveryDate: z.date().optional(),
   items: z.array(saleItemSchema).min(1, 'At least one item is required.'),
   paidAmount: z.coerce.number().default(0),
+  dueAmount: z.coerce.number().default(0),
   expenseAmount: z.coerce.number().default(0),
   expenseBankAccountId: z.string().optional(),
   referenceNo: z.string().optional(),
@@ -100,6 +101,7 @@ export function SaleForm() {
       bankAccountId: '',
       notes: '',
       paidAmount: 0,
+      dueAmount: 0,
       expenseAmount: 0,
       expenseBankAccountId: '',
       referenceNo: '',
@@ -119,12 +121,25 @@ export function SaleForm() {
   const watchedPaymentMethod = watch('paymentMethod');
 
   const { balance: customerBalance } = useCustomerBalance(watchedCustomerId === 'walk-in' ? null : watchedCustomerId || null);
+  
+  const { subTotal, totalDiscount, totalGst, grandTotal, dueBalance, newAccountBalance } = useMemo(() => {
+      const sub = watchedItems.reduce((sum, item) => sum + (item.quantity * item.pricePerUnit), 0);
+      const discount = watchedItems.reduce((sum, item) => sum + (item.discount || 0), 0);
+      const gst = watchedItems.reduce((sum, item) => sum + (item.gst || 0), 0);
+      const grand = sub - discount + gst;
+      const due = grand - watchedPaidAmount;
+      const newBalance = customerBalance + grand - watchedPaidAmount;
+      return { subTotal: sub, totalDiscount: discount, totalGst: gst, grandTotal: grand, dueBalance: due, newAccountBalance: newBalance };
+  }, [watchedItems, watchedPaidAmount, customerBalance]);
+  
+  useEffect(() => {
+    setValue('dueAmount', dueBalance);
+  }, [dueBalance, setValue]);
+
 
   const onSubmit = useCallback(async (data: SaleFormValues) => {
     const isWalkIn = !data.customerId || data.customerId === 'walk-in';
     const customer = !isWalkIn ? customers.find(c => c.id === data.customerId) : null;
-
-    const grandTotal = data.items.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
 
     const newTransaction = await addTransaction(data);
     
@@ -146,13 +161,14 @@ export function SaleForm() {
         bankAccountId: '',
         notes: '',
         paidAmount: 0,
+        dueAmount: 0,
         expenseAmount: 0,
         expenseBankAccountId: '',
         referenceNo: '',
     });
     setLastAddedAmount(0);
 
-  }, [addTransaction, customers, reset, toast]);
+  }, [addTransaction, customers, reset, toast, grandTotal]);
   
     const handleQtyChange = (newQty: number) => {
         setCurrentItem(prev => ({
@@ -266,16 +282,6 @@ export function SaleForm() {
         productSelectionRef.current?.focus();
     }, [append, currentItem, toast]);
   
-    const { subTotal, totalDiscount, totalGst, grandTotal, dueBalance, newAccountBalance } = useMemo(() => {
-        const sub = watchedItems.reduce((sum, item) => sum + (item.quantity * item.pricePerUnit), 0);
-        const discount = watchedItems.reduce((sum, item) => sum + (item.discount || 0), 0);
-        const gst = watchedItems.reduce((sum, item) => sum + (item.gst || 0), 0);
-        const grand = sub - discount + gst;
-        const due = grand - watchedPaidAmount;
-        const newBalance = customerBalance + grand - watchedPaidAmount;
-        return { subTotal: sub, totalDiscount: discount, totalGst: gst, grandTotal: grand, dueBalance: due, newAccountBalance: newBalance };
-    }, [watchedItems, watchedPaidAmount, customerBalance]);
-  
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             const target = event.target as HTMLElement;
@@ -310,7 +316,7 @@ export function SaleForm() {
         return () => {
             document.removeEventListener('keydown', handleKeyDown);
         };
-      }, [handleSubmit, onSubmit, handleAddToCart]);
+    }, [handleSubmit, onSubmit, handleAddToCart]);
 
     useEffect(() => {
       if (watchedCustomerId === 'walk-in') {
@@ -338,7 +344,7 @@ export function SaleForm() {
             <Card>
                 <CardHeader>
                     <CardTitle>Create Sale</CardTitle>
-                    <CardDescription>Select products and add them to the cart.</CardDescription>
+                    <CardDescription>Select products and add them to the cart. Show previous balance after it</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="space-y-1">

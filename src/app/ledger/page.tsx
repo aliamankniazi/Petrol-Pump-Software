@@ -72,28 +72,38 @@ export default function LedgerPage() {
 
     let combined: Omit<LedgerEntry, 'balance'>[] = [];
     
-    // Process transactions based on user's requested logic
+    // DEBITS (Money Out or Asset Increase)
     transactions.forEach(tx => {
-        if (!tx.id) return;
+        if (!tx.id || !tx.timestamp) return;
+        
+        // If sale is on credit, the full amount is a debit to receivables
         if (tx.paymentMethod === 'On Credit') {
-            // "On Credit" sales are DEBIT
-            combined.push({
+             combined.push({
                 id: `tx-${tx.id}`,
-                timestamp: tx.timestamp!,
+                timestamp: tx.timestamp,
                 description: `Sale to ${tx.customerName || 'Walk-in'}: ${tx.items.length} item(s) ${tx.notes ? `- ${tx.notes}` : ''}`,
                 type: 'Sale',
                 debit: tx.totalAmount,
                 credit: 0,
             });
-        } else {
-            // "Cash", "Card", "Mobile" sales are CREDIT
-            combined.push({
-                id: `tx-${tx.id}`,
-                timestamp: tx.timestamp!,
+        } 
+        // If paid, it's a cash/bank transaction. The sale is a credit, cash receipt is a debit.
+        else {
+             combined.push({
+                id: `tx-sale-${tx.id}`,
+                timestamp: tx.timestamp,
                 description: `Sale to ${tx.customerName || 'Walk-in'}: ${tx.items.length} item(s) ${tx.notes ? `- ${tx.notes}` : ''}`,
                 type: 'Sale',
                 debit: 0,
                 credit: tx.totalAmount,
+            });
+            combined.push({
+                id: `tx-pay-${tx.id}`,
+                timestamp: tx.timestamp,
+                description: `Payment for sale to ${tx.customerName || 'Walk-in'}`,
+                type: 'Customer Payment',
+                debit: tx.totalAmount,
+                credit: 0,
             });
         }
     });
@@ -282,10 +292,15 @@ export default function LedgerPage() {
   const handleDeleteEntry = () => {
     if (!entryToDelete || !entryToDelete.id) return;
     
-    const [typePrefix, id] = entryToDelete.id.split(/-(.*)/s);
+    const [typePrefix, ...idParts] = entryToDelete.id.split(/-(.*)/s);
+    const id = idParts.join('-');
 
     switch(typePrefix) {
-        case 'tx': deleteTransaction(id); break;
+        case 'tx': 
+        case 'tx-sale':
+        case 'tx-pay':
+            deleteTransaction(id); 
+            break;
         case 'pur': deletePurchase(id); break;
         case 'exp': deleteExpense(id); break;
         case 'pr': deletePurchaseReturn(id); break;

@@ -95,7 +95,7 @@ export default function CustomerLedgerPage() {
                 timestamp: tx.timestamp,
                 description: `${tx.items?.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', ') || 'Sale'} ${tx.notes ? `- ${tx.notes}` : ''}`,
                 type: 'Sale',
-                debit: tx.totalAmount,
+                debit: tx.dueAmount ?? tx.totalAmount, // Use dueAmount if available
                 credit: 0,
               });
             }

@@ -75,6 +75,7 @@ export interface Transaction {
   customerName?: string;
   bankAccountId?: string;
   paidAmount?: number;
+  dueAmount?: number;
   expenseAmount?: number;
   date: Date;
 }
