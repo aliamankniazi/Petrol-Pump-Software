@@ -114,7 +114,7 @@ export default function DashboardPage() {
     
     const recentActivity = useMemo((): RecentActivity[] => {
         const validSales: RecentActivity[] = transactions
-            .filter(tx => tx.timestamp)
+            .filter(tx => tx.timestamp && tx.totalAmount != null)
             .slice(0, 3)
             .map(tx => ({
                 id: `sale-${tx.id}`,
@@ -127,7 +127,7 @@ export default function DashboardPage() {
             }));
 
         const validPurchases: RecentActivity[] = purchases
-            .filter(p => p.timestamp)
+            .filter(p => p.timestamp && p.totalCost != null)
             .slice(0, 2)
             .map(p => ({
                 id: `purchase-${p.id}`,
@@ -140,7 +140,7 @@ export default function DashboardPage() {
             }));
 
         const validExpenses: RecentActivity[] = expenses
-            .filter(ex => ex.timestamp)
+            .filter(ex => ex.timestamp && ex.amount != null)
             .slice(0, 2)
             .map(ex => ({
                 id: `expense-${ex.id}`,
@@ -347,9 +347,11 @@ export default function DashboardPage() {
                                     <p className="text-sm text-muted-foreground truncate">{item.description}</p>
                                 </div>
                                 <div className="text-right">
+                                    {item.amount != null &&
                                     <p className={`font-mono font-semibold ${item.amount > 0 ? 'text-green-600' : 'text-destructive'}`}>
                                        {item.amount > 0 ? '+' : ''}PKR {item.amount.toLocaleString(undefined, {maximumFractionDigits: 0})}
                                     </p>
+                                    }
                                     <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(item.timestamp), { addSuffix: true })}</p>
                                 </div>
                             </div>
