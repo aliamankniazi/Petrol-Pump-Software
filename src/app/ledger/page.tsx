@@ -72,152 +72,153 @@ export default function LedgerPage() {
 
     let combined: Omit<LedgerEntry, 'balance'>[] = [];
     
-    // DEBITS (Money Out or Asset Increase)
     transactions.forEach(tx => {
         if (!tx.id || !tx.timestamp) return;
-        
-        // If sale is on credit, the full amount is a debit to receivables
+
+        // Sale is a credit to the sales account
+        combined.push({
+            id: `tx-sale-${tx.id}`,
+            timestamp: tx.timestamp,
+            description: `Sale to ${tx.customerName || 'Walk-in'}: ${tx.items.length} item(s) ${tx.notes ? `- ${tx.notes}` : ''}`,
+            type: 'Sale',
+            debit: 0,
+            credit: tx.totalAmount || 0,
+        });
+
+        // The debit depends on the payment method
         if (tx.paymentMethod === 'On Credit') {
-             combined.push({
-                id: `tx-${tx.id}`,
+            // Debit goes to Accounts Receivable for the amount that is due
+            combined.push({
+                id: `tx-receivable-${tx.id}`,
                 timestamp: tx.timestamp,
-                description: `Sale to ${tx.customerName || 'Walk-in'}: ${tx.items.length} item(s) ${tx.notes ? `- ${tx.notes}` : ''}`,
+                description: `Credit sale to ${tx.customerName || 'Walk-in'}`,
                 type: 'Sale',
-                debit: tx.totalAmount,
+                debit: tx.dueAmount || 0,
                 credit: 0,
             });
-        } 
-        // If paid, it's a cash/bank transaction. The sale is a credit, cash receipt is a debit.
-        else {
-             combined.push({
-                id: `tx-sale-${tx.id}`,
-                timestamp: tx.timestamp,
-                description: `Sale to ${tx.customerName || 'Walk-in'}: ${tx.items.length} item(s) ${tx.notes ? `- ${tx.notes}` : ''}`,
-                type: 'Sale',
-                debit: 0,
-                credit: tx.totalAmount,
-            });
+        }
+        
+        // If there was a payment, it's a debit to cash/bank
+        if (tx.paidAmount && tx.paidAmount > 0) {
             combined.push({
-                id: `tx-pay-${tx.id}`,
+                id: `tx-payment-${tx.id}`,
                 timestamp: tx.timestamp,
                 description: `Payment for sale to ${tx.customerName || 'Walk-in'}`,
                 type: 'Customer Payment',
-                debit: tx.totalAmount,
+                debit: tx.paidAmount || 0,
                 credit: 0,
             });
         }
     });
 
     expenses.forEach(e => {
-        if (!e.id) return;
+        if (!e.id || !e.timestamp) return;
         combined.push({
           id: `exp-${e.id}`,
           timestamp: e.timestamp!,
           description: `Expense: ${e.description} ${e.notes ? `- ${e.notes}`: ''}`,
           type: 'Expense',
-          debit: e.amount,
+          debit: e.amount || 0,
           credit: 0,
         });
     });
 
     supplierPayments.forEach(sp => {
-      if (!sp.id) return;
+      if (!sp.id || !sp.timestamp) return;
       combined.push({
         id: `sp-${sp.id}`,
         timestamp: sp.timestamp!,
         description: `Payment to ${sp.supplierName} ${sp.notes ? `- ${sp.notes}` : ''}`,
         type: 'Supplier Payment',
-        debit: sp.amount,
+        debit: sp.amount || 0,
         credit: 0,
       });
     });
     
     investments.filter(inv => inv.type === 'Withdrawal').forEach(inv => {
-        if (!inv.id) return;
+        if (!inv.id || !inv.timestamp) return;
         combined.push({
           id: `wdr-${inv.id}`,
           timestamp: inv.timestamp!,
           description: `Withdrawal by ${inv.partnerName}`,
           type: 'Withdrawal',
-          debit: inv.amount,
+          debit: inv.amount || 0,
           credit: 0,
         });
     });
     
     cashAdvances.forEach(ca => {
-        if (!ca.id) return;
+        if (!ca.id || !ca.timestamp) return;
         combined.push({
             id: `ca-${ca.id}`,
             timestamp: ca.timestamp!,
             description: `Cash advance to ${ca.customerName} ${ca.notes ? `- ${ca.notes}` : ''}`,
             type: 'Cash Advance',
-            debit: ca.amount,
+            debit: ca.amount || 0,
             credit: 0,
         });
     });
     
-    // CREDITS (Money In or Liability Increase)
     purchases.forEach(p => {
-        if (!p.id) return;
+        if (!p.id || !p.timestamp) return;
         combined.push({
             id: `pur-${p.id}`,
             timestamp: p.timestamp!,
             description: `Purchase from ${p.supplier}: ${p.items.length} item(s) ${p.notes ? `- ${p.notes}` : ''}`,
             type: 'Purchase',
             debit: 0,
-            credit: p.totalCost,
+            credit: p.totalCost || 0,
         });
     });
 
     purchaseReturns.forEach(pr => {
-      if (!pr.id) return;
+      if (!pr.id || !pr.timestamp) return;
       combined.push({
         id: `pr-${pr.id}`,
         timestamp: pr.timestamp!,
         description: `Return from ${pr.supplier}: ${pr.volume.toFixed(2)}L of ${pr.productName}`,
         type: 'Purchase Return',
         debit: 0,
-        credit: pr.totalRefund,
+        credit: pr.totalRefund || 0,
       });
     });
 
     otherIncomes.forEach(oi => {
-      if (!oi.id) return;
+      if (!oi.id || !oi.timestamp) return;
       combined.push({
         id: `oi-${oi.id}`,
         timestamp: oi.timestamp!,
         description: `Income: ${oi.description}`,
         type: 'Other Income',
         debit: 0,
-        credit: oi.amount,
+        credit: oi.amount || 0,
       });
     });
     
     customerPayments.forEach(cp => {
-      if (!cp.id) return;
+      if (!cp.id || !cp.timestamp) return;
       combined.push({
         id: `cp-${cp.id}`,
         timestamp: cp.timestamp!,
         description: `Payment from ${cp.customerName} ${cp.notes ? `- ${cp.notes}` : ''}`,
         type: 'Customer Payment',
         debit: 0,
-        credit: cp.amount,
+        credit: cp.amount || 0,
       });
     });
 
     investments.filter(inv => inv.type === 'Investment').forEach(inv => {
-      if (!inv.id) return;
+      if (!inv.id || !inv.timestamp) return;
       combined.push({
         id: `inv-${inv.id}`,
         timestamp: inv.timestamp!,
         description: `Investment from ${inv.partnerName}`,
         type: 'Investment',
         debit: 0,
-        credit: inv.amount,
+        credit: inv.amount || 0,
       });
     });
 
-    // Filter out any entries with an invalid or missing timestamp
     const validCombined = combined.filter(entry => entry.timestamp && !isNaN(new Date(entry.timestamp).getTime()));
 
     validCombined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
@@ -229,7 +230,7 @@ export default function LedgerPage() {
       const fromDate = startOfDay(globalDateRange.from);
       calculatedOpeningBalance = validCombined
         .filter(entry => new Date(entry.timestamp) < fromDate)
-        .reduce((acc, entry) => acc + entry.credit - entry.debit, 0);
+        .reduce((acc, entry) => acc + (entry.credit || 0) - (entry.debit || 0), 0);
       
       const toDate = globalDateRange.to ? endOfDay(globalDateRange.to) : endOfDay(fromDate);
       entriesForDisplay = validCombined.filter(entry => {
@@ -240,14 +241,14 @@ export default function LedgerPage() {
     
     let runningBalance = calculatedOpeningBalance;
     const entriesWithBalance: LedgerEntry[] = entriesForDisplay.map(entry => {
-      runningBalance += entry.credit - entry.debit;
+      runningBalance += (entry.credit || 0) - (entry.debit || 0);
       return { ...entry, balance: runningBalance };
     });
     
     const calculatedTotals = entriesForDisplay.reduce(
         (acc, entry) => {
-            acc.debit += entry.debit;
-            acc.credit += entry.credit;
+            acc.debit += entry.debit || 0;
+            acc.credit += entry.credit || 0;
             return acc;
         },
         { debit: 0, credit: 0 }
@@ -299,6 +300,7 @@ export default function LedgerPage() {
         case 'tx': 
         case 'tx-sale':
         case 'tx-pay':
+        case 'tx-receivable':
             deleteTransaction(id); 
             break;
         case 'pur': deletePurchase(id); break;
@@ -308,7 +310,7 @@ export default function LedgerPage() {
         case 'cp': deleteCustomerPayment(id); break;
         case 'sp': deleteSupplierPayment(id); break;
         case 'inv': deleteInvestment(id); break;
-        case 'wdr': deleteInvestment(id); break; // Both use same hook
+        case 'wdr': deleteInvestment(id); break;
         case 'ca': deleteCashAdvance(id); break;
         default:
             toast({
