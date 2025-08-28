@@ -80,9 +80,9 @@ export default function DashboardPage() {
     const financialSummary = useMemo(() => {
         if (!isLoaded) return null;
 
-        const totalRevenue = filteredData.transactions.reduce((sum, tx) => sum + tx.totalAmount, 0) + filteredData.otherIncomes.reduce((sum, oi) => sum + oi.amount, 0);
-        const totalCostOfGoods = filteredData.purchases.reduce((sum, p) => sum + p.totalCost, 0);
-        const totalExpenses = filteredData.expenses.reduce((sum, ex) => sum + ex.amount, 0);
+        const totalRevenue = filteredData.transactions.reduce((sum, tx) => sum + (tx.totalAmount || 0), 0) + filteredData.otherIncomes.reduce((sum, oi) => sum + (oi.amount || 0), 0);
+        const totalCostOfGoods = filteredData.purchases.reduce((sum, p) => sum + (p.totalCost || 0), 0);
+        const totalExpenses = filteredData.expenses.reduce((sum, ex) => sum + (ex.amount || 0), 0);
         const netProfit = totalRevenue - totalCostOfGoods - totalExpenses;
         const totalCustomers = new Set(filteredData.transactions.map(tx => tx.customerId).filter(Boolean)).size;
 
@@ -133,7 +133,7 @@ export default function DashboardPage() {
                 id: `purchase-${p.id}`,
                 type: 'Purchase',
                 description: `From ${p.supplier} - ${p.items.length} item(s)`,
-                amount: -p.totalCost,
+                amount: -(p.totalCost || 0),
                 timestamp: p.timestamp!,
                 icon: ShoppingCart,
                 color: 'text-blue-500',
@@ -146,7 +146,7 @@ export default function DashboardPage() {
                 id: `expense-${ex.id}`,
                 type: 'Expense',
                 description: `${ex.category} - ${ex.description}`,
-                amount: -ex.amount,
+                amount: -(ex.amount || 0),
                 timestamp: ex.timestamp!,
                 icon: Receipt,
                 color: 'text-red-500',
