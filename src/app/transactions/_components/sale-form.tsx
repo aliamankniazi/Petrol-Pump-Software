@@ -65,6 +65,7 @@ const defaultItemState = {
     unit: '',
     quantity: 1,
     price: 0,
+    totalAmount: 0,
     bonusQty: 0,
     discountAmt: 0,
     discountPercent: 0,
@@ -116,7 +117,6 @@ export function SaleForm() {
   const watchedPaidAmount = watch('paidAmount');
   const watchedPaymentMethod = watch('paymentMethod');
 
-
   const { balance: customerBalance } = useCustomerBalance(watchedCustomerId === 'walk-in' ? null : watchedCustomerId || null);
 
   const onSubmit = useCallback(async (data: SaleFormValues) => {
@@ -151,6 +151,11 @@ export function SaleForm() {
     });
 
   }, [addTransaction, customers, reset, toast]);
+  
+    useEffect(() => {
+        const { quantity, price } = currentItem;
+        setCurrentItem(prev => ({...prev, totalAmount: quantity * price}));
+    }, [currentItem.quantity, currentItem.price]);
 
   useEffect(() => {
       if (watchedCustomerId === 'walk-in') {
@@ -243,7 +248,7 @@ export function SaleForm() {
     return () => {
         document.removeEventListener('keydown', handleKeyDown);
     };
-}, [handleSubmit, onSubmit, handleAddToCart]);
+  }, [handleSubmit, onSubmit, handleAddToCart]);
   
   const handleCustomerSelect = (customerId: string) => {
     setValue('customerId', customerId);
@@ -312,6 +317,16 @@ export function SaleForm() {
                      <div className="space-y-1">
                         <Label>Price</Label>
                         <Input type="number" value={currentItem.price} onChange={e => setCurrentItem(p => ({...p, price: parseFloat(e.target.value) || 0}))} />
+                    </div>
+
+                    <div className="space-y-1">
+                        <Label>Total Amount</Label>
+                        <Input type="number" step="any" value={currentItem.totalAmount} onChange={e => {
+                            const total = parseFloat(e.target.value) || 0;
+                            const price = currentItem.price;
+                            const newQty = price > 0 ? total / price : 0;
+                            setCurrentItem(p => ({...p, totalAmount: total, quantity: newQty }));
+                        }} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
