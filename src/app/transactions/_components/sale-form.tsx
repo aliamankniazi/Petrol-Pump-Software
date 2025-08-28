@@ -352,6 +352,19 @@ export function SaleForm() {
                             <Button type="button" variant="outline" size="icon" asChild><Link href="/customers" title="Add new customer"><UserPlus /></Link></Button>
                         </div>
                     </div>
+                     {watchedCustomerId && watchedCustomerId !== 'walk-in' && (
+                        <Card className="bg-muted/40 p-3">
+                            <CardHeader className="p-0 pb-1">
+                                <CardTitle className="text-sm">Previous Balance</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <p className={cn("text-lg font-bold", customerBalance >= 0 ? 'text-destructive' : 'text-green-600')}>
+                                    PKR {Math.abs(customerBalance).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                </p>
+                                <p className="text-xs text-muted-foreground">{customerBalance >= 0 ? 'Receivable' : 'Payable'}</p>
+                            </CardContent>
+                        </Card>
+                    )}
                      <div className="space-y-1">
                         <Label>Product</Label>
                         <ProductSelection 
