@@ -12,10 +12,11 @@ import type { Product } from '@/lib/types';
 
 interface ProductSelectionProps {
   onProductSelect: (product: Product) => void;
+  selectedProduct: Product | null;
 }
 
 export const ProductSelection = forwardRef<HTMLButtonElement, ProductSelectionProps>(
-  ({ onProductSelect }, ref) => {
+  ({ onProductSelect, selectedProduct }, ref) => {
     const { products, isLoaded: productsLoaded } = useProducts();
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState('');
@@ -32,11 +33,13 @@ export const ProductSelection = forwardRef<HTMLButtonElement, ProductSelectionPr
       setSearch(''); // Reset search
     };
 
+    const displayName = selectedProduct ? selectedProduct.name : 'Select Product';
+
     return (
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button variant="outline" role="combobox" className="w-full justify-between" ref={ref}>
-            Select Product
+            <span className="truncate">{displayName}</span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
@@ -52,7 +55,7 @@ export const ProductSelection = forwardRef<HTMLButtonElement, ProductSelectionPr
                     value={p.name}
                     onSelect={() => handleSelect(p)}
                   >
-                    <Check className={cn("mr-2 h-4 w-4", "opacity-0")} />
+                    <Check className={cn("mr-2 h-4 w-4", selectedProduct?.id === p.id ? "opacity-100" : "opacity-0")} />
                     {p.name}
                      {p.mainUnit && <span className="text-xs text-muted-foreground ml-2">({p.mainUnit}{p.subUnit?.name ? ` / ${p.subUnit.name}` : ''})</span>}
                   </CommandItem>

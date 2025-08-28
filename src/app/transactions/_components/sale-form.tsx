@@ -292,7 +292,11 @@ export function SaleForm() {
                     </div>
                      <div className="space-y-1">
                         <Label>Product</Label>
-                        <ProductSelection onProductSelect={handleProductSelect} ref={productSelectionRef} />
+                        <ProductSelection 
+                            onProductSelect={handleProductSelect} 
+                            selectedProduct={currentItem.product}
+                            ref={productSelectionRef} 
+                        />
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4">
