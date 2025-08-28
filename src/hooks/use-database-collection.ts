@@ -58,7 +58,7 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id'>>(
     }
 
     const unsubscribe = onValue(collectionRef, (snapshot) => {
-      const dataArray: any[] = [];
+      const dataArray: (T & {id: string})[] = [];
       if (snapshot.exists()) {
         const fetchedData = snapshot.val();
         Object.keys(fetchedData).forEach(key => {

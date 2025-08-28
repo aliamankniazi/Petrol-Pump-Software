@@ -111,7 +111,7 @@ export interface PurchaseReturn {
   volume: number;
   totalRefund: number;
   reason: string;
-  timestamp: string;
+  timestamp?: string;
   date: Date;
 }
 

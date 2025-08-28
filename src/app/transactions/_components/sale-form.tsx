@@ -72,7 +72,7 @@ const defaultItemState = {
 };
 
 export function SaleForm() {
-  const { addTransaction, transactions } = useTransactions();
+  const { addTransaction } = useTransactions();
   const { customers } = useCustomers();
   const { products, isLoaded: productsLoaded } = useProducts();
   const { bankAccounts, isLoaded: bankAccountsLoaded } = useBankAccounts();
@@ -125,7 +125,7 @@ export function SaleForm() {
 
     const grandTotal = data.items.reduce((sum, item) => sum + (item.totalAmount || 0), 0);
 
-    const newTransaction = await addTransaction(data, products);
+    const newTransaction = await addTransaction(data);
     
     toast({
       title: 'Sale Recorded',
@@ -150,7 +150,7 @@ export function SaleForm() {
         referenceNo: '',
     });
 
-  }, [addTransaction, customers, reset, toast, products]);
+  }, [addTransaction, customers, reset, toast]);
 
   useEffect(() => {
       if (watchedCustomerId === 'walk-in') {
@@ -172,22 +172,15 @@ export function SaleForm() {
   
   const handleProductSelect = useCallback((product: Product) => {
       if (!product || !productsLoaded) return;
-
-      const reversedTransactions = [...transactions].reverse();
-      const lastSaleOfProduct = reversedTransactions
-        .flatMap(tx => tx.items)
-        .find(item => item.productId === product.id);
-
-      const priceToUse = lastSaleOfProduct?.pricePerUnit ?? (product.retailPrice || product.tradePrice || 0);
       
       setCurrentItem(prev => ({
           ...prev,
           product,
           unit: product.mainUnit,
-          price: priceToUse,
+          price: product.retailPrice || product.tradePrice || 0,
       }));
 
-  }, [productsLoaded, transactions]);
+  }, [productsLoaded]);
 
   const handleAddToCart = useCallback(() => {
       const { product, quantity, price, discountAmt, gstPercent, bonusQty } = currentItem;
@@ -218,45 +211,39 @@ export function SaleForm() {
   
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement;
+        const target = event.target as HTMLElement;
 
-      if (event.key === 'Enter' && target instanceof HTMLInputElement) {
-        event.preventDefault();
-        const form = formRef.current;
-        if (!form) return;
-
-        const focusable = Array.from(
-          form.querySelectorAll('input, button, select, textarea')
-        ) as HTMLElement[];
-        
-        const index = focusable.indexOf(target);
-        
-        if (index > -1 && index < focusable.length - 1) {
-            const nextElement = focusable[index + 1];
-            if (nextElement) {
-                nextElement.focus();
+        if (event.key === 'Enter' && target instanceof HTMLInputElement && formRef.current) {
+            event.preventDefault();
+            const focusable = Array.from(
+                formRef.current.querySelectorAll('input, button, select, textarea')
+            ) as HTMLElement[];
+            
+            const index = focusable.indexOf(target);
+            
+            if (index > -1 && index < focusable.length - 1) {
+                focusable[index + 1].focus();
+            } else if (target.id === 'gstPercentInput') {
+                handleAddToCart();
             }
-        } else if (target.id === 'gstPercentInput') { // Special case for last item input
-            handleAddToCart();
         }
-      }
-      
-      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
-        event.preventDefault();
-        handleSubmit(onSubmit)();
-      }
-       
-      if (event.key.toLowerCase() === 'a' && target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
-          event.preventDefault();
-          customerSelectionRef.current?.click();
-      }
+        
+        if ((event.metaKey || event.ctrlKey) && event.key === 's') {
+            event.preventDefault();
+            handleSubmit(onSubmit)();
+        }
+         
+        if (event.key.toLowerCase() === 'a' && target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+            event.preventDefault();
+            customerSelectionRef.current?.click();
+        }
     };
     
     document.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+        document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleSubmit, onSubmit, handleAddToCart]);
+}, [handleSubmit, onSubmit, handleAddToCart]);
   
   const handleCustomerSelect = (customerId: string) => {
     setValue('customerId', customerId);
