@@ -183,11 +183,10 @@ export function SaleForm() {
     const handleProductSelect = useCallback((product: Product) => {
         if (!product || !productsLoaded) return;
         
-        // Find the last transaction for this product to get the last price
-        const lastSaleOfProduct = transactions
+        const lastSaleOfProduct = [...transactions]
+            .reverse()
             .flatMap(tx => tx.items)
-            .filter(item => item.productId === product.id)
-            .pop(); // Assumes transactions are sorted by date, last one is the latest
+            .find(item => item.productId === product.id && item.unit === product.mainUnit);
         
         const lastPrice = lastSaleOfProduct ? lastSaleOfProduct.pricePerUnit : (product.retailPrice || product.tradePrice || 0);
         let newQuantity = 1;
@@ -210,6 +209,34 @@ export function SaleForm() {
         }));
 
     }, [productsLoaded, lastAddedAmount, transactions]);
+    
+    const handleUnitChange = (unit: string) => {
+        if (!currentItem.product) return;
+        const product = currentItem.product;
+
+        const lastSaleOfUnit = [...transactions]
+            .reverse()
+            .flatMap(tx => tx.items)
+            .find(item => item.productId === product.id && item.unit === unit);
+
+        let newPrice = 0;
+        if (lastSaleOfUnit) {
+            newPrice = lastSaleOfUnit.pricePerUnit;
+        } else {
+            const isMainUnit = unit === product.mainUnit;
+            if (isMainUnit) {
+                newPrice = product.retailPrice || product.tradePrice || 0;
+            } else if (product.subUnit && unit === product.subUnit.name) {
+                newPrice = product.subUnit.retailPrice || (product.retailPrice / product.subUnit.conversionRate) || 0;
+            }
+        }
+        
+        setCurrentItem(prev => ({
+            ...prev,
+            unit: unit,
+            price: newPrice
+        }));
+    };
 
     const handleAddToCart = useCallback(() => {
         const { product, quantity, price, discountAmt, gstPercent, bonusQty } = currentItem;
@@ -250,48 +277,48 @@ export function SaleForm() {
     }, [watchedItems, watchedPaidAmount, customerBalance]);
   
     useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            const target = event.target as HTMLElement;
+    
+            if (event.key === 'Enter' && target instanceof HTMLInputElement && formRef.current) {
+                event.preventDefault();
+                const focusable = Array.from(
+                    formRef.current.querySelectorAll('input, button, select, textarea')
+                ) as HTMLElement[];
+                
+                const index = focusable.indexOf(target);
+                
+                if (index > -1 && index < focusable.length - 1) {
+                    focusable[index + 1].focus();
+                } else if (target.id === 'gstPercentInput') {
+                    handleAddToCart();
+                }
+            }
+            
+            if ((event.metaKey || event.ctrlKey) && event.key === 's') {
+                event.preventDefault();
+                handleSubmit(onSubmit)();
+            }
+             
+            if (event.key.toLowerCase() === 'a' && target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+                event.preventDefault();
+                customerSelectionRef.current?.click();
+            }
+        };
+        
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+      }, [handleSubmit, onSubmit, handleAddToCart]);
+
+    useEffect(() => {
       if (watchedCustomerId === 'walk-in') {
         setValue('paymentMethod', 'Cash');
       } else {
         setValue('paymentMethod', 'On Credit');
       }
     }, [watchedCustomerId, setValue]);
-  
-    useEffect(() => {
-      const handleKeyDown = (event: KeyboardEvent) => {
-          const target = event.target as HTMLElement;
-  
-          if (event.key === 'Enter' && target instanceof HTMLInputElement && formRef.current) {
-              event.preventDefault();
-              const focusable = Array.from(
-                  formRef.current.querySelectorAll('input, button, select, textarea')
-              ) as HTMLElement[];
-              
-              const index = focusable.indexOf(target);
-              
-              if (index > -1 && index < focusable.length - 1) {
-                  focusable[index + 1].focus();
-              } else if (target.id === 'gstPercentInput') {
-                  handleAddToCart();
-              }
-          }
-          
-          if ((event.metaKey || event.ctrlKey) && event.key === 's') {
-              event.preventDefault();
-              handleSubmit(onSubmit)();
-          }
-           
-          if (event.key.toLowerCase() === 'a' && target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
-              event.preventDefault();
-              customerSelectionRef.current?.click();
-          }
-      };
-      
-      document.addEventListener('keydown', handleKeyDown);
-      return () => {
-          document.removeEventListener('keydown', handleKeyDown);
-      };
-    }, [handleSubmit, onSubmit, handleAddToCart]);
     
     const handleCustomerSelect = (customerId: string) => {
       setValue('customerId', customerId);
@@ -339,7 +366,7 @@ export function SaleForm() {
                             <Label>Unit</Label>
                              <Select 
                                 value={currentItem.unit}
-                                onValueChange={(value) => setCurrentItem(prev => ({ ...prev, unit: value }))}
+                                onValueChange={handleUnitChange}
                                 disabled={!currentItem.product || !currentItem.product.subUnit}
                             >
                                 <SelectTrigger>

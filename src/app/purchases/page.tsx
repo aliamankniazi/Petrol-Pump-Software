@@ -125,11 +125,10 @@ export default function PurchasesPage() {
   const handleProductSelect = useCallback((product: Product) => {
     if (!product || !productsLoaded) return;
     
-    // Find the last purchase price for this product
-    const lastPurchaseOfProduct = purchases
+    const lastPurchaseOfProduct = [...purchases]
+        .reverse()
         .flatMap(p => p.items)
-        .filter(item => item.productId === product.id)
-        .pop(); // Assumes purchases are sorted by date, last one is the latest
+        .find(item => item.productId === product.id && item.unit === product.mainUnit);
     
     const lastPrice = lastPurchaseOfProduct ? lastPurchaseOfProduct.costPerUnit : product.purchasePrice;
 
@@ -144,13 +143,22 @@ export default function PurchasesPage() {
   const handleUnitChange = (unit: string) => {
     if (!currentItem.product) return;
     const product = currentItem.product;
-    const isMainUnit = unit === product.mainUnit;
     
+    const lastPurchaseOfUnit = [...purchases]
+        .reverse()
+        .flatMap(p => p.items)
+        .find(item => item.productId === product.id && item.unit === unit);
+
     let newPrice = 0;
-    if(isMainUnit) {
-        newPrice = product.purchasePrice || 0;
-    } else if (product.subUnit && unit === product.subUnit.name) {
-        newPrice = product.subUnit.purchasePrice || (product.purchasePrice / product.subUnit.conversionRate) || 0;
+    if(lastPurchaseOfUnit) {
+        newPrice = lastPurchaseOfUnit.costPerUnit;
+    } else {
+        const isMainUnit = unit === product.mainUnit;
+        if(isMainUnit) {
+            newPrice = product.purchasePrice || 0;
+        } else if (product.subUnit && unit === product.subUnit.name) {
+            newPrice = product.subUnit.purchasePrice || (product.purchasePrice / product.subUnit.conversionRate) || 0;
+        }
     }
 
     setCurrentItem(prev => ({
