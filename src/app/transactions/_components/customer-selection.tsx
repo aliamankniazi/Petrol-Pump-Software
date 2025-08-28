@@ -54,7 +54,7 @@ export const CustomerSelection = forwardRef<HTMLButtonElement, CustomerSelection
               <CommandEmpty>No customer found.</CommandEmpty>
               <CommandGroup>
                 <CommandItem value="walk-in" onSelect={() => handleSelect('walk-in')}>
-                  <Check className={cn("mr-2 h-4 w-4", selectedCustomerId === "walk-in" ? "opacity-100" : "opacity-0")} />
+                  <Check className={cn("mr-2 h-4 w-4", (selectedCustomerId === "walk-in" || !selectedCustomerId) ? "opacity-100" : "opacity-0")} />
                   Walk-in Customer
                 </CommandItem>
                 {filteredCustomers.map((c) => (
