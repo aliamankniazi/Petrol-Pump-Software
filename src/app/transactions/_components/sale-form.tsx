@@ -81,6 +81,7 @@ export function SaleForm() {
   const [isClient, setIsClient] = useState(false);
   
   const [currentItem, setCurrentItem] = useState(defaultItemState);
+  const [lastAddedAmount, setLastAddedAmount] = useState(0);
 
   const productSelectionRef = useRef<HTMLButtonElement>(null);
   const customerSelectionRef = useRef<HTMLButtonElement>(null);
@@ -149,115 +150,151 @@ export function SaleForm() {
         expenseBankAccountId: '',
         referenceNo: '',
     });
+    setLastAddedAmount(0);
 
   }, [addTransaction, customers, reset, toast]);
   
-    useEffect(() => {
-        const { quantity, price } = currentItem;
-        setCurrentItem(prev => ({...prev, totalAmount: quantity * price}));
-    }, [currentItem.quantity, currentItem.price]);
+    const handleQtyChange = (newQty: number) => {
+        setCurrentItem(prev => ({
+            ...prev,
+            quantity: newQty,
+            totalAmount: newQty * prev.price,
+        }));
+    };
+    
+    const handlePriceChange = (newPrice: number) => {
+        setCurrentItem(prev => ({
+            ...prev,
+            price: newPrice,
+            totalAmount: newPrice * prev.quantity,
+        }));
+    };
+    
+    const handleTotalAmountChange = (newTotal: number) => {
+        const price = currentItem.price;
+        const newQty = price > 0 ? newTotal / price : 0;
+        setCurrentItem(prev => ({
+            ...prev,
+            quantity: newQty,
+            totalAmount: newTotal,
+        }));
+    };
 
-  useEffect(() => {
+    const handleProductSelect = useCallback((product: Product) => {
+        if (!product || !productsLoaded) return;
+        
+        const newPrice = product.retailPrice || product.tradePrice || 0;
+        let newQuantity = 1;
+        let newTotalAmount = newPrice;
+
+        if(lastAddedAmount > 0) {
+            newTotalAmount = lastAddedAmount;
+            if(newPrice > 0) {
+                newQuantity = newTotalAmount / newPrice;
+            }
+        }
+
+        setCurrentItem(prev => ({
+            ...prev,
+            product,
+            unit: product.mainUnit,
+            price: newPrice,
+            quantity: newQuantity,
+            totalAmount: newTotalAmount,
+        }));
+
+    }, [productsLoaded, lastAddedAmount]);
+
+    const handleAddToCart = useCallback(() => {
+        const { product, quantity, price, discountAmt, gstPercent, bonusQty } = currentItem;
+        if (!product) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Please select a product first.' });
+            return;
+        }
+        
+        const totalAmount = (quantity * price) - discountAmt;
+        const gstAmount = totalAmount * (gstPercent / 100);
+        const finalAmount = totalAmount + gstAmount;
+
+        append({
+            productId: product.id!,
+            productName: product.name,
+            unit: currentItem.unit || product.mainUnit,
+            quantity: quantity,
+            pricePerUnit: price,
+            totalAmount: finalAmount,
+            discount: discountAmt,
+            bonus: bonusQty,
+            gst: gstAmount,
+        });
+
+        setLastAddedAmount(finalAmount);
+        setCurrentItem({...defaultItemState, totalAmount: finalAmount});
+        productSelectionRef.current?.focus();
+    }, [append, currentItem, toast]);
+  
+    const { subTotal, totalDiscount, totalGst, grandTotal, dueBalance, newAccountBalance } = useMemo(() => {
+        const sub = watchedItems.reduce((sum, item) => sum + (item.quantity * item.pricePerUnit), 0);
+        const discount = watchedItems.reduce((sum, item) => sum + (item.discount || 0), 0);
+        const gst = watchedItems.reduce((sum, item) => sum + (item.gst || 0), 0);
+        const grand = sub - discount + gst;
+        const due = grand - watchedPaidAmount;
+        const newBalance = customerBalance + grand - watchedPaidAmount;
+        return { subTotal: sub, totalDiscount: discount, totalGst: gst, grandTotal: grand, dueBalance: due, newAccountBalance: newBalance };
+    }, [watchedItems, watchedPaidAmount, customerBalance]);
+  
+    useEffect(() => {
       if (watchedCustomerId === 'walk-in') {
         setValue('paymentMethod', 'Cash');
       } else {
         setValue('paymentMethod', 'On Credit');
       }
-  }, [watchedCustomerId, setValue]);
-
-  const { subTotal, totalDiscount, totalGst, grandTotal, dueBalance, newAccountBalance } = useMemo(() => {
-    const sub = watchedItems.reduce((sum, item) => sum + (item.quantity * item.pricePerUnit), 0);
-    const discount = watchedItems.reduce((sum, item) => sum + (item.discount || 0), 0);
-    const gst = watchedItems.reduce((sum, item) => sum + (item.gst || 0), 0);
-    const grand = sub - discount + gst;
-    const due = grand - watchedPaidAmount;
-    const newBalance = customerBalance + grand - watchedPaidAmount;
-    return { subTotal: sub, totalDiscount: discount, totalGst: gst, grandTotal: grand, dueBalance: due, newAccountBalance: newBalance };
-  }, [watchedItems, watchedPaidAmount, customerBalance]);
+    }, [watchedCustomerId, setValue]);
   
-  const handleProductSelect = useCallback((product: Product) => {
-      if (!product || !productsLoaded) return;
-      
-      setCurrentItem(prev => ({
-          ...prev,
-          product,
-          unit: product.mainUnit,
-          price: product.retailPrice || product.tradePrice || 0,
-      }));
-
-  }, [productsLoaded]);
-
-  const handleAddToCart = useCallback(() => {
-      const { product, quantity, price, discountAmt, gstPercent, bonusQty } = currentItem;
-      if (!product) {
-          toast({ variant: 'destructive', title: 'Error', description: 'Please select a product first.' });
-          return;
-      }
-      
-      const totalAmount = (quantity * price) - discountAmt;
-      const gstAmount = totalAmount * (gstPercent / 100);
-      const finalAmount = totalAmount + gstAmount;
-
-      append({
-          productId: product.id!,
-          productName: product.name,
-          unit: currentItem.unit || product.mainUnit,
-          quantity: quantity,
-          pricePerUnit: price,
-          totalAmount: finalAmount,
-          discount: discountAmt,
-          bonus: bonusQty,
-          gst: gstAmount,
-      });
-
-      setCurrentItem(defaultItemState); // Reset for next item
-      productSelectionRef.current?.focus();
-  }, [append, currentItem, toast]);
+    useEffect(() => {
+      const handleKeyDown = (event: KeyboardEvent) => {
+          const target = event.target as HTMLElement;
   
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-        const target = event.target as HTMLElement;
-
-        if (event.key === 'Enter' && target instanceof HTMLInputElement && formRef.current) {
-            event.preventDefault();
-            const focusable = Array.from(
-                formRef.current.querySelectorAll('input, button, select, textarea')
-            ) as HTMLElement[];
-            
-            const index = focusable.indexOf(target);
-            
-            if (index > -1 && index < focusable.length - 1) {
-                focusable[index + 1].focus();
-            } else if (target.id === 'gstPercentInput') {
-                handleAddToCart();
-            }
-        }
-        
-        if ((event.metaKey || event.ctrlKey) && event.key === 's') {
-            event.preventDefault();
-            handleSubmit(onSubmit)();
-        }
-         
-        if (event.key.toLowerCase() === 'a' && target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
-            event.preventDefault();
-            customerSelectionRef.current?.click();
-        }
-    };
+          if (event.key === 'Enter' && target instanceof HTMLInputElement && formRef.current) {
+              event.preventDefault();
+              const focusable = Array.from(
+                  formRef.current.querySelectorAll('input, button, select, textarea')
+              ) as HTMLElement[];
+              
+              const index = focusable.indexOf(target);
+              
+              if (index > -1 && index < focusable.length - 1) {
+                  focusable[index + 1].focus();
+              } else if (target.id === 'gstPercentInput') {
+                  handleAddToCart();
+              }
+          }
+          
+          if ((event.metaKey || event.ctrlKey) && event.key === 's') {
+              event.preventDefault();
+              handleSubmit(onSubmit)();
+          }
+           
+          if (event.key.toLowerCase() === 'a' && target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+              event.preventDefault();
+              customerSelectionRef.current?.click();
+          }
+      };
+      
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+          document.removeEventListener('keydown', handleKeyDown);
+      };
+    }, [handleSubmit, onSubmit, handleAddToCart]);
     
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-        document.removeEventListener('keydown', handleKeyDown);
+    const handleCustomerSelect = (customerId: string) => {
+      setValue('customerId', customerId);
+      setTimeout(() => productSelectionRef.current?.focus(), 100);
     };
-  }, [handleSubmit, onSubmit, handleAddToCart]);
   
-  const handleCustomerSelect = (customerId: string) => {
-    setValue('customerId', customerId);
-    setTimeout(() => productSelectionRef.current?.focus(), 100);
-  };
-
-  if (!isClient) {
-    return null;
-  }
+    if (!isClient) {
+      return null;
+    }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} ref={formRef}>
@@ -310,23 +347,18 @@ export function SaleForm() {
                         </div>
                          <div className="space-y-1">
                             <Label>Quantity</Label>
-                            <Input type="number" value={currentItem.quantity} onChange={e => setCurrentItem(p => ({...p, quantity: parseFloat(e.target.value) || 0}))} />
+                            <Input type="number" value={currentItem.quantity} onChange={e => handleQtyChange(parseFloat(e.target.value) || 0)} />
                         </div>
                     </div>
                     
                      <div className="space-y-1">
                         <Label>Price</Label>
-                        <Input type="number" value={currentItem.price} onChange={e => setCurrentItem(p => ({...p, price: parseFloat(e.target.value) || 0}))} />
+                        <Input type="number" value={currentItem.price} onChange={e => handlePriceChange(parseFloat(e.target.value) || 0)} />
                     </div>
 
                     <div className="space-y-1">
                         <Label>Total Amount</Label>
-                        <Input type="number" step="any" value={currentItem.totalAmount} onChange={e => {
-                            const total = parseFloat(e.target.value) || 0;
-                            const price = currentItem.price;
-                            const newQty = price > 0 ? total / price : 0;
-                            setCurrentItem(p => ({...p, totalAmount: total, quantity: newQty }));
-                        }} />
+                        <Input type="number" step="any" value={currentItem.totalAmount} onChange={e => handleTotalAmountChange(parseFloat(e.target.value) || 0)} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
