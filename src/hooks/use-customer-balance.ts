@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -26,15 +27,15 @@ export function useCustomerBalance(customerId: string | null) {
 
     const customerTransactions = transactions
       .filter(tx => tx.customerId === customerId)
-      .reduce((sum, tx) => sum + tx.totalAmount, 0);
+      .reduce((sum, tx) => sum + (tx.totalAmount || 0), 0);
 
     const customerCashAdvances = cashAdvances
       .filter(ca => ca.customerId === customerId)
-      .reduce((sum, ca) => sum + ca.amount, 0);
+      .reduce((sum, ca) => sum + (ca.amount || 0), 0);
 
     const customerPaymentsReceived = customerPayments
       .filter(p => p.customerId === customerId)
-      .reduce((sum, p) => sum + p.amount, 0);
+      .reduce((sum, p) => sum + (p.amount || 0), 0);
 
     return customerTransactions + customerCashAdvances - customerPaymentsReceived;
 
