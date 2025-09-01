@@ -83,7 +83,6 @@ export default function PurchaseReturnsPage() {
         ...data, 
         supplier: supplier.name, // Pass name for display
         productName: product.name,
-        timestamp: data.date.toISOString() 
     });
     toast({
       title: 'Purchase Return Recorded',

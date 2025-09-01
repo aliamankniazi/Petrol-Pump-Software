@@ -16,13 +16,9 @@ export function useTransactions() {
   const { addCustomerPayment } = useCustomerPayments();
   const { addExpense } = useExpenses();
 
-  const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id' | 'timestamp'>): Promise<Transaction> => {
-    const transactionWithTimestamp = {
-      ...transaction,
-      timestamp: transaction.date.toISOString(),
-    };
+  const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id'>): Promise<Transaction> => {
     
-    const newDoc = await addDoc(transactionWithTimestamp);
+    const newDoc = await addDoc(transaction as Transaction);
 
     transaction.items.forEach((item: SaleItem) => {
         const product = products.find(p => p.id === item.productId);

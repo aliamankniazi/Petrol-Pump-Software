@@ -58,7 +58,6 @@ export default function OtherIncomesPage() {
   const onSubmit: SubmitHandler<IncomeFormValues> = (data) => {
     addOtherIncome({
         ...data,
-        timestamp: data.date.toISOString(),
     });
     toast({
       title: 'Income Recorded',

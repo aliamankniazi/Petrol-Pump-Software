@@ -75,7 +75,6 @@ export default function InvestmentsPage() {
     addInvestment({ 
         ...data, 
         partnerName: partner.name,
-        timestamp: data.date.toISOString() 
     });
     toast({
       title: 'Transaction Recorded',

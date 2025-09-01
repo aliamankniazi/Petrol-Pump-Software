@@ -13,9 +13,9 @@ export function useOtherIncomes() {
   const addOtherIncome = useCallback((income: Omit<OtherIncome, 'id' | 'timestamp'>) => {
     const incomeWithTimestamp = {
       ...income,
-      timestamp: income.date,
+      timestamp: income.date.toISOString(),
     }
-    addDoc(incomeWithTimestamp);
+    addDoc(incomeWithTimestamp as OtherIncome);
   }, [addDoc]);
 
   const deleteOtherIncome = useCallback((id: string) => {
@@ -29,4 +29,3 @@ export function useOtherIncomes() {
     isLoaded: !loading 
   };
 }
-

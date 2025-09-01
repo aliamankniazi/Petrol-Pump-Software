@@ -12,12 +12,12 @@ export function usePurchaseReturns() {
   const { data: purchaseReturns, addDoc, deleteDoc, loading } = useDatabaseCollection<PurchaseReturn>(COLLECTION_NAME);
   const { products, updateProductStock } = useProducts();
 
-  const addPurchaseReturn = useCallback(async (purchaseReturn: Omit<PurchaseReturn, 'id'>) => {
+  const addPurchaseReturn = useCallback(async (purchaseReturn: Omit<PurchaseReturn, 'id'|'timestamp'>) => {
     const returnWithTimestamp = {
       ...purchaseReturn,
       timestamp: purchaseReturn.date.toISOString(),
     }
-    const newDoc = await addDoc(returnWithTimestamp);
+    const newDoc = await addDoc(returnWithTimestamp as PurchaseReturn);
 
     const product = products.find(p => p.id === purchaseReturn.productId);
     if(product) {

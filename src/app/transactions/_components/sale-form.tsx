@@ -141,7 +141,16 @@ export function SaleForm() {
     const isWalkIn = !data.customerId || data.customerId === 'walk-in';
     const customer = !isWalkIn ? customers.find(c => c.id === data.customerId) : null;
 
-    const newTransaction = await addTransaction(data);
+    const transactionData = {
+        ...data,
+        customerName: isWalkIn ? 'Walk-in Customer' : customer?.name,
+        timestamp: data.date.toISOString(), // Ensure timestamp is a string
+        totalAmount: grandTotal,
+        dueAmount: dueBalance,
+    };
+    
+    // @ts-ignore
+    const newTransaction = await addTransaction(transactionData);
     
     toast({
       title: 'Sale Recorded',
@@ -168,7 +177,7 @@ export function SaleForm() {
     });
     setLastAddedAmount(0);
 
-  }, [addTransaction, customers, reset, toast, grandTotal]);
+  }, [addTransaction, customers, reset, toast, grandTotal, dueBalance]);
   
     const handleQtyChange = (newQty: number) => {
         setCurrentItem(prev => ({
@@ -344,7 +353,7 @@ export function SaleForm() {
             <Card>
                 <CardHeader>
                     <CardTitle>Create Sale</CardTitle>
-                    <CardDescription>Select products and add them to the cart. Show previous balance after it</CardDescription>
+                    <CardDescription>Select customer and products to create an invoice.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <div className="space-y-1">

@@ -13,9 +13,9 @@ export function useInvestments() {
   const addInvestment = useCallback((investment: Omit<Investment, 'id' | 'timestamp'>) => {
     const investmentWithTimestamp = {
       ...investment,
-      timestamp: investment.date,
+      timestamp: investment.date.toISOString(),
     }
-    addDoc(investmentWithTimestamp);
+    addDoc(investmentWithTimestamp as Investment);
   }, [addDoc]);
   
   const deleteInvestment = useCallback((id: string) => {
@@ -29,4 +29,3 @@ export function useInvestments() {
     isLoaded: !loading 
   };
 }
-
