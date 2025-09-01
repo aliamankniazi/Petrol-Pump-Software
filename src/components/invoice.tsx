@@ -32,7 +32,6 @@ interface InvoiceData {
     name: string;
     number: string;
   }
-  recentTransactions?: LedgerEntry[];
   notes?: string;
 }
 
@@ -63,7 +62,7 @@ const InvoiceLogo = () => (
 export function Invoice({ data }: { data: InvoiceData }) {
     
   const totalQuantity = data.items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalAmountWithExpenses = data.totalAmount + (data.expenses || 0);
+  const totalAmountWithExpenses = (data.totalAmount || 0) + (data.expenses || 0);
   const totalAmountInWords = numWords(Math.floor(totalAmountWithExpenses));
 
   return (
@@ -125,9 +124,9 @@ export function Invoice({ data }: { data: InvoiceData }) {
                         <tr key={index} className="border-b border-gray-100 last:border-b-0">
                             <td className="p-2 text-center">{index + 1}</td>
                             <td className="p-2 font-medium">{item.name}</td>
-                            <td className="p-2 text-right font-mono">{item.quantity.toFixed(2)}</td>
-                            <td className="p-2 text-right font-mono">{item.price.toFixed(2)}</td>
-                            <td className="p-2 text-right font-semibold font-mono">{item.amount.toFixed(2)}</td>
+                            <td className="p-2 text-right font-mono">{(item.quantity || 0).toFixed(2)}</td>
+                            <td className="p-2 text-right font-mono">{(item.price || 0).toFixed(2)}</td>
+                            <td className="p-2 text-right font-semibold font-mono">{(item.amount || 0).toFixed(2)}</td>
                         </tr>
                     ))}
                 </tbody>
@@ -154,12 +153,12 @@ export function Invoice({ data }: { data: InvoiceData }) {
                     <tbody>
                         <tr>
                             <td className="p-1 pr-4 font-semibold text-gray-600">Sub Total:</td>
-                            <td className="p-1 font-medium text-right font-mono">{data.totalAmount.toFixed(2)}</td>
+                            <td className="p-1 font-medium text-right font-mono">{(data.totalAmount || 0).toFixed(2)}</td>
                         </tr>
                         {data.expenses && data.expenses > 0 && (
                             <tr>
                                 <td className="p-1 pr-4 font-semibold text-gray-600">Expenses:</td>
-                                <td className="p-1 font-medium text-right font-mono">{data.expenses.toFixed(2)}</td>
+                                <td className="p-1 font-medium text-right font-mono">{(data.expenses || 0).toFixed(2)}</td>
                             </tr>
                         )}
                         <tr className="font-bold text-lg text-gray-900">
@@ -170,37 +169,6 @@ export function Invoice({ data }: { data: InvoiceData }) {
                 </table>
             </div>
         </section>
-
-        {/* Recent History Table (Print Only) */}
-        {data.recentTransactions && data.recentTransactions.length > 0 && (
-            <div className="print-only mt-6">
-                <h3 className="font-semibold text-gray-600 mb-1 text-base">Recent Ledger</h3>
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <table className="w-full text-xs">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="p-1 text-left font-semibold">Date</th>
-                            <th className="p-1 text-left font-semibold">Type</th>
-                            <th className="p-1 text-right font-semibold">Debit</th>
-                            <th className="p-1 text-right font-semibold">Credit</th>
-                            <th className="p-1 text-right font-semibold">Balance</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {data.recentTransactions.map(tx => (
-                            <tr key={tx.id} className="border-b border-gray-100 last:border-0">
-                                <td className="p-1 font-mono">{format(new Date(tx.timestamp), 'dd/MM/yy')}</td>
-                                <td className="p-1">{tx.type}</td>
-                                <td className="p-1 text-right font-mono">{tx.debit > 0 ? tx.debit.toFixed(2) : '-'}</td>
-                                <td className="p-1 text-right font-mono">{tx.credit > 0 ? tx.credit.toFixed(2) : '-'}</td>
-                                <td className="p-1 text-right font-mono font-semibold">{tx.balance.toFixed(2)}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                </div>
-            </div>
-        )}
 
         {/* Footer */}
         <footer className="mt-16 pt-8">

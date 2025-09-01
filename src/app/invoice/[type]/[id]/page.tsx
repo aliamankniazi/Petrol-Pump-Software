@@ -72,60 +72,6 @@ export default function InvoicePage() {
         const customer = transaction.customerId ? customers.find(c => c.id === transaction.customerId) : null;
         const bankAccount = transaction.bankAccountId ? bankAccounts.find(b => b.id === transaction.bankAccountId) : null;
         
-        let recentLedger: LedgerEntry[] = [];
-        if (customer) {
-            const combined: Omit<LedgerEntry, 'balance'>[] = [];
-            const customerTransactions = transactions.filter(tx => tx.customerId === customer.id && tx.timestamp);
-            const customerPaymentsReceived = customerPayments.filter(p => p.customerId === customer.id && p.timestamp);
-            const customerCashAdvances = cashAdvances.filter(ca => ca.customerId === customer.id && ca.timestamp);
-
-            customerTransactions.forEach(tx => {
-                if (tx.timestamp) {
-                  combined.push({
-                    id: `tx-${tx.id}`,
-                    timestamp: tx.timestamp,
-                    description: 'Sale',
-                    type: 'Sale',
-                    debit: tx.totalAmount,
-                    credit: 0,
-                  });
-                }
-            });
-            customerPaymentsReceived.forEach(p => {
-              if (p.timestamp) {
-                combined.push({
-                    id: `pay-${p.id}`,
-                    timestamp: p.timestamp,
-                    description: 'Payment',
-                    type: 'Payment',
-                    debit: 0,
-                    credit: p.amount,
-                });
-              }
-            });
-            customerCashAdvances.forEach(ca => {
-              if (ca.timestamp) {
-                combined.push({
-                    id: `adv-${ca.id}`,
-                    timestamp: ca.timestamp,
-                    description: 'Cash Advance',
-                    type: 'Cash Advance',
-                    debit: ca.amount,
-                    credit: 0,
-                });
-              }
-            });
-
-            combined.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-            
-            let runningBalance = 0;
-            const entriesWithBalance: LedgerEntry[] = combined.map(entry => {
-                runningBalance += entry.debit - entry.credit;
-                return { ...entry, balance: runningBalance };
-            });
-            recentLedger = entriesWithBalance.slice(-10);
-        }
-
         return {
           type: 'Sale',
           id: transaction.id!,
@@ -150,7 +96,6 @@ export default function InvoicePage() {
           expenses: transaction.expenseAmount,
           paymentMethod: transaction.paymentMethod,
           bankDetails: bankAccount ? { name: bankAccount.bankName, number: bankAccount.accountNumber } : undefined,
-          recentTransactions: recentLedger,
           notes: transaction.notes,
         };
       }
