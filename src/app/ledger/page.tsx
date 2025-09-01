@@ -75,37 +75,35 @@ export default function LedgerPage() {
     transactions.forEach(tx => {
         if (!tx.id || !tx.timestamp) return;
 
-        // Sale is a credit to the sales account
+        // Sale is always a credit to the sales account
         combined.push({
-            id: `tx-sale-${tx.id}`,
+            id: `sale-${tx.id}`,
             timestamp: tx.timestamp,
-            description: `Sale to ${tx.customerName || 'Walk-in'}: ${tx.items.length} item(s) ${tx.notes ? `- ${tx.notes}` : ''}`,
+            description: `Sale to ${tx.customerName || 'Walk-in'}: ${tx.items.length} item(s)`,
             type: 'Sale',
             debit: 0,
             credit: tx.totalAmount || 0,
         });
 
-        // The debit depends on the payment method
+        // The debit portion depends on how it was paid
         if (tx.paymentMethod === 'On Credit') {
-            // Debit goes to Accounts Receivable for the amount that is due
+            // Debit goes to Accounts Receivable
             combined.push({
-                id: `tx-receivable-${tx.id}`,
+                id: `receivable-${tx.id}`,
                 timestamp: tx.timestamp,
-                description: `Credit sale to ${tx.customerName || 'Walk-in'}`,
+                description: `Credit Sale to ${tx.customerName}`,
                 type: 'Sale',
-                debit: tx.dueAmount || 0,
+                debit: tx.totalAmount || 0,
                 credit: 0,
             });
-        }
-        
-        // If there was a payment, it's a debit to cash/bank
-        if (tx.paidAmount && tx.paidAmount > 0) {
+        } else {
+             // If paid by Cash, Bank, etc., it's a debit to that asset account (e.g., Cash)
             combined.push({
-                id: `tx-payment-${tx.id}`,
+                id: `payment-${tx.id}`,
                 timestamp: tx.timestamp,
-                description: `Payment for sale to ${tx.customerName || 'Walk-in'}`,
+                description: `Payment for Sale via ${tx.paymentMethod}`,
                 type: 'Customer Payment',
-                debit: tx.paidAmount || 0,
+                debit: tx.totalAmount || 0,
                 credit: 0,
             });
         }
@@ -293,38 +291,43 @@ export default function LedgerPage() {
   const handleDeleteEntry = () => {
     if (!entryToDelete || !entryToDelete.id) return;
     
-    const idParts = entryToDelete.id.split('-');
-    const typePrefix = idParts[0];
-    const originalId = idParts.slice(1).join('-');
+    const [typePrefix, ...idParts] = entryToDelete.id.split('-');
+    const originalId = idParts.join('-');
 
-    const idToDelete = idParts.length > 2 ? idParts.slice(2).join('-') : originalId;
+    const idToDelete = originalId;
 
+    try {
+        switch(typePrefix) {
+            case 'sale':
+            case 'receivable':
+            case 'payment':
+                deleteTransaction(idToDelete); break;
+            case 'pur': deletePurchase(idToDelete); break;
+            case 'exp': deleteExpense(idToDelete); break;
+            case 'pr': deletePurchaseReturn(idToDelete); break;
+            case 'oi': deleteOtherIncome(idToDelete); break;
+            case 'cp': deleteCustomerPayment(idToDelete); break;
+            case 'sp': deleteSupplierPayment(idToDelete); break;
+            case 'inv':
+            case 'wdr': deleteInvestment(idToDelete); break;
+            case 'ca': deleteCashAdvance(idToDelete); break;
+            default:
+                throw new Error(`Could not delete entry of unknown type prefix: ${typePrefix}`);
+        }
 
-    switch(typePrefix) {
-        case 'tx': deleteTransaction(idToDelete); break;
-        case 'pur': deletePurchase(originalId); break;
-        case 'exp': deleteExpense(originalId); break;
-        case 'pr': deletePurchaseReturn(originalId); break;
-        case 'oi': deleteOtherIncome(originalId); break;
-        case 'cp': deleteCustomerPayment(originalId); break;
-        case 'sp': deleteSupplierPayment(originalId); break;
-        case 'inv':
-        case 'wdr': deleteInvestment(originalId); break;
-        case 'ca': deleteCashAdvance(originalId); break;
-        default:
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Could not delete entry of unknown type.',
-            });
-            return;
+        toast({
+            title: 'Entry Deleted',
+            description: `The ${entryToDelete.type} entry has been successfully deleted.`,
+        });
+    } catch(e: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: e.message || 'Could not delete entry.',
+        });
+    } finally {
+        setEntryToDelete(null);
     }
-
-    toast({
-        title: 'Entry Deleted',
-        description: `The ${entryToDelete.type} entry has been successfully deleted.`,
-    });
-    setEntryToDelete(null);
   };
 
 
@@ -532,3 +535,4 @@ export default function LedgerPage() {
     </>
   );
 }
+
