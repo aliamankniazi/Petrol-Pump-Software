@@ -293,25 +293,24 @@ export default function LedgerPage() {
   const handleDeleteEntry = () => {
     if (!entryToDelete || !entryToDelete.id) return;
     
-    const [typePrefix, ...idParts] = entryToDelete.id.split(/-(.*)/s);
-    const id = idParts.join('-');
+    const idParts = entryToDelete.id.split('-');
+    const typePrefix = idParts[0];
+    const originalId = idParts.slice(1).join('-');
+
+    const idToDelete = idParts.length > 2 ? idParts.slice(2).join('-') : originalId;
+
 
     switch(typePrefix) {
-        case 'tx': 
-        case 'tx-sale':
-        case 'tx-pay':
-        case 'tx-receivable':
-            deleteTransaction(id); 
-            break;
-        case 'pur': deletePurchase(id); break;
-        case 'exp': deleteExpense(id); break;
-        case 'pr': deletePurchaseReturn(id); break;
-        case 'oi': deleteOtherIncome(id); break;
-        case 'cp': deleteCustomerPayment(id); break;
-        case 'sp': deleteSupplierPayment(id); break;
-        case 'inv': deleteInvestment(id); break;
-        case 'wdr': deleteInvestment(id); break;
-        case 'ca': deleteCashAdvance(id); break;
+        case 'tx': deleteTransaction(idToDelete); break;
+        case 'pur': deletePurchase(originalId); break;
+        case 'exp': deleteExpense(originalId); break;
+        case 'pr': deletePurchaseReturn(originalId); break;
+        case 'oi': deleteOtherIncome(originalId); break;
+        case 'cp': deleteCustomerPayment(originalId); break;
+        case 'sp': deleteSupplierPayment(originalId); break;
+        case 'inv':
+        case 'wdr': deleteInvestment(originalId); break;
+        case 'ca': deleteCashAdvance(originalId); break;
         default:
             toast({
                 variant: 'destructive',

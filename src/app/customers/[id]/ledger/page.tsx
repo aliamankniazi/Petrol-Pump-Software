@@ -226,7 +226,8 @@ export default function CustomerLedgerPage() {
   const handleDeleteEntry = () => {
     if (!entryToDelete) return;
     
-    const [typePrefix, id] = entryToDelete.id.split(/-(.*)/s);
+    const [typePrefix, ...idParts] = entryToDelete.id.split('-');
+    const id = idParts.join('-');
 
     switch(typePrefix) {
         case 'tx': deleteTransaction(id); break;
@@ -234,7 +235,7 @@ export default function CustomerLedgerPage() {
         case 'pay': deleteCustomerPayment(id); break;
         case 'adv': deleteCashAdvance(id); break;
         case 'spay': deleteSupplierPayment(id); break;
-        case 'inv': deleteInvestment(id); break;
+        case 'inv':
         case 'wdr': deleteInvestment(id); break;
         case 'exp': deleteExpense(id); break; // Added for salary deletion
         default:
