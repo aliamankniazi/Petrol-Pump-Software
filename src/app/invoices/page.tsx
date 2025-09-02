@@ -215,7 +215,7 @@ export default function InvoicesPage() {
                             id="date"
                             variant={"outline"}
                             className={cn(
-                                "w-[280px] justify-start text-left font-normal",
+                                "w-[300px] justify-start text-left font-normal",
                                 !globalDateRange && "text-muted-foreground"
                             )}
                         >
@@ -223,11 +223,11 @@ export default function InvoicesPage() {
                             {globalDateRange?.from ? (
                                 globalDateRange.to ? (
                                     <>
-                                        {format(globalDateRange.from, "LLL dd, y")} -{" "}
-                                        {format(globalDateRange.to, "LLL dd, y")}
+                                        {format(globalDateRange.from, "PP p")} -{" "}
+                                        {format(globalDateRange.to, "PP p")}
                                     </>
                                 ) : (
-                                    format(globalDateRange.from, "LLL dd, y")
+                                    format(globalDateRange.from, "PP p")
                                 )
                             ) : (
                                 <span>Pick a date range</span>
@@ -328,7 +328,7 @@ export default function InvoicesPage() {
                     {filteredSales.map((sale) => (
                         <TableRow key={sale.id}>
                         <TableCell className="font-medium whitespace-nowrap">
-                            {sale.timestamp ? format(new Date(sale.timestamp), 'PP pp') : 'N/A'}
+                            {sale.timestamp ? format(new Date(sale.timestamp), 'PP p') : 'N/A'}
                         </TableCell>
                         <TableCell>{sale.customerName || 'Walk-in'}</TableCell>
                         <TableCell>{sale.items.map(i => i.productName).join(', ')}</TableCell>
@@ -389,7 +389,7 @@ export default function InvoicesPage() {
                                 {filteredPurchases.map((purchase: Purchase) => (
                                     <TableRow key={purchase.id}>
                                     <TableCell className="font-medium whitespace-nowrap">
-                                        {purchase.timestamp ? format(new Date(purchase.timestamp), 'PP pp') : 'N/A'}
+                                        {purchase.timestamp ? format(new Date(purchase.timestamp), 'PP p') : 'N/A'}
                                     </TableCell>
                                     <TableCell>{purchase.supplier}</TableCell>
                                     <TableCell>{purchase.items.map(i => i.productName).join(', ')}</TableCell>

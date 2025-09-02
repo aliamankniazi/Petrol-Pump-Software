@@ -406,7 +406,7 @@ export default function UnifiedLedgerPage() {
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "PPP") : <span>Filter by date...</span>}
+                    {selectedDate ? format(selectedDate, "PP p") : <span>Filter by date...</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -484,7 +484,7 @@ export default function UnifiedLedgerPage() {
                 {entries.map(entry => (
                   <TableRow key={entry.id}>
                     <TableCell className="font-medium">
-                      {format(new Date(entry.timestamp), 'PP pp')}
+                      {format(new Date(entry.timestamp), 'PP p')}
                     </TableCell>
                     <TableCell>
                       <div>{entry.entityName}</div>

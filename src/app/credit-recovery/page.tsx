@@ -197,7 +197,7 @@ Mianwali Petroleum Service`;
                             </Popover>
                         </div>
                          <div className="w-full md:w-auto flex-1">
-                            <label className="text-sm font-medium">Date Range</label>
+                            <Label>Date Range</Label>
                             <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                                 <PopoverTrigger asChild>
                                     <Button
@@ -212,11 +212,11 @@ Mianwali Petroleum Service`;
                                         {globalDateRange?.from ? (
                                             globalDateRange.to ? (
                                                 <>
-                                                    {format(globalDateRange.from, "LLL dd, y")} -{" "}
-                                                    {format(globalDateRange.to, "LLL dd, y")}
+                                                    {format(globalDateRange.from, "PP p")} -{" "}
+                                                    {format(globalDateRange.to, "PP p")}
                                                 </>
                                             ) : (
-                                                format(globalDateRange.from, "LLL dd, y")
+                                                format(globalDateRange.from, "PP p")
                                             )
                                         ) : (
                                             <span>Pick a date</span>

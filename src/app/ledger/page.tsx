@@ -72,24 +72,25 @@ export default function LedgerPage() {
 
     let combined: Omit<LedgerEntry, 'balance'>[] = [];
     
+    // Process Sales
     transactions.forEach(tx => {
         if (!tx.id || !tx.timestamp) return;
 
-        // Sale is always a credit to the sales account
+        // The sale itself is a credit to the sales account
         combined.push({
-            id: `sale-${tx.id}`,
+            id: `sale-credit-${tx.id}`,
             timestamp: tx.timestamp,
-            description: `Sale to ${tx.customerName || 'Walk-in'}: ${tx.items.length} item(s)`,
+            description: `Sale to ${tx.customerName || 'Walk-in'}`,
             type: 'Sale',
             debit: 0,
             credit: tx.totalAmount || 0,
         });
 
-        // The debit portion depends on how it was paid
+        // The debit depends on how it was paid
         if (tx.paymentMethod === 'On Credit') {
-            // Debit goes to Accounts Receivable
+            // Debit goes to Accounts Receivable for this customer
             combined.push({
-                id: `receivable-${tx.id}`,
+                id: `sale-debit-ar-${tx.id}`,
                 timestamp: tx.timestamp,
                 description: `Credit Sale to ${tx.customerName}`,
                 type: 'Sale',
@@ -97,11 +98,11 @@ export default function LedgerPage() {
                 credit: 0,
             });
         } else {
-             // If paid by Cash, Bank, etc., it's a debit to that asset account (e.g., Cash)
+             // If paid by Cash, Bank, etc., it's a debit to that asset account (e.g., Cash/Bank)
             combined.push({
-                id: `payment-${tx.id}`,
+                id: `sale-debit-asset-${tx.id}`,
                 timestamp: tx.timestamp,
-                description: `Payment for Sale via ${tx.paymentMethod}`,
+                description: `Payment for Sale from ${tx.customerName || 'Walk-in'} via ${tx.paymentMethod}`,
                 type: 'Customer Payment',
                 debit: tx.totalAmount || 0,
                 credit: 0,
@@ -291,17 +292,14 @@ export default function LedgerPage() {
   const handleDeleteEntry = () => {
     if (!entryToDelete || !entryToDelete.id) return;
     
-    const [typePrefix, ...idParts] = entryToDelete.id.split('-');
-    const originalId = idParts.join('-');
+    const [typePrefix, ...idParts] = entryToDelete.id.split(/-(.*)/s);
+    const originalId = idParts.join('');
 
     const idToDelete = originalId;
 
     try {
         switch(typePrefix) {
-            case 'sale':
-            case 'receivable':
-            case 'payment':
-                deleteTransaction(idToDelete); break;
+            case 'sale': deleteTransaction(idToDelete); break;
             case 'pur': deletePurchase(idToDelete); break;
             case 'exp': deleteExpense(idToDelete); break;
             case 'pr': deletePurchaseReturn(idToDelete); break;
@@ -364,7 +362,7 @@ export default function LedgerPage() {
                       <Button
                         variant={"outline"}
                         className={cn(
-                          "w-full sm:w-[240px] justify-start text-left font-normal",
+                          "w-full sm:w-[300px] justify-start text-left font-normal",
                           !globalDateRange && "text-muted-foreground"
                         )}
                       >
@@ -372,11 +370,11 @@ export default function LedgerPage() {
                         {globalDateRange?.from ? (
                             globalDateRange.to ? (
                                 <>
-                                    {format(globalDateRange.from, "LLL dd, y")} -{" "}
-                                    {format(globalDateRange.to, "LLL dd, y")}
+                                    {format(globalDateRange.from, "PP p")} -{" "}
+                                    {format(globalDateRange.to, "PP p")}
                                 </>
                             ) : (
-                                format(globalDateRange.from, "LLL dd, y")
+                                format(globalDateRange.from, "PP p")
                             )
                         ) : (
                             <span>Filter by date...</span>
@@ -535,4 +533,3 @@ export default function LedgerPage() {
     </>
   );
 }
-

@@ -252,7 +252,7 @@ export default function AllTransactionsPage() {
                             id="date"
                             variant={"outline"}
                             className={cn(
-                                "w-[280px] justify-start text-left font-normal",
+                                "w-[300px] justify-start text-left font-normal",
                                 !globalDateRange && "text-muted-foreground"
                             )}
                         >
@@ -260,11 +260,11 @@ export default function AllTransactionsPage() {
                             {globalDateRange?.from ? (
                                 globalDateRange.to ? (
                                     <>
-                                        {format(globalDateRange.from, "LLL dd, y")} -{" "}
-                                        {format(globalDateRange.to, "LLL dd, y")}
+                                        {format(globalDateRange.from, "PP p")} -{" "}
+                                        {format(globalDateRange.to, "PP p")}
                                     </>
                                 ) : (
-                                    format(globalDateRange.from, "LLL dd, y")
+                                    format(globalDateRange.from, "PP p")
                                 )
                             ) : (
                                 <span>Pick a date range</span>
@@ -317,7 +317,7 @@ export default function AllTransactionsPage() {
                     return (
                     <TableRow key={entry.id}>
                       <TableCell className="font-medium whitespace-nowrap">
-                        {format(new Date(entry.timestamp), 'PP pp')}
+                        {format(new Date(entry.timestamp), 'PP p')}
                       </TableCell>
                       <TableCell>
                         <Badge 

@@ -197,7 +197,7 @@ export default function ExpensesPage() {
                             )}
                           >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                            {field.value ? format(field.value, "PP p") : <span>Pick a date</span>}
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0">
@@ -266,7 +266,7 @@ export default function ExpensesPage() {
                             id="date"
                             variant={"outline"}
                             className={cn(
-                                "w-[240px] justify-start text-left font-normal",
+                                "w-[300px] justify-start text-left font-normal",
                                 !globalDateRange && "text-muted-foreground"
                             )}
                         >
@@ -274,11 +274,11 @@ export default function ExpensesPage() {
                             {globalDateRange?.from ? (
                                 globalDateRange.to ? (
                                     <>
-                                        {format(globalDateRange.from, "LLL dd, y")} -{" "}
-                                        {format(globalDateRange.to, "LLL dd, y")}
+                                        {format(globalDateRange.from, "PP p")} -{" "}
+                                        {format(globalDateRange.to, "PP p")}
                                     </>
                                 ) : (
-                                    format(globalDateRange.from, "LLL dd, y")
+                                    format(globalDateRange.from, "PP p")
                                 )
                             ) : (
                                 <span>Pick a date range</span>
@@ -325,7 +325,7 @@ export default function ExpensesPage() {
                 <TableBody>
                   {filteredExpenses.map(e => (
                       <TableRow key={e.id}>
-                        <TableCell className="font-medium">{format(new Date(e.timestamp!), 'PP')}</TableCell>
+                        <TableCell className="font-medium">{format(new Date(e.timestamp!), 'PP p')}</TableCell>
                         <TableCell>{e.description}</TableCell>
                         <TableCell>{e.category}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{e.notes || 'N/A'}</TableCell>

@@ -80,9 +80,9 @@ export default function DashboardPage() {
     const financialSummary = useMemo(() => {
         if (!isLoaded) return null;
 
-        const totalRevenue = filteredData.transactions.reduce((sum, tx) => sum + (tx.totalAmount || 0), 0) + filteredData.otherIncomes.reduce((sum, oi) => sum + (oi.amount || 0), 0);
-        const totalCostOfGoods = filteredData.purchases.reduce((sum, p) => sum + (p.totalCost || 0), 0);
-        const totalExpenses = filteredData.expenses.reduce((sum, ex) => sum + (ex.amount || 0), 0);
+        const totalRevenue = (filteredData.transactions.reduce((sum, tx) => sum + (tx.totalAmount || 0), 0) || 0) + (filteredData.otherIncomes.reduce((sum, oi) => sum + (oi.amount || 0), 0) || 0);
+        const totalCostOfGoods = filteredData.purchases.reduce((sum, p) => sum + (p.totalCost || 0), 0) || 0;
+        const totalExpenses = filteredData.expenses.reduce((sum, ex) => sum + (ex.amount || 0), 0) || 0;
         const netProfit = totalRevenue - totalCostOfGoods - totalExpenses;
         const totalCustomers = new Set(filteredData.transactions.map(tx => tx.customerId).filter(Boolean)).size;
 
@@ -172,7 +172,7 @@ export default function DashboardPage() {
                                 id="date"
                                 variant={"outline"}
                                 className={cn(
-                                    "w-[280px] justify-start text-left font-normal",
+                                    "w-[300px] justify-start text-left font-normal",
                                     !globalDateRange && "text-muted-foreground"
                                 )}
                             >
@@ -180,11 +180,11 @@ export default function DashboardPage() {
                                 {globalDateRange?.from ? (
                                     globalDateRange.to ? (
                                         <>
-                                            {format(globalDateRange.from, "LLL dd, y")} -{" "}
-                                            {format(globalDateRange.to, "LLL dd, y")}
+                                            {format(globalDateRange.from, "PP p")} -{" "}
+                                            {format(globalDateRange.to, "PP p")}
                                         </>
                                     ) : (
-                                        format(globalDateRange.from, "LLL dd, y")
+                                        format(globalDateRange.from, "PP p")
                                     )
                                 ) : (
                                     <span>Pick a date range</span>
