@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Calendar as CalendarIcon, UserPlus, PlusCircle, ShoppingCart, Wallet, CreditCard, Smartphone, Landmark } from 'lucide-react';
+import { Trash2, Calendar as CalendarIcon, UserPlus, PlusCircle, ShoppingCart, Wallet, CreditCard, Smartphone, Landmark, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomers } from '@/hooks/use-customers';
@@ -29,6 +29,7 @@ import { ProductSelection } from './product-selection';
 import { CustomerSelection } from './customer-selection';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 const saleItemSchema = z.object({
@@ -71,6 +72,7 @@ const defaultItemState = {
     discountAmt: 0,
     discountPercent: 0,
     gstPercent: 0,
+    priceSource: '' as 'customer' | 'overall' | 'default' | '',
 };
 
 export function SaleForm() {
@@ -192,6 +194,7 @@ export function SaleForm() {
             ...prev,
             price: newPrice,
             totalAmount: newPrice * prev.quantity,
+            priceSource: 'default' // Mark as manually overridden
         }));
     };
     
@@ -208,18 +211,34 @@ export function SaleForm() {
     const handleProductSelect = useCallback((product: Product) => {
         if (!product || !productsLoaded) return;
         
-        const lastSaleOfProduct = [...transactions]
-            .reverse()
-            .flatMap(tx => tx.items)
-            .find(item => item.productId === product.id && item.unit === product.mainUnit);
+        let lastPrice = product.retailPrice || product.tradePrice || 0;
+        let priceSource: 'customer' | 'overall' | 'default' = 'default';
+
+        // 1. Try to find the last price for the specific customer
+        if (watchedCustomerId && watchedCustomerId !== 'walk-in') {
+            const customerTx = transactions.filter(tx => tx.customerId === watchedCustomerId);
+            const lastSaleForCustomer = customerTx.flatMap(tx => tx.items).find(item => item.productId === product.id);
+            if (lastSaleForCustomer) {
+                lastPrice = lastSaleForCustomer.pricePerUnit;
+                priceSource = 'customer';
+            }
+        }
         
-        const lastPrice = lastSaleOfProduct ? lastSaleOfProduct.pricePerUnit : (product.retailPrice || product.tradePrice || 0);
+        // 2. If no customer-specific price, find the last overall price
+        if (priceSource === 'default') {
+            const lastSaleOverall = transactions.flatMap(tx => tx.items).find(item => item.productId === product.id);
+            if (lastSaleOverall) {
+                lastPrice = lastSaleOverall.pricePerUnit;
+                priceSource = 'overall';
+            }
+        }
+
         let newQuantity = 1;
         let newTotalAmount = lastPrice;
 
-        if(lastAddedAmount > 0) {
+        if (lastAddedAmount > 0) {
             newTotalAmount = lastAddedAmount;
-            if(lastPrice > 0) {
+            if (lastPrice > 0) {
                 newQuantity = newTotalAmount / lastPrice;
             }
         }
@@ -229,11 +248,12 @@ export function SaleForm() {
             product,
             unit: product.mainUnit,
             price: lastPrice,
+            priceSource,
             quantity: newQuantity,
             totalAmount: newTotalAmount,
         }));
 
-    }, [productsLoaded, lastAddedAmount, transactions]);
+    }, [productsLoaded, lastAddedAmount, transactions, watchedCustomerId]);
     
     const handleUnitChange = (unit: string) => {
         if (!currentItem.product) return;
@@ -413,7 +433,23 @@ export function SaleForm() {
                     </div>
                     
                      <div className="space-y-1">
-                        <Label>Price</Label>
+                        <div className="flex justify-between items-center">
+                            <Label>Price</Label>
+                            {currentItem.priceSource === 'customer' && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                             <span className="text-xs flex items-center gap-1 text-green-600 cursor-help">
+                                                <Info className="w-3 h-3"/> Last rate for this customer
+                                            </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>This price is based on the last sale to this specific customer.</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            )}
+                        </div>
                         <Input type="number" value={currentItem.price} onChange={e => handlePriceChange(parseFloat(e.target.value) || 0)} />
                     </div>
 
