@@ -30,6 +30,7 @@ import { CustomerSelection } from './customer-selection';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 
 const saleItemSchema = z.object({
@@ -78,7 +79,7 @@ const defaultItemState = {
 
 export function SaleForm() {
   const { transactions, addTransaction } = useTransactions();
-  const { customers } = useCustomers();
+  const { customers, updateCustomer } = useCustomers();
   const { products, isLoaded: productsLoaded } = useProducts();
   const { bankAccounts, isLoaded: bankAccountsLoaded } = useBankAccounts();
   const { toast } = useToast();
@@ -90,6 +91,10 @@ export function SaleForm() {
   const productSelectionRef = useRef<HTMLButtonElement>(null);
   const customerSelectionRef = useRef<HTMLButtonElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+
+  const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
+  const [newVehicleNumber, setNewVehicleNumber] = useState('');
+
 
   useEffect(() => {
     setIsClient(true);
@@ -367,12 +372,23 @@ export function SaleForm() {
       setValue('vehicleNumber', ''); // Reset vehicle when customer changes
       setTimeout(() => productSelectionRef.current?.focus(), 100);
     };
+
+    const handleAddVehicle = async () => {
+        if (!newVehicleNumber || !selectedCustomer) return;
+        const updatedVehicles = [...(selectedCustomer.vehicleNumbers || []), newVehicleNumber];
+        await updateCustomer(selectedCustomer.id!, { vehicleNumbers: updatedVehicles });
+        toast({ title: 'Vehicle Added', description: `${newVehicleNumber} added to ${selectedCustomer.name}.` });
+        setValue('vehicleNumber', newVehicleNumber); // Select the new vehicle
+        setNewVehicleNumber('');
+        setIsAddVehicleOpen(false);
+    };
   
     if (!isClient) {
       return null;
     }
 
   return (
+    <>
     <form onSubmit={handleSubmit(onSubmit)} ref={formRef}>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
@@ -408,9 +424,10 @@ export function SaleForm() {
                                 <p className="text-xs text-muted-foreground">{customerBalance >= 0 ? 'Receivable' : 'Payable'}</p>
                             </CardContent>
                         </Card>
-                        {selectedCustomer.vehicleNumbers && selectedCustomer.vehicleNumbers.length > 0 && (
+                        {(selectedCustomer.vehicleNumbers && selectedCustomer.vehicleNumbers.length > 0) || selectedCustomer ? (
                             <div className="space-y-1">
                                 <Label>Vehicle</Label>
+                                <div className="flex items-center gap-2">
                                 <Controller
                                     name="vehicleNumber"
                                     control={control}
@@ -425,8 +442,10 @@ export function SaleForm() {
                                         </Select>
                                     )}
                                 />
+                                <Button type="button" variant="outline" size="icon" onClick={() => setIsAddVehicleOpen(true)} title="Add new vehicle"><PlusCircle/></Button>
+                                </div>
                             </div>
-                        )}
+                        ) : null}
                         </>
                     )}
                      <div className="space-y-1">
@@ -662,5 +681,33 @@ export function SaleForm() {
         </div>
       </div>
     </form>
+    
+    <Dialog open={isAddVehicleOpen} onOpenChange={setIsAddVehicleOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Add New Vehicle</DialogTitle>
+                <DialogDescription>
+                    Add a new vehicle number for {selectedCustomer?.name}.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                    <Label htmlFor="new-vehicle-number">Vehicle Number</Label>
+                    <Input 
+                        id="new-vehicle-number" 
+                        value={newVehicleNumber}
+                        onChange={(e) => setNewVehicleNumber(e.target.value)}
+                        placeholder="e.g., ABC-123" 
+                    />
+                </div>
+            </div>
+            <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsAddVehicleOpen(false)}>Cancel</Button>
+                <Button type="button" onClick={handleAddVehicle}>Save Vehicle</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }
+
