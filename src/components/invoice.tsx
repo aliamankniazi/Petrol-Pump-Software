@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { format } from 'date-fns';
@@ -206,24 +205,24 @@ export function Invoice({ data }: { data: InvoiceData }) {
         </section>
 
         {/* Footer */}
-        <footer className="mt-8 pt-8">
+        <footer className="mt-4 pt-4 border-t-2 border-dashed border-gray-300">
             <div className="flex justify-between items-center">
                 <div className="w-1/3">
-                    <p><strong>NTN:</strong> {companyDetails.ntn}</p>
-                    <p><strong>GST:</strong> {companyDetails.saleTaxNo}</p>
+                    <p className="text-xs"><strong>NTN:</strong> {companyDetails.ntn}</p>
+                    <p className="text-xs"><strong>GST:</strong> {companyDetails.saleTaxNo}</p>
                 </div>
                 <div className="w-1/3 text-center">
-                    <p className="text-gray-500">Thank you for your business!</p>
+                    <p className="text-xs text-gray-500">Thank you for your business!</p>
                 </div>
                 <div className="w-1/3 text-right">
                     <div className="inline-block pt-8 text-center">
                         <div className="border-t-2 border-gray-400 pt-1 w-48">
-                            <p className="font-semibold">Authorized Signature</p>
+                            <p className="font-semibold text-sm">Authorized Signature</p>
                         </div>
                     </div>
                 </div>
             </div>
-             <div className="mt-8 pt-4 border-t-2 border-dashed border-gray-300">
+             <div className="mt-4 pt-2">
                 <p className="text-center text-xs text-gray-500">
                     This is a computer-generated invoice and does not require a signature. If you have any questions, please contact us at {companyDetails.mobile1}.
                 </p>

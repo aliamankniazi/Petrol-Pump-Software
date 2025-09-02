@@ -5,14 +5,20 @@
 
 @layer base {
     @page {
-        size: A5;
-        margin: 1cm;
+        /* Let the browser handle the size based on user selection (A4, A5, etc.) */
+        size: auto;
+        /* Remove default margins to allow for more control */
+        margin: 0mm;
     }
 
     @media print {
-        body {
+        html, body {
             background-color: white !important;
             -webkit-print-color-adjust: exact;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
         }
         .print-only {
             display: block !important;
@@ -26,8 +32,9 @@
         main, [data-slot="sidebar-inset"] {
             display: block !important;
             margin: 0 !important;
-            padding: 0 !important;
+            padding: 0.5cm !important; /* Add a sensible padding for print */
             min-height: 0 !important;
+            width: 100%;
         }
         .card {
             border: none !important;
