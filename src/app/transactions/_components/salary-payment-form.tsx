@@ -44,6 +44,8 @@ export function SalaryPaymentForm() {
   
   const [isClient, setIsClient] = useState(false);
   const [employeeSearch, setEmployeeSearch] = useState('');
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+
   useEffect(() => { setIsClient(true); }, []);
   
   const filteredEmployees = useMemo(() => {
@@ -138,7 +140,7 @@ export function SalaryPaymentForm() {
                 name="employeeId"
                 control={control}
                 render={({ field }) => (
-                    <Popover>
+                    <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
                         <PopoverTrigger asChild>
                             <Button variant="outline" role="combobox" className="w-full justify-between">
                                 {field.value ? employees.find(e => e.id === field.value)?.name : "Select an employee"}
@@ -152,7 +154,10 @@ export function SalaryPaymentForm() {
                                     <CommandEmpty>No employee found.</CommandEmpty>
                                     <CommandGroup>
                                         {filteredEmployees.map(e => (
-                                            <CommandItem key={e.id} value={e.id!} onSelect={currentValue => field.onChange(currentValue === field.value ? "" : currentValue)}>
+                                            <CommandItem key={e.id} value={e.id!} onSelect={currentValue => {
+                                                field.onChange(currentValue === field.value ? "" : currentValue);
+                                                setIsPopoverOpen(false);
+                                            }}>
                                                 <Check className={cn("mr-2 h-4 w-4", field.value === e.id ? "opacity-100" : "opacity-0")} />
                                                 {e.name}
                                             </CommandItem>
