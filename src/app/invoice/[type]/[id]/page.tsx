@@ -53,15 +53,6 @@ export default function InvoicePage() {
     };
   }, [router]);
 
-  useEffect(() => {
-    if (isLoaded && searchParams.get('print') === 'true') {
-      const transaction = transactions.find(t => t.id === id);
-      const purchase = purchases.find(p => p.id === id);
-      if (transaction || purchase) {
-        window.print();
-      }
-    }
-  }, [isLoaded, searchParams, transactions, purchases, id]);
 
   const invoiceData = useMemo(() => {
     if (!isLoaded) return null;
@@ -132,6 +123,18 @@ export default function InvoicePage() {
     }
     return null;
   }, [isLoaded, type, id, transactions, purchases, customers, suppliers, bankAccounts, products, customerPayments, cashAdvances]);
+  
+  useEffect(() => {
+    // This effect handles the auto-printing functionality.
+    // It waits until the invoice data is fully loaded before attempting to print.
+    if (invoiceData && searchParams.get('print') === 'true') {
+        const printTimeout = setTimeout(() => {
+            window.print();
+        }, 500); // A small delay to ensure the page has rendered.
+
+        return () => clearTimeout(printTimeout);
+    }
+  }, [invoiceData, searchParams]);
 
   const renderContent = () => {
     if (!isLoaded) {
