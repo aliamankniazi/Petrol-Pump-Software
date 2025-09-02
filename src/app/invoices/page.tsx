@@ -50,7 +50,7 @@ export default function InvoicesPage() {
 
 
   const filteredSales = useMemo(() => {
-    let sales = transactions.filter(tx => tx.timestamp);
+    let sales = transactions.filter(tx => tx.timestamp && typeof tx.totalAmount === 'number');
 
     if (globalDateRange?.from) {
         const from = startOfDay(globalDateRange.from);
@@ -102,6 +102,8 @@ export default function InvoicesPage() {
     const summary: Record<string, { name: string; totalSale: number; totalProfit: number }> = {};
 
     transactions.forEach(tx => {
+        if (typeof tx.totalAmount !== 'number') return;
+        
         const customerId = tx.customerId || 'walk-in';
         const customerName = tx.customerName || 'Walk-in Customer';
 
@@ -334,7 +336,7 @@ export default function InvoicesPage() {
                             <Badge variant="outline">{sale.paymentMethod}</Badge>
                         </TableCell>
                         <TableCell className={cn("text-right font-bold font-mono")}>
-                            {sale.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {(sale.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </TableCell>
                         <TableCell className={cn("text-right font-bold font-mono", sale.profit >= 0 ? 'text-green-600' : 'text-destructive')}>
                             {sale.profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
