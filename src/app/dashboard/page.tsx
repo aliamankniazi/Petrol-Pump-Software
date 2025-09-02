@@ -6,7 +6,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowRight, BarChart2, BookOpen, DollarSign, PlusCircle, TrendingDown, TrendingUp, Users, Fuel, Droplets, Receipt, ShoppingCart, Calendar as CalendarIcon, X } from 'lucide-react';
+import { ArrowRight, BarChart2, BookOpen, DollarSign, PlusCircle, TrendingDown, TrendingUp, Users, Fuel, Droplets, Receipt, ShoppingCart, Calendar as CalendarIcon, X, Trophy } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
 import { usePurchases } from '@/hooks/use-purchases';
 import { useExpenses } from '@/hooks/use-expenses';
@@ -94,6 +94,31 @@ export default function DashboardPage() {
         };
     }, [isLoaded, filteredData]);
     
+    const bestCustomer = useMemo(() => {
+        if (!isLoaded || filteredData.transactions.length === 0) return null;
+
+        const salesByCustomer: Record<string, { name: string; total: number }> = {};
+
+        filteredData.transactions.forEach(tx => {
+            if (tx.customerId || tx.customerName) {
+                const customerId = tx.customerId || tx.customerName!; // Use name as fallback ID for walk-ins
+                const customerName = tx.customerName || 'Walk-in Customer';
+
+                if (!salesByCustomer[customerId]) {
+                    salesByCustomer[customerId] = { name: customerName, total: 0 };
+                }
+                salesByCustomer[customerId].total += tx.totalAmount;
+            }
+        });
+
+        if (Object.keys(salesByCustomer).length === 0) return null;
+
+        const best = Object.values(salesByCustomer).sort((a, b) => b.total - a.total)[0];
+        
+        return best;
+
+    }, [isLoaded, filteredData.transactions]);
+
     const salesByDay = useMemo(() => {
         const salesMap = new Map<string, number>();
         filteredData.transactions.forEach(tx => {
@@ -247,12 +272,14 @@ export default function DashboardPage() {
                         </Card>
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-                                <TrendingDown className="h-4 w-4 text-muted-foreground" />
+                                <CardTitle className="text-sm font-medium">Top Customer</CardTitle>
+                                <Trophy className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">PKR {financialSummary.totalExpenses.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</div>
-                                <p className="text-xs text-muted-foreground">Operational and other costs</p>
+                                <div className="text-xl font-bold truncate">{bestCustomer?.name || 'N/A'}</div>
+                                <p className="text-xs text-muted-foreground">
+                                    PKR {bestCustomer ? bestCustomer.total.toLocaleString(undefined, {maximumFractionDigits: 0}) : '0'}
+                                </p>
                             </CardContent>
                         </Card>
                         <Card>
