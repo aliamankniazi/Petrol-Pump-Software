@@ -72,6 +72,7 @@ export default function InvoicePage() {
             contact: customer?.contact || 'N/A',
             area: customer?.area,
             balance: 0, 
+            vehicleNumber: transaction.vehicleNumber,
           },
           items: transaction.items.map(item => {
             const product = products.find(p => p.id === item.productId);

@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
+import { useForm, type SubmitHandler, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Users, UserPlus, List, BookText, Pencil, Trash2, AlertTriangle, Percent, LayoutDashboard, Search } from 'lucide-react';
+import { Users, UserPlus, List, BookText, Pencil, Trash2, AlertTriangle, Percent, LayoutDashboard, Search, PlusCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { useCustomers } from '@/hooks/use-customers';
 import Link from 'next/link';
@@ -29,7 +29,7 @@ import { useCashAdvances } from '@/hooks/use-cash-advances';
 const customerSchema = z.object({
   name: z.string().min(1, 'Customer name is required'),
   contact: z.string().min(1, 'Contact information is required'),
-  vehicleNumber: z.string().optional(),
+  vehicleNumbers: z.array(z.object({ value: z.string().min(1, "Vehicle number cannot be empty") })).optional(),
   area: z.string().optional(),
   isPartner: z.boolean().default(false),
   sharePercentage: z.coerce.number().optional(),
@@ -61,11 +61,17 @@ export default function CustomersPage() {
   
   const { register, handleSubmit, reset, control, watch, formState: { errors } } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
+    defaultValues: { vehicleNumbers: [{ value: '' }] }
   });
+  
+  const { fields, append, remove } = useFieldArray({ control, name: "vehicleNumbers" });
 
   const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, setValue: setEditValue, control: controlEdit, watch: watchEdit, formState: { errors: editErrors } } = useForm<CustomerFormValues>({
     resolver: zodResolver(customerSchema),
   });
+
+  const { fields: fieldsEdit, append: appendEdit, remove: removeEdit } = useFieldArray({ control: controlEdit, name: "vehicleNumbers" });
+
 
   const isPartner = watch('isPartner');
   const isPartnerEdit = watchEdit('isPartner');
@@ -75,7 +81,7 @@ export default function CustomersPage() {
     addCustomer({
         name: data.name,
         contact: data.contact,
-        vehicleNumber: data.vehicleNumber,
+        vehicleNumbers: data.vehicleNumbers?.map(v => v.value).filter(Boolean),
         area: data.area,
         isPartner: data.isPartner,
         sharePercentage: data.isPartner ? data.sharePercentage : 0,
@@ -84,12 +90,15 @@ export default function CustomersPage() {
       title: 'Record Added',
       description: `${data.name} has been added to your records.`,
     });
-    reset({name: '', contact: '', vehicleNumber: '', area: '', isPartner: false, sharePercentage: 0});
+    reset({name: '', contact: '', vehicleNumbers: [{ value: '' }], area: '', isPartner: false, sharePercentage: 0});
   }, [addCustomer, toast, reset]);
   
   const onEditSubmit: SubmitHandler<CustomerFormValues> = useCallback((data) => {
     if (!customerToEdit) return;
-    updateCustomer(customerToEdit.id!, data);
+    updateCustomer(customerToEdit.id!, {
+        ...data,
+        vehicleNumbers: data.vehicleNumbers?.map(v => v.value).filter(Boolean),
+    });
     toast({
         title: 'Record Updated',
         description: "The record's details have been saved."
@@ -135,7 +144,7 @@ export default function CustomersPage() {
       if (customerToEdit) {
         setEditValue('name', customerToEdit.name);
         setEditValue('contact', customerToEdit.contact);
-        setEditValue('vehicleNumber', customerToEdit.vehicleNumber || '');
+        setEditValue('vehicleNumbers', customerToEdit.vehicleNumbers?.map(v => ({ value: v })) || [{value: ''}]);
         setEditValue('area', customerToEdit.area || '');
         setEditValue('isPartner', customerToEdit.isPartner || false);
         setEditValue('sharePercentage', customerToEdit.sharePercentage || 0);
@@ -174,8 +183,21 @@ export default function CustomersPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="vehicleNumber">Vehicle Number (Optional)</Label>
-                <Input id="vehicleNumber" {...register('vehicleNumber')} placeholder="e.g., ABC-123" />
+                <Label>Vehicle Numbers (Optional)</Label>
+                {fields.map((field, index) => (
+                    <div key={field.id} className="flex items-center gap-2">
+                        <Input
+                            {...register(`vehicleNumbers.${index}.value`)}
+                            placeholder={`e.g., ABC-${123 + index}`}
+                        />
+                        <Button type="button" variant="outline" size="icon" onClick={() => remove(index)}>
+                            <Trash2 className="w-4 h-4" />
+                        </Button>
+                    </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => append({ value: "" })}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Vehicle
+                </Button>
               </div>
               
               <div className="space-y-2">
@@ -263,7 +285,9 @@ export default function CustomersPage() {
                           </div>
                           <div className="text-sm text-muted-foreground">{c.contact}</div>
                            <div className="text-xs text-muted-foreground">{c.area || 'N/A'}</div>
-                          <div className="text-xs text-muted-foreground">{c.vehicleNumber || 'N/A'}</div>
+                           <div className="text-xs text-muted-foreground">
+                            {c.vehicleNumbers && c.vehicleNumbers.length > 0 ? c.vehicleNumbers.join(', ') : 'No vehicles'}
+                           </div>
                           <div className="text-xs text-muted-foreground">Added: {c.timestamp ? format(new Date(c.timestamp), 'PP') : 'N/A'}</div>
                         </TableCell>
                         <TableCell>
@@ -341,8 +365,21 @@ export default function CustomersPage() {
                         {editErrors.contact && <p className="text-sm text-destructive">{editErrors.contact.message}</p>}
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="edit-vehicleNumber">Vehicle Number</Label>
-                        <Input id="edit-vehicleNumber" {...registerEdit('vehicleNumber')} />
+                        <Label>Vehicle Numbers</Label>
+                        {fieldsEdit.map((field, index) => (
+                            <div key={field.id} className="flex items-center gap-2">
+                                <Input
+                                    {...registerEdit(`vehicleNumbers.${index}.value`)}
+                                    placeholder={`e.g., ABC-${123 + index}`}
+                                />
+                                <Button type="button" variant="outline" size="icon" onClick={() => removeEdit(index)}>
+                                    <Trash2 className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        ))}
+                        <Button type="button" variant="outline" size="sm" onClick={() => appendEdit({ value: "" })}>
+                            <PlusCircle className="mr-2 h-4 w-4" /> Add Vehicle
+                        </Button>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="edit-area">Area</Label>

@@ -46,6 +46,7 @@ const saleItemSchema = z.object({
 
 const saleSchema = z.object({
   customerId: z.string().optional(),
+  vehicleNumber: z.string().optional(),
   paymentMethod: z.enum(['Cash', 'Bank', 'Mobile', 'On Credit']),
   bankAccountId: z.string().optional(),
   notes: z.string().optional(),
@@ -122,6 +123,11 @@ export function SaleForm() {
   const watchedPaidAmount = watch('paidAmount');
   const watchedPaymentMethod = watch('paymentMethod');
 
+  const selectedCustomer = useMemo(() => {
+    if (!watchedCustomerId || watchedCustomerId === 'walk-in') return null;
+    return customers.find(c => c.id === watchedCustomerId);
+  }, [watchedCustomerId, customers]);
+
   const { balance: customerBalance } = useCustomerBalance(watchedCustomerId === 'walk-in' ? null : watchedCustomerId || null);
   
   const { subTotal, totalDiscount, totalGst, grandTotal, dueBalance, newAccountBalance } = useMemo(() => {
@@ -176,6 +182,7 @@ export function SaleForm() {
         expenseAmount: 0,
         expenseBankAccountId: '',
         referenceNo: '',
+        vehicleNumber: '',
     });
     setLastAddedAmount(0);
 
@@ -357,6 +364,7 @@ export function SaleForm() {
     
     const handleCustomerSelect = (customerId: string) => {
       setValue('customerId', customerId);
+      setValue('vehicleNumber', ''); // Reset vehicle when customer changes
       setTimeout(() => productSelectionRef.current?.focus(), 100);
     };
   
@@ -387,7 +395,8 @@ export function SaleForm() {
                             <Button type="button" variant="outline" size="icon" asChild><Link href="/customers" title="Add new customer"><UserPlus /></Link></Button>
                         </div>
                     </div>
-                     {watchedCustomerId && watchedCustomerId !== 'walk-in' && (
+                     {selectedCustomer && (
+                        <>
                         <Card className="bg-muted/40 p-3">
                             <CardHeader className="p-0 pb-1">
                                 <CardTitle className="text-sm">Previous Balance</CardTitle>
@@ -399,6 +408,26 @@ export function SaleForm() {
                                 <p className="text-xs text-muted-foreground">{customerBalance >= 0 ? 'Receivable' : 'Payable'}</p>
                             </CardContent>
                         </Card>
+                        {selectedCustomer.vehicleNumbers && selectedCustomer.vehicleNumbers.length > 0 && (
+                            <div className="space-y-1">
+                                <Label>Vehicle</Label>
+                                <Controller
+                                    name="vehicleNumber"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <SelectTrigger><SelectValue placeholder="Select vehicle" /></SelectTrigger>
+                                            <SelectContent>
+                                                {selectedCustomer.vehicleNumbers?.map(v => (
+                                                    <SelectItem key={v} value={v}>{v}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </div>
+                        )}
+                        </>
                     )}
                      <div className="space-y-1">
                         <Label>Product</Label>

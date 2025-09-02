@@ -23,6 +23,7 @@ interface InvoiceData {
     contact: string;
     area?: string;
     balance: number;
+    vehicleNumber?: string;
   };
   items: InvoiceItem[];
   totalAmount: number;
@@ -90,6 +91,7 @@ export function Invoice({ data }: { data: InvoiceData }) {
                 <p className="font-bold text-base text-gray-900">{data.partner.name}</p>
                 {data.partner.contact && <p className="text-gray-600">{data.partner.contact}</p>}
                 {data.partner.area && <p className="text-gray-600">{data.partner.area}</p>}
+                {data.partner.vehicleNumber && <p className="text-gray-600">Vehicle: {data.partner.vehicleNumber}</p>}
                 {data.bankDetails && (
                     <p className="text-gray-600 text-xs">Bank: {data.bankDetails.name} ({data.bankDetails.number})</p>
                 )}

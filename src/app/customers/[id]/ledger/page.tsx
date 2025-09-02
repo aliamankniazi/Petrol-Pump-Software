@@ -90,10 +90,14 @@ export default function CustomerLedgerPage() {
 
         customerTransactions.forEach(tx => {
             if (tx.timestamp) {
+              const description = tx.vehicleNumber
+                ? `${tx.items?.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', ') || 'Sale'} (Vehicle: ${tx.vehicleNumber}) ${tx.notes ? `- ${tx.notes}` : ''}`
+                : `${tx.items?.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', ') || 'Sale'} ${tx.notes ? `- ${tx.notes}` : ''}`;
+              
               combined.push({
                 id: `tx-${tx.id}`,
                 timestamp: tx.timestamp,
-                description: `${tx.items?.map(item => `${item.quantity.toFixed(2)}L of ${item.productName}`).join(', ') || 'Sale'} ${tx.notes ? `- ${tx.notes}` : ''}`,
+                description: description,
                 type: 'Sale',
                 debit: tx.dueAmount ?? tx.totalAmount, // Use dueAmount if available
                 credit: 0,
@@ -374,10 +378,10 @@ export default function CustomerLedgerPage() {
                     <strong>Contact:</strong> {entity.contact || 'N/A'}
                 </div>
             )}
-            {entityType === 'Customer' && 'vehicleNumber' in entity && (
+            {entityType === 'Customer' && 'vehicleNumbers' in entity && (
                 <div className="flex items-center gap-2">
                     <Car className="w-4 h-4 text-muted-foreground"/>
-                    <strong>Vehicle No:</strong> {entity.vehicleNumber || 'N/A'}
+                    <strong>Vehicles:</strong> {entity.vehicleNumbers?.join(', ') || 'N/A'}
                 </div>
             )}
             {entityType === 'Partner' && 'sharePercentage' in entity && (

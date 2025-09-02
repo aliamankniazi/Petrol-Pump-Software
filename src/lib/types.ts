@@ -73,6 +73,7 @@ export interface Transaction {
   timestamp?: string;
   customerId?: string;
   customerName?: string;
+  vehicleNumber?: string;
   bankAccountId?: string;
   paidAmount?: number;
   dueAmount?: number;
@@ -144,7 +145,7 @@ export interface Customer {
   id?: string;
   name: string;
   contact: string;
-  vehicleNumber?: string;
+  vehicleNumbers?: string[];
   area?: string;
   isPartner?: boolean;
   sharePercentage?: number; // Only for partners
