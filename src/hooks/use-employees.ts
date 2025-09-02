@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useCallback } from 'react';
@@ -68,7 +67,7 @@ export function useEmployees() {
       amount: amount,
       employeeId: employee.id!, // Explicitly link the expense to the employee
       date: postingDate,
-      notes: notes,
+      notes: notes || '',
     };
     
     await addExpense(expense);

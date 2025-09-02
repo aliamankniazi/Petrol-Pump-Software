@@ -24,6 +24,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import Link from 'next/link';
 import { useAttendance } from '@/hooks/use-attendance';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
 
 const employeeSchema = z.object({
@@ -40,6 +41,7 @@ const salaryPaymentSchema = z.object({
   month: z.string().min(1, 'Please select a month.'),
   year: z.coerce.number(),
   postingDate: z.date({ required_error: "A posting date is required."}),
+  notes: z.string().optional(),
 });
 
 type SalaryPaymentFormValues = z.infer<typeof salaryPaymentSchema>;
@@ -84,6 +86,7 @@ export default function EmployeesPage() {
       month: getMonth(new Date()).toString(),
       year: currentYear,
       postingDate: new Date(),
+      notes: '',
     }
   });
   
@@ -156,7 +159,8 @@ export default function EmployeesPage() {
       employee: employeeToPay,
       amount: salaryCalculation.payableSalary,
       postingDate: data.postingDate,
-      period: `${monthName} ${data.year}`
+      period: `${monthName} ${data.year}`,
+      notes: data.notes
     });
 
     toast({
@@ -165,8 +169,14 @@ export default function EmployeesPage() {
     });
     
     setEmployeeToPay(null);
+    resetSalary({
+        month: getMonth(new Date()).toString(),
+        year: currentYear,
+        postingDate: new Date(),
+        notes: '',
+    });
 
-  }, [employeeToPay, salaryCalculation, paySalary, toast]);
+  }, [employeeToPay, salaryCalculation, paySalary, toast, resetSalary]);
 
   
   useEffect(() => {
@@ -480,6 +490,16 @@ export default function EmployeesPage() {
                                     </PopoverTrigger>
                                     <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus /></PopoverContent>
                                 </Popover>
+                            )}
+                        />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="notes">Notes (Optional)</Label>
+                        <Controller
+                            name="notes"
+                            control={controlSalary}
+                            render={({ field }) => (
+                                <Textarea id="notes" placeholder="e.g., Including overtime payment" {...field} />
                             )}
                         />
                     </div>
