@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Users, UserPlus, List, BookText, Pencil, Trash2, AlertTriangle, Percent, LayoutDashboard, Search, PlusCircle } from 'lucide-react';
+import { Users, UserPlus, List, BookText, Pencil, Trash2, AlertTriangle, Percent, LayoutDashboard, Search, PlusCircle, Car } from 'lucide-react';
 import { format } from 'date-fns';
 import { useCustomers } from '@/hooks/use-customers';
 import Link from 'next/link';
@@ -57,6 +57,8 @@ export default function CustomersPage() {
   
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+  const [vehicleToEdit, setVehicleToEdit] = useState<{ customer: Customer; vehicleIndex: number } | null>(null);
+  const [updatedVehicleNumber, setUpdatedVehicleNumber] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   
   const { register, handleSubmit, reset, control, watch, formState: { errors } } = useForm<CustomerFormValues>({
@@ -180,6 +182,34 @@ export default function CustomersPage() {
         resetEdit();
       }
   }, [customerToEdit, setEditValue, resetEdit]);
+
+  useEffect(() => {
+    if (vehicleToEdit) {
+      setUpdatedVehicleNumber(vehicleToEdit.customer.vehicleNumbers![vehicleToEdit.vehicleIndex]);
+    } else {
+      setUpdatedVehicleNumber('');
+    }
+  }, [vehicleToEdit]);
+
+  const handleUpdateVehicle = useCallback(() => {
+    if (!vehicleToEdit || !updatedVehicleNumber) return;
+    const { customer, vehicleIndex } = vehicleToEdit;
+    const newVehicleNumbers = [...(customer.vehicleNumbers || [])];
+    newVehicleNumbers[vehicleIndex] = updatedVehicleNumber;
+    updateCustomer(customer.id!, { vehicleNumbers: newVehicleNumbers });
+    toast({ title: 'Vehicle Updated', description: "The vehicle number has been successfully updated." });
+    setVehicleToEdit(null);
+  }, [vehicleToEdit, updatedVehicleNumber, updateCustomer, toast]);
+
+  const handleDeleteVehicle = useCallback(() => {
+    if (!vehicleToEdit) return;
+    const { customer, vehicleIndex } = vehicleToEdit;
+    const newVehicleNumbers = [...(customer.vehicleNumbers || [])];
+    newVehicleNumbers.splice(vehicleIndex, 1);
+    updateCustomer(customer.id!, { vehicleNumbers: newVehicleNumbers });
+    toast({ title: 'Vehicle Deleted', description: "The vehicle number has been successfully removed." });
+    setVehicleToEdit(null);
+  }, [vehicleToEdit, updateCustomer, toast]);
 
   const formatPhoneNumberForWhatsApp = (phone: string) => {
     return phone.replace(/[^0-9]/g, '');
@@ -306,19 +336,31 @@ export default function CustomersPage() {
                     filteredCustomers.map(c => (
                       <TableRow key={c.id}>
                         <TableCell>
-                          <Link href={`/customers/${c.id}/ledger`}>
-                            <div className="font-medium flex items-center gap-2 hover:underline">
-                              {c.name}
-                              {c.isPartner && <Badge variant="secondary">Partner</Badge>}
-                              {c.isEmployee && <Badge>Employee</Badge>}
-                            </div>
-                          </Link>
+                          <div className="font-medium flex items-center gap-2">
+                            <Link href={`/customers/${c.id}/ledger`} className="hover:underline">{c.name}</Link>
+                            {c.isPartner && <Badge variant="secondary">Partner</Badge>}
+                            {c.isEmployee && <Badge>Employee</Badge>}
+                          </div>
                           <div className="text-sm text-muted-foreground">{c.contact}</div>
                            <div className="text-xs text-muted-foreground">{c.area || 'N/A'}</div>
-                           <div className="text-xs text-muted-foreground">
-                            {c.vehicleNumbers && c.vehicleNumbers.length > 0 ? c.vehicleNumbers.join(', ') : 'No vehicles'}
+                           <div className="text-xs text-muted-foreground mt-2 flex flex-wrap gap-1 items-center">
+                            <Car className="w-3 h-3 mr-1" />
+                            {c.vehicleNumbers && c.vehicleNumbers.length > 0 ? (
+                                c.vehicleNumbers.map((vehicle, index) => (
+                                <Badge 
+                                    key={index} 
+                                    variant="outline" 
+                                    className="cursor-pointer hover:bg-muted"
+                                    onClick={() => setVehicleToEdit({ customer: c, vehicleIndex: index })}
+                                >
+                                    {vehicle}
+                                </Badge>
+                                ))
+                            ) : (
+                                'No vehicles'
+                            )}
                            </div>
-                          <div className="text-xs text-muted-foreground">Added: {c.timestamp ? format(new Date(c.timestamp), 'PP') : 'N/A'}</div>
+                          <div className="text-xs text-muted-foreground mt-1">Added: {c.timestamp ? format(new Date(c.timestamp), 'PP') : 'N/A'}</div>
                         </TableCell>
                         <TableCell>
                           {(lastTransactionsByCustomer[c.id!] || []).slice(0, 3).map((tx, index) => (
@@ -449,6 +491,32 @@ export default function CustomersPage() {
                     <Button type="submit">Save Changes</Button>
                 </DialogFooter>
             </form>
+        </DialogContent>
+    </Dialog>
+
+    <Dialog open={!!vehicleToEdit} onOpenChange={(isOpen) => !isOpen && setVehicleToEdit(null)}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Edit Vehicle Number</DialogTitle>
+                <DialogDescription>Update the vehicle number for {vehicleToEdit?.customer.name}.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                    <Label htmlFor="edit-vehicle-number">Vehicle Number</Label>
+                    <Input 
+                        id="edit-vehicle-number" 
+                        value={updatedVehicleNumber}
+                        onChange={(e) => setUpdatedVehicleNumber(e.target.value)}
+                    />
+                </div>
+            </div>
+            <DialogFooter className="justify-between">
+                <Button variant="destructive" onClick={handleDeleteVehicle}><Trash2 className="mr-2 h-4 w-4" /> Delete Vehicle</Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setVehicleToEdit(null)}>Cancel</Button>
+                    <Button onClick={handleUpdateVehicle}>Save Changes</Button>
+                </div>
+            </DialogFooter>
         </DialogContent>
     </Dialog>
 
