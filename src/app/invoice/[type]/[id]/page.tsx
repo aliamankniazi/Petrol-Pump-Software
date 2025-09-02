@@ -19,6 +19,8 @@ import { useRouter } from 'next/navigation';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
 import { useCashAdvances } from '@/hooks/use-cash-advances';
 import type { LedgerEntry } from '@/lib/types';
+import { useSupplierPayments } from '@/hooks/use-supplier-payments';
+import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
 
 
 export default function InvoicePage() {
@@ -35,9 +37,11 @@ export default function InvoicePage() {
   const { products, isLoaded: productsLoaded } = useProducts();
   const { customerPayments, isLoaded: paymentsLoaded } = useCustomerPayments();
   const { cashAdvances, isLoaded: advancesLoaded } = useCashAdvances();
+  const { supplierPayments, isLoaded: supplierPaymentsLoaded } = useSupplierPayments();
+  const { purchaseReturns, isLoaded: purchaseReturnsLoaded } = usePurchaseReturns();
 
 
-  const isLoaded = transactionsLoaded && purchasesLoaded && customersLoaded && suppliersLoaded && bankAccountsLoaded && productsLoaded && paymentsLoaded && advancesLoaded;
+  const isLoaded = transactionsLoaded && purchasesLoaded && customersLoaded && suppliersLoaded && bankAccountsLoaded && productsLoaded && paymentsLoaded && advancesLoaded && supplierPaymentsLoaded && purchaseReturnsLoaded;
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -59,10 +63,27 @@ export default function InvoicePage() {
 
     if (type === 'sale') {
       const transaction = transactions.find(t => t.id === id);
-      if (transaction) {
-        const customer = transaction.customerId ? customers.find(c => c.id === transaction.customerId) : null;
+      if (!transaction || !transaction.customerId) return null;
+
+        const customer = customers.find(c => c.id === transaction.customerId);
         const bankAccount = transaction.bankAccountId ? bankAccounts.find(b => b.id === transaction.bankAccountId) : null;
         
+        // Gather all ledger entries for this customer
+        const customerLedgerEntries: Omit<LedgerEntry, 'balance'>[] = [];
+        transactions.filter(tx => tx.customerId === transaction.customerId).forEach(tx => {
+            customerLedgerEntries.push({ id: `tx-${tx.id}`, timestamp: tx.timestamp!, description: `Sale (Invoice #${tx.id?.slice(0,6)})`, type: 'Sale', debit: tx.totalAmount, credit: 0 });
+        });
+        customerPayments.filter(p => p.customerId === transaction.customerId).forEach(p => {
+            customerLedgerEntries.push({ id: `pay-${p.id}`, timestamp: p.timestamp!, description: `Payment Received`, type: 'Payment', debit: 0, credit: p.amount });
+        });
+        cashAdvances.filter(ca => ca.customerId === transaction.customerId).forEach(ca => {
+            customerLedgerEntries.push({ id: `adv-${ca.id}`, timestamp: ca.timestamp!, description: 'Cash Advance', type: 'Cash Advance', debit: ca.amount, credit: 0 });
+        });
+        
+        const recentHistory = customerLedgerEntries
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, 10);
+            
         return {
           type: 'Sale',
           id: transaction.id!,
@@ -89,12 +110,30 @@ export default function InvoicePage() {
           paymentMethod: transaction.paymentMethod,
           bankDetails: bankAccount ? { name: bankAccount.bankName, number: bankAccount.accountNumber } : undefined,
           notes: transaction.notes,
+          history: recentHistory,
         };
-      }
+      
     } else if (type === 'purchase') {
       const purchase = purchases.find(p => p.id === id);
       if (purchase) {
         const supplier = suppliers.find(s => s.id === purchase.supplierId);
+        
+        // Gather all ledger entries for this supplier
+        const supplierLedgerEntries: Omit<LedgerEntry, 'balance'>[] = [];
+        purchases.filter(p => p.supplierId === purchase.supplierId).forEach(p => {
+            supplierLedgerEntries.push({ id: `pur-${p.id}`, timestamp: p.timestamp!, description: `Purchase (Invoice #${p.id?.slice(0,6)})`, type: 'Purchase', debit: 0, credit: p.totalCost });
+        });
+        supplierPayments.filter(sp => sp.supplierId === purchase.supplierId).forEach(sp => {
+            supplierLedgerEntries.push({ id: `spay-${sp.id}`, timestamp: sp.timestamp!, description: 'Payment Made', type: 'Supplier Payment', debit: sp.amount, credit: 0 });
+        });
+        purchaseReturns.filter(pr => pr.supplierId === purchase.supplierId).forEach(pr => {
+            supplierLedgerEntries.push({ id: `pret-${pr.id}`, timestamp: pr.timestamp!, description: 'Purchase Return', type: 'Purchase Return', debit: pr.totalRefund, credit: 0 });
+        });
+
+        const recentHistory = supplierLedgerEntries
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, 10);
+            
         return {
           type: 'Purchase',
           id: purchase.id!,
@@ -119,11 +158,12 @@ export default function InvoicePage() {
           expenses: purchase.expenses,
           paymentMethod: 'Credit', // Purchases are assumed to be on credit
           notes: purchase.notes,
+          history: recentHistory,
         };
       }
     }
     return null;
-  }, [isLoaded, type, id, transactions, purchases, customers, suppliers, bankAccounts, products, customerPayments, cashAdvances]);
+  }, [isLoaded, type, id, transactions, purchases, customers, suppliers, bankAccounts, products, customerPayments, cashAdvances, supplierPayments, purchaseReturns]);
   
   useEffect(() => {
     // This effect handles the auto-printing functionality.

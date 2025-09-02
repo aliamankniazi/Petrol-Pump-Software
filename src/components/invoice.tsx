@@ -5,6 +5,7 @@
 import { format } from 'date-fns';
 import numWords from 'num-words';
 import type { LedgerEntry } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 interface InvoiceItem {
   name: string;
@@ -34,6 +35,7 @@ interface InvoiceData {
     number: string;
   }
   notes?: string;
+  history: Omit<LedgerEntry, 'balance'>[];
 }
 
 const companyDetails = {
@@ -136,9 +138,40 @@ export function Invoice({ data }: { data: InvoiceData }) {
             </div>
         </section>
 
-        {/* Totals Section */}
+        {/* Recent Transactions & Totals Section */}
         <section className="grid grid-cols-3 gap-8 items-start">
             <div className="col-span-2 space-y-4">
+                {data.history && data.history.length > 0 && (
+                     <div>
+                        <h3 className="font-semibold text-gray-500 mb-1">Recent Transactions:</h3>
+                         <div className="border border-gray-200 rounded-lg overflow-hidden text-xs">
+                             <table className="w-full">
+                                <thead className="bg-gray-100">
+                                    <tr>
+                                        <th className="p-1 text-left">Date</th>
+                                        <th className="p-1 text-left">Description</th>
+                                        <th className="p-1 text-right">Debit</th>
+                                        <th className="p-1 text-right">Credit</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {data.history.map((entry, index) => (
+                                        <tr key={index} className="border-b border-gray-100 last:border-b-0">
+                                            <td className="p-1 whitespace-nowrap">{format(new Date(entry.timestamp), 'dd/MM/yy')}</td>
+                                            <td className="p-1">{entry.description}</td>
+                                            <td className={cn("p-1 text-right font-mono", entry.debit > 0 && "text-red-600")}>
+                                                {entry.debit > 0 ? entry.debit.toFixed(2) : '-'}
+                                            </td>
+                                            <td className={cn("p-1 text-right font-mono", entry.credit > 0 && "text-green-600")}>
+                                                {entry.credit > 0 ? entry.credit.toFixed(2) : '-'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                             </table>
+                         </div>
+                    </div>
+                )}
                  <div>
                     <h3 className="font-semibold text-gray-500 mb-1">Amount in Words:</h3>
                     <p className="capitalize font-medium text-gray-800">{totalAmountInWords} rupees only.</p>
@@ -173,7 +206,7 @@ export function Invoice({ data }: { data: InvoiceData }) {
         </section>
 
         {/* Footer */}
-        <footer className="mt-16 pt-8">
+        <footer className="mt-8 pt-8">
             <div className="flex justify-between items-center">
                 <div className="w-1/3">
                     <p><strong>NTN:</strong> {companyDetails.ntn}</p>
