@@ -21,6 +21,18 @@ import { useCashAdvances } from '@/hooks/use-cash-advances';
 import type { LedgerEntry } from '@/lib/types';
 import { useSupplierPayments } from '@/hooks/use-supplier-payments';
 import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
+import { format } from 'date-fns';
+
+const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg
+      aria-hidden="true"
+      fill="currentColor"
+      viewBox="0 0 448 512"
+      {...props}
+    >
+      <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 .9c34.9 0 67.7 13.5 92.8 38.6 25.1 25.1 38.6 57.9 38.6 92.8 0 97.8-79.7 177.6-177.6 177.6-34.9 0-67.7-13.5-92.8-38.6s-38.6-57.9-38.6-92.8c0-97.8 79.7-177.6 177.6-177.6zm93.8 148.6c-3.3-1.5-19.8-9.8-23-11.5s-5.5-2.5-7.8 2.5c-2.3 5-8.7 11.5-10.7 13.8s-3.9 2.5-7.3 1c-3.3-1.5-14-5.2-26.6-16.5c-9.9-8.9-16.5-19.8-18.5-23s-2-5.5-.6-7.5c1.4-2 3-3.3 4.5-5.2s3-4.2 4.5-7.1c1.5-2.8.8-5.2-.4-6.8s-7.8-18.5-10.7-25.4c-2.8-6.8-5.6-5.8-7.8-5.8s-4.5-.4-6.8-.4-7.8 1.1-11.8 5.5c-4 4.4-15.2 14.8-15.2 36.1s15.5 41.9 17.5 44.8c2 2.8 30.4 46.4 73.8 65.4 10.8 4.8 19.3 7.6 25.9 9.8s11.1 1.5 15.2 1c4.8-.7 19.8-8.2 22.5-16.1s2.8-14.8 2-16.1c-.8-1.5-3.3-2.5-6.8-4z"></path>
+    </svg>
+);
 
 
 export default function InvoicePage() {
@@ -176,6 +188,32 @@ export default function InvoicePage() {
         return () => clearTimeout(printTimeout);
     }
   }, [invoiceData, searchParams]);
+  
+  const generateWhatsAppMessage = () => {
+    if (!invoiceData) return '';
+    const itemsSummary = invoiceData.items.map(item => 
+        `- ${item.name}: ${item.quantity.toFixed(2)} x ${item.price.toFixed(2)} = ${item.amount.toFixed(2)}`
+    ).join('\n');
+
+    const message = `*Invoice from Mianwali Petroleum Service*
+
+*Invoice No:* ${invoiceData.id.slice(0, 8).toUpperCase()}
+*Date:* ${format(new Date(invoiceData.date), 'PP')}
+
+*To:* ${invoiceData.partner.name}
+
+*Items:*
+${itemsSummary}
+
+*Total Amount: PKR ${invoiceData.totalAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}*
+
+Thank You!`;
+    return encodeURIComponent(message);
+  };
+  
+  const formatPhoneNumberForWhatsApp = (phone: string) => {
+    return phone.replace(/[^0-9]/g, '');
+  }
 
   const renderContent = () => {
     if (!isLoaded) {
@@ -200,6 +238,19 @@ export default function InvoicePage() {
     <div className="bg-gray-100 dark:bg-gray-800 min-h-screen p-4 sm:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-4 flex justify-end gap-2 print:hidden">
+            {invoiceData?.partner.contact && (
+                <Button asChild variant="secondary" disabled={!invoiceData}>
+                    <a
+                        href={`https://wa.me/${formatPhoneNumberForWhatsApp(invoiceData.partner.contact)}?text=${generateWhatsAppMessage()}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-green-500 hover:bg-green-600 text-white"
+                    >
+                        <WhatsAppIcon className="mr-2 h-4 w-4" />
+                        Send to WhatsApp
+                    </a>
+                </Button>
+            )}
             <Button onClick={() => window.print()} disabled={!invoiceData}>
                 <Printer className="mr-2 h-4 w-4" />
                 Print Invoice
