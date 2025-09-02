@@ -75,26 +75,29 @@ export default function InvoicePage() {
 
     if (type === 'sale') {
       const transaction = transactions.find(t => t.id === id);
-      if (!transaction || !transaction.customerId) return null;
+      if (!transaction) return null;
 
-        const customer = customers.find(c => c.id === transaction.customerId);
+        const customer = transaction.customerId ? customers.find(c => c.id === transaction.customerId) : null;
         const bankAccount = transaction.bankAccountId ? bankAccounts.find(b => b.id === transaction.bankAccountId) : null;
         
-        // Gather all ledger entries for this customer
-        const customerLedgerEntries: Omit<LedgerEntry, 'balance'>[] = [];
-        transactions.filter(tx => tx.customerId === transaction.customerId).forEach(tx => {
-            customerLedgerEntries.push({ id: `tx-${tx.id}`, timestamp: tx.timestamp!, description: `Sale (Invoice #${tx.id?.slice(0,6)})`, type: 'Sale', debit: tx.totalAmount, credit: 0 });
-        });
-        customerPayments.filter(p => p.customerId === transaction.customerId).forEach(p => {
-            customerLedgerEntries.push({ id: `pay-${p.id}`, timestamp: p.timestamp!, description: `Payment Received`, type: 'Payment', debit: 0, credit: p.amount });
-        });
-        cashAdvances.filter(ca => ca.customerId === transaction.customerId).forEach(ca => {
-            customerLedgerEntries.push({ id: `adv-${ca.id}`, timestamp: ca.timestamp!, description: 'Cash Advance', type: 'Cash Advance', debit: ca.amount, credit: 0 });
-        });
-        
-        const recentHistory = customerLedgerEntries
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-            .slice(0, 10);
+        let recentHistory: Omit<LedgerEntry, 'balance'>[] = [];
+        // Only fetch history if it's not a walk-in customer
+        if(customer) {
+            const customerLedgerEntries: Omit<LedgerEntry, 'balance'>[] = [];
+            transactions.filter(tx => tx.customerId === transaction.customerId).forEach(tx => {
+                customerLedgerEntries.push({ id: `tx-${tx.id}`, timestamp: tx.timestamp!, description: `Sale (Invoice #${tx.id?.slice(0,6)})`, type: 'Sale', debit: tx.totalAmount, credit: 0 });
+            });
+            customerPayments.filter(p => p.customerId === transaction.customerId).forEach(p => {
+                customerLedgerEntries.push({ id: `pay-${p.id}`, timestamp: p.timestamp!, description: `Payment Received`, type: 'Payment', debit: 0, credit: p.amount });
+            });
+            cashAdvances.filter(ca => ca.customerId === transaction.customerId).forEach(ca => {
+                customerLedgerEntries.push({ id: `adv-${ca.id}`, timestamp: ca.timestamp!, description: 'Cash Advance', type: 'Cash Advance', debit: ca.amount, credit: 0 });
+            });
+            
+            recentHistory = customerLedgerEntries
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                .slice(0, 10);
+        }
             
         return {
           type: 'Sale',
