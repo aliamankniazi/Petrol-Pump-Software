@@ -24,6 +24,7 @@ export default function RootLayout({
       <head>
           <ThemeScript />
           <PrintStyles />
+          <link rel="manifest" href="/manifest.json" />
       </head>
       <body>
         <ClientProviders>
