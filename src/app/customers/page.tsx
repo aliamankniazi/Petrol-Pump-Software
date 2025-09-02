@@ -15,7 +15,6 @@ import { Users, UserPlus, List, BookText, Pencil, Trash2, AlertTriangle, Percent
 import { format } from 'date-fns';
 import { useCustomers } from '@/hooks/use-customers';
 import Link from 'next/link';
-import Barcode from 'react-barcode';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -24,6 +23,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
 import { useCashAdvances } from '@/hooks/use-cash-advances';
+import { cn } from '@/lib/utils';
 
 
 const customerSchema = z.object({
@@ -50,9 +50,9 @@ const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 export default function CustomersPage() {
   const { customers, addCustomer, updateCustomer, deleteCustomer, isLoaded } = useCustomers();
-  const { transactions } = useTransactions();
-  const { customerPayments } = useCustomerPayments();
-  const { cashAdvances } = useCashAdvances();
+  const { transactions, isLoaded: txLoaded } = useTransactions();
+  const { customerPayments, isLoaded: paymentsLoaded } = useCustomerPayments();
+  const { cashAdvances, isLoaded: advancesLoaded } = useCashAdvances();
   const { toast } = useToast();
   
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
@@ -76,6 +76,7 @@ export default function CustomersPage() {
   const isPartner = watch('isPartner');
   const isPartnerEdit = watchEdit('isPartner');
 
+  const isDataLoaded = isLoaded && txLoaded && paymentsLoaded && advancesLoaded;
 
   const onAddSubmit: SubmitHandler<CustomerFormValues> = useCallback((data) => {
     addCustomer({
@@ -139,6 +140,33 @@ export default function CustomersPage() {
       c.contact?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [customers, searchTerm]);
+
+  const lastTransactionsByCustomer = useMemo(() => {
+    if (!isDataLoaded) return {};
+    
+    const allCustomerActivity: Record<string, { type: 'Sale' | 'Payment'; amount: number; timestamp: string }[]> = {};
+    
+    transactions.forEach(tx => {
+      if (tx.customerId && tx.timestamp) {
+        if (!allCustomerActivity[tx.customerId]) allCustomerActivity[tx.customerId] = [];
+        allCustomerActivity[tx.customerId].push({ type: 'Sale', amount: tx.totalAmount, timestamp: tx.timestamp });
+      }
+    });
+
+    customerPayments.forEach(p => {
+      if (p.customerId && p.timestamp) {
+        if (!allCustomerActivity[p.customerId]) allCustomerActivity[p.customerId] = [];
+        allCustomerActivity[p.customerId].push({ type: 'Payment', amount: p.amount, timestamp: p.timestamp });
+      }
+    });
+
+    Object.keys(allCustomerActivity).forEach(customerId => {
+      allCustomerActivity[customerId].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    });
+
+    return allCustomerActivity;
+  }, [isDataLoaded, transactions, customerPayments]);
+
 
   useEffect(() => {
       if (customerToEdit) {
@@ -268,21 +296,23 @@ export default function CustomersPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Details</TableHead>
-                  <TableHead>Barcode</TableHead>
+                  <TableHead>Last 3 Transactions</TableHead>
                   <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoaded ? (
+                {isDataLoaded ? (
                   filteredCustomers.length > 0 ? (
                     filteredCustomers.map(c => (
                       <TableRow key={c.id}>
                         <TableCell>
-                          <div className="font-medium flex items-center gap-2">
-                            {c.name}
-                            {c.isPartner && <Badge variant="secondary">Partner</Badge>}
-                            {c.isEmployee && <Badge>Employee</Badge>}
-                          </div>
+                          <Link href={`/customers/${c.id}/ledger`}>
+                            <div className="font-medium flex items-center gap-2 hover:underline">
+                              {c.name}
+                              {c.isPartner && <Badge variant="secondary">Partner</Badge>}
+                              {c.isEmployee && <Badge>Employee</Badge>}
+                            </div>
+                          </Link>
                           <div className="text-sm text-muted-foreground">{c.contact}</div>
                            <div className="text-xs text-muted-foreground">{c.area || 'N/A'}</div>
                            <div className="text-xs text-muted-foreground">
@@ -291,7 +321,16 @@ export default function CustomersPage() {
                           <div className="text-xs text-muted-foreground">Added: {c.timestamp ? format(new Date(c.timestamp), 'PP') : 'N/A'}</div>
                         </TableCell>
                         <TableCell>
-                          {c.id && <Barcode value={c.id} height={40} width={1.5} fontSize={10} margin={2} />}
+                          {(lastTransactionsByCustomer[c.id!] || []).slice(0, 3).map((tx, index) => (
+                            <div key={index} className="flex justify-between items-center text-xs py-0.5">
+                              <span className={cn("font-medium", tx.type === 'Sale' ? 'text-destructive' : 'text-green-600')}>{tx.type}</span>
+                              <span className="font-mono">{tx.amount.toFixed(0)}</span>
+                              <span className="text-muted-foreground">{format(new Date(tx.timestamp), 'dd/MM')}</span>
+                            </div>
+                          ))}
+                          {(lastTransactionsByCustomer[c.id!] || []).length === 0 && (
+                            <div className="text-xs text-muted-foreground">No transactions</div>
+                          )}
                         </TableCell>
                         <TableCell className="text-center space-x-0">
                            <Button asChild variant="ghost" size="icon" title="View Ledger">
