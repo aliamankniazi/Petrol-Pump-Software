@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Fuel } from 'lucide-react';
 
 const REMEMBER_ME_KEY = 'remember_me_email';
 
