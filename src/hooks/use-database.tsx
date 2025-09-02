@@ -57,8 +57,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // We explicitly wait for the loading to finish and for a user to be present
   // before we mount the AuthenticatedDataProvider, which triggers all data hooks.
   if (loading) {
-    // While auth is loading, we render nothing.
-    return null;
+    // While auth is loading, we render a placeholder. A proper loading screen would be better.
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <p>Authenticating...</p>
+      </div>
+    );
   }
   
   if (!user) {

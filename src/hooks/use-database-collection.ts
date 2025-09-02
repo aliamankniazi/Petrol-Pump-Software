@@ -1,8 +1,7 @@
 
-
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ref,
   onValue,
@@ -26,36 +25,28 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id'>>(
 ) {
   const [data, setData] = useState<(T & { id: string })[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user, loading: authLoading } = useAuth(); // Use the auth hook
+  const { user } = useAuth(); // Use the auth hook
+
+  const collectionRef = useMemo(() => {
+    if (!isFirebaseConfigured() || !db || !user) {
+        return null;
+    }
+    try {
+        return ref(db, collectionName);
+    } catch (error) {
+        console.error("Error creating database reference:", error);
+        return null;
+    }
+  }, [collectionName, user]);
+
 
   useEffect(() => {
-    if (authLoading) {
-      // While auth is resolving, do nothing.
+    if (!collectionRef) {
+      setLoading(false);
       return;
     }
     
-    if (!user) {
-      // If auth is resolved and there's no user, we are logged out.
-      setLoading(false);
-      setData([]); // Ensure data is cleared on logout
-      return;
-    }
-
-    if (!isFirebaseConfigured() || !db) {
-      setLoading(false);
-      setData([]);
-      return;
-    }
-
     setLoading(true);
-    let collectionRef: DatabaseReference;
-    try {
-      collectionRef = ref(db, collectionName);
-    } catch (error) {
-      console.error("Error creating database reference:", error);
-      setLoading(false);
-      return;
-    }
 
     const unsubscribe = onValue(collectionRef, (snapshot) => {
       const dataArray: (T & {id: string})[] = [];
@@ -83,7 +74,7 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id'>>(
     });
 
     return () => unsubscribe();
-  }, [collectionName, authLoading, user]); // Add auth state to dependency array
+  }, [collectionName, collectionRef]);
 
   const addDoc = useCallback(async (newData: T, docId?: string): Promise<T & { id: string }> => {
     if (!db) {
