@@ -10,18 +10,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Undo2, PackageMinus, ListRestart, Calendar as CalendarIcon, LayoutDashboard, ChevronsUpDown, Check } from 'lucide-react';
+import { Undo2, PackageMinus, ListRestart, LayoutDashboard, ChevronsUpDown, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePurchaseReturns } from '@/hooks/use-purchase-returns';
 import { Textarea } from '@/components/ui/textarea';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useSuppliers } from '@/hooks/use-suppliers';
 import { useState, useEffect, useMemo } from 'react';
 import { useProducts } from '@/hooks/use-products';
 import Link from 'next/link';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DatePickerDropdowns } from '@/components/ui/date-picker-dropdowns';
 
 const purchaseReturnSchema = z.object({
   supplierId: z.string().min(1, 'Please select a supplier.'),
@@ -216,28 +216,7 @@ export default function PurchaseReturnsPage() {
                     name="date"
                     control={control}
                     render={({ field }) => (
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <DatePickerDropdowns date={field.value} onDateChange={field.onChange} />
                     )}
                   />
                 </div>

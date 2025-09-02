@@ -10,17 +10,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingCart, Truck, Calendar as CalendarIcon, PlusCircle, Trash2, UserPlus, ChevronsUpDown, Check } from 'lucide-react';
-import { format } from 'date-fns';
+import { ShoppingCart, PlusCircle, Trash2, UserPlus, ChevronsUpDown, Check } from 'lucide-react';
 import { usePurchases } from '@/hooks/use-purchases';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useSuppliers } from '@/hooks/use-suppliers';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { useProducts } from '@/hooks/use-products';
-import Link from 'next/link';
 import { useSupplierBalance } from '@/hooks/use-supplier-balance';
 import { useBankAccounts } from '@/hooks/use-bank-accounts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -29,6 +25,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { Product } from '@/lib/types';
 import { ProductSelection } from '../transactions/_components/product-selection';
 import { Textarea } from '@/components/ui/textarea';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DatePickerDropdowns } from '@/components/ui/date-picker-dropdowns';
 
 
 const purchaseItemSchema = z.object({
@@ -423,10 +421,7 @@ export default function PurchasesPage() {
                      <div className="space-y-1">
                         <Label>Purchase Date</Label>
                          <Controller name="date" control={control} render={({ field }) => (
-                            <Popover>
-                                <PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
-                                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(d) => {if (d) field.onChange(d);}} initialFocus /></PopoverContent>
-                            </Popover>
+                            <DatePickerDropdowns date={field.value} onDateChange={field.onChange} />
                         )}/>
                     </div>
                     <div className="space-y-1">

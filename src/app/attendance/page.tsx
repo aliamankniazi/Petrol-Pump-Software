@@ -6,11 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { Check, X, Minus, Calendar as CalendarIcon, UserCheck, LayoutDashboard, ChevronLeft, ChevronRight, CircleDot, RotateCcw } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDaysInMonth, addMonths, subMonths, addDays, getDay, startOfWeek, isToday } from 'date-fns';
+import { Check, X, Minus, UserCheck, LayoutDashboard, ChevronLeft, ChevronRight, CircleDot, RotateCcw } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDaysInMonth, addMonths, subMonths, addDays, getDay, isToday } from 'date-fns';
 import { useEmployees } from '@/hooks/use-employees';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from '@/components/ui/label';
@@ -18,6 +16,7 @@ import type { AttendanceStatus, Employee } from '@/lib/types';
 import { useAttendance } from '@/hooks/use-attendance';
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { DatePickerDropdowns } from '@/components/ui/date-picker-dropdowns';
 
 const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -85,7 +84,6 @@ export default function AttendancePage() {
   const { employees, isLoaded: employeesLoaded } = useEmployees();
   const { attendanceByDate, addOrUpdateAttendance, deleteAttendance, isLoaded: attendanceLoaded } = useAttendance();
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
@@ -174,26 +172,7 @@ export default function AttendancePage() {
                 <Button variant="outline" size="icon" onClick={() => setSelectedDate(addMonths(selectedDate, 1))}><ChevronRight/></Button>
               </div>
               <div className="flex flex-col sm:flex-row items-center gap-2">
-                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn("w-full sm:w-[240px] justify-start text-left font-normal")}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(selectedDate, "PPP")}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={handleDateChange}
-                      onSelectAndClose={() => setIsCalendarOpen(false)}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DatePickerDropdowns date={selectedDate} onDateChange={handleDateChange} />
                  <Button onClick={handleMarkAllPresent}>Mark All Present</Button>
               </div>
           </div>

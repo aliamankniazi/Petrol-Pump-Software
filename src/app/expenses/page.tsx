@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { useToast } from '@/hooks/use-toast';
 import { Receipt, ListChecks, WalletCards, Calendar as CalendarIcon, Trash2, AlertTriangle, LayoutDashboard, X, Search } from 'lucide-react';
 import type { ExpenseCategory, Expense } from '@/lib/types';
-import { format, isSameDay, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 import { useExpenses } from '@/hooks/use-expenses';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -25,6 +25,7 @@ import Link from 'next/link';
 import { Textarea } from '@/components/ui/textarea';
 import { useGlobalDate } from '@/hooks/use-global-date';
 import { DateRange } from 'react-day-picker';
+import { DatePickerDropdowns } from '@/components/ui/date-picker-dropdowns';
 
 const EXPENSE_CATEGORIES: ExpenseCategory[] = ['Utilities', 'Salaries', 'Maintenance', 'Other'];
 
@@ -48,7 +49,6 @@ export default function ExpensesPage() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [isFormCalendarOpen, setIsFormCalendarOpen] = useState(false);
 
   
   const [isClient, setIsClient] = useState(false);
@@ -187,29 +187,7 @@ export default function ExpensesPage() {
                     name="date"
                     control={control}
                     render={({ field }) => (
-                      <Popover open={isFormCalendarOpen} onOpenChange={setIsFormCalendarOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {field.value ? format(field.value, "PP p") : <span>Pick a date</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            onSelectAndClose={() => setIsFormCalendarOpen(false)}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <DatePickerDropdowns date={field.value} onDateChange={field.onChange} />
                     )}
                   />
                   {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}

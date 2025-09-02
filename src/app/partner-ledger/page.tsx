@@ -11,10 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { format, isSameDay, startOfDay } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { HandCoins, XCircle, Calendar as CalendarIcon, X, TrendingUp, TrendingDown, Wallet, BookText, AlertTriangle, Trash2, Printer, LayoutDashboard } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { HandCoins, XCircle, X, TrendingUp, TrendingDown, Wallet, BookText, AlertTriangle, Trash2, Printer, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useSuppliers } from '@/hooks/use-suppliers';
@@ -25,6 +23,7 @@ import { useInvestments } from '@/hooks/use-investments';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useExpenses } from '@/hooks/use-expenses';
+import { DatePickerDropdowns } from '@/components/ui/date-picker-dropdowns';
 
 
 type EntityType = 'Customer' | 'Supplier' | 'Partner' | 'Employee';
@@ -396,28 +395,7 @@ export default function UnifiedLedgerPage() {
                 </SelectContent>
               </Select>
               
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full sm:w-[240px] justify-start text-left font-normal",
-                      !selectedDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "PP p") : <span>Filter by date...</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <DatePickerDropdowns date={selectedDate || new Date()} onDateChange={setSelectedDate} />
 
               {hasActiveFilters && (
                 <Button variant="ghost" onClick={clearFilters}>

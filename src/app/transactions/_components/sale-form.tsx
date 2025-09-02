@@ -10,8 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Calendar as CalendarIcon, UserPlus, PlusCircle, ShoppingCart, Wallet, CreditCard, Smartphone, Landmark, Info } from 'lucide-react';
-import { format } from 'date-fns';
+import { Trash2, UserPlus, PlusCircle, ShoppingCart, Wallet, CreditCard, Smartphone, Landmark, Info } from 'lucide-react';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useCustomers } from '@/hooks/use-customers';
 import { useProducts } from '@/hooks/use-products';
@@ -19,8 +18,6 @@ import { useCustomerBalance } from '@/hooks/use-customer-balance';
 import { cn } from '@/lib/utils';
 import { useBankAccounts } from '@/hooks/use-bank-accounts';
 import Link from 'next/link';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,9 +25,9 @@ import type { Product, SaleItem as SaleItemType } from '@/lib/types';
 import { ProductSelection } from './product-selection';
 import { CustomerSelection } from './customer-selection';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { DatePickerDropdowns } from '@/components/ui/date-picker-dropdowns';
 
 
 const saleItemSchema = z.object({
@@ -625,10 +622,7 @@ export function SaleForm() {
                      <div className="space-y-1">
                       <Label>Invoice Date</Label>
                       <Controller name="date" control={control} render={({ field }) => (
-                          <Popover>
-                              <PopoverTrigger asChild><Button variant={"outline"} className={cn("w-full justify-start", !field.value && "text-muted-foreground")}><CalendarIcon className="mr-2 h-4 w-4" />{field.value ? format(field.value, "PPP") : <span>Pick a date</span>}</Button></PopoverTrigger>
-                              <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={field.value} onSelect={(d) => {if(d) field.onChange(d);}} initialFocus /></PopoverContent>
-                          </Popover>
+                        <DatePickerDropdowns date={field.value} onDateChange={field.onChange} />
                       )}/>
                   </div>
                   <div className="space-y-1">
@@ -710,4 +704,3 @@ export function SaleForm() {
     </>
   );
 }
-

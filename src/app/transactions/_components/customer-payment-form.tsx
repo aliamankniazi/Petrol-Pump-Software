@@ -11,17 +11,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Wallet, CreditCard, Smartphone, Calendar as CalendarIcon, ChevronsUpDown, Check, Landmark } from 'lucide-react';
+import { Wallet, CreditCard, Smartphone, ChevronsUpDown, Check, Landmark } from 'lucide-react';
 import type { PaymentMethod } from '@/lib/types';
-import { format } from 'date-fns';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useCustomers } from '@/hooks/use-customers';
 import { useCustomerBalance } from '@/hooks/use-customer-balance';
 import { Textarea } from '@/components/ui/textarea';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { DatePickerDropdowns } from '@/components/ui/date-picker-dropdowns';
 
 const paymentSchema = z.object({
   customerId: z.string().min(1, 'Please select a customer.'),
@@ -176,28 +175,7 @@ export function CustomerPaymentForm() {
             name="date"
             control={control}
             render={({ field }) => (
-            <Popover>
-                <PopoverTrigger asChild>
-                <Button
-                    variant={"outline"}
-                    className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !field.value && "text-muted-foreground"
-                    )}
-                >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    initialFocus
-                />
-                </PopoverContent>
-            </Popover>
+                <DatePickerDropdowns date={field.value} onDateChange={field.onChange} />
             )}
         />
         {errors.date && <p className="text-sm text-destructive">{errors.date.message}</p>}
