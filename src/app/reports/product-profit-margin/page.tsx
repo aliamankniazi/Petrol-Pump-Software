@@ -65,7 +65,7 @@ export default function ProductProfitMarginPage() {
         totalCost,
         totalProfit,
         profitMargin,
-        unit: product.unit,
+        unit: product.mainUnit,
       };
     }).filter(p => p.totalQuantitySold > 0); // Only show products that have been sold
 

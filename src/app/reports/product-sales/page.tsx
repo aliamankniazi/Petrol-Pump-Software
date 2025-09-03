@@ -35,7 +35,7 @@ export default function ProductSalesPage() {
         totalQuantity,
         totalRevenue,
         avgPricePerUnit: totalQuantity > 0 ? totalRevenue / totalQuantity : 0,
-        unit: product.unit,
+        unit: product.mainUnit,
       };
     });
   }, [transactions, products, isLoaded]);

@@ -65,7 +65,7 @@ export default function InventoryPage() {
                             <p className="text-3xl font-bold tracking-tighter">
                                 {currentStock.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </p>
-                            <p className="text-muted-foreground">{product.unit}(s) in Stock</p>
+                            <p className="text-muted-foreground">{product.mainUnit}(s) in Stock</p>
                         </div>
                         <div className="space-y-2">
                            <Progress value={percentage} className="h-3 [&>div]:bg-primary" />
