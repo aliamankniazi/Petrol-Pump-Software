@@ -76,33 +76,56 @@ export default function LedgerPage() {
     transactions.forEach(tx => {
         if (!tx.id || !tx.timestamp) return;
 
-        // The sale itself is a credit to the sales account
-        combined.push({
-            id: `sale-credit-${tx.id}`,
-            timestamp: tx.timestamp,
-            description: `Sale to ${tx.customerName || 'Walk-in'}`,
-            type: 'Sale',
-            debit: 0,
-            credit: tx.totalAmount || 0,
-        });
-
-        // The debit depends on how it was paid
+        const isWalkIn = !tx.customerId || tx.customerName === 'Walk-in Customer';
+        
+        // If it's a credit sale, create separate debit and credit entries.
         if (tx.paymentMethod === 'On Credit') {
-            // Debit goes to Accounts Receivable for this customer
+             // Credit to Sales
+            combined.push({
+                id: `sale-credit-${tx.id}`,
+                timestamp: tx.timestamp,
+                description: `Sale to ${tx.customerName}`,
+                type: 'Sale',
+                debit: 0,
+                credit: tx.totalAmount || 0,
+            });
+            // Debit to Accounts Receivable
             combined.push({
                 id: `sale-debit-ar-${tx.id}`,
                 timestamp: tx.timestamp,
                 description: `Credit Sale to ${tx.customerName}`,
-                type: 'Sale',
+                type: 'Sale', // Kept as Sale for simplicity
                 debit: tx.totalAmount || 0,
                 credit: 0,
             });
-        } else {
-             // If paid by Cash, Bank, etc., it's a debit to that asset account (e.g., Cash/Bank)
+        } 
+        // If it's a cash/bank/mobile sale for a Walk-in, create a single combined entry
+        else if (isWalkIn) {
+            combined.push({
+                id: `sale-combined-${tx.id}`,
+                timestamp: tx.timestamp,
+                description: `Sale to Walk-in via ${tx.paymentMethod}`,
+                type: 'Sale',
+                debit: tx.totalAmount || 0,
+                credit: tx.totalAmount || 0, // Simplified entry
+            });
+        }
+        // If it's a cash/bank sale for a registered customer, treat it as sale + payment
+        else {
+            // Credit to Sales
+            combined.push({
+                id: `sale-credit-${tx.id}`,
+                timestamp: tx.timestamp,
+                description: `Sale to ${tx.customerName}`,
+                type: 'Sale',
+                debit: 0,
+                credit: tx.totalAmount || 0,
+            });
+            // Debit to cash/bank
             combined.push({
                 id: `sale-debit-asset-${tx.id}`,
                 timestamp: tx.timestamp,
-                description: `Payment for Sale from ${tx.customerName || 'Walk-in'} via ${tx.paymentMethod}`,
+                description: `Payment for Sale from ${tx.customerName} via ${tx.paymentMethod}`,
                 type: 'Customer Payment',
                 debit: tx.totalAmount || 0,
                 credit: 0,
@@ -194,6 +217,7 @@ export default function LedgerPage() {
       });
     });
     
+    // This only includes standalone payments, not payments made at time of sale.
     customerPayments.forEach(cp => {
       if (!cp.id || !cp.timestamp) return;
       combined.push({
@@ -272,7 +296,7 @@ export default function LedgerPage() {
       case 'Supplier Payment':
       case 'Withdrawal':
       case 'Cash Advance':
-      case 'Sale':
+      case 'Sale': // Will be red for credit sales now
         return 'destructive';
       case 'Purchase':
       case 'Purchase Return': 
@@ -295,7 +319,9 @@ export default function LedgerPage() {
     const [typePrefix, ...idParts] = entryToDelete.id.split(/-(.*)/s);
     const originalId = idParts.join('');
 
-    const idToDelete = originalId;
+    const idToDelete = originalId.startsWith('credit-') || originalId.startsWith('debit-') || originalId.startsWith('combined-')
+        ? originalId.substring(originalId.indexOf('-') + 1)
+        : originalId;
 
     try {
         switch(typePrefix) {
@@ -370,11 +396,11 @@ export default function LedgerPage() {
                         {globalDateRange?.from ? (
                             globalDateRange.to ? (
                                 <>
-                                    {format(globalDateRange.from, "PP p")} -{" "}
-                                    {format(globalDateRange.to, "PP p")}
+                                    {format(globalDateRange.from, "PP")} -{" "}
+                                    {format(globalDateRange.to, "PP")}
                                 </>
                             ) : (
-                                format(globalDateRange.from, "PP p")
+                                format(globalDateRange.from, "PP")
                             )
                         ) : (
                             <span>Filter by date...</span>
