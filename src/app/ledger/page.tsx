@@ -72,63 +72,31 @@ export default function LedgerPage() {
 
     let combined: Omit<LedgerEntry, 'balance'>[] = [];
     
-    // Process Sales
     transactions.forEach(tx => {
         if (!tx.id || !tx.timestamp) return;
 
         const isWalkIn = !tx.customerId || tx.customerName === 'Walk-in Customer';
         
-        // If it's a credit sale, create separate debit and credit entries.
-        if (tx.paymentMethod === 'On Credit') {
-             // Credit to Sales
-            combined.push({
-                id: `sale-credit-${tx.id}`,
+        // Single entry for immediate payment (walk-in or otherwise)
+        if (tx.paymentMethod !== 'On Credit') {
+             combined.push({
+                id: `sale-${tx.id}`,
                 timestamp: tx.timestamp,
-                description: `Sale to ${tx.customerName}`,
+                description: `Sale to ${tx.customerName} via ${tx.paymentMethod}`,
                 type: 'Sale',
-                debit: 0,
+                debit: tx.totalAmount || 0,
                 credit: tx.totalAmount || 0,
-            });
-            // Debit to Accounts Receivable
-            combined.push({
-                id: `sale-debit-ar-${tx.id}`,
-                timestamp: tx.timestamp,
-                description: `Credit Sale to ${tx.customerName}`,
-                type: 'Sale', // Kept as Sale for simplicity
-                debit: tx.totalAmount || 0,
-                credit: 0,
-            });
-        } 
-        // If it's a cash/bank/mobile sale for a Walk-in, create a single combined entry
-        else if (isWalkIn) {
-            combined.push({
-                id: `sale-combined-${tx.id}`,
-                timestamp: tx.timestamp,
-                description: `Sale to Walk-in via ${tx.paymentMethod}`,
-                type: 'Sale',
-                debit: tx.totalAmount || 0,
-                credit: tx.totalAmount || 0, // Simplified entry
             });
         }
-        // If it's a cash/bank sale for a registered customer, treat it as sale + payment
+        // Single entry for credit sales
         else {
-            // Credit to Sales
             combined.push({
-                id: `sale-credit-${tx.id}`,
+                id: `sale-${tx.id}`,
                 timestamp: tx.timestamp,
-                description: `Sale to ${tx.customerName}`,
+                description: `Credit Sale to ${tx.customerName}`,
                 type: 'Sale',
-                debit: 0,
-                credit: tx.totalAmount || 0,
-            });
-            // Debit to cash/bank
-            combined.push({
-                id: `sale-debit-asset-${tx.id}`,
-                timestamp: tx.timestamp,
-                description: `Payment for Sale from ${tx.customerName} via ${tx.paymentMethod}`,
-                type: 'Customer Payment',
                 debit: tx.totalAmount || 0,
-                credit: 0,
+                credit: tx.totalAmount || 0,
             });
         }
     });
@@ -559,3 +527,4 @@ export default function LedgerPage() {
     </>
   );
 }
+
