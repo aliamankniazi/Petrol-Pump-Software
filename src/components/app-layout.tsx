@@ -116,7 +116,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     for (const item of navItems) {
       if ('href' in item && item.href === pathname) return item.label;
       if ('subItems' in item) {
-        const subItem = item.subItems.find(sub => sub.href === pathname);
+        const subItem = item.subItems?.find(sub => sub.href === pathname);
         if (subItem) return subItem.label;
       }
     }

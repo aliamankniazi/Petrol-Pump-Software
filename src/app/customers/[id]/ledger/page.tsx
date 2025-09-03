@@ -381,13 +381,13 @@ export default function CustomerLedgerPage() {
             {entityType === 'Customer' && 'vehicleNumbers' in entity && (
                 <div className="flex items-center gap-2">
                     <Car className="w-4 h-4 text-muted-foreground"/>
-                    <strong>Vehicles:</strong> {entity.vehicleNumbers?.join(', ') || 'N/A'}
+                    <strong>Vehicles:</strong> {Array.isArray((entity as any).vehicleNumbers) ? (entity as any).vehicleNumbers.join(', ') : 'N/A'}
                 </div>
             )}
             {entityType === 'Partner' && 'sharePercentage' in entity && (
                  <div className="flex items-center gap-2">
                     <Percent className="w-4 h-4 text-muted-foreground"/>
-                    <strong>Share:</strong> {entity.sharePercentage}%
+                    <strong>Share:</strong> {typeof (entity as any).sharePercentage === 'number' ? `${(entity as any).sharePercentage}%` : 'N/A'}
                 </div>
             )}
         </CardContent>
