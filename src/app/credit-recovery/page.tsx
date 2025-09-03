@@ -21,6 +21,7 @@ import type { Customer } from '@/lib/types';
 import Link from 'next/link';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { useGlobalDate } from '@/hooks/use-global-date';
+import { Label } from "@/components/ui/label";
 
 
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
