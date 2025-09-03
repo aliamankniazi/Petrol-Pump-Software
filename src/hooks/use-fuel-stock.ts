@@ -40,7 +40,7 @@ export function useFuelStock() {
     if (doc) {
       updateDoc(DOC_ID, { stock: updatedStock });
     } else {
-      addDoc({ stock: updatedStock }, DOC_ID);
+      addDoc({ id: DOC_ID, stock: updatedStock } as any);
     }
   }, [data, updateDoc, addDoc]);
 

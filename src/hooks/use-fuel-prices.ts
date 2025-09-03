@@ -40,7 +40,7 @@ export function useFuelPrices() {
     if (doc) {
         updateDoc(DOC_ID, { prices: updatedPrices });
     } else {
-        addDoc({ prices: updatedPrices }, DOC_ID);
+        addDoc({ id: DOC_ID, prices: updatedPrices } as any);
     }
 
   }, [data, updateDoc, addDoc]);
