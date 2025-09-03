@@ -13,8 +13,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   
   // This is a critical change to prevent race conditions.
-  // We explicitly wait for the loading to finish and for a user to be present
-  // before we mount the children, which triggers all data hooks within pages.
+  // We explicitly wait for the loading to finish before we mount the children,
+  // which triggers all data hooks within pages.
   if (loading) {
     // While auth is loading, we render a placeholder. A proper loading screen would be better.
     return (

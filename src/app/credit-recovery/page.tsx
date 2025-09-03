@@ -213,11 +213,11 @@ Mianwali Petroleum Service`;
                                         {globalDateRange?.from ? (
                                             globalDateRange.to ? (
                                                 <>
-                                                    {format(globalDateRange.from, "PP p")} -{" "}
-                                                    {format(globalDateRange.to, "PP p")}
+                                                    {format(globalDateRange.from, "PP")} -{" "}
+                                                    {format(globalDateRange.to, "PP")}
                                                 </>
                                             ) : (
-                                                format(globalDateRange.from, "PP p")
+                                                format(globalDateRange.from, "PP")
                                             )
                                         ) : (
                                             <span>Pick a date</span>

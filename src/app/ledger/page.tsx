@@ -525,5 +525,3 @@ export default function LedgerPage() {
     </>
   );
 }
-
-
