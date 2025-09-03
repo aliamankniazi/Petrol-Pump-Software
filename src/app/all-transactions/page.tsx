@@ -278,7 +278,6 @@ export default function AllTransactionsPage() {
                             selected={globalDateRange}
                             onSelect={setGlobalDateRange}
                             numberOfMonths={2}
-                            withQuickActions
                         />
                     </PopoverContent>
                 </Popover>

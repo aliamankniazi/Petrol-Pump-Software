@@ -231,9 +231,7 @@ Mianwali Petroleum Service`;
                                         defaultMonth={globalDateRange?.from}
                                         selected={globalDateRange}
                                         onSelect={setGlobalDateRange}
-                                        onSelectAndClose={() => setIsCalendarOpen(false)}
                                         numberOfMonths={2}
-                                        withQuickActions
                                     />
                                 </PopoverContent>
                             </Popover>

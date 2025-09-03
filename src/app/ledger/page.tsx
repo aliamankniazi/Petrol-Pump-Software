@@ -384,7 +384,6 @@ export default function LedgerPage() {
                           }
                         }}
                         initialFocus
-                        withQuickActions
                       />
                     </PopoverContent>
                   </Popover>

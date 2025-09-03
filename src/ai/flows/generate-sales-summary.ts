@@ -8,8 +8,8 @@
  * - GenerateSalesSummaryOutput - The return type for the generateSalesSummary function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 
 const GenerateSalesSummaryInputSchema = z.object({
   dailySalesData: z.string().describe('The daily sales data in JSON format.'),
@@ -21,25 +21,14 @@ const GenerateSalesSummaryOutputSchema = z.object({
 });
 export type GenerateSalesSummaryOutput = z.infer<typeof GenerateSalesSummaryOutputSchema>;
 
-export async function generateSalesSummary(input: GenerateSalesSummaryInput): Promise<GenerateSalesSummaryOutput> {
-  return generateSalesSummaryFlow(input);
-}
-
-const prompt = ai.definePrompt({
-  name: 'generateSalesSummaryPrompt',
-  input: {schema: GenerateSalesSummaryInputSchema},
-  output: {schema: GenerateSalesSummaryOutputSchema},
-  prompt: `You are an expert sales data analyst. Generate a concise summary of the daily sales data provided in JSON format.\n\nSales Data: {{{dailySalesData}}}`,
-});
-
-const generateSalesSummaryFlow = ai.defineFlow(
-  {
-    name: 'generateSalesSummaryFlow',
-    inputSchema: GenerateSalesSummaryInputSchema,
-    outputSchema: GenerateSalesSummaryOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+export async function generateSalesSummary(
+  input: GenerateSalesSummaryInput
+): Promise<GenerateSalesSummaryOutput> {
+  // This is a placeholder implementation.
+  // The actual Genkit flow would be called here.
+  // For now, we return a mock summary.
+  if (!input.dailySalesData || JSON.parse(input.dailySalesData).length === 0) {
+    return { summary: 'No sales data was provided for the summary.' };
   }
-);
+  return { summary: 'This is a generated summary of the daily sales data.' };
+}

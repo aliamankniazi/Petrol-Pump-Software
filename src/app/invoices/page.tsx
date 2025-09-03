@@ -247,7 +247,6 @@ export default function InvoicesPage() {
                                 }
                             }}
                             numberOfMonths={2}
-                            withQuickActions
                         />
                     </PopoverContent>
                 </Popover>
