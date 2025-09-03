@@ -8,7 +8,6 @@
  * - GenerateSalesSummaryOutput - The return type for the generateSalesSummary function.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const GenerateSalesSummaryInputSchema = z.object({
