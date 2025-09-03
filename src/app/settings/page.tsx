@@ -89,6 +89,7 @@ export default function SettingsPage() {
       reset({
         ...productToEdit,
         hasSubUnit: !!productToEdit.subUnit,
+        subUnit: productToEdit.subUnit ?? undefined,
       });
     } else {
       reset({
@@ -102,7 +103,7 @@ export default function SettingsPage() {
   const onProductSubmit: SubmitHandler<ProductFormValues> = React.useCallback(async (data) => {
     const productData: Omit<Product, 'id'|'timestamp'> = {
         ...data,
-        subUnit: data.hasSubUnit ? data.subUnit : null,
+        subUnit: data.hasSubUnit ? data.subUnit : undefined,
     };
 
     if (productToEdit) {
