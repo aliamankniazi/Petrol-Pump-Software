@@ -10,10 +10,10 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isFirebaseConfigured()) {
+    if (!isFirebaseConfigured() || !auth) {
       setLoading(false);
       console.warn("Firebase is not configured, authentication will not work.");
-      return;
+      return () => {}; // Return an empty cleanup function
     }
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {

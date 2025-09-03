@@ -32,6 +32,14 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth) {
+        toast({
+            variant: 'destructive',
+            title: 'Authentication Error',
+            description: 'Firebase authentication is not configured correctly.',
+        });
+        return;
+    }
     try {
       // Set persistence based on "Remember Me"
       const persistence = rememberMe ? browserLocalPersistence : browserSessionPersistence;
