@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -156,10 +157,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       {item.subItems?.map((sub, subIndex) => (
                         <SidebarMenuSubItem key={subIndex}>
                             <SidebarMenuSubButton asChild isActive={pathname === sub.href}>
-                                <Link href={sub.href}>
-                                    <sub.icon />
-                                    <span>{sub.label}</span>
-                                </Link>
+                                {sub.href ? (
+                                    <Link href={sub.href}>
+                                        <sub.icon />
+                                        <span>{sub.label}</span>
+                                    </Link>
+                                ) : (
+                                    <span className="opacity-70 cursor-not-allowed">
+                                        <sub.icon />
+                                        <span>{sub.label}</span>
+                                    </span>
+                                )}
                             </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       ))}

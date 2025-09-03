@@ -100,7 +100,7 @@ export default function InvoicePage() {
         }
             
         return {
-          type: 'Sale' as 'Sale' | 'Purchase',
+          type: 'Sale' as const,
           id: transaction.id!,
           date: transaction.timestamp!,
           partner: {
@@ -150,7 +150,7 @@ export default function InvoicePage() {
             .slice(0, 10);
             
         return {
-          type: 'Purchase' as 'Sale' | 'Purchase',
+          type: 'Purchase' as const,
           id: purchase.id!,
           date: purchase.timestamp!,
           partner: {
