@@ -1,16 +1,5 @@
 
 {
-  "hosting": {
-    "source": ".",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "frameworksBackend": {
-      "region": "us-central1"
-    }
-  },
   "database": {
     "instance": "pumppal-n1b9n-default-rtdb",
     "rules": "src/database.rules.json"
