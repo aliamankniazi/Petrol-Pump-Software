@@ -338,12 +338,15 @@ export default function CustomerLedgerPage() {
   
   const getBadgeVariant = (entry: LedgerEntry) => {
     type AllowedType = 'Sale' | 'Purchase' | 'Payment' | 'Cash Advance' | 'Supplier Payment' | 'Investment' | 'Withdrawal' | 'Salary';
-
-     const normalizedType: AllowedType = entry.type === 'Purchase Return'
-      ? 'Purchase'
-      : entry.type === 'Other Income'
-      ? 'Sale'
-      : (entry.type as AllowedType);
+     
+    const rawType = String((entry as any).type);
+    
+    const normalizedType: AllowedType =
+      rawType === 'Purchase Return'
+        ? 'Purchase'
+        : rawType === 'Other Income'
+        ? 'Sale'
+        : (rawType as AllowedType);
 
      switch(normalizedType) {
         case 'Sale':
