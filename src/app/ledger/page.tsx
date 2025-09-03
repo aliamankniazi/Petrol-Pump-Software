@@ -75,27 +75,26 @@ export default function LedgerPage() {
     transactions.forEach(tx => {
         if (!tx.id || !tx.timestamp) return;
 
-        // If it's a walk-in or paid upfront, create a single balanced entry
-        if (tx.customerId === 'walk-in' || tx.paymentMethod !== 'On Credit') {
+        // If it's a credit sale to a known customer, it's a debit for the journal (money owed to business)
+        if (tx.customerId && tx.customerId !== 'walk-in' && tx.paymentMethod === 'On Credit') {
              combined.push({
-                id: `sale-${tx.id}`,
-                timestamp: tx.timestamp,
-                description: `Sale to ${tx.customerName} via ${tx.paymentMethod}`,
-                type: 'Sale',
-                debit: tx.totalAmount || 0,
-                credit: tx.totalAmount || 0,
-            });
-        }
-        // If it's a credit sale to a customer, create only the debit part for the journal.
-        // The credit part is implicitly handled in the customer's ledger.
-        else {
-            combined.push({
                 id: `sale-${tx.id}`,
                 timestamp: tx.timestamp,
                 description: `Credit Sale to ${tx.customerName}`,
                 type: 'Sale',
                 debit: tx.totalAmount || 0,
                 credit: 0,
+            });
+        }
+        // If it's a walk-in or paid upfront, it's a credit for the journal (money in)
+        else {
+            combined.push({
+                id: `sale-${tx.id}`,
+                timestamp: tx.timestamp,
+                description: `Sale to ${tx.customerName} via ${tx.paymentMethod}`,
+                type: 'Sale',
+                debit: 0,
+                credit: tx.totalAmount || 0,
             });
         }
     });
@@ -526,4 +525,5 @@ export default function LedgerPage() {
     </>
   );
 }
+
 
