@@ -77,8 +77,8 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id'>>(
   }, [collectionName, collectionRef]);
 
   const addDoc = useCallback(async (newData: T, docId?: string): Promise<T & { id: string }> => {
-    if (!db) {
-      throw new Error("Database not configured.");
+    if (!db || !user) {
+      throw new Error("Database not configured or user not authenticated.");
     }
 
     let docRef: DatabaseReference;
@@ -90,8 +90,8 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id'>>(
       docRef = ref(db, `${collectionName}/${newId}`);
     } else {
       // Generate a new ID
-      const collectionRef = ref(db, collectionName);
-      const newPushRef = push(collectionRef);
+      const collectionRefForPush = ref(db, collectionName);
+      const newPushRef = push(collectionRefForPush);
       docRef = newPushRef;
       newId = newPushRef.key!;
     }
@@ -101,28 +101,28 @@ export function useDatabaseCollection<T extends Omit<DbDoc, 'id'>>(
     await set(docRef, docToWrite);
     return { ...newData, id: newId };
 
-  }, [collectionName]);
+  }, [collectionName, user]);
   
   const updateDoc = useCallback(async (id: string, updatedData: Partial<T>) => {
-     if (!db) return;
+     if (!db || !user) return;
      const path = `${collectionName}/${id}`;
      
     const docRef = ref(db, path);
     await update(docRef, updatedData);
-  }, [collectionName]);
+  }, [collectionName, user]);
 
   const deleteDoc = useCallback(async (id: string) => {
-    if (!db) return;
+    if (!db || !user) return;
     const path = `${collectionName}/${id}`;
     const docRef = ref(db, path);
     await remove(docRef);
-  }, [collectionName]);
+  }, [collectionName, user]);
 
   const clearCollection = useCallback(async () => {
-    if (!db) return;
-    const collectionRef = ref(db, collectionName);
-    await remove(collectionRef);
-  }, [collectionName]);
+    if (!db || !user) return;
+    const collectionRefForClear = ref(db, collectionName);
+    await remove(collectionRefForClear);
+  }, [collectionName, user]);
 
   return { data, addDoc, updateDoc, deleteDoc, clearCollection, loading };
 }
