@@ -130,10 +130,17 @@ export default function DashboardPage() {
         
         const sortedDays = Array.from(salesMap.keys()).sort((a,b) => new Date(a).getTime() - new Date(b).getTime()).slice(-30);
         
-        return sortedDays.map(day => ({
+        const chartData = sortedDays.map(day => ({
             date: format(new Date(day), 'MMM d'),
             sales: salesMap.get(day) || 0,
         }));
+        
+        // If there's no data, return a single entry to prevent chart crashing
+        if (chartData.length === 0) {
+            return [{ date: 'No Data', sales: 0 }];
+        }
+
+        return chartData;
 
     }, [filteredData.transactions]);
     
@@ -205,11 +212,11 @@ export default function DashboardPage() {
                                 {globalDateRange?.from ? (
                                     globalDateRange.to ? (
                                         <>
-                                            {format(globalDateRange.from, "PP p")} -{" "}
-                                            {format(globalDateRange.to, "PP p")}
+                                            {format(globalDateRange.from, "PP")} -{" "}
+                                            {format(globalDateRange.to, "PP")}
                                         </>
                                     ) : (
-                                        format(globalDateRange.from, "PP p")
+                                        format(globalDateRange.from, "PP")
                                     )
                                 ) : (
                                     <span>Pick a date range</span>
