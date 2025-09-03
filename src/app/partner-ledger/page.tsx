@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useCustomerPayments } from '@/hooks/use-customer-payments';
 import { useCustomers } from '@/hooks/use-customers';
 import { useTransactions } from '@/hooks/use-transactions';
@@ -56,6 +56,9 @@ export default function UnifiedLedgerPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [entryToDelete, setEntryToDelete] = useState<CombinedEntry | null>(null);
   const { toast } = useToast();
+  
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => { setIsClient(true); setSelectedDate(new Date()); }, []);
 
   const isLoaded = paymentsLoaded && customersLoaded && transactionsLoaded && advancesLoaded && suppliersLoaded && purchasesLoaded && supplierPaymentsLoaded && investmentsLoaded && expensesLoaded;
 
@@ -323,6 +326,7 @@ export default function UnifiedLedgerPage() {
     const [typePrefix, id] = entryToDelete.id.split(/-(.*)/s);
 
     try {
+      if (!id) throw new Error('Invalid entry ID for deletion.');
       switch(typePrefix) {
           case 'tx': deleteTransaction(id); break;
           case 'pur': deletePurchase(id); break;
@@ -361,6 +365,8 @@ export default function UnifiedLedgerPage() {
     // For customers & employees, a positive balance means they owe us. (Bad for them, so red)
     return balance > 0 ? 'text-destructive' : 'text-green-600';
   }, []);
+  
+  if (!isClient) return null;
 
   return (
     <>

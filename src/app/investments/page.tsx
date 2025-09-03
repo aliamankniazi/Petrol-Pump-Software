@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
@@ -318,7 +317,7 @@ export default function InvestmentsPage() {
                     <TableBody>
                     {investments.map(t => (
                         <TableRow key={t.id}>
-                            <TableCell className="font-medium">{format(new Date(t.timestamp), 'PP')}</TableCell>
+                            <TableCell className="font-medium">{t.timestamp ? format(new Date(t.timestamp), 'PP') : 'N/A'}</TableCell>
                             <TableCell>{t.partnerName}</TableCell>
                             <TableCell>
                                 <Badge variant={t.type === 'Investment' ? 'outline' : 'destructive'} className={cn(t.type === 'Investment' && 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700')}>

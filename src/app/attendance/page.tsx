@@ -83,12 +83,13 @@ const CalendarCell = ({ status, isSelectedDay }: { status?: AttendanceStatus, is
 export default function AttendancePage() {
   const { employees, isLoaded: employeesLoaded } = useEmployees();
   const { attendanceByDate, addOrUpdateAttendance, deleteAttendance, isLoaded: attendanceLoaded } = useAttendance();
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
+    setSelectedDate(new Date());
   }, []);
 
   const handleDateChange = (date: Date | undefined) => {
@@ -98,6 +99,7 @@ export default function AttendancePage() {
   };
 
   const handleAttendanceChange = useCallback((employee: Employee, status: AttendanceStatus) => {
+    if (!selectedDate) return;
     addOrUpdateAttendance({
       employeeId: employee.id!,
       employeeName: employee.name,
@@ -112,6 +114,7 @@ export default function AttendancePage() {
   }, [selectedDate, addOrUpdateAttendance, toast]);
 
   const handleClearAttendance = useCallback((employeeId: string) => {
+      if (!selectedDate) return;
       const dateString = format(selectedDate, 'yyyy-MM-dd');
       deleteAttendance(employeeId, dateString);
       toast({
@@ -121,6 +124,7 @@ export default function AttendancePage() {
   }, [selectedDate, deleteAttendance, toast]);
 
   const handleMarkAllPresent = useCallback(() => {
+    if (!selectedDate) return;
     const dateString = format(selectedDate, 'yyyy-MM-dd');
     employees.forEach(employee => {
         addOrUpdateAttendance({
@@ -138,12 +142,13 @@ export default function AttendancePage() {
   }, [selectedDate, employees, addOrUpdateAttendance, toast]);
   
   const currentMonthDays = useMemo(() => {
+    if (!selectedDate) return [];
     const start = startOfMonth(selectedDate);
     const end = endOfMonth(selectedDate);
     return eachDayOfInterval({ start, end });
   }, [selectedDate]);
 
-  if (!isClient) {
+  if (!isClient || !selectedDate) {
     return null;
   }
 

@@ -282,7 +282,7 @@ export default function EmployeesPage() {
                   <TableBody>
                     {employees.map(e => (
                         <TableRow key={e.id}>
-                          <TableCell className="font-medium">{format(new Date(e.hireDate), 'PP')}</TableCell>
+                          <TableCell className="font-medium">{e.hireDate ? format(new Date(e.hireDate), 'PP') : 'N/A'}</TableCell>
                           <TableCell>
                             <div>{e.name}</div>
                             <div className="text-xs text-muted-foreground">{e.mobileNumber || 'No mobile'}</div>

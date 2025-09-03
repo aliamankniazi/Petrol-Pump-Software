@@ -259,7 +259,7 @@ export default function PurchaseReturnsPage() {
                   {purchaseReturns.map(p => {
                     return (
                       <TableRow key={p.id}>
-                        <TableCell className="font-medium">{format(new Date(p.timestamp), 'PP')}</TableCell>
+                        <TableCell className="font-medium">{p.timestamp ? format(new Date(p.timestamp), 'PP') : 'N/A'}</TableCell>
                         <TableCell>{p.supplier}</TableCell>
                         <TableCell>{p.productName}</TableCell>
                         <TableCell className="text-right">{p.volume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>

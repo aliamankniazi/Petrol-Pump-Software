@@ -155,7 +155,7 @@ export default function BankManagementPage() {
                 <TableBody>
                   {bankAccounts.map(account => (
                       <TableRow key={account.id}>
-                        <TableCell className="font-medium">{format(new Date(account.timestamp), 'PP')}</TableCell>
+                        <TableCell className="font-medium">{account.timestamp ? format(new Date(account.timestamp), 'PP') : 'N/A'}</TableCell>
                         <TableCell>{account.bankName}</TableCell>
                         <TableCell>{account.accountNumber}</TableCell>
                         <TableCell className="text-right font-bold">PKR {account.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
