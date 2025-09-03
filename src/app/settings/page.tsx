@@ -90,7 +90,7 @@ export default function SettingsPage() {
         ...productToEdit,
         hasSubUnit: !!productToEdit.subUnit,
         subUnit: productToEdit.subUnit ?? undefined,
-      });
+      } as any);
     } else {
       reset({
         name: '', category: null, productCode: null, barcode: null, productGroupId: null,

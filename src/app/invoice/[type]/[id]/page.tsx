@@ -72,8 +72,10 @@ export default function InvoicePage() {
 
   const invoiceData = useMemo(() => {
     if (!isLoaded) return null;
+    
+    const invoiceType: 'Sale' | 'Purchase' = type === 'sale' ? 'Sale' : 'Purchase';
 
-    if (type === 'sale') {
+    if (invoiceType === 'Sale') {
       const transaction = transactions.find(t => t.id === id);
       if (!transaction) return null;
 
@@ -100,7 +102,7 @@ export default function InvoicePage() {
         }
             
         return {
-          type: 'Sale' as const,
+          type: invoiceType,
           id: transaction.id!,
           date: transaction.timestamp!,
           partner: {
@@ -128,7 +130,7 @@ export default function InvoicePage() {
           history: recentHistory,
         };
       
-    } else if (type === 'purchase') {
+    } else if (invoiceType === 'Purchase') {
       const purchase = purchases.find(p => p.id === id);
       if (purchase) {
         const supplier = suppliers.find(s => s.id === purchase.supplierId);
@@ -142,7 +144,7 @@ export default function InvoicePage() {
             supplierLedgerEntries.push({ id: `spay-${sp.id}`, timestamp: sp.timestamp!, description: 'Payment Made', type: 'Supplier Payment', debit: sp.amount, credit: 0 });
         });
         purchaseReturns.filter(pr => pr.supplierId === purchase.supplierId).forEach(pr => {
-            supplierLedgerEntries.push({ id: `pret-${pr.id}`, timestamp: pr.timestamp!, description: 'Purchase Return', type: 'Purchase Return', debit: pr.totalRefund, credit: 0 });
+            supplierLedgerEntries.push({ id: `pret-${pr.id}`, timestamp: pr.timestamp!, description: 'Purchase Return', type: 'Purchase', debit: pr.totalRefund, credit: 0 });
         });
 
         const recentHistory = supplierLedgerEntries
@@ -150,7 +152,7 @@ export default function InvoicePage() {
             .slice(0, 10);
             
         return {
-          type: 'Purchase' as const,
+          type: invoiceType,
           id: purchase.id!,
           date: purchase.timestamp!,
           partner: {

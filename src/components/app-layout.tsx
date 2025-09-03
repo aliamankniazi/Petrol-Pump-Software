@@ -140,10 +140,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               'href' in item && item.href ? (
                 <SidebarMenuItem key={index}>
                   <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.label}>
-                    <Link href={item.href}>
-                        <item.icon />
-                        <span>{item.label}</span>
-                    </Link>
+                    {item.href ? (
+                        <Link href={item.href}>
+                            <item.icon />
+                            <span>{item.label}</span>
+                        </Link>
+                    ) : (
+                        <span className="opacity-70 cursor-not-allowed">
+                            <item.icon />
+                            <span>{item.label}</span>
+                        </span>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ) : (
