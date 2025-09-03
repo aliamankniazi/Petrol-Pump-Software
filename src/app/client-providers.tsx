@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { DataProvider } from '@/hooks/use-database';
 import { isFirebaseConfigured } from '@/lib/firebase-client';
 import { AppLayout } from '@/components/app-layout';
-import { GlobalDateProvider } from '@/hooks/use-global-date.tsx';
+import { GlobalDateProvider } from '@/hooks/use-global-date';
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
