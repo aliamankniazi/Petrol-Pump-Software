@@ -208,7 +208,9 @@ export default function AttendancePage() {
                         });
 
                         const firstDayOfMonth = getDay(startOfMonth(selectedDate));
-                        const calendarDays = Array.from({length: firstDayOfMonth}, () => null).concat(currentMonthDays.map(d => d.getDate()));
+                        const leadingNulls: (number | null)[] = Array.from({length: firstDayOfMonth}, () => null);
+                        const calendarDays: (number | null)[] = leadingNulls.concat(currentMonthDays.map(d => d.getDate()));
+
 
                         return (
                         <TableRow key={employee.id}>
