@@ -27,7 +27,7 @@ import { useGlobalDate } from '@/hooks/use-global-date';
 import { DateRange } from 'react-day-picker';
 import { DatePickerDropdowns } from '@/components/ui/date-picker-dropdowns';
 
-const EXPENSE_CATEGORIES: ExpenseCategory[] = ['Utilities', 'Salaries', 'Maintenance', 'Other'];
+const EXPENSE_CATEGORIES = ['Utilities', 'Salaries', 'Maintenance', 'Other'] as const;
 
 const expenseSchema = z.object({
   description: z.string().min(1, 'Description is required'),
@@ -74,6 +74,7 @@ export default function ExpensesPage() {
   const onSubmit: SubmitHandler<ExpenseFormValues> = (data) => {
     addExpense({
       ...data,
+      category: data.category as ExpenseCategory,
     });
     toast({
       title: 'Expense Recorded',
@@ -116,7 +117,7 @@ export default function ExpensesPage() {
         );
     }
     
-    return validExpenses;
+    return validExpenses.sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime());
   }, [expenses, globalDateRange, categoryFilter, searchTerm]);
 
   const totalFilteredAmount = useMemo(() => {

@@ -21,7 +21,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { DatePickerDropdowns } from '@/components/ui/date-picker-dropdowns';
 
-const INCOME_CATEGORIES: OtherIncomeCategory[] = ['Service Station', 'Tire Shop', 'Tuck Shop', 'Other'];
+const INCOME_CATEGORIES = ['Service Station', 'Tire Shop', 'Tuck Shop', 'Other'] as const;
 
 const incomeSchema = z.object({
   description: z.string().min(1, 'Description is required'),
@@ -57,6 +57,7 @@ export default function OtherIncomesPage() {
   const onSubmit: SubmitHandler<IncomeFormValues> = (data) => {
     addOtherIncome({
         ...data,
+        category: data.category as OtherIncomeCategory,
     });
     toast({
       title: 'Income Recorded',
@@ -85,7 +86,7 @@ export default function OtherIncomesPage() {
             return false;
         }
         return true;
-    });
+    }).sort((a, b) => new Date(b.timestamp!).getTime() - new Date(a.timestamp!).getTime());
   }, [otherIncomes, categoryFilter, searchTerm]);
 
   if (!isClient) {
