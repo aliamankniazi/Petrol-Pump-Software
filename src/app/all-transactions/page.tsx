@@ -176,10 +176,9 @@ export default function AllTransactionsPage() {
   }
 
   const getCustomerForEntry = useCallback((entry: CombinedEntry): Customer | undefined => {
-      if (entry.type === 'Sale' && 'customerId' in entry.original && entry.original.customerId) {
-          return customers.find(c => c.id === entry.original.customerId);
-      }
-      return undefined;
+    return 'customerId' in entry.original
+      ? customers.find(c => c.id === (entry.original as { customerId: string }).customerId)
+      : undefined;
   }, [customers]);
   
   const handleDeleteEntry = useCallback(() => {
