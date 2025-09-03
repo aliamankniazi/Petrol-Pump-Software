@@ -328,9 +328,6 @@ export default function CustomerLedgerPage() {
   const isCreditType = (entryType: LedgerEntry['type']) => {
     switch (entryType) {
         case 'Sale':
-        case 'Purchase Return':
-        case 'Other Income':
-        case 'Investment':
         case 'Payment': // Customer Payment
         case 'Salary':
             return true;
@@ -340,8 +337,27 @@ export default function CustomerLedgerPage() {
   };
   
   const getBadgeVariant = (entry: LedgerEntry) => {
-     if (isCreditType(entry.type)) return 'outline'; // For credits to the business
-     return 'destructive'; // For debits from the business
+    type AllowedType = 'Sale' | 'Purchase' | 'Payment' | 'Cash Advance' | 'Supplier Payment' | 'Investment' | 'Withdrawal' | 'Salary';
+
+     const normalizedType: AllowedType = entry.type === 'Purchase Return'
+      ? 'Purchase'
+      : entry.type === 'Other Income'
+      ? 'Sale'
+      : (entry.type as AllowedType);
+
+     switch(normalizedType) {
+        case 'Sale':
+        case 'Cash Advance':
+        case 'Supplier Payment':
+        case 'Withdrawal':
+          return 'destructive';
+        case 'Payment':
+        case 'Purchase':
+        case 'Investment':
+        case 'Salary':
+          return 'outline';
+        default: return 'default'
+     }
   }
   
   const getBadgeClass = (entry: LedgerEntry) => {
