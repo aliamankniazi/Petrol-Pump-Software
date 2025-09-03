@@ -86,7 +86,7 @@ export default function InvestmentsPage() {
   };
   
   const handleDeleteTransaction = useCallback(() => {
-    if (!transactionToDelete) return;
+    if (!transactionToDelete?.id) return;
     deleteInvestment(transactionToDelete.id);
     toast({ title: 'Transaction Deleted', description: 'The investment/withdrawal record has been removed.'});
     setTransactionToDelete(null);

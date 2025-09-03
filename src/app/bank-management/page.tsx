@@ -53,7 +53,7 @@ export default function BankManagementPage() {
   }, [addBankAccount, toast, reset]);
   
   const onEditSubmit: SubmitHandler<BankAccountFormValues> = useCallback((data) => {
-    if (!accountToEdit) return;
+    if (!accountToEdit?.id) return;
     updateBankAccount(accountToEdit.id, data);
     toast({
         title: 'Account Updated',
@@ -63,7 +63,7 @@ export default function BankManagementPage() {
   }, [accountToEdit, updateBankAccount, toast]);
 
   const handleDeleteAccount = useCallback(() => {
-    if (!accountToDelete) return;
+    if (!accountToDelete?.id) return;
     deleteBankAccount(accountToDelete.id);
     toast({
         title: 'Account Deleted',

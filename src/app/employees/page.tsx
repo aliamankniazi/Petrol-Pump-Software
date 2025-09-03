@@ -132,16 +132,17 @@ export default function EmployeesPage() {
   }, [addEmployee, toast, reset]);
 
   const onEditSubmit: SubmitHandler<EmployeeFormValues> = useCallback((data) => {
-    if (!employeeToEdit) return;
+    if (!employeeToEdit?.id) return;
     updateEmployee(employeeToEdit.id, { ...data, hireDate: data.hireDate.toISOString() });
     // Also update the associated customer record for name/contact changes
+    if (!employeeToEdit?.id) return;
     updateCustomer(employeeToEdit.id, { name: data.name, contact: data.mobileNumber || '' });
     toast({ title: 'Employee Updated', description: "The employee's details have been saved." });
     setEmployeeToEdit(null);
   }, [employeeToEdit, updateEmployee, updateCustomer, toast]);
 
   const handleDeleteEmployee = useCallback(() => {
-    if (!employeeToDelete) return;
+    if (!employeeToDelete?.id) return;
     // Note: Deleting employee doesn't delete the customer record to preserve ledger history.
     deleteEmployee(employeeToDelete.id);
     toast({ title: 'Employee Deleted', description: `${employeeToDelete.name} has been removed.` });

@@ -79,7 +79,7 @@ function TransactionsPageContent() {
              <CardHeader>
                 <CardTitle>New Salary Payment</CardTitle>
                 <CardDescription>Calculate and record a salary payment for an employee.</CardDescription>
-             </CardHeader>
+             </Header>
             <CardContent>
                 <SalaryPaymentForm />
             </CardContent>

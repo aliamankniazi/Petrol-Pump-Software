@@ -85,7 +85,7 @@ export default function ExpensesPage() {
   };
   
   const handleDeleteExpense = () => {
-    if (!expenseToDelete) return;
+    if (!expenseToDelete?.id) return;
     deleteExpense(expenseToDelete.id);
     toast({
       title: 'Expense Deleted',

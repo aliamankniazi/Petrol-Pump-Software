@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useForm, type SubmitHandler, Controller } from 'react-hook-form';
@@ -66,7 +67,7 @@ export default function OtherIncomesPage() {
   };
   
   const handleDeleteIncome = () => {
-    if (!incomeToDelete) return;
+    if (!incomeToDelete?.id) return;
     deleteOtherIncome(incomeToDelete.id);
     toast({
       title: 'Income Deleted',
