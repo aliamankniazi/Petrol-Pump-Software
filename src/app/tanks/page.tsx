@@ -63,9 +63,9 @@ export default function TankManagementPage() {
     const product = products.find(p => p.id === data.productId);
     if (!product) return;
 
-    addTankReading({ 
+    addTankReading({
         productId: data.productId,
-        fuelType: product.name as any,
+        fuelType: product.name as 'Unleaded' | 'Premium' | 'Diesel',
         meterReading: data.meterReading,
         timestamp: data.date.toISOString(),
     });

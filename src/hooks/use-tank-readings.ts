@@ -2,19 +2,27 @@
 'use client';
 
 import { useCallback } from 'react';
-import type { TankReading } from '@/lib/types';
+import type { TankReading, FuelType } from '@/lib/types';
 import { useDatabaseCollection } from './use-database-collection';
 import { useProducts } from './use-products';
 import { useTransactions } from './use-transactions';
 
 const COLLECTION_NAME = 'tank-readings';
 
+// The input type for the hook is simplified. It only needs the raw reading data.
+type AddTankReadingInput = {
+    productId: string; 
+    fuelType: FuelType; 
+    meterReading: number;
+    timestamp: string;
+}
+
 export function useTankReadings() {
   const { data: tankReadings, addDoc, loading } = useDatabaseCollection<TankReading>(COLLECTION_NAME);
   const { products, updateProductStock } = useProducts();
   const { transactions } = useTransactions();
 
-  const addTankReading = useCallback(async (reading: Omit<TankReading, 'id' | 'calculatedUsage' | 'salesSinceLastReading' | 'variance'>) => {
+  const addTankReading = useCallback(async (reading: AddTankReadingInput) => {
     
     // Find the previous reading for the same tank
     const lastReading = tankReadings
@@ -42,7 +50,7 @@ export function useTankReadings() {
     // Calculate variance
     const variance = calculatedUsage - salesSinceLastReading;
 
-    const readingWithCalculations: TankReading = {
+    const readingWithCalculations: Omit<TankReading, 'id'> = {
       ...reading,
       previousMeterReading,
       calculatedUsage,
@@ -50,7 +58,7 @@ export function useTankReadings() {
       variance,
     }
 
-    const newDoc = await addDoc(readingWithCalculations);
+    const newDoc = await addDoc(readingWithCalculations as TankReading);
     
     // Update the stock of that product by decrementing the usage
     if (reading.productId && calculatedUsage > 0) {
