@@ -136,7 +136,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <SidebarContent>
           <SidebarMenu>
             {navItems.map((item, index) => (
-              'href' in item ? (
+              'href' in item && item.href ? (
                 <SidebarMenuItem key={index}>
                   <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.label}>
                     <Link href={item.href}>
@@ -146,24 +146,26 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ) : (
-                <SidebarGroup key={index}>
-                  <SidebarGroupLabel className="flex items-center gap-2">
-                    <item.icon />
-                    {item.label}
-                  </SidebarGroupLabel>
-                  <SidebarMenuSub>
-                    {item.subItems.map((sub, subIndex) => (
-                      <SidebarMenuSubItem key={subIndex}>
-                          <SidebarMenuSubButton asChild isActive={pathname === sub.href}>
-                              <Link href={sub.href}>
-                                  <sub.icon />
-                                  <span>{sub.label}</span>
-                              </Link>
-                          </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    ))}
-                  </SidebarMenuSub>
-                </SidebarGroup>
+                'subItems' in item && (
+                  <SidebarGroup key={index}>
+                    <SidebarGroupLabel className="flex items-center gap-2">
+                      <item.icon />
+                      {item.label}
+                    </SidebarGroupLabel>
+                    <SidebarMenuSub>
+                      {item.subItems?.map((sub, subIndex) => (
+                        <SidebarMenuSubItem key={subIndex}>
+                            <SidebarMenuSubButton asChild isActive={pathname === sub.href}>
+                                <Link href={sub.href}>
+                                    <sub.icon />
+                                    <span>{sub.label}</span>
+                                </Link>
+                            </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </SidebarGroup>
+                )
               )
             ))}
           </SidebarMenu>
