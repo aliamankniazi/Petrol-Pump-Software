@@ -184,7 +184,7 @@ export default function AllTransactionsPage() {
   
   const handleDeleteEntry = useCallback(() => {
     if (!entryToDelete) return;
-    
+
     try {
         switch(entryToDelete.type) {
             case 'Sale': deleteTransaction(entryToDelete.originalId); break;
@@ -260,11 +260,11 @@ export default function AllTransactionsPage() {
                             {globalDateRange?.from ? (
                                 globalDateRange.to ? (
                                     <>
-                                        {format(globalDateRange.from, "PP p")} -{" "}
-                                        {format(globalDateRange.to, "PP p")}
+                                        {format(globalDateRange.from, "PP")} -{" "}
+                                        {format(globalDateRange.to, "PP")}
                                     </>
                                 ) : (
-                                    format(globalDateRange.from, "PP p")
+                                    format(globalDateRange.from, "PP")
                                 )
                             ) : (
                                 <span>Pick a date range</span>
@@ -278,7 +278,6 @@ export default function AllTransactionsPage() {
                             defaultMonth={globalDateRange?.from}
                             selected={globalDateRange}
                             onSelect={setGlobalDateRange}
-                            onSelectAndClose={() => setIsCalendarOpen(false)}
                             numberOfMonths={2}
                             withQuickActions
                         />
